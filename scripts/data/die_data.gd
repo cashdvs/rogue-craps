@@ -23,6 +23,11 @@ extends Resource
 ## Player-facing explanation of the ability.
 @export_multiline var ability_description: String = ""
 
+## What the die is made of, for impact sounds and later looks: "bone"
+## (standard), later "brass", "iron", "obsidian". Passed in the 3D dice's
+## impact signal so the Sound Designer can pick the right clack.
+@export var material: String = "bone"
+
 ## Coin cost to go from Lv1->Lv2, Lv2->Lv3, Lv3->Lv4 (doc: 15 / 30 / 50).
 ## Not used by any system yet; stored so the shop can read it later.
 @export var level_up_costs: PackedInt32Array = PackedInt32Array([15, 30, 50])

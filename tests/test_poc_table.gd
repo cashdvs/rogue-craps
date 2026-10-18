@@ -30,6 +30,7 @@ func _initialize() -> void:
 	_test_table_flow_soul()
 	_test_hot_seven_toggle()
 	_test_no_stake_no_soul()
+	_test_wins_never_restore_soul()
 	_test_target_clear()
 	_test_out_of_rolls()
 	_test_bust()
@@ -151,6 +152,40 @@ func _test_no_stake_no_soul() -> void:
 	t.roll(_dice(2, 2))
 	r = t.roll(_dice(3, 4))
 	_check(r.soul_damage == 6, "with a 5 stake the seven-out still burns (2+1)x2 = 6", str(r.soul_damage))
+
+
+## POC Soul rule (PM): wins never restore Soul. Lose some Soul first, then
+## win naturals and point hits with big bets: Soul never goes up, and
+## soul_changed never reports a positive change.
+func _test_wins_never_restore_soul() -> void:
+	var t := _tuning.duplicate() as TuningData
+	t.table_rule_enabled = false
+	t.target_bankroll = 100000
+	t.roll_limit = 200
+	var poc := PocTable.new(t)
+	poc.bankroll.add(5000)
+	var gains: Array[int] = [0]
+	poc.soul_changed.connect(func(_s: int, delta: int, _r: String) -> void:
+		if delta > 0:
+			gains[0] += 1)
+	# Lose: craps on the come-out with a Pass bet.
+	poc.place_bet(_bet(&"pass"), 25)
+	poc.roll(_dice(1, 1))
+	var after_loss := poc.soul
+	_check(after_loss < t.soul_max, "wins/no-restore: a craps loss cost Soul first (%d)" % after_loss)
+	var highest := after_loss
+	for i in 10:
+		poc.place_bet(_bet(&"pass"), 25)
+		var natural := poc.roll(_dice(5, 6))  # natural 11
+		highest = maxi(highest, poc.soul)
+		_check(natural.soul_damage == 0, "wins/no-restore: natural #%d deals no Soul damage" % i)
+		poc.place_bet(_bet(&"pass"), 25)
+		poc.roll(_dice(2, 2))  # point 4
+		poc.roll(_dice(1, 3))  # point hit
+		highest = maxi(highest, poc.soul)
+	_check_eq(poc.soul, after_loss, "wins/no-restore: Soul unchanged after 10 naturals + 10 point hits")
+	_check_eq(highest, after_loss, "wins/no-restore: Soul never rose at any point")
+	_check_eq(gains[0], 0, "wins/no-restore: soul_changed never reported a gain")
 
 
 func _test_hot_seven_toggle() -> void:

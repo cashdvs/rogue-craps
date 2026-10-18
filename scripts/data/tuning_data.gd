@@ -143,3 +143,105 @@ extends Resource
 ## Doc v0.4 puts table rules out of POC scope, so this ships OFF. Turn it on
 ## (or use the F1 debug panel) to try Hot Seven: plaque + doubled seven-outs.
 @export var table_rule_enabled: bool = false
+
+# ---------------------------------------------------------------------------------
+# 3D table (art/concept/poc_3d.md). Units are meters; the felt is at y = 0,
+# +Z points at the player, -Z at the dealer.
+# ---------------------------------------------------------------------------------
+
+@export_group("3D camera (poc_3d.md 1)")
+## Camera pitch down from horizontal, degrees (spec: 55; Cash: 55-65 is fine).
+@export_range(30.0, 80.0) var cam_pitch_deg: float = 55.0
+## Vertical field of view (spec: a narrow 36 for the "diorama" read).
+@export var cam_fov: float = 36.0
+## Distance from the look-at pivot (spec: 2.5 m).
+@export var cam_distance: float = 2.5
+## Look-at pivot on the felt (spec: slightly toward the player).
+@export var cam_pivot: Vector3 = Vector3(0.0, 0.0, 0.05)
+## Reveal follow/zoom: distance and timings (spec: 2.5 -> 2.1 m in 0.30 s, back in 0.40 s).
+@export var cam_reveal_distance: float = 2.1
+@export var cam_reveal_time: float = 0.30
+@export var cam_return_time: float = 0.40
+## Max pivot offset from center while following the dice (spec: +-0.35 m).
+@export var cam_follow_clamp: float = 0.35
+## Seven-out roll tilt (degrees), recovers over cam_tilt_time.
+@export var cam_seven_out_tilt_deg: float = 1.5
+@export var cam_tilt_time: float = 0.6
+## Shake mapping from the 2D pixel values: 1 px = this many meters + degrees.
+@export var shake_m_per_px: float = 0.0015
+@export var shake_deg_per_px: float = 0.03
+@export var shake_cap_m: float = 0.03
+## Phones: dice must render at least this many pixels wide (Cash: 48).
+@export var min_die_px: float = 48.0
+
+@export_group("3D dice and physics (poc_3d.md 3)")
+## Die edge length (spec: 0.08 m, "raise to 0.09 if phones need it").
+@export var die_size: float = 0.08
+@export var die_mass: float = 0.02
+@export var die_friction: float = 0.55
+@export var die_bounce: float = 0.35
+## Spec 0.1 / 0.6; raised (with die_gravity_scale) for the 0.9 s median settle.
+@export var die_linear_damp: float = 0.8
+@export var die_angular_damp: float = 2.0
+@export var felt_friction: float = 0.7
+@export var felt_bounce: float = 0.1
+@export var rail_friction: float = 0.4
+## Spec says 0.45; Jolt's real impacts at that value barely rebound, so the
+## live dice died against the backboard. 0.9 gives craps-wall rebounds.
+@export var rail_bounce: float = 0.9
+## Physics ticks per second for the dice (higher = steadier small bodies).
+@export var physics_hz: int = 120
+
+@export_group("3D throw (flick -> real RigidBody3D throw)")
+## The flick's screen speed (min_throw_speed..max_throw_speed px/s) maps to
+## this world speed range in m/s (spec bake used 2.2-3.0).
+@export var throw_speed_min_mps: float = 2.2
+@export var throw_speed_max_mps: float = 3.2
+## Upward launch speed (m/s) so the dice leave the hand in a small arc.
+@export var throw_up_mps: float = 1.2
+## Throw direction is kept within this many degrees of "straight at the
+## dealer's backboard" so a sideways flick still reaches the far wall.
+@export var throw_aim_cone_deg: float = 35.0
+## Random-but-seeded spin (rad/s) given at release (spec: 15-35).
+@export var throw_spin_min: float = 15.0
+@export var throw_spin_max: float = 35.0
+## The throw is simulated ahead at this speed-up while the 0.12 s wind-up
+## plays, then the recorded motion plays back at normal speed.
+@export var sim_warp: float = 16.0
+## Give up waiting for rest after this much simulated time (s).
+@export var sim_max_time: float = 2.0
+## A die counts as at rest below these speeds for sim_rest_time seconds.
+@export var sim_rest_linear: float = 0.03
+@export var sim_rest_angular: float = 0.5
+@export var sim_rest_time: float = 0.12
+## Audio: at most one impact signal per die per this many seconds.
+@export var impact_min_interval: float = 0.05
+## Audio: contacts slower than this (relative m/s) are silent (no signal).
+@export var impact_min_speed: float = 0.3
+## Audio: tumble_ending fires once when a die's spin drops below this (rad/s).
+@export var tumble_end_rad_s: float = 9.0
+## A die resting with its top face tilted more than this (up-axis dot below
+## it) is "cocked" against the rail and gets a small nudge.
+@export var sim_cocked_dot: float = 0.97
+## After this long (simulated s) the dice are damped harder so they stop.
+@export var sim_damp_after: float = 0.7
+## Settle wobble after the last recorded frame (spec: 0.12 s, +-2 degrees).
+@export var settle_wobble_time: float = 0.12
+@export var settle_wobble_deg: float = 2.0
+
+@export_group("3D throw timing (design doc 5b: one throw every 2-3 s)")
+## Pace target: MEDIAN time from release to the dice at rest (seconds).
+@export var settle_target: float = 0.9
+## Settle assist: a die still moving this long after release is eased
+## (smoothly, no snap) flat onto its face; the face remap makes that the
+## seeded face.
+@export var assist_start: float = 1.2
+## Hard cap: the standard pair's reveal (dice at rest + settle wobble) is
+## done by this long after release. Exotic dice may later allow ~1.8 s.
+@export var reveal_cap: float = 1.5
+## Heavier-than-real gravity makes the dice land and settle fast while still
+## bouncing off the rails (1 = 9.8 m/s^2).
+@export var die_gravity_scale: float = 2.5
+## Speed toggle (T key / debug panel): 0 = 1x, 1 = 2x, 2 = Instant (jumps
+## straight to the result). Click during a roll still fast-forwards at 1x.
+@export_enum("1x", "2x", "Instant") var roll_speed_mode: int = 0
