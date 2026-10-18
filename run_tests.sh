@@ -7,3 +7,4 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 "$GODOT" --headless --path "$DIR" --import >/dev/null 2>&1 || true
 "$GODOT" --headless --path "$DIR" --script res://tests/test_craps_rules.gd
 "$GODOT" --headless --path "$DIR" --script res://tests/test_main_scene.gd
+"$GODOT" --headless --path "$DIR" --script res://tests/qa_/qa_craps_stats.gd
