@@ -46,7 +46,8 @@ def lin(hex_str):
 MATS = {  # glTF placeholder colours; the .import maps each slot to the toon .tres of the same name
     "felt": ("123A36", 0.95), "leather": ("5A1620", 0.55), "brass": ("B08D3C", 0.35),
     "plate_face": ("1A0A0C", 0.8), "flame": ("E8622A", 0.5), "backboard": ("0F312E", 0.95),
-    "body_wood": ("3A2416", 0.7),
+    "body_wood": ("3A2416", 0.7), "burn_line": ("E8622A", 0.5), "zone_gold": ("E2C06A", 0.35),
+    "zone_soul": ("4FE6E0", 0.5), "zone_pit": ("0E1414", 0.9),
 }
 
 
@@ -59,7 +60,7 @@ def material(name):
     bsdf = m.node_tree.nodes["Principled BSDF"]
     bsdf.inputs["Base Color"].default_value = lin(MATS[name][0])
     bsdf.inputs["Roughness"].default_value = MATS[name][1]
-    if name == "flame":
+    if name in ("flame", "burn_line", "zone_soul"):
         bsdf.inputs["Emission Color"].default_value = lin(MATS[name][0])
         bsdf.inputs["Emission Strength"].default_value = 2.0
     return m
@@ -356,11 +357,11 @@ def build_corner_cap(out_dir):
     return part.finish(out_dir, smart_uv=True)
 
 
-def build_target_plaque(out_dir):
-    """Far-rail number plate. Local space = TargetPlate anchor (0, 0.11, -0.61), face toward +Z
+def build_target_plaque(out_dir, name="target_plaque", flames=True):
+    """Far-rail number plate (flames=False: the generic goal plaque, a plain brass crest instead). Local space = TargetPlate anchor (0, 0.11, -0.61), face toward +Z
     (the camera), leaned back 30 degrees from upright. Everything sits at local z <= 0 (outside the
     rail centreline) and below y = 0.25 world (0.14 local)."""
-    part = Part("target_plaque", ["brass", "plate_face", "flame"])
+    part = Part(name, ["brass", "plate_face", "flame"] if flames else ["brass", "plate_face"])
     tilt = Matrix.Rotation(math.radians(-30), 4, "X")   # lean the top back toward -Z
     W, H, T, B = 0.32, 0.095, 0.012, 0.016            # width, height, frame depth, border
     foot = 0.008
@@ -387,8 +388,18 @@ def build_target_plaque(out_dir):
         quad([i_[k], i_[k2], ir[k2], ir[k]], 0)    # recess walls
     quad([ob[3], ob[2], ob[1], ob[0]], 0)          # back
     quad(ir, 1)                                    # number face
+    # Generic crest: a low brass pediment (no flames, so it reads as "goal", not "Burn Line").
+    if not flames:
+        prof = [(-0.06, H), (0.06, H), (0.035, H + 0.016), (0.0, H + 0.024), (-0.035, H + 0.016)]
+        vf = [part.v(P(x, y, T * 0.75)) for (x, y) in prof]
+        vb = [part.v(P(x, y, T * 0.25)) for (x, y) in prof]
+        part.f(vf, 0)
+        part.f(list(reversed(vb)), 0)
+        for k in range(len(vf)):
+            k2 = (k + 1) % len(vf)
+            part.f([vf[k], vf[k2], vb[k2], vb[k]], 0)
     # Flame crest on top: 3 tongues, flat-extruded, emissive.
-    for (cx, hgt, wid) in ((-0.07, 0.026, 0.03), (0.0, 0.036, 0.04), (0.07, 0.026, 0.03)):
+    for (cx, hgt, wid) in ([] if not flames else ((-0.07, 0.026, 0.03), (0.0, 0.036, 0.04), (0.07, 0.026, 0.03))):
         prof = []
         for k in range(9):
             t = k / 8.0
@@ -507,6 +518,53 @@ def build_chip_tray(out_dir):
     return part.finish(out_dir, smart_uv=True, smooth=False)
 
 
+def flat_ring(part, centre, r_out, r_in, y, seg, slot):
+    outer = [part.v((centre[0] + math.cos(2 * math.pi * i / seg) * r_out, y, centre[1] + math.sin(2 * math.pi * i / seg) * r_out)) for i in range(seg)]
+    inner = [part.v((centre[0] + math.cos(2 * math.pi * i / seg) * r_in, y, centre[1] + math.sin(2 * math.pi * i / seg) * r_in)) for i in range(seg)]
+    for i in range(seg):
+        i2 = (i + 1) % seg
+        part.f([outer[i], outer[i2], inner[i2], inner[i]], slot)
+    return inner
+
+
+def flat_disc(part, centre, r, y, seg, slot):
+    rim = [part.v((centre[0] + math.cos(2 * math.pi * i / seg) * r, y, centre[1] + math.sin(2 * math.pi * i / seg) * r)) for i in range(seg)]
+    mid = part.v((centre[0], y, centre[1]))
+    for i in range(seg):
+        part.f([rim[i], rim[(i + 1) % seg], mid], slot)
+
+
+def build_burn_line_strip(out_dir):
+    """OPTIONAL (Burn Line rules): stand-in BAND strip, 1.9 x 0.06 m, local to the BurnLine anchor
+    (0, 0.002, -0.40). Flat on the felt. Godot Dev's BAND shader can replace the material."""
+    part = Part("burn_line_strip", ["burn_line"])
+    rows, uvr = [], []
+    for j in range(2):
+        z = -0.03 + 0.06 * j
+        rows.append([part.v((-0.95 + 1.9 * i / 16, 0.0, z)) for i in range(17)])
+        uvr.append([(i / 16, j) for i in range(17)])
+    part.grid(rows, 0, uvr)
+    return part.finish(out_dir, smooth=False, face_up=True)
+
+
+def build_zone_x2(out_dir):
+    """OPTIONAL (Burn Line zone): gold x2 ring decal, 0.10 m radius, flat on the felt (y 0.0015);
+    game logic places it under Anchors/Zones."""
+    part = Part("zone_x2", ["zone_gold"])
+    flat_ring(part, (0, 0), 0.10, 0.085, 0.0015, 32, 0)
+    flat_ring(part, (0, 0), 0.075, 0.071, 0.0015, 32, 0)
+    return part.finish(out_dir, smooth=False, face_up=True)
+
+
+def build_zone_soul(out_dir):
+    """OPTIONAL (Burn Line zone): the Soul pit, a dark cracked ring with a Soul-cyan glowing core
+    (the only cyan on the board), flat on the felt; game logic places it under Anchors/Zones."""
+    part = Part("zone_soul", ["zone_pit", "zone_soul"])
+    flat_ring(part, (0, 0), 0.10, 0.06, 0.0015, 32, 0)
+    flat_disc(part, (0, 0), 0.06, 0.0018, 32, 1)
+    return part.finish(out_dir, smooth=False, face_up=True)
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     out_dir = os.path.abspath(argv[0]) if argv else os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -521,14 +579,21 @@ def main():
     build_studs(out_dir, "trim_studs_mobile", studs, seg=6, rings=1, every=2)
     build_corner_cap(out_dir)
     _, tc, tn = build_target_plaque(out_dir)
+    _, gc, gn = build_target_plaque(out_dir, "goal_plaque", flames=False)
+    build_burn_line_strip(out_dir)
+    build_zone_x2(out_dir)
+    build_zone_soul(out_dir)
     _, dc, dn = build_total_dial(out_dir)
     build_chip_tray(out_dir)
     print("NUMBER_ANCHOR target_plaque pos=%s normal=%s" % (tuple(round(x, 4) for x in tc), tuple(round(x, 4) for x in tn)))
+    print("NUMBER_ANCHOR goal_plaque pos=%s normal=%s" % (tuple(round(x, 4) for x in gc), tuple(round(x, 4) for x in gn)))
     print("NUMBER_ANCHOR total_dial pos=%s normal=%s" % (tuple(round(x, 4) for x in dc), tuple(round(x, 4) for x in dn)))
     fixed = TRIS["felt_floor"] + TRIS["backboard"] + TRIS["body_skirt"]
-    props = 4 * TRIS["corner_cap"] + TRIS["target_plaque"] + TRIS["total_dial"] + TRIS["chip_tray"]
+    props = 4 * TRIS["corner_cap"] + TRIS["goal_plaque"] + TRIS["total_dial"]   # default (loop-agnostic) set
     print("TOTAL_PC %d" % (fixed + props + TRIS["rails"] + TRIS["trim_studs"]))
     print("TOTAL_MOBILE %d" % (fixed + props + TRIS["rails_mobile"] + TRIS["trim_studs_mobile"]))
+    opt = TRIS["chip_tray"] + TRIS["burn_line_strip"] + TRIS["zone_x2"] + TRIS["zone_soul"] + TRIS["target_plaque"] - TRIS["goal_plaque"]
+    print("OPTIONAL_EXTRA %d" % opt)
 
 
 main()
