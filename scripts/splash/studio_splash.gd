@@ -16,11 +16,18 @@
 ##     the reduced-motion variant) is read from splash_timings.json (the Art
 ##     Director's motion spec). Edit that file to retime the splash.
 ##
-## Sound: every "sfx" entry in the timeline fires cue(&"splash_<id>") at its
-## time (splash_clang is the hammer strike), and cue(&"studio_splash") fires at
-## t=0 for a single pre-mixed sting. A cue plays a stream from `cue_streams`
-## (inspector) or, if none is set, res://audio/sfx/<event>.wav when that file
-## exists; otherwise it is silent. See assets/branding/studio/README.md.
+## Sound: two mutually exclusive modes, picked once when the splash starts
+## (see cue_mode()):
+##   - per-cue (default): every "sfx" entry of the variant playing (full or
+##     reduced motion) fires cue(&"splash_<id>") at its time (splash_clang is
+##     the hammer strike).
+##   - single: ONLY when none of those per-cue events has a stream and a
+##     studio_splash stream exists, cue(&"studio_splash") fires once at t=0
+##     (one pre-mixed sting) and no splash_<id> cues fire.
+## So the sting never plays on top of the per-cue sounds. A cue plays a stream
+## from `cue_streams` (inspector) or, if none is set,
+## res://audio/sfx/<event>.wav when that file exists; otherwise it is silent.
+## See assets/branding/studio/GODOT.md.
 extends Node2D
 
 ## Emitted at every sound-cue moment (see header).
@@ -32,6 +39,8 @@ const DEFAULT_NEXT_SCENE: String = "res://scenes/table_3d.tscn"
 ## project.godot setting with the scene to open after the splash.
 const NEXT_SCENE_SETTING: String = "boot/next_scene"
 const SFX_DIR: String = "res://audio/sfx/"
+## The single pre-mixed sting (fallback when no per-cue sound exists).
+const STING_EVENT: StringName = &"studio_splash"
 const LAYOUT_SIZE := Vector2(1920, 1080)
 const TRANS := {
 	"LINEAR": Tween.TRANS_LINEAR, "SINE": Tween.TRANS_SINE, "QUINT": Tween.TRANS_QUINT,
@@ -79,6 +88,8 @@ var _nudge := Vector2.ZERO
 var _shake_offset := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _players: Dictionary[StringName, AudioStreamPlayer] = {}
+## This play uses the single studio_splash sting (see cue_mode()).
+var _single_sting: bool = false
 
 @onready var _bg: ColorRect = %Background
 @onready var _stage: Node2D = %Stage
@@ -254,11 +265,13 @@ func _play() -> void:
 	_stage.visible = true
 	var t := create_tween().set_parallel(true)
 	_tween = t
+	_single_sting = cue_mode() == &"single"
 	if is_reduced_motion():
 		_play_reduced(t)
 	else:
 		_play_full(t)
-	_cue_at(t, &"studio_splash", 0.0, 0.0)
+	if _single_sting:
+		_cue_at(t, STING_EVENT, 0.0, 0.0)
 	t.tween_callback(_finish).set_delay(duration())
 
 
@@ -287,8 +300,7 @@ func _play_full(t: Tween) -> void:
 			"shake":
 				var hz := maxf(1.0, float(cam.get("frequency_hz", 40.0)))
 				t.tween_callback(_shake.bind(float(cam.get("amplitude_px", 7.0)), float(cam.get("dur", 0.18)), 1.0 / hz)).set_delay(at)
-	for s: Dictionary in timeline.get("sfx", []):
-		_cue_at(t, StringName("splash_" + str(s.id)), float(s.get("at", 0.0)), float(s.get("volume_db", 0.0)))
+	_sfx_cues(t, timeline.get("sfx", []))
 
 
 ## Reduced motion: no hammer, burst or camera; the lockup fades in and out.
@@ -308,8 +320,42 @@ func _play_reduced(t: Tween) -> void:
 	if not fo.is_empty():
 		for sprite: Sprite2D in [_anvil, _spark, _wordmark, _games]:
 			_tracks(t, sprite, [{"prop": "modulate_a", "to": 0.0, "start": fo.get("start", 2.0), "dur": fo.get("dur", 0.3), "trans": fo.get("trans", "SINE"), "ease": fo.get("ease", "IN")}])
-	for s: Dictionary in r.get("sfx", []):
+	_sfx_cues(t, r.get("sfx", []))
+
+
+func _sfx_cues(t: Tween, sfx: Array) -> void:
+	if _single_sting:
+		return
+	for s: Dictionary in sfx:
 		_cue_at(t, StringName("splash_" + str(s.id)), float(s.get("at", 0.0)), float(s.get("volume_db", 0.0)))
+
+
+## The splash_<id> events of the variant that plays (full or reduced motion).
+func sfx_events() -> Array[StringName]:
+	var list: Array = timeline.get("reduced_motion", {}).get("sfx", []) if is_reduced_motion() else timeline.get("sfx", [])
+	var out: Array[StringName] = []
+	for s: Dictionary in list:
+		out.append(StringName("splash_" + str(s.id)))
+	return out
+
+
+## &"per_cue" when any of this variant's splash_<id> events has a stream (or
+## when nothing has one: silent, but the moments are still signalled);
+## &"single" only when no per-cue stream exists and studio_splash has one.
+func cue_mode() -> StringName:
+	for e in sfx_events():
+		if _stream_for(e) != null:
+			return &"per_cue"
+	return &"single" if _stream_for(STING_EVENT) != null else &"per_cue"
+
+
+func _stream_for(event: StringName) -> AudioStream:
+	var stream: AudioStream = cue_streams.get(event)
+	if stream == null:
+		var path := SFX_DIR + String(event) + ".wav"
+		if ResourceLoader.exists(path):
+			stream = load(path) as AudioStream
+	return stream
 
 
 func _list(v: Variant) -> Array:
@@ -434,11 +480,7 @@ func _cue_at(t: Tween, event: StringName, at: float, volume_db: float) -> void:
 
 
 func _cue(event: StringName, volume_db: float = 0.0) -> void:
-	var stream: AudioStream = cue_streams.get(event)
-	if stream == null:
-		var path := SFX_DIR + String(event) + ".wav"
-		if ResourceLoader.exists(path):
-			stream = load(path) as AudioStream
+	var stream := _stream_for(event)
 	if stream != null:
 		var player: AudioStreamPlayer = _players.get(event)
 		if player == null:

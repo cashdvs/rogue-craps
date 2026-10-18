@@ -1,6 +1,6 @@
 ## Headless test for the Tiny Anvil boot splash (scenes/studio_splash.tscn).
 ## Checks: it is the main scene and loads; it advances to boot/next_scene after
-## its duration (with both sound cues); any key / click skips with a fast fade
+## its duration (with its sound cues: per-cue OR the single studio_splash sting, never both); any key / click skips with a fast fade
 ## (mouse motion doesn't); it never replays once played; reduced motion is a
 ## shorter fade-only variant.
 ##
@@ -59,8 +59,8 @@ func _run() -> void:
 	var run := await _play_until_change(packed, 5.0, -1.0, null)
 	_check(run.changed, "full splash changed scene")
 	_check(absf(run.seconds - total) < 0.35, "changed after ~%.2fs (took %.2fs)" % [total, run.seconds])
-	_check(run.cues.has(&"studio_splash") and run.cues.has(&"splash_clang"), "sound cues fired, incl. studio_splash + splash_clang (%s)" % [run.cues])
-	_check(run.cues.size() == 1 + (tl.get("sfx", []) as Array).size(), "one cue per spec sfx entry + studio_splash")
+	_check(run.cues.has(&"splash_clang") and not run.cues.has(&"studio_splash"), "per-cue events fired, no studio_splash on top (%s)" % [run.cues])
+	_check(run.cues.size() == (tl.get("sfx", []) as Array).size(), "one cue per spec sfx entry")
 	_check(run.skipped == 0, "finished(skipped=false)")
 	_check(current_scene != null and current_scene.scene_file_path == next_path, "now in the next scene")
 	_check(_state.played, "SplashState.played set")
@@ -115,6 +115,31 @@ func _run() -> void:
 	var rm := await _play_until_change(packed, 4.0, -1.0, null)
 	_check(rm.changed and absf(rm.seconds - reduced_total) < 0.35, "reduced motion finishes in ~%.2fs (took %.2fs)" % [reduced_total, rm.seconds])
 	_check(not rm.hammer_visible, "reduced motion hides the hammer swing")
+	_check(not rm.cues.has(&"studio_splash") and rm.cues.has(&"splash_clang"), "reduced motion: per-cue events only, no studio_splash (%s)" % [rm.cues])
+
+	# --- studio_splash and the per-cue sounds are mutually exclusive -----------
+	var beep := AudioStreamWAV.new()
+	beep.data = PackedByteArray([0, 0, 0, 0])
+	var full_n := (tl.get("sfx", []) as Array).size()
+	var reduced_n := (tl.get("reduced_motion", {}).get("sfx", []) as Array).size()
+	_state.reduced_motion = false
+	_state.played = false
+	var only_sting := await _play_until_change(packed, 5.0, -1.0, null, {&"studio_splash": beep})
+	_check(only_sting.cues == [&"studio_splash"] and only_sting.mode == &"single", "only a studio_splash stream: the single sting plays alone (%s)" % [only_sting.cues])
+	_state.played = false
+	var both := await _play_until_change(packed, 5.0, -1.0, null, {&"studio_splash": beep, &"splash_clang": beep})
+	_check(not both.cues.has(&"studio_splash") and both.cues.size() == full_n and both.mode == &"per_cue", "a per-cue stream exists: studio_splash is skipped (%s)" % [both.cues])
+	_state.played = false
+	_state.reduced_motion = true
+	var rm_sting := await _play_until_change(packed, 5.0, -1.0, null, {&"studio_splash": beep})
+	_check(rm_sting.cues == [&"studio_splash"], "reduced motion, only the sting: it plays alone (%s)" % [rm_sting.cues])
+	_state.played = false
+	var rm_both := await _play_until_change(packed, 5.0, -1.0, null, {&"studio_splash": beep, &"splash_whoosh": beep})
+	_check(not rm_both.cues.has(&"studio_splash") and rm_both.cues.size() == reduced_n, "reduced motion with a per-cue stream: no studio_splash (%s)" % [rm_both.cues])
+	_state.played = false
+	var rm_other := await _play_until_change(packed, 5.0, -1.0, null, {&"studio_splash": beep, &"splash_twinkle": beep})
+	_check(rm_other.cues == [&"studio_splash"], "a per-cue stream the reduced variant doesn't use doesn't block the sting (%s)" % [rm_other.cues])
+	_state.reduced_motion = false
 	_state.reduced_motion = false
 
 	if current_scene != null:
@@ -126,19 +151,22 @@ func _run() -> void:
 
 ## Instantiates the splash as the current scene and waits until the scene
 ## changes (or `timeout` s). Optionally pushes `event` at `input_at` s.
-func _play_until_change(packed: PackedScene, timeout: float, input_at: float, event: InputEvent) -> Dictionary:
-	var result := {"changed": false, "seconds": 0.0, "cues": [], "skipped": -1, "blocked": false, "hammer_visible": true}
+func _play_until_change(packed: PackedScene, timeout: float, input_at: float, event: InputEvent, streams: Dictionary = {}) -> Dictionary:
+	var result := {"changed": false, "seconds": 0.0, "cues": [], "skipped": -1, "blocked": false, "hammer_visible": true, "mode": &""}
 	if current_scene != null:
 		var old := current_scene
 		current_scene = null
 		old.queue_free()
 		await process_frame
 	var splash := packed.instantiate()
+	for k: StringName in streams:
+		splash.cue_streams[k] = streams[k]
 	var cues: Array = result.cues
 	splash.cue.connect(func(e: StringName) -> void:
-		cues.append(e)
-		if e == &"studio_splash":
-			result.hammer_visible = splash.get_node("%Hammer").visible)
+		if cues.is_empty():
+			result.hammer_visible = splash.get_node("%Hammer").visible
+			result.mode = splash.cue_mode()
+		cues.append(e))
 	splash.finished.connect(func(was_skipped: bool) -> void: result.skipped = 1 if was_skipped else 0)
 	root.add_child(splash)
 	current_scene = splash
