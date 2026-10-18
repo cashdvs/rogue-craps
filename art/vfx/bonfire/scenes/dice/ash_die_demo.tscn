@@ -1,0 +1,166 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/ash_body.tres" id="1_ienal"]
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/ash_smoke.tres" id="2_hfqu5"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_of1d6"]
+size = Vector3(0.08, 0.08, 0.08)
+
+[sub_resource type="Gradient" id="Gradient_kogx4"]
+offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.8, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_afppb"]
+gradient = SubResource("Gradient_kogx4")
+width = 64
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_05je6"]
+emission_shape_offset = Vector3(0, 0.04, 0)
+emission_shape = 3
+emission_box_extents = Vector3(0.04, 0.01, 0.04)
+direction = Vector3(0, 1, 0)
+spread = 40.0
+initial_velocity_min = 0.05
+initial_velocity_max = 0.12
+gravity = Vector3(0, 0.05, 0)
+damping_min = 0.2
+damping_max = 0.2
+scale_min = 0.03
+scale_max = 0.05
+color_ramp = SubResource("GradientTexture1D_afppb")
+
+[sub_resource type="QuadMesh" id="QuadMesh_abelq"]
+material = ExtResource("2_hfqu5")
+
+[sub_resource type="Animation" id="Animation_fqn6a"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Die:instance_shader_parameters/ash")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Die:instance_shader_parameters/dissolve")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_ijnwc"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Die:instance_shader_parameters/ash")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 1.0, 1.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Die:instance_shader_parameters/dissolve")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Puff:emitting")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="Animation" id="Animation_wim4h"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Die:instance_shader_parameters/ash")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.12),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Die:instance_shader_parameters/dissolve")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 0.0, 1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Puff:emitting")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_fai00"]
+_data = {
+&"RESET": SubResource("Animation_fqn6a"),
+&"bust_ash": SubResource("Animation_ijnwc"),
+&"bust_crumble": SubResource("Animation_wim4h")
+}
+
+[node name="AshDieDemo" type="Node3D" unique_id=1803057185]
+
+[node name="Die" type="MeshInstance3D" parent="." unique_id=314652014]
+material_override = ExtResource("1_ienal")
+instance_shader_parameters/ash = 0.0
+mesh = SubResource("BoxMesh_of1d6")
+
+[node name="Puff" type="GPUParticles3D" parent="." unique_id=1996649830]
+cast_shadow = 0
+emitting = false
+lifetime = 0.5
+one_shot = true
+explosiveness = 0.9
+visibility_aabb = AABB(-0.3, -0.1, -0.3, 0.6, 0.6, 0.6)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_05je6")
+draw_pass_1 = SubResource("QuadMesh_abelq")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1177712231]
+libraries/ = SubResource("AnimationLibrary_fai00")

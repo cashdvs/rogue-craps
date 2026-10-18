@@ -1,0 +1,21 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/toon_fire.gdshader" id="1_v4mbt"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_v4mbt")
+shader_parameter/shape = 2
+shader_parameter/billboard = null
+shader_parameter/outer_color = Color(0.5568628, 0.101960786, 0.1254902, 1)
+shader_parameter/mid_color = Color(0.6901961, 0.1882353, 0.22745098, 1)
+shader_parameter/core_color = Color(0.84705883, 0.3529412, 0.3137255, 1)
+shader_parameter/ink_color = null
+shader_parameter/ink_width = 0.2
+shader_parameter/mid_at = null
+shader_parameter/core_at = null
+shader_parameter/energy = 1.0
+shader_parameter/flicker_speed = null
+shader_parameter/wobble = null
+shader_parameter/scroll_speed = null
+shader_parameter/tongues = null

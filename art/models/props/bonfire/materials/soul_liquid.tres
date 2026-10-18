@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/soul_liquid.gdshader" id="1_v6u0y"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_v6u0y")
+shader_parameter/deep_color = null
+shader_parameter/body_color = null
+shader_parameter/top_color = null
+shader_parameter/fill_min_y = null
+shader_parameter/fill_max_y = null
+shader_parameter/energy = null
+shader_parameter/slosh = null

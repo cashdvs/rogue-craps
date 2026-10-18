@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/lit_face_glow.gdshader" id="1_k06xl"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_k06xl")
+shader_parameter/glow_color = Color(1, 0.8862745, 0.6901961, 1)
+shader_parameter/edge_color = Color(1, 0.6901961, 0.4392157, 1)
+shader_parameter/face_dir = null
+shader_parameter/face_threshold = 0.5
+shader_parameter/half_size = 0.08
+shader_parameter/face_fill = null
+shader_parameter/frame_at = null
+shader_parameter/hot_at = null
+shader_parameter/energy = 1.2
+shader_parameter/body_glow = 0.0
+shader_parameter/pulse_speed = null
+shader_parameter/pulse_amount = null
+shader_parameter/round_pool = true
