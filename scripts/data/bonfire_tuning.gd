@@ -24,6 +24,8 @@ extends Resource
 @export var coven_factor: float = 2.0
 ## Cracked: x this on its pot, and this chance it shatters after scoring.
 @export var cracked_factor: float = 2.0
+## Cracked never shatters while the player owns this many dice or fewer.
+@export var cracked_min_owned_dice: int = 5
 @export var cracked_shatter_chance: float = 1.0 / 6.0
 ## Last Breath: potted from a rethrow of 1..last_breath_max_dice dice: x factor.
 @export var last_breath_factor: float = 3.0

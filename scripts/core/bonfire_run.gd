@@ -67,6 +67,9 @@ var last_throw: TableThrow
 ## Combo ids potted this hand / banked this table (one per pot, repeats kept).
 var hand_combos: Array[StringName] = []
 var banked_combos: Array[StringName] = []
+## Dice the player owns in the whole run bag (Cracked never shatters at or
+## below tuning.cracked_min_owned_dice). Defaults to the handful size.
+var owned_dice_count: int = 5
 ## TableDie.key() (run_die_id, else id) of every die that shattered here.
 var shattered: Array[StringName] = []
 
@@ -78,6 +81,7 @@ func _init(t: BonfireTuning, g: TableGoal = null, soul_override: int = -1, dice_
 	soul = t.starting_soul if soul_override < 0 else soul_override
 	max_soul = maxi(soul, t.starting_soul)
 	dice_count = t.dice_count if dice_override <= 0 else dice_override
+	owned_dice_count = dice_count
 	hands_left = goal.hands
 	rng.randomize()
 	_start_hand()
@@ -147,7 +151,8 @@ func rule_ctx() -> Dictionary:
 	var n := throw_faces.size()
 	return {"cold_values": cold_values, "no_mods": no_mods, "excluded_combos": excluded,
 		"min_dice": mini(min_pot, n) if min_pot > 0 else 1, "soul": soul, "max_soul": max_soul,
-		"throw_size": n, "is_rethrow": throws_this_hand > 1}
+		"throw_size": n, "is_rethrow": throws_this_hand > 1,
+		"blood_cost": func(raw: int) -> int: return soul_cost(raw, &"blood")}
 
 
 func bounties_count() -> bool:
@@ -177,6 +182,11 @@ func throw_special(i: int) -> StringName:
 	return td.special if td != null else &""
 
 
+## Can a Cracked die shatter now? Never while the bag is at the floor.
+func can_shatter() -> bool:
+	return owned_dice_count > tuning.cracked_min_owned_dice
+
+
 ## Die i of this throw leaves the table for good (Cracked). It stays potted
 ## for this pot; later throws have one die fewer.
 func shatter(i: int) -> void:
@@ -184,6 +194,7 @@ func shatter(i: int) -> void:
 	if td != null:
 		shattered.append(td.key())
 	dice_count = maxi(dice_count - 1, 0)
+	owned_dice_count -= 1
 	table_event.emit(&"die_shattered", {"index": i, "die": td})
 
 
@@ -310,12 +321,12 @@ func _commit_pot() -> void:
 	pot += int(res["points"])
 	if tuning.bounty_requires_pot and bounties_count():
 		# The scored combo's effective values (Twins doubled, Wilds as scored).
-		_add_pending(res["values"])
-	# Blood faces: Soul paid as the pot is scored (never the last point).
-	var cost := 0
-	if int(res["soul_cost"]) > 0:
-		cost = mini(soul_cost(int(res["soul_cost"]), &"blood"), maxi(soul - 1, 0))
-		soul -= cost
+		# A gapped (Wanderer) run ticks the run bounty of its length.
+		_add_pending(res["bounty_values"])
+	# Blood faces: Soul paid as the pot is scored (BonfireScoring already
+	# applied the Bloodletter and refused it if it would take the last Soul).
+	var cost := int(res["soul_cost"])
+	soul -= cost
 	# Gilded faces: Embers right away (kept even if the hand busts later).
 	embers += int(res["embers"])
 	if res["kindling"]:
@@ -410,7 +421,7 @@ func _finish(r: Dictionary) -> Dictionary:
 		_end_table(State.CLEARED)
 	elif soul <= 0:
 		_end_table(State.RUN_OVER)
-	elif hands_left <= 0 or dice_count <= 0:
+	elif hands_left <= 0:
 		_end_table(State.FAILED)
 	else:
 		_start_hand()

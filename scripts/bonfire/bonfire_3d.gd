@@ -137,6 +137,7 @@ func new_run(seed_value: int = -1) -> void:
 	run = BonfireRun.new(bonfire_tuning, setup.goal, start, setup.dice.size())
 	if setup.max_soul > 0:
 		run.max_soul = setup.max_soul
+	run.owned_dice_count = setup.owned_dice_count if setup.owned_dice_count >= 0 else setup.dice.size()
 	var specials: Array = []
 	for td in setup.dice:
 		specials.append(td.special)
