@@ -36,7 +36,7 @@ Background = a ColorRect `#1E1B1A` (no texture).
 - Font: **Fredoka** (variable, Google Fonts / github.com/hafontia/Fredoka-One, v2.001), instanced at wght 700, wdth 100 → `src/Fredoka-Bold-instance.ttf`. Shaped with HarfBuzz (kerning on), then converted to paths with fontTools.
 - TINY ANVIL: tracking −12/1000 em, word space −30/1000 em (tight).
 - GAMES: cap height **40%** of the TINY ANVIL cap height, tracking +0.42 em (of its own size), centered under TINY ANVIL, with its cap top 0.30 × cap height below the TINY ANVIL baseline. The small lockups use 62% / +0.22 em / 0.26.
-- **License:** SIL Open Font License 1.1, see `OFL.txt` (Copyright 2016 The Fredoka Project Authors). No Reserved Font Name is declared. Outlined artwork is not a font redistribution. Keep `OFL.txt` next to the font file if the TTF is ever shipped.
+- **License:** SIL Open Font License 1.1, see `src/OFL.txt` (Copyright 2016 The Fredoka Project Authors). No Reserved Font Name is declared. Outlined artwork is not a font redistribution. Keep `OFL.txt` next to the font file if the TTF is ever shipped.
 
 ## Other
 - `splash_motion.md`: the motion spec. `splash_timings.json`: the same numbers as one config.
