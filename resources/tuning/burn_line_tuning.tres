@@ -1,0 +1,95 @@
+[gd_resource type="Resource" script_class="BurnLineTuning" load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/burn_line_tuning.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/burn_table_spec.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/data/burn_die.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/data/burn_loadout.gd" id="4"]
+
+[sub_resource type="Resource" id="table1"]
+script = ExtResource("2")
+display_name = "Table 1"
+line = 15
+start_coin = 20
+coin_target = 40
+hands = 8
+bet_cap = 10
+
+[sub_resource type="Resource" id="table2"]
+script = ExtResource("2")
+display_name = "Table 2"
+line = 16
+start_coin = 20
+coin_target = 44
+hands = 8
+bet_cap = 10
+
+[sub_resource type="Resource" id="table3"]
+script = ExtResource("2")
+display_name = "High Stakes"
+line = 18
+start_coin = 40
+coin_target = 80
+hands = 8
+bet_cap = 20
+
+[sub_resource type="Resource" id="bone"]
+script = ExtResource("3")
+id = &"bone"
+display_name = "Bone"
+perk_text = "Fair 1-6. Reusable."
+faces = PackedInt32Array(1, 2, 3, 4, 5, 6)
+weights = PackedFloat32Array()
+max_throws_per_hand = 0
+exact_return_override = 0.0
+burn_soul_extra = 0
+body_color = Color(0.909804, 0.862745, 0.752941, 1)
+pip_color = Color(0.054902, 0.078431, 0.078431, 1)
+
+[sub_resource type="Resource" id="knucklebone"]
+script = ExtResource("3")
+id = &"knucklebone"
+display_name = "Knucklebone"
+perk_text = "Faces 1,1,2,2,3,3. Cramped: once per hand."
+faces = PackedInt32Array(1, 1, 2, 2, 3, 3)
+weights = PackedFloat32Array()
+max_throws_per_hand = 1
+exact_return_override = 0.0
+burn_soul_extra = 0
+body_color = Color(0.74902, 0.670588, 0.533333, 1)
+pip_color = Color(0.231373, 0.05098, 0.078431, 1)
+
+[sub_resource type="Resource" id="leadfoot"]
+script = ExtResource("3")
+id = &"leadfoot"
+display_name = "Leadfoot"
+perk_text = "1-6, rolls 6 three times as often. Exact hit on Leadfoot returns 2.5x. Heavy: a Leadfoot burn costs +2 Soul."
+faces = PackedInt32Array(1, 2, 3, 4, 5, 6)
+weights = PackedFloat32Array(1, 1, 1, 1, 1, 3)
+max_throws_per_hand = 0
+exact_return_override = 2.5
+burn_soul_extra = 2
+body_color = Color(0.32, 0.33, 0.35, 1)
+pip_color = Color(0.886275, 0.752941, 0.415686, 1)
+
+[sub_resource type="Resource" id="standard"]
+script = ExtResource("4")
+id = &"standard"
+display_name = "Standard"
+description = "Bone + Knucklebone: the steady, easy start. Bone gets you close, Knucklebone tops you up."
+dice = Array[StringName]([&"bone", &"knucklebone"])
+side_bets = Array[StringName]([&"exact_hit"])
+
+[resource]
+script = ExtResource("1")
+starting_soul = 35
+tables = Array[ExtResource("2")]([SubResource("table1"), SubResource("table2"), SubResource("table3")])
+bet_chip = 5
+min_bet = 5
+return_by_distance = PackedFloat32Array(2, 1.5, 0.5, 0.5)
+exact_side_cost = 5
+exact_side_pay = 2
+burn_soul_loss = 2
+dice = Array[ExtResource("3")]([SubResource("bone"), SubResource("knucklebone"), SubResource("leadfoot")])
+loadout_size = 2
+loadouts = Array[ExtResource("4")]([SubResource("standard")])
+default_loadout = &"standard"
