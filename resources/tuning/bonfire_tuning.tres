@@ -1,20 +1,106 @@
-[gd_resource type="Resource" script_class="BonfireTuning" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BonfireTuning" load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/bonfire_tuning.gd" id="1_bt"]
+[ext_resource type="Script" path="res://scripts/data/bonfire_combo.gd" id="2_combo"]
+[ext_resource type="Resource" path="res://resources/bonfire/table_1.tres" id="3_goal"]
+
+[sub_resource type="Resource" id="c_single"]
+script = ExtResource("2_combo")
+id = &"single"
+display_name = "Single"
+kind = 0
+n = 1
+base = 5
+mult = 1
+
+[sub_resource type="Resource" id="c_pair"]
+script = ExtResource("2_combo")
+id = &"pair"
+display_name = "Pair"
+kind = 1
+n = 2
+base = 10
+mult = 2
+
+[sub_resource type="Resource" id="c_run3"]
+script = ExtResource("2_combo")
+id = &"run3"
+display_name = "Run of 3"
+kind = 2
+n = 3
+base = 20
+mult = 2
+
+[sub_resource type="Resource" id="c_two_pair"]
+script = ExtResource("2_combo")
+id = &"two_pair"
+display_name = "Two Pair"
+kind = 3
+n = 4
+base = 20
+mult = 3
+
+[sub_resource type="Resource" id="c_trips"]
+script = ExtResource("2_combo")
+id = &"trips"
+display_name = "Trips"
+kind = 1
+n = 3
+base = 30
+mult = 3
+
+[sub_resource type="Resource" id="c_run4"]
+script = ExtResource("2_combo")
+id = &"run4"
+display_name = "Run of 4"
+kind = 2
+n = 4
+base = 35
+mult = 4
+
+[sub_resource type="Resource" id="c_full_house"]
+script = ExtResource("2_combo")
+id = &"full_house"
+display_name = "Full House"
+kind = 4
+n = 5
+base = 40
+mult = 5
+
+[sub_resource type="Resource" id="c_run5"]
+script = ExtResource("2_combo")
+id = &"run5"
+display_name = "Run of 5"
+kind = 2
+n = 5
+base = 60
+mult = 6
+
+[sub_resource type="Resource" id="c_quads"]
+script = ExtResource("2_combo")
+id = &"quads"
+display_name = "Quads"
+kind = 1
+n = 4
+base = 60
+mult = 8
+
+[sub_resource type="Resource" id="c_five_kind"]
+script = ExtResource("2_combo")
+id = &"five_kind"
+display_name = "Five of a Kind"
+kind = 1
+n = 5
+base = 120
+mult = 12
 
 [resource]
 script = ExtResource("1_bt")
 starting_soul = 35
-hands = 8
-start_coin = 0
-coin_target = 300
 dice_count = 5
-bust_soul_loss = 2
-hot_hand_multiplier = 2
-single_one = 10
-single_five = 5
-triple_per_face = 10
-triple_ones = 100
-of_a_kind_multiplier = Array[int]([1, 2, 3, 4])
-run_low = 50
-run_high = 75
+bust_soul_loss = 1
+hot_hand_mult_bonus = 1
+points_per_ember = 100
+bounty_requires_pot = true
+combos = Array[ExtResource("2_combo")]([SubResource("c_single"), SubResource("c_pair"), SubResource("c_run3"), SubResource("c_two_pair"), SubResource("c_trips"), SubResource("c_run4"), SubResource("c_full_house"), SubResource("c_run5"), SubResource("c_quads"), SubResource("c_five_kind")])
+table_goal = ExtResource("3_goal")

@@ -40,7 +40,7 @@ func _ready() -> void:
 	stack.visible = false
 	info_box.visible = false
 	puck.visible = false
-	help_label.text = "Grab the dice and flick (Space: quick throw). Click burning dice to pot them.\nB: Bank   Space: throw the rest   T: speed 1x/2x/Instant   R: reduced motion"
+	help_label.text = "Grab the dice and flick (Space: quick throw). Click burning dice to pot ONE combo.\nB: Bank   Space: throw the rest   T: speed 1x/2x/Instant   R: reduced motion"
 	(table.felt_material as ShaderMaterial).set_shader_parameter("use_overlay", false)
 	all_dice = dice.duplicate()
 	bhud = BonfireHud.new()
@@ -95,11 +95,11 @@ func throw_again() -> bool:
 		return false
 	pot_dice.append_array(potted_now)
 	if rt["hot"]:
-		bhud.flash("HOT HAND!  x%d" % run.multiplier, Palette.EMBER)
+		bhud.flash("HOT HAND!  +%d MULT" % run.mult_bonus(), Palette.EMBER)
 		sfx.play(&"win_big", 1.1, -4.0)
 		_taunt(&"bonfire_hot")
 		_reset_hand_dice()
-		_set_why("Hot Hand! All %d dice back, scoring x%d. Flick them." % [run.cold, run.multiplier])
+		_set_why("Hot Hand! All %d dice back, +%d mult on every pot this hand." % [run.cold, run.mult_bonus()])
 	else:
 		for d in cold_now:
 			_set_lit(d, false)
@@ -118,13 +118,21 @@ func bank() -> Dictionary:
 	bhud.flash("BANKED +%d" % int(r["gain"]), Palette.BRASS_HI)
 	sfx.play(&"chip_collect")
 	_taunt(&"bonfire_bank")
-	_set_why("Banked %d. Coin %d / %d." % [int(r["gain"]), run.coin, bonfire_tuning.coin_target])
+	var names: Array[String] = []
+	for b: BountyData in run.all_bounties():
+		if (r["ticked"] as Array).has(b.id):
+			names.append(b.display_name)
+	if not names.is_empty():
+		sfx.play(&"win_big", 1.2, -6.0)
+	bhud.flash_ticks(r["ticked"])
+	_set_why("Banked %d points.%s" % [int(r["gain"]), (" Bounty: " + ", ".join(names) + "!") if not names.is_empty() else ""])
 	hand_result.emit(r)
 	await _after_hand()
 	return r
 
 
-## Clicks die `i` of the current throw (pots / unpots its whole group).
+## Clicks die `i` of the current throw (pots / unpots it; refused if it
+## couldn't be part of one combo with the dice already potted).
 func pick_die(i: int) -> bool:
 	if phase != Phase.BET or run.state != BonfireRun.State.PICK or i < 0 or i >= throw_dice.size():
 		return false
@@ -136,7 +144,7 @@ func pick_die(i: int) -> bool:
 		tw.tween_property(d, "position", p + Vector3(0.012, 0, 0), 0.04)
 		tw.tween_property(d, "position", p - Vector3(0.012, 0, 0), 0.06)
 		tw.tween_property(d, "position", p, 0.04)
-		_set_why("That die is cold (or would leave a dead die in the pot).")
+		_set_why("That die can't join this combo (a pot is exactly ONE combo).")
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	_layout_throw()
@@ -211,7 +219,7 @@ func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector
 			_set_lit(throw_dice[i], true)
 			_embers(throw_dice[i].global_position, 8, 2)
 		sfx.play(&"rim_hit", 0.8, -6.0)
-		_set_why("%d burning. Click them into the pot (a set pots together)." % lit.size())
+		_set_why("%d burning. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
 	else:
 		await _bust()

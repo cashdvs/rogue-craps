@@ -44,35 +44,6 @@ func _run() -> void:
 	check(s.dice.size() == 5 and r.state == BonfireRun.State.AIM, "5 dice in the hand")
 	check(s.can_throw() == "", "can throw at the start")
 
-	var res := await throw_faces(s, [4, 1, 4, 2, 4] as Array[int])
-	var shown: Array[int] = []
-	for d in s.throw_dice:
-		shown.append(d.shown_value())
-	check(shown == [4, 1, 4, 2, 4], "up-faces show the seeded values (%s)" % str(shown))
-	check(res[1] == [0, 1, 2, 4] and s.is_lit(s.throw_dice[0]) and not s.is_lit(s.throw_dice[3]), "4-4-4 and 1 catch fire, the 2 stays cold")
-	check(s.can_throw() != "" and s.bhud.bank_button.disabled and s.bhud.throw_button.disabled, "must pot before bank/rethrow")
-	check(not s.pick_die(3), "clicking the cold 2 is refused")
-	check(s.pick_die(0) and r.potted.size() == 3, "clicking one 4 pots the whole set")
-	await create_timer(0.3).timeout
-	check(s.throw_dice[2].global_position.distance_to(s.pot_slot(1)) < 0.01, "potted dice sit on the rail pot")
-	check(s.pick_die(1) and r.throw_points() == 50 and not s.bhud.bank_button.disabled, "4-4-4 + 1 = 50, bank enabled")
-	check(s.bhud.pot_label.text == "POT 50", "HUD pot")
-	check(s.throw_again() and s.dice.size() == 1 and r.cold == 1 and r.pot == 50, "throw again: 1 cold die back in the hand")
-	await create_timer(0.3).timeout
-	res = await throw_faces(s, [5] as Array[int])
-	check(s.pick_die(0) and r.is_hot(), "last die potted = Hot Hand available")
-	check(s.throw_again() and s.dice.size() == 5 and r.multiplier == t.hot_hand_multiplier and s.pot_dice.is_empty(), "Hot Hand scoops all 5 back at x2")
-	await create_timer(0.3).timeout
-	var soul := r.soul
-	res = await throw_faces(s, [2, 3, 4, 6, 6] as Array[int])
-	check((res[1] as Array).is_empty() and r.soul == soul - t.bust_soul_loss, "nothing lit = bust, -Soul")
-	check(r.hands_left == t.hands - 1 and r.pot == 0 and r.state == BonfireRun.State.AIM and s.dice.size() == 5, "bust ends the hand, fresh 5 dice")
-	res = await throw_faces(s, [1, 1, 1, 3, 2] as Array[int])
-	check(s.pick_die(1) and r.throw_points() == 10, "1 of 1-1-1 = 10")
-	check(s.pick_die(0) and s.pick_die(2) and r.throw_points() == t.triple_ones, "all three 1s = triple")
-	var b: Dictionary = await s.bank()
-	check(b.get("gain") == t.triple_ones and r.coin == t.triple_ones, "bank moves the pot to coin")
-
 	# Timing and spread over random seeded 5-die throws.
 	r.hands_left = 1000
 	var rng := RandomNumberGenerator.new()
@@ -89,7 +60,7 @@ func _run() -> void:
 		var rr: Array = await s.throw_resolved
 		var rec := s.last_recording
 		var dur := rec.duration() + s.tuning.windup_time + s.tuning.settle_wobble_time
-		durations.append(rec.duration())
+		durations.append(rec.duration() + s.tuning.windup_time)
 		if dur > s.tuning.reveal_cap + 0.001:
 			slow += 1
 		var lim := Table3DBuilder.FELT_HALF
@@ -103,31 +74,67 @@ func _run() -> void:
 			for j in range(i + 1, s.throw_dice.size()):
 				if Vector2(p.x, p.z).distance_to(Vector2(s.throw_dice[j].global_position.x, s.throw_dice[j].global_position.z)) < s.tuning.die_size * 0.95:
 					overlap += 1
-		c /= 5.0
+		c /= float(s.throw_dice.size())
 		for d in s.throw_dice:
-			spread_sum += d.global_position.distance_to(c) / 5.0
+			spread_sum += d.global_position.distance_to(c) / float(s.throw_dice.size())
 		await s.sequence_finished
 		if r.state == BonfireRun.State.PICK:
-			s.pick_die((rr[1] as Array)[0])
+			var subs := BonfireScoring.matching_subsets(r.throw_faces, t)
+			for i in subs[0]:
+				s.pick_die(i)
 			await s.bank()
-		r.coin = 0
+		if r.is_over():
+			s.new_run(5)
+			r = s.run
+			r.hands_left = 1000
 	durations.sort()
-	print("  bonfire 5-die settle: median %.3f s, max %.3f s, mean spread %.3f m" % [durations[n / 2], durations[-1], spread_sum / n])
+	print("  bonfire 5-die settle (release -> rest): median %.3f s, max %.3f s, mean spread %.3f m" % [durations[n / 2], durations[-1], spread_sum / n])
+	check(durations[n / 2] <= s.tuning.settle_target, "median 5-die settle <= settle_target")
 	check(slow == 0, "every 5-die reveal within reveal_cap (%d slow)" % slow)
 	check(bad == 0, "5-die throws rest flat, on the felt, faces as seeded (%d bad)" % bad)
 	check(overlap == 0, "dice never interpenetrate (%d)" % overlap)
 	check(spread_sum / n > 0.06, "dice spread out (%.3f m)" % (spread_sum / n))
 
-	# End screen and restart.
-	r.hands_left = 8
-	r.coin = t.coin_target - 5
-	await throw_faces(s, [1, 2, 3, 3, 6] as Array[int])
-	s.pick_die(0)
-	await s.bank()
-	check(r.state == BonfireRun.State.CLEARED and s.bhud.end_panel.visible and s.can_throw() != "", "table cleared screen")
+	# A scripted table: trips, a bust, a Hot Hand, then the clearing bank.
+	s.new_run(5)
+	r = s.run
+	await create_timer(0.3).timeout
+	var res := await throw_faces(s, [4, 4, 4, 5, 2] as Array[int])
+	var shown: Array[int] = []
+	for d in s.throw_dice:
+		shown.append(d.shown_value())
+	check(shown == [4, 4, 4, 5, 2], "up-faces show the seeded values (%s)" % str(shown))
+	check(res[1] == [0, 1, 2, 3] and s.is_lit(s.throw_dice[3]) and not s.is_lit(s.throw_dice[4]), "4-4-4 and the 5 catch fire, the 2 stays cold")
+	check(s.bhud.bank_button.disabled and s.bhud.throw_button.disabled, "must pot a combo before bank/rethrow")
+	check(not s.pick_die(4), "clicking the cold 2 is refused")
+	check(s.pick_die(0) and s.pick_die(1) and s.pick_die(2) and r.throw_points() == 126, "pot 4-4-4 = 126")
+	check(not s.pick_die(3), "the 5 can't join the trips")
+	check(s.bhud.throw_label.text == "Trips  (30 + 12) x 3 = 126", "live formula (%s)" % s.bhud.throw_label.text)
+	await create_timer(0.3).timeout
+	check(s.throw_dice[2].global_position.distance_to(s.pot_slot(2)) < 0.01, "potted dice sit on the rail pot")
+	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "throw again: 2 cold dice back in the hand")
+	check(s.bhud.bounty_rows[&"triple"].text.begins_with("[?]"), "Triple pending in the checklist")
+	await create_timer(0.3).timeout
+	var soul := r.soul
+	res = await throw_faces(s, [2, 6] as Array[int])
+	check((res[1] as Array).is_empty() and r.soul == soul - t.bust_soul_loss and not r.is_ticked(t.table_goal.required[0]), "2-6 = bust: -Soul, the pending Triple is lost")
+	check(r.hands_left == 4 and s.dice.size() == 5 and s.bhud.bounty_rows[&"triple"].text.begins_with("[ ]"), "fresh hand of 5 after the bust")
+	res = await throw_faces(s, [3, 3, 3, 5, 5] as Array[int])
+	for i in 5:
+		s.pick_die(i)
+	check(r.selection()["combo"] == &"full_house" and r.is_hot(), "Full House of all 5 = Hot Hand")
+	check(s.throw_again() and s.dice.size() == 5 and r.mult_bonus() == 1 and s.pot_dice.is_empty(), "Hot Hand scoops all 5 back, +1 mult")
+	await create_timer(0.3).timeout
+	res = await throw_faces(s, [1, 2, 3, 6, 6] as Array[int])
+	s.pick_die(0); s.pick_die(1); s.pick_die(2)
+	check(r.throw_points() == (20 + 6) * 3, "run of 3 at mult 2+1")
+	var b: Dictionary = await s.bank()
+	check(b["kind"] == &"bank" and r.state == BonfireRun.State.CLEARED, "banking the last required bounty clears the table")
+	check(s.bhud.end_panel.visible and s.can_throw() != "" and s.bhud.bounty_rows[&"two_pairs"].text.begins_with("[x]"), "cleared screen; checklist ticked")
+	check(r.embers == 5 + 10 + r.points / 100, "Embers: bonus + clear + points/100 (%d)" % r.embers)
 	s.bhud.restart_pressed.emit()
 	await process_frame
-	check(s.run != r and s.run.coin == t.start_coin and s.run.hands_left == t.hands and not s.bhud.end_panel.visible and s.can_throw() == "", "Restart starts a fresh run")
+	check(s.run != r and s.run.hands_left == t.table_goal.hands and s.run.embers == 0 and not s.bhud.end_panel.visible and s.can_throw() == "", "Restart starts a fresh run")
 	s.queue_free()
 	await process_frame
 	print("test_bonfire_scene: %d passed, %d failed" % [_passed, _failed])
