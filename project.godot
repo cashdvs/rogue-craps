@@ -12,7 +12,7 @@ config_version=5
 
 config/name="The Gambler's Descent"
 config/description="A single-player 2D craps-style dice roguelite."
-run/main_scene="res://scenes/table.tscn"
+run/main_scene="res://scenes/studio_splash.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
@@ -23,6 +23,14 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/size/window_width_override=1280
 window/size/window_height_override=720
+
+[autoload]
+
+SplashState="*res://scripts/splash/splash_state.gd"
+
+[boot]
+
+next_scene="res://scenes/table.tscn"
 
 [debug]
 

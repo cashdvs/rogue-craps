@@ -1,0 +1,736 @@
+{
+ "_doc": "Tiny Anvil splash. Times in seconds from scene start. Positions are node positions in a 1920x1080 layout (1x). Every sprite is drawn at base scale 0.5 (PNGs are 2x); 'scale' values below are MULTIPLIERS on that base. Each Sprite2D has centered=false and offset=-pivot_px so the node position IS the pivot. rotation in degrees (Godot: positive = clockwise). Easing names = Godot Tween TRANS_*/EASE_*. 'set' = instant assignment at 'at'.",
+ "total": 2.5,
+ "skip": {
+  "ignore_input_before": 0.15,
+  "skip_fade": 0.2
+ },
+ "background": {
+  "color": "#1E1B1A"
+ },
+ "layers": {
+  "anvil": {
+   "texture": "anvil.png",
+   "pivot_px": [
+    316.6,
+    307.8
+   ],
+   "z": 1,
+   "rest": {
+    "position": [
+     993.3,
+     555.0
+    ],
+    "scale": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "modulate_a": 1
+   },
+   "tracks": [
+    {
+     "prop": "position:y",
+     "at": 0.0,
+     "set": -10.0
+    },
+    {
+     "prop": "scale",
+     "at": 0.15,
+     "set": [
+      0.92,
+      1.1
+     ]
+    },
+    {
+     "prop": "position:y",
+     "from": -10.0,
+     "to": 555.0,
+     "start": 0.15,
+     "dur": 0.25,
+     "trans": "QUAD",
+     "ease": "IN"
+    },
+    {
+     "prop": "scale",
+     "at": 0.4,
+     "set": [
+      1.14,
+      0.84
+     ]
+    },
+    {
+     "prop": "scale",
+     "from": [
+      1.14,
+      0.84
+     ],
+     "to": [
+      0.96,
+      1.05
+     ],
+     "start": 0.4,
+     "dur": 0.1,
+     "trans": "SINE",
+     "ease": "OUT"
+    },
+    {
+     "prop": "scale",
+     "from": [
+      0.96,
+      1.05
+     ],
+     "to": [
+      1,
+      1
+     ],
+     "start": 0.5,
+     "dur": 0.1,
+     "trans": "SINE",
+     "ease": "IN_OUT"
+    },
+    {
+     "prop": "scale",
+     "at": 0.6,
+     "set": [
+      1.06,
+      0.93
+     ]
+    },
+    {
+     "prop": "scale",
+     "from": [
+      1.06,
+      0.93
+     ],
+     "to": [
+      1,
+      1
+     ],
+     "start": 0.6,
+     "dur": 0.18,
+     "trans": "BACK",
+     "ease": "OUT"
+    },
+    {
+     "prop": "modulate_rgb",
+     "from": 1.35,
+     "to": 1.0,
+     "start": 0.6,
+     "dur": 0.1,
+     "trans": "EXPO",
+     "ease": "OUT"
+    },
+    {
+     "prop": "modulate_a",
+     "from": 1,
+     "to": 0,
+     "start": 2.2,
+     "dur": 0.3,
+     "trans": "SINE",
+     "ease": "IN"
+    }
+   ]
+  },
+  "hammer": {
+   "texture": "hammer.png",
+   "pivot_px": [
+    485.2,
+    120.4
+   ],
+   "z": 2,
+   "rest": {
+    "position": [
+     1206.9,
+     369.0
+    ],
+    "rotation": 80,
+    "modulate_a": 0
+   },
+   "tracks": [
+    {
+     "prop": "position:x",
+     "from": 1266.9,
+     "to": 1206.9,
+     "start": 0.3,
+     "dur": 0.15,
+     "trans": "CUBIC",
+     "ease": "OUT"
+    },
+    {
+     "prop": "modulate_a",
+     "from": 0,
+     "to": 1,
+     "start": 0.3,
+     "dur": 0.1,
+     "trans": "LINEAR",
+     "ease": "IN"
+    },
+    {
+     "prop": "rotation",
+     "from": 80,
+     "to": 95,
+     "start": 0.45,
+     "dur": 0.07,
+     "trans": "SINE",
+     "ease": "OUT"
+    },
+    {
+     "prop": "rotation",
+     "from": 95,
+     "to": 0,
+     "start": 0.52,
+     "dur": 0.08,
+     "trans": "QUAD",
+     "ease": "IN"
+    },
+    {
+     "prop": "rotation",
+     "from": 0,
+     "to": 16,
+     "start": 0.64,
+     "dur": 0.1,
+     "trans": "BACK",
+     "ease": "OUT"
+    },
+    {
+     "prop": "rotation",
+     "from": 16,
+     "to": 40,
+     "start": 0.8,
+     "dur": 0.2,
+     "trans": "QUAD",
+     "ease": "IN"
+    },
+    {
+     "prop": "position:x",
+     "from": 1206.9,
+     "to": 1286.9,
+     "start": 0.8,
+     "dur": 0.2,
+     "trans": "QUAD",
+     "ease": "IN"
+    },
+    {
+     "prop": "modulate_a",
+     "from": 1,
+     "to": 0,
+     "start": 0.8,
+     "dur": 0.2,
+     "trans": "QUAD",
+     "ease": "IN"
+    }
+   ]
+  },
+  "sparks": {
+   "hero": {
+    "texture": "spark.png",
+    "pivot_px": [
+     41.6,
+     40.6
+    ],
+    "z": 3,
+    "rest": {
+     "position": [
+      1000.5,
+      401.4
+     ],
+     "scale": [
+      0,
+      0
+     ],
+     "rotation": 0,
+     "modulate_a": 1
+    },
+    "tracks": [
+     {
+      "prop": "scale",
+      "from": [
+       0,
+       0
+      ],
+      "to": [
+       1.5,
+       1.5
+      ],
+      "start": 0.62,
+      "dur": 0.08,
+      "trans": "BACK",
+      "ease": "OUT"
+     },
+     {
+      "prop": "scale",
+      "from": [
+       1.5,
+       1.5
+      ],
+      "to": [
+       1,
+       1
+      ],
+      "start": 0.7,
+      "dur": 0.25,
+      "trans": "SINE",
+      "ease": "OUT"
+     },
+     {
+      "prop": "position:x",
+      "from": 1000.5,
+      "to": 863.7,
+      "start": 0.62,
+      "dur": 0.33,
+      "trans": "CUBIC",
+      "ease": "OUT"
+     },
+     {
+      "prop": "position:y",
+      "from": 401.4,
+      "to": 330.0,
+      "start": 0.62,
+      "dur": 0.16,
+      "trans": "QUAD",
+      "ease": "OUT"
+     },
+     {
+      "prop": "position:y",
+      "from": 330.0,
+      "to": 382.2,
+      "start": 0.78,
+      "dur": 0.17,
+      "trans": "SINE",
+      "ease": "IN_OUT"
+     },
+     {
+      "prop": "rotation",
+      "from": 0,
+      "to": 180,
+      "start": 0.62,
+      "dur": 0.33,
+      "trans": "CUBIC",
+      "ease": "OUT"
+     },
+     {
+      "prop": "scale",
+      "from": [
+       1,
+       1
+      ],
+      "to": [
+       1.2,
+       1.2
+      ],
+      "start": 1.55,
+      "dur": 0.15,
+      "trans": "SINE",
+      "ease": "IN_OUT"
+     },
+     {
+      "prop": "scale",
+      "from": [
+       1.2,
+       1.2
+      ],
+      "to": [
+       1,
+       1
+      ],
+      "start": 1.7,
+      "dur": 0.15,
+      "trans": "SINE",
+      "ease": "IN_OUT"
+     },
+     {
+      "prop": "modulate_a",
+      "from": 1,
+      "to": 0,
+      "start": 2.2,
+      "dur": 0.3,
+      "trans": "SINE",
+      "ease": "IN"
+     }
+    ]
+   },
+   "burst": {
+    "node": "GPUParticles2D",
+    "texture": "spark_particle.png",
+    "emit_at": 0.6,
+    "position": [
+     1000.5,
+     401.4
+    ],
+    "z": 3,
+    "one_shot": true,
+    "amount": 32,
+    "explosiveness": 1.0,
+    "lifetime": 0.55,
+    "randomness": 0.4,
+    "direction": [
+     0,
+     -1
+    ],
+    "spread_deg": 70,
+    "initial_velocity": [
+     380,
+     720
+    ],
+    "gravity": [
+     0,
+     1400
+    ],
+    "damping": [
+     60,
+     120
+    ],
+    "angle_deg": [
+     0,
+     90
+    ],
+    "scale": [
+     0.25,
+     0.6
+    ],
+    "scale_curve": "1.0 -> 0.0 (ease-in)",
+    "color_ramp": [
+     [
+      0.0,
+      "#F26A1B",
+      1.0
+     ],
+     [
+      0.6,
+      "#F4EDE4",
+      0.9
+     ],
+     [
+      1.0,
+      "#F4EDE4",
+      0.0
+     ]
+    ],
+    "secondary_embers": {
+     "amount": 10,
+     "lifetime": 0.9,
+     "initial_velocity": [
+      120,
+      260
+     ],
+     "spread_deg": 110,
+     "gravity": [
+      0,
+      500
+     ],
+     "scale": [
+      0.08,
+      0.16
+     ],
+     "color": "#F26A1B"
+    }
+   }
+  },
+  "wordmark": {
+   "_doc": "Node2D group 'wordmark' with two Sprite2D children so GAMES can land on a delay. For a static/single-sprite build use wordmark_cream.png with pivot main_center at the same position.",
+   "single_sprite_fallback": {
+    "texture": "wordmark_cream.png",
+    "pivot_px": [
+     600.4,
+     84.4
+    ],
+    "position": [
+     960.0,
+     630.0
+    ]
+   },
+   "main": {
+    "texture": "wordmark_main_cream.png",
+    "pivot_px": [
+     600.4,
+     84.4
+    ],
+    "z": 1,
+    "rest": {
+     "position": [
+      960.0,
+      630.0
+     ],
+     "scale": [
+      1,
+      1
+     ],
+     "modulate_a": 0,
+     "reveal": 0
+    },
+    "tracks": [
+     {
+      "prop": "reveal",
+      "from": 0,
+      "to": 1,
+      "start": 0.9,
+      "dur": 0.5,
+      "trans": "CUBIC",
+      "ease": "OUT"
+     },
+     {
+      "prop": "position:y",
+      "from": 646.0,
+      "to": 630.0,
+      "start": 0.9,
+      "dur": 0.4,
+      "trans": "QUAD",
+      "ease": "OUT"
+     },
+     {
+      "prop": "modulate_a",
+      "from": 0,
+      "to": 1,
+      "start": 0.9,
+      "dur": 0.2,
+      "trans": "LINEAR",
+      "ease": "IN"
+     },
+     {
+      "prop": "scale",
+      "from": [
+       0.96,
+       0.96
+      ],
+      "to": [
+       1,
+       1
+      ],
+      "start": 0.9,
+      "dur": 0.5,
+      "trans": "BACK",
+      "ease": "OUT"
+     },
+     {
+      "prop": "modulate_a",
+      "from": 1,
+      "to": 0,
+      "start": 2.2,
+      "dur": 0.3,
+      "trans": "SINE",
+      "ease": "IN"
+     }
+    ]
+   },
+   "games": {
+    "texture": "wordmark_games_cream.png",
+    "pivot_px": [
+     233.1,
+     34.1
+    ],
+    "z": 1,
+    "rest": {
+     "position": [
+      960.0,
+      711.0
+     ],
+     "scale": [
+      1,
+      1
+     ],
+     "modulate_a": 0
+    },
+    "tracks": [
+     {
+      "prop": "modulate_a",
+      "from": 0,
+      "to": 1,
+      "start": 1.15,
+      "dur": 0.2,
+      "trans": "LINEAR",
+      "ease": "IN"
+     },
+     {
+      "prop": "position:y",
+      "from": 721.0,
+      "to": 711.0,
+      "start": 1.15,
+      "dur": 0.3,
+      "trans": "QUAD",
+      "ease": "OUT"
+     },
+     {
+      "prop": "scale",
+      "from": [
+       1.1,
+       1.0
+      ],
+      "to": [
+       1,
+       1
+      ],
+      "start": 1.15,
+      "dur": 0.35,
+      "trans": "CUBIC",
+      "ease": "OUT"
+     },
+     {
+      "prop": "modulate_a",
+      "from": 1,
+      "to": 0,
+      "start": 2.2,
+      "dur": 0.3,
+      "trans": "SINE",
+      "ease": "IN"
+     }
+    ]
+   }
+  }
+ },
+ "camera": [
+  {
+   "type": "nudge",
+   "at": 0.4,
+   "offset_y": 5,
+   "dur": 0.1,
+   "trans": "SINE",
+   "ease": "OUT"
+  },
+  {
+   "type": "shake",
+   "at": 0.6,
+   "amplitude_px": 7,
+   "dur": 0.18,
+   "frequency_hz": 40,
+   "decay": "linear to 0"
+  }
+ ],
+ "sfx": [
+  {
+   "id": "anvil_thud",
+   "at": 0.4,
+   "note": "optional, low soft thump under the land"
+  },
+  {
+   "id": "hammer_swish",
+   "at": 0.52,
+   "note": "short air swish, 0.08 s, peak at 0.58"
+  },
+  {
+   "id": "clang",
+   "at": 0.6,
+   "note": "transient EXACTLY on the frame of impact; bright metallic ring, tail <= 0.9 s"
+  },
+  {
+   "id": "sizzle",
+   "at": 0.61,
+   "note": "spark crackle/sizzle, ~0.7 s, fades out by 1.35"
+  },
+  {
+   "id": "whoosh",
+   "at": 0.86,
+   "note": "soft airy whoosh; lead the reveal by ~0.04 s, peak ~1.05, gone by 1.45"
+  },
+  {
+   "id": "games_tick",
+   "at": 1.15,
+   "note": "optional, very soft wooden/metal tick as GAMES lands; skip if it crowds the whoosh tail"
+  },
+  {
+   "id": "twinkle",
+   "at": 1.55,
+   "note": "optional tiny tink on the spark twinkle, very quiet"
+  }
+ ],
+ "reduced_motion": {
+  "total": 2.3,
+  "anvil": [
+   {
+    "prop": "modulate_a",
+    "from": 0,
+    "to": 1,
+    "start": 0.0,
+    "dur": 0.4,
+    "trans": "SINE",
+    "ease": "OUT"
+   }
+  ],
+  "hammer": "hidden",
+  "spark_hero": [
+   {
+    "prop": "position",
+    "set": [
+     863.7,
+     382.2
+    ]
+   },
+   {
+    "prop": "modulate_a",
+    "from": 0,
+    "to": 1,
+    "start": 0.45,
+    "dur": 0.25,
+    "trans": "SINE",
+    "ease": "OUT"
+   },
+   {
+    "prop": "scale",
+    "from": [
+     0.8,
+     0.8
+    ],
+    "to": [
+     1,
+     1
+    ],
+    "start": 0.45,
+    "dur": 0.25,
+    "trans": "SINE",
+    "ease": "OUT"
+   }
+  ],
+  "burst": "off",
+  "camera": "off",
+  "wordmark": {
+   "main": [
+    {
+     "prop": "reveal",
+     "set": 1
+    },
+    {
+     "prop": "position:y",
+     "set": 630.0
+    },
+    {
+     "prop": "modulate_a",
+     "from": 0,
+     "to": 1,
+     "start": 0.6,
+     "dur": 0.4,
+     "trans": "SINE",
+     "ease": "OUT"
+    }
+   ],
+   "games": [
+    {
+     "prop": "modulate_a",
+     "from": 0,
+     "to": 1,
+     "start": 0.8,
+     "dur": 0.35,
+     "trans": "SINE",
+     "ease": "OUT"
+    }
+   ]
+  },
+  "fade_out": {
+   "start": 2.0,
+   "dur": 0.3,
+   "trans": "SINE",
+   "ease": "IN"
+  },
+  "sfx": [
+   {
+    "id": "clang",
+    "at": 0.45,
+    "volume_db": -6
+   },
+   {
+    "id": "whoosh",
+    "at": 0.58,
+    "volume_db": -6
+   }
+  ]
+ }
+}

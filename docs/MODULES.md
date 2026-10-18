@@ -47,6 +47,7 @@ status, its team owner and whether it's open to outside contributors.
 | **Embers (meta)** | `module:embers` | none yet | `scripts/core/meta/`, `resources/meta/` | Designed (post-POC) | Systems Dev | Later |
 | **Dealer / taunts** | `module:dealer` | `scripts/core/dealer_lines.gd`, `resources/dealer/dealer_lines.json`, `scripts/table/dealer_view.gd`, `dealer_bubble.gd`; `tests/test_dealer_lines.gd` | | Built (POC) | PM (assigns) | Yes |
 | **UI** | `module:ui` | HUD, end and debug screens in `scripts/table/table_scene.gd`; `table_painter.gd`, `palette.gd`; `scripts/ui/`; `scenes/table.tscn`, `scenes/greybox.tscn`; `tests/test_table_scene.gd`, `tests/test_greybox_scene.gd` | `scripts/ui/` menus, settings | Built (POC) | Godot Dev | Issues only |
+| **Boot splash** | `module:ui` | `scenes/studio_splash.tscn`, `scripts/splash/`, `tests/test_studio_splash.gd`; art + timings in `assets/branding/studio/` (Art Director) | | Built | Godot Dev | Issues only |
 | **Shaders** | `module:shaders` | `shaders/` | `shaders/3d/` (toon shading, outlines) | Built (2D) · 3D: In progress | Godot Dev | Issues only |
 | **Audio** | `module:audio` | `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` | `audio/music/` | Built (POC, procedural SFX) | Sound Designer | Yes |
 | **Fonts** | `module:fonts` | `fonts/` (with their license files) | | Built | Art Director | Issues only |

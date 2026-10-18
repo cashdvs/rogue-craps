@@ -98,9 +98,11 @@ rejected. Only the `N passed, M failed` summaries and the exit code matter.
 ## 4. Folder map (as of `main`)
 
 ```
-project.godot            Godot project (main scene: res://scenes/table.tscn, GL Compatibility)
+project.godot            Godot project (main scene: res://scenes/studio_splash.tscn, which then
+                         opens boot/next_scene = res://scenes/table.tscn; GL Compatibility)
 run_tests.sh             Runs tests/test_*.gd and tests/qa_/qa_*.gd headless
-scenes/                  table.tscn (2D POC table), greybox.tscn (old debug screen)
+scenes/                  table.tscn (2D POC table), greybox.tscn (old debug screen),
+                         studio_splash.tscn (Tiny Anvil Games boot splash)
 scripts/data/            Resource classes (data definitions): DieFace, DieData, BetType,
                          BetCatalog, TuningData, TableRuleData
 scripts/core/            Pure game logic, no nodes (RefCounted): DiceRoller, CrapsRound,
@@ -111,12 +113,14 @@ scripts/table/           2D table scene views: table_scene.gd (director), die_vi
                          dealer_bubble, table_painter, rule_plaque, shake_camera, palette
 scripts/audio/           SfxSynth (procedural sounds) + SfxManager (prefers audio/sfx/<event>.wav)
 scripts/ui/              greybox.gd
+scripts/splash/          studio_splash.gd (timeline player), splash_state.gd (SplashState autoload)
+assets/branding/studio/  Studio logo layers + splash_timings.json motion spec (Art Director)
 resources/tuning/        poc_tuning.tres: ALL the table numbers
 resources/bets/          pass/field/any_craps.tres + bet_catalog.tres
 resources/dice/          standard_d6.tres
 resources/dealer/        dealer_lines.json: Dealer taunt lines per event
 audio/sfx/               Baked .wav sound effects (from tools/bake_sfx.gd)
-fonts/                   Alfa Slab One, Barlow Condensed (SIL OFL; licenses alongside)
+fonts/                   Alfa Slab One, Barlow Condensed, fredoka/ (SIL OFL; licenses alongside)
 shaders/                 felt, backdrop, bulb_light, grade
 tests/                   test_*.gd (headless SceneTree scripts); tests/qa_/ is owned by QA
 tools/                   generate_sample_resources, bake_sfx, capture_table, demo_table
