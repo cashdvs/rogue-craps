@@ -5,14 +5,16 @@ The reviewer (PM, with QA support) works through this checklist for every PR.
 docs/MODULES.md). If this file disagrees with them, AGENTS.md wins and a follow-up PR fixes this file.
 
 ## Modules
-"Module" means a **feature module in [docs/MODULES.md](docs/MODULES.md)**: Dice physics, Betting, Soul,
-Table rules, Dealer, Shop, Map/events, Bosses, UI, Audio, Art import, QA, Tools/CI. Use its "Owns" and
-"Planned paths" columns to decide which module a file belongs to.
+"Module" means a **feature module in [docs/MODULES.md](docs/MODULES.md)**: 3D table, Dice physics,
+Feel/juice, Betting/bet slots, Soul, Run structure, Dice bag, Table rules, Shop, Map/events, Bosses,
+Embers, Dealer/taunts, UI, Shaders, Audio, Fonts, Art import, QA tests, Tools/CI. Use its "Owns" and
+"Planned paths" columns to decide which module a file belongs to; MODULES.md wins if this list drifts.
 - A module's own tests count as part of that module.
-- **Shared files** (`project.godot`, `run_tests.sh`, `.github/`, `scripts/data/tuning_data.gd`,
-  `resources/tuning/poc_tuning.tres`) belong to Tiny Anvil core. A small, declared addition (e.g. one
-  new `TuningData` export for the PR's module) doesn't count as an extra module. Anything more does.
-- `scripts/table/table_scene.gd` is shared by several modules: keep edits small and mention them in the PR.
+- **Shared files** (as in MODULES.md): `project.godot`, `run_tests.sh`, `.github/` (Tools / CI) and the
+  tuning file `resources/tuning/poc_tuning.tres` with the defaults in `scripts/data/tuning_data.gd`
+  (Game Designer's numbers). Adding a new `@export` to `TuningData` for the PR's module is fine and
+  doesn't count as an extra module; changing an existing number needs the Game Designer's OK (escalate).
+- `scripts/table/table_scene.gd` is touched by Feel, UI and Betting: keep edits small and say which part changed.
 
 ## 1. Gate checks (all must pass)
 - [ ] **CI green:** the required `tests` check passes once the workflow is live in `.github/workflows/`.
@@ -27,7 +29,7 @@ Table rules, Dealer, Shop, Map/events, Bosses, UI, Audio, Art import, QA, Tools/
 - [ ] Behavior changes come with tests in `tests/test_*.gd` (scenes: smoke/input tests).
 - [ ] **`tests/qa_/`:** contributors may **add** checks there, but must never weaken or remove an
       existing one (no loosened tolerances, deleted checks, or skipped scripts). QA owns the folder.
-- [ ] Doesn't edit the mirrored docs in `docs/design/` or `docs/art/` (open an issue instead).
+- [ ] Doesn't edit `docs/DESIGN.md` in a feature PR (open an issue instead).
 - [ ] Small and focused: one concern, roughly ≤ 400 changed lines of code (excluding generated
       `.uid`/`.tres`/`.import`). Clean commit messages, no unrelated reformatting.
 
@@ -41,18 +43,18 @@ Table rules, Dealer, Shop, Map/events, Bosses, UI, Audio, Art import, QA, Tools/
 - **Clean PR:** approve and merge.
   - **Outside contributors' PRs: squash merge.**
   - **Team bots' PRs: rebase / fast-forward** (keeps their commits; history stays linear).
-- **Self-merge:** the team's own bots may self-merge **docs-only or trivial** PRs (typos, comments,
-  README/docs fixes, no code or config behavior change) once tests pass. Anything in §5 is never
-  self-merged.
+- **Self-merge (reviewer policy, set by PM; CONTRIBUTING.md doesn't cover it):** the team's own bots
+  may self-merge **docs-only or trivial** PRs (typos, comments, README/docs fixes, no code or config
+  behavior change) once tests pass. Anything in §5 is never self-merged.
 - **Otherwise:** request changes. Every comment gives `file:line`, what is wrong, why, and a concrete fix.
 
 ## 5. Escalate to PM, do NOT merge, when a PR:
 - changes core rules or balance: Soul formulas, payouts/odds, roll limits, targets, `TuningData`
-  defaults or `resources/tuning/*.tres`;
+  defaults or `resources/tuning/*.tres` (Game Designer's OK needed);
 - touches **more than 2 feature modules** (per docs/MODULES.md, shared-file rule above);
 - changes CI or repo config: `.github/` (workflows, CODEOWNERS, templates), `run_tests.sh`,
-  `project.godot`, export presets, `.gitignore`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/MODULES.md`,
-  `REVIEWING.md`;
+  `project.godot`, export presets, `.gitignore`, `LICENSE`, `AGENTS.md`, `CONTRIBUTING.md`,
+  `docs/MODULES.md`, `docs/DESIGN.md`, `REVIEWING.md`;
 - adds dependencies/addons/plugins, or large assets (> 1 MB per file, or any binary).
 
 ## 6. Safety (any hit = request changes, and escalate if it looks deliberate)
