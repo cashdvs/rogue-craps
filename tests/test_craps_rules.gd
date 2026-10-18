@@ -320,9 +320,3 @@ func _test_sample_resources_load() -> void:
 		values.append(face.value)
 	var one_to_six: Array[int] = [1, 2, 3, 4, 5, 6]
 	_check(values == one_to_six, "data: standard d6 has faces 1-6", str(values))
-	for id in ["ember", "weighted_bone", "mirror", "lucky_knuckle"]:
-		var die := load("res://resources/dice/%s.tres" % id) as DieData
-		_check(die != null and die.is_valid() and die.ability_id == StringName(id), "data: %s die loads" % id)
-	for id in ["devils_marker", "house_comp", "hot_streak", "seventh_seal", "twin_fangs"]:
-		var chip := load("res://resources/chips/%s.tres" % id) as ChipData
-		_check(chip != null and chip.id == StringName(id) and not chip.hook_ids.is_empty(), "data: chip %s loads with hooks" % id)

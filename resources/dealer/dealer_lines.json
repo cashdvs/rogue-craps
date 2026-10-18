@@ -1,0 +1,55 @@
+{
+	"_comment": "Dealer taunts for the POC table. Edit freely: event id -> list of lines. One is picked at random, never the same line twice in a row. Events: natural, craps, point_set, point_hit, seven_out, big_bet, low_soul, table_win, table_fail.",
+	"natural": [
+		"Beginner's luck. It burns out fast.",
+		"Enjoy it. I'm keeping count.",
+		"A natural? How... unnatural.",
+		"The house lets you win. Sometimes."
+	],
+	"craps": [
+		"Craps! Music to my ears.",
+		"Snake bit already?",
+		"The dice know who they belong to.",
+		"That's the sound of my retirement."
+	],
+	"point_set": [
+		"Now you have to roll it again. Ha.",
+		"A point. Let's see you make it.",
+		"Feel the seven breathing on your neck?",
+		"Tick tock, little soul."
+	],
+	"point_hit": [
+		"Hmph. Lucky bounce.",
+		"Don't get used to that.",
+		"The rim was soft. I'll have it fixed.",
+		"Fine. Take your little coins."
+	],
+	"seven_out": [
+		"SEVEN OUT! Delicious.",
+		"There it is. There it always is.",
+		"Your soul tastes like cheap whiskey.",
+		"Sevens are hot tonight. For me."
+	],
+	"big_bet": [
+		"Ooh, a high roller. I love high rollers.",
+		"All that Coin, so far from home.",
+		"Brave. Or stupid. Same thing here.",
+		"Push it all in. I dare you."
+	],
+	"low_soul": [
+		"You're flickering, friend.",
+		"Running on fumes, are we?",
+		"I can see right through you now.",
+		"Careful. You're almost mine."
+	],
+	"table_win": [
+		"Get out. Before I change my mind.",
+		"This table's closed. For you.",
+		"Enjoy the stairs. They only go down."
+	],
+	"table_fail": [
+		"House wins. House always wins.",
+		"Pay the man. With your soul.",
+		"Come back when you've got more to lose."
+	]
+}

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TuningData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tuning_data.gd" id="1_boowu"]
+[ext_resource type="Script" path="res://scripts/data/table_rule_data.gd" id="2_laax4"]
+
+[sub_resource type="Resource" id="Resource_yypxd"]
+script = ExtResource("2_laax4")
+id = &"hot_seven"
+display_name = "Hot Seven"
+description = "Seven-outs deal double Soul damage."
+seven_out_soul_multiplier = 2
+
+[resource]
+script = ExtResource("1_boowu")
+table_rule = SubResource("Resource_yypxd")

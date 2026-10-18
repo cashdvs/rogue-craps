@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BetType" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bet_type.gd" id="1_x1f12"]
+
+[resource]
+script = ExtResource("1_x1f12")
+id = &"any_craps"
+display_name = "Any Craps"
+rule = 2
+payout_numerator = 7
+winning_totals = Array[int]([2, 3, 12])
+unlock_cost = 25
+description = "One roll: wins on 2, 3, or 12. Pays 7:1."

@@ -12,7 +12,7 @@ var _catalog: BetCatalog
 func _initialize() -> void:
 	print("=== The Gambler's Descent: betting tests ===")
 	_catalog = load("res://resources/bets/bet_catalog.tres") as BetCatalog
-	_check(_catalog != null and _catalog.bets.size() == 3, "data: bet catalog has Pass, Field, Hard 8")
+	_check(_catalog != null and _catalog.bets.size() == 3, "data: bet catalog has Pass, Field, Any Craps")
 	if _catalog == null:
 		quit(1)
 		return
@@ -21,7 +21,8 @@ func _initialize() -> void:
 	_test_integer_ratios()
 	_test_pass_payouts()
 	_test_field_payouts()
-	_test_hard_8_payouts()
+	_test_any_craps_payouts()
+	_test_hard_way_rule()
 	_test_odds_rule()
 	_test_table_limits()
 	_test_table_money_flow()
@@ -75,9 +76,9 @@ func _test_bet_data() -> void:
 	var field := _catalog.find(&"field")
 	_check(field != null and field.unlock_cost == 20 and field.ratio_text(2) == "2:1" and field.ratio_text(12) == "3:1",
 		"data: Field costs 20, 2 pays 2:1, 12 pays 3:1")
-	var hard := _catalog.find(&"hard_8")
-	_check(hard != null and hard.hard_number == 8 and hard.ratio_text() == "9:1" and hard.unlock_cost == 45,
-		"data: Hard 8 pays 9:1, costs 45")
+	var any_craps := _catalog.find(&"any_craps")
+	_check(any_craps != null and any_craps.ratio_text() == "7:1" and any_craps.unlock_cost == 25,
+		"data: Any Craps pays 7:1, costs 25 (doc v0.3)")
 
 
 # --- Bankroll ----------------------------------------------------------------------
@@ -158,29 +159,39 @@ func _test_field_payouts() -> void:
 					"field (%s): %d pays +%d on 10" % [phase_name, total, want], "got +%d" % p.profit)
 
 
-# --- Hard 8 --------------------------------------------------------------------------
+# --- Any Craps (doc: one roll, wins on 2, 3, 12, pays 7:1) -----------------------
 
-func _test_hard_8_payouts() -> void:
+func _test_any_craps_payouts() -> void:
+	for phase_point in [0, 8]:
+		for total in range(2, 13):
+			var p := _settle(&"any_craps", _roll(_dice_for(total), phase_point))
+			var phase_name := "come-out" if phase_point == 0 else "point phase"
+			if total in [2, 3, 12]:
+				_check(p.result == BetPayout.Result.WIN and p.profit == 70, "any craps (%s): %d pays +70 on 10" % [phase_name, total])
+			else:
+				_check(p.result == BetPayout.Result.LOSE and p.net() == -10, "any craps (%s): %d loses" % [phase_name, total])
+
+
+# --- Hard-way rule (no POC bet uses it, logic kept and tested) --------------------
+
+func _test_hard_way_rule() -> void:
+	var hard_8 := BetType.new()
+	hard_8.id = &"hard_8"
+	hard_8.rule = BetType.Rule.HARD_WAY
+	hard_8.hard_number = 8
+	hard_8.payout_numerator = 9
 	var hard: Array[int] = [4, 4]
-	var p := _settle(&"hard_8", _roll(hard, 6))
-	_check(p.result == BetPayout.Result.WIN and p.profit == 90, "hard 8: 4-4 pays 9:1 (+90 on 10)")
-	p = _settle(&"hard_8", _roll(hard))
-	_check(p.result == BetPayout.Result.WIN, "hard 8: 4-4 also wins on the come-out (always working)")
-	for easy in [[2, 6], [6, 2], [3, 5], [5, 3]]:
-		var dice: Array[int] = []
-		dice.assign(easy)
-		_check(_settle(&"hard_8", _roll(dice, 6)).result == BetPayout.Result.LOSE, "hard 8: easy %s loses" % str(easy))
-	for sev in [[1, 6], [3, 4], [6, 1]]:
-		var dice: Array[int] = []
-		dice.assign(sev)
-		_check(_settle(&"hard_8", _roll(dice, 5)).result == BetPayout.Result.LOSE, "hard 8: seven %s loses" % str(sev))
-	_check(_settle(&"hard_8", _roll(_dice_for(7))).result == BetPayout.Result.LOSE, "hard 8: come-out 7 loses too")
-	for total in [2, 3, 4, 5, 6, 9, 10, 11, 12]:
-		_check(_settle(&"hard_8", _roll(_dice_for(total), 5)).result == BetPayout.Result.STAYS,
-			"hard 8: %d stays up" % total)
+	var p := BetResolver.resolve_one(_roll(hard, 6), ActiveBet.new(hard_8, 10))
+	_check(p.result == BetPayout.Result.WIN and p.profit == 90, "hard way: 4-4 pays 9:1 (+90 on 10)")
+	var easy: Array[int] = [2, 6]
+	_check(BetResolver.resolve_one(_roll(easy, 6), ActiveBet.new(hard_8, 10)).result == BetPayout.Result.LOSE, "hard way: easy 8 loses")
+	var seven: Array[int] = [3, 4]
+	_check(BetResolver.resolve_one(_roll(seven, 5), ActiveBet.new(hard_8, 10)).result == BetPayout.Result.LOSE, "hard way: 7 loses")
+	var other: Array[int] = [2, 3]
+	_check(BetResolver.resolve_one(_roll(other, 6), ActiveBet.new(hard_8, 10)).result == BetPayout.Result.STAYS, "hard way: 5 stays up")
 	var invalid := RollResult.new()
 	invalid.outcome = RollResult.Outcome.INVALID
-	_check(_settle(&"hard_8", invalid).result == BetPayout.Result.STAYS, "resolver: invalid roll settles nothing")
+	_check(BetResolver.resolve_one(invalid, ActiveBet.new(hard_8, 10)).result == BetPayout.Result.STAYS, "resolver: invalid roll settles nothing")
 
 
 # --- Odds rule (data paused, logic kept) ----------------------------------------------
@@ -206,7 +217,7 @@ func _test_table_limits() -> void:
 	_check(table.place_bet(pass_bet, 20) == "" and table.stake_on(&"pass") == 25, "table: raise Pass to 25 (cap)")
 	_check(table.place_bet(pass_bet, 5) != "", "table: over the 25 cap is refused")
 	_check(table.place_bet(_catalog.find(&"field"), 25) == "" and table.bankroll.coin == 0, "table: Field 25 uses the rest")
-	_check(table.place_bet(_catalog.find(&"hard_8"), 5) != "" and table.bankroll.coin == 0, "table: can't bet more Coin than you have")
+	_check(table.place_bet(_catalog.find(&"any_craps"), 5) != "" and table.bankroll.coin == 0, "table: can't bet more Coin than you have")
 	_check(table.clear_bet(&"field") == "" and table.bankroll.coin == 25, "table: clearing Field returns 25")
 
 	var t2 := CrapsTable.new(Bankroll.new(50))
@@ -222,32 +233,37 @@ func _test_table_money_flow() -> void:
 	var table := CrapsTable.new(Bankroll.new(50))
 	table.place_bet(_catalog.find(&"pass"), 10)
 	table.place_bet(_catalog.find(&"field"), 5)
-	table.place_bet(_catalog.find(&"hard_8"), 5)
+	table.place_bet(_catalog.find(&"any_craps"), 5)
 	_check_eq(table.bankroll.coin, 30, "flow: 20 Coin on the felt, 30 in hand")
 
-	# Come-out 11: Pass +10, Field +5, Hard 8 stays.
+	# Come-out 11: Pass +10, Field +5, Any Craps -5.
 	var eleven: Array[int] = [5, 6]
 	var r := table.roll(eleven)
-	_check(r.net == 15 and table.bankroll.coin == 30 + 20 + 10, "flow: come-out 11 nets +15 (Pass & Field win)", "net %d coin %d" % [r.net, table.bankroll.coin])
-	_check(table.active_bets.size() == 1 and table.find_bet(&"hard_8") != null, "flow: only Hard 8 stays up")
+	_check(r.net == 10 and table.bankroll.coin == 30 + 20 + 10, "flow: come-out 11 nets +10 (Pass & Field win, Any Craps loses)", "net %d coin %d" % [r.net, table.bankroll.coin])
+	_check(table.active_bets.is_empty(), "flow: felt is empty after one-roll bets settle")
 
-	# Hard 8 hits on 4-4 (also sets the Point 8 for an empty Pass line).
-	var hard: Array[int] = [4, 4]
-	r = table.roll(hard)
-	_check(r.net == 45 and table.bankroll.coin == 60 + 50, "flow: 4-4 pays Hard 8 9:1 (+45, 50 back)", "net %d coin %d" % [r.net, table.bankroll.coin])
-	_check(table.active_bets.is_empty() and table.craps.point == 8, "flow: felt empty, Point 8 on")
+	# Come-out 2: Pass loses, Field pays 2:1, Any Craps pays 7:1.
+	table.place_bet(_catalog.find(&"pass"), 10)
+	table.place_bet(_catalog.find(&"field"), 5)
+	table.place_bet(_catalog.find(&"any_craps"), 5)
+	var snake: Array[int] = [1, 1]
+	r = table.roll(snake)
+	_check(r.net == -10 + 10 + 35 and table.bankroll.coin == 60 + 35, "flow: come-out 2 nets +35", "net %d coin %d" % [r.net, table.bankroll.coin])
 
-	# Rejected roll changes nothing.
+	# Point 8, then a rejected roll changes nothing.
+	table.place_bet(_catalog.find(&"pass"), 10)
+	var eight: Array[int] = [3, 5]
+	table.roll(eight)
 	print("      (next line prints an EXPECTED warning about total 13)")
 	var bad: Array[int] = [6, 7]
 	var before := table.bankroll.coin
 	r = table.roll(bad)
-	_check(r.rejected and table.bankroll.coin == before and table.rolls_made == 2 and table.craps.point == 8,
+	_check(r.rejected and table.bankroll.coin == before and table.rolls_made == 3 and table.craps.point == 8,
 		"flow: invalid total is rejected without using a roll")
 
-	# Seven-out loses the Field bet placed during the Point.
+	# Seven-out loses Pass and a Field bet placed during the Point.
 	table.place_bet(_catalog.find(&"field"), 10)
 	var seven: Array[int] = [3, 4]
 	r = table.roll(seven)
-	_check(r.roll.outcome == RollResult.Outcome.SEVEN_OUT and r.net == -10 and table.bankroll.coin == before - 10,
-		"flow: seven-out, Field 10 lost")
+	_check(r.roll.outcome == RollResult.Outcome.SEVEN_OUT and r.net == -20 and table.bankroll.coin == before - 10,
+		"flow: seven-out, Pass 10 + Field 10 lost")

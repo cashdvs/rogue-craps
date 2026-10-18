@@ -1,9 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/greybox.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_diedata"]
-[ext_resource type="Resource" path="res://resources/dice/ember.tres" id="3_ember"]
-[ext_resource type="Resource" path="res://resources/dice/lucky_knuckle.tres" id="4_knuckle"]
+[ext_resource type="Resource" path="res://resources/dice/standard_d6.tres" id="3_d6"]
 [ext_resource type="Resource" path="res://resources/bets/bet_catalog.tres" id="6_catalog"]
 
 [node name="Greybox" type="Control"]
@@ -14,7 +13,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
-starting_dice = Array[ExtResource("2_diedata")]([ExtResource("3_ember"), ExtResource("4_knuckle")])
+starting_dice = Array[ExtResource("2_diedata")]([ExtResource("3_d6"), ExtResource("3_d6")])
 bet_catalog = ExtResource("6_catalog")
 
 [node name="Background" type="ColorRect" parent="."]

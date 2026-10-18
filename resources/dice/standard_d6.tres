@@ -34,6 +34,6 @@ tags = PackedStringArray()
 
 [resource]
 script = ExtResource("2_1bf8o")
-display_name = "Standard Die"
+display_name = "Bone Die"
 faces = Array[ExtResource("1_1dbb0")]([SubResource("Resource_vbsu2"), SubResource("Resource_5r8tm"), SubResource("Resource_ipo62"), SubResource("Resource_5qhgd"), SubResource("Resource_rbfib"), SubResource("Resource_g70om")])
 level_up_costs = PackedInt32Array(15, 30, 50)
