@@ -44,6 +44,9 @@ func _run() -> void:
 	await _test_real_time_reveal(scene)
 	await _test_speed_modes(scene)
 	await _test_no_soul_restore(scene)
+	await _test_running_total(scene, 1)
+	await _test_running_total(scene, 3)
+	await _test_back_to_craps(scene)
 	scene.queue_free()
 	await process_frame
 	await _test_die_size()
@@ -175,6 +178,78 @@ func _test_faces_and_bounds(s: Table3D) -> void:
 	check(mismatches == 0, "up-faces match the DiceRoller result on all %d throws (%d mismatches)" % [n, mismatches])
 	check(not_flat == 0, "dice rest flat (%d tilted)" % not_flat)
 	check(off_table == 0, "dice stay on the felt (%d off)" % off_table)
+
+
+## Running-total mode (Burn Line groundwork): N dice per throw (1 and 3)
+## with the same flick, physics and seeded-face guarantees; the total, HUD
+## and Stop placeholder follow.
+func _test_running_total(s: Table3D, per_throw: int) -> void:
+	s.test_speed = 10.0
+	s.set_speed_mode(0)
+	s.set_mode(Table3D.Mode.RUNNING_TOTAL, per_throw)
+	await process_frame
+	check(s.dice.size() == per_throw and s.dice_per_throw() == per_throw, "%d-die mode: %d visible dice" % [per_throw, per_throw])
+	check(s.total_hud.visible and s.total_hud.stop_button.disabled, "%d-die mode: total HUD shown, Stop disabled at 0" % per_throw)
+	check(s.can_throw() == "", "%d-die mode: no Pass Line bet needed to throw" % per_throw)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77 + per_throw
+	var mismatches := 0
+	var bad_pose := 0
+	var slow := 0
+	var expected := 0
+	var throws := 8
+	for k in throws:
+		if k % 2 == 0:
+			var rig: Array[int] = []
+			for i in per_throw:
+				rig.append(rng.randi_range(1, 6))
+			s.rig_next_values(rig)
+		var v := Vector2.from_angle(rng.randf_range(-PI * 0.9, -PI * 0.3)) * rng.randf_range(s.tuning.min_throw_speed * 1.05, s.tuning.max_throw_speed)
+		var hand := s.camera.cam.unproject_position(Table3D.HAND)
+		check(s.throw(v, hand + Vector2(rng.randf_range(-30, 30), rng.randf_range(-20, 20))), "%d-die throw %d starts" % [per_throw, k])
+		var landed: Array = await s.dice_landed
+		check(landed.size() == per_throw and s.last_recording.count() == per_throw, "%d-die throw %d: %d values and simulated bodies" % [per_throw, k, per_throw])
+		for i in per_throw:
+			var d := s.dice[i]
+			if d.up_value() != int(landed[i]):
+				mismatches += 1
+			var p := d.global_position
+			var lim := Table3DBuilder.FELT_HALF
+			if d.up_dot() < 0.999 or absf(p.x) > lim.x - 0.039 or absf(p.z) > lim.y - 0.039:
+				bad_pose += 1
+			expected += int(landed[i])
+		if s.last_recording.duration() + s.tuning.windup_time + s.tuning.settle_wobble_time > s.tuning.reveal_cap + 0.001:
+			slow += 1
+		await s.sequence_finished
+		check(s.running_total.total == expected and s.running_total.count() == (k + 1) * per_throw, "%d-die throw %d: running total %d" % [per_throw, k, expected])
+	check(mismatches == 0, "%d-die mode: up-faces match the seeded values (%d mismatches)" % [per_throw, mismatches])
+	check(bad_pose == 0, "%d-die mode: dice rest flat on the felt (%d bad)" % [per_throw, bad_pose])
+	check(slow == 0, "%d-die mode: every reveal within reveal_cap (%d slow)" % [per_throw, slow])
+	await create_timer(0.6).timeout  # let the count-up finish
+	check(s.total_hud.total_label.text == str(expected), "%d-die mode: HUD counts up to the total (%s)" % [per_throw, s.total_hud.total_label.text])
+	await process_frame
+	check(s.total_hud.list_box.get_child_count() == throws * per_throw, "%d-die mode: HUD lists every die thrown" % per_throw)
+	check(not s.total_hud.stop_button.disabled, "%d-die mode: Stop enabled once something is thrown" % per_throw)
+	var stopped: Array[int] = []
+	var cb := func(t: int) -> void: stopped.append(t)
+	s.total_stopped.connect(cb)
+	s.total_hud.stop_button.pressed.emit()
+	s.total_stopped.disconnect(cb)
+	check(stopped == [expected] and s.running_total.total == 0, "%d-die mode: Stop banks %d and starts a new total" % [per_throw, expected])
+	check(s.stop_total() == -1, "%d-die mode: Stop with nothing thrown does nothing" % per_throw)
+
+
+## Switching back keeps the craps flow intact (2 dice, Pass Line).
+func _test_back_to_craps(s: Table3D) -> void:
+	s.set_mode(Table3D.Mode.CRAPS)
+	await process_frame
+	check(s.dice.size() == 2 and not s.total_hud.visible, "back to craps: 2 dice, total HUD hidden")
+	_bet(s)
+	s.rig_next_roll(2, 5)
+	check(s.quick_throw(), "back to craps: a Pass Line throw starts")
+	var report: PocRollReport = await s.outcome_shown
+	check(report.table_report.roll.total == 7 and s.dice[0].up_value() == 2 and s.dice[1].up_value() == 5, "back to craps: seeded 2-5 rolls a 7")
+	await s.sequence_finished
 
 
 ## Sound Designer hooks: die-die once per pair (lower id, other_id set),

@@ -214,6 +214,10 @@ extends Resource
 @export var sim_rest_linear: float = 0.03
 @export var sim_rest_angular: float = 0.5
 @export var sim_rest_time: float = 0.12
+## Running-total mode (groundwork for Burn Line): the target-line marker.
+## PLACEHOLDER until design/burn_line.md sets the real number and rules.
+@export var total_target_line: int = 21
+
 ## Audio: at most one impact signal per die per this many seconds.
 @export var impact_min_interval: float = 0.05
 ## Audio: contacts slower than this (relative m/s) are silent (no signal).

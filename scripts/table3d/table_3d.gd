@@ -26,12 +26,22 @@ signal outcome_shown(report: PocRollReport)
 signal sequence_finished
 signal table_finished(status: PocTable.Status)
 signal taunted(event: StringName, line: String)
+## Running-total mode: the player stopped at `total`.
+signal total_stopped(total: int)
 
 enum Phase { BET, HELD, ROLL, REVEAL, RESOLVE, RESET, OVER }
+## CRAPS = the POC Pass Line table (2 dice). RUNNING_TOTAL = groundwork for
+## Burn Line: throw N dice (default 1) into a running total, Stop any time.
+## How a stop pays is not built yet (spec pending).
+enum Mode { CRAPS, RUNNING_TOTAL }
 
 ## Where the two dice wait in your hand (felt, near-right corner).
 const HAND := Vector3(0.86, 0.0, 0.36)
 const DIE_SPREAD := Vector3(0.06, 0.0, 0.0)
+## Gap between dice waiting in the hand (2 dice sit at +-DIE_SPREAD).
+const HAND_GAP: float = 0.12
+## Most dice one throw can hold (the dice bag holds 5).
+const MAX_DICE: int = 5
 ## Held dice float this high above the felt.
 const HOLD_Y: float = 0.10
 ## Throws aim at the dealer's backboard, around here.
@@ -50,6 +60,10 @@ const QUICK_THROW := Vector2(-1500, -2300)
 @export var forced_rolls: Array[Vector2i] = []
 ## Extra speed multiplier (tests use it to run sequences fast).
 @export var test_speed: float = 1.0
+## Which game runs on the table (see Mode). Change at runtime with set_mode().
+@export var mode: Mode = Mode.CRAPS
+## Dice per throw in RUNNING_TOTAL mode (1..MAX_DICE). CRAPS always uses 2.
+@export var total_dice_per_throw: int = 1
 ## Captures/tests: screen point where held dice go instead of the mouse.
 var hold_point_override := Vector2.INF
 
@@ -93,6 +107,10 @@ var _last_hover: bool = false
 var _last_impact: Array[float] = [-1.0, -1.0]
 var _rest_sent: Array[bool] = [false, false]
 var _tumble_sent: Array[bool] = [false, false]
+var running_total: RunningTotal
+var total_hud: RunningTotalHud
+## Next die in the loadout to throw (RUNNING_TOTAL mode cycles the loadout).
+var _loadout_i: int = 0
 
 # Nodes (built in code).
 var world_env: WorldEnvironment
@@ -154,12 +172,46 @@ func _ready() -> void:
 	_build_hud()
 	_build_end_screen()
 	_build_debug_panel()
+	running_total = RunningTotal.new(tuning.total_target_line)
+	total_hud = RunningTotalHud.new()
+	total_hud.stop_pressed.connect(func() -> void: stop_total())
+	hud.add_child(total_hud)
+	set_mode(mode)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_on_viewport_resized()
 	restart(rng_seed)
 
 
 # --- Public API (tests, captures, debug) ----------------------------------------
+
+## Switches between the craps table and the running-total groundwork.
+## `per_throw` (RUNNING_TOTAL only) = dice per throw, default 1.
+func set_mode(m: Mode, per_throw: int = -1) -> void:
+	mode = m
+	if per_throw > 0:
+		total_dice_per_throw = clampi(per_throw, 1, MAX_DICE)
+	_loadout_i = 0
+	_set_dice_count(dice_per_throw())
+	if running_total != null:
+		running_total.reset()
+		total_hud.set_line(running_total.target_line)
+		total_hud.show_total(running_total, true)
+		total_hud.visible = mode == Mode.RUNNING_TOTAL
+
+
+## Running-total mode: bank the total now (placeholder Stop; how a stop
+## pays waits for the Burn Line spec). Returns the stopped total, or -1.
+func stop_total() -> int:
+	if mode != Mode.RUNNING_TOTAL or phase != Phase.BET or running_total.count() == 0:
+		return -1
+	var final_total := running_total.stop()
+	total_hud.show_total(running_total, true)
+	total_hud.show_stopped(final_total)
+	sfx.play(&"chip_place", 0.8)
+	_set_why("Stopped at %d (line %d). Scoring comes with the Burn Line rules." % [final_total, running_total.target_line])
+	total_stopped.emit(final_total)
+	return final_total
+
 
 ## Starts a fresh RUN at table 1 with full Soul. seed -1 = random.
 func restart(seed_value: int = DiceRoller.RANDOM_SEED) -> void:
@@ -239,12 +291,19 @@ func rig_next_roll(a: int, b: int) -> void:
 	_rig = [a, b]
 
 
+## Rigs the next throw with one value per die (any dice count).
+func rig_next_values(values: Array[int]) -> void:
+	_rig = values.duplicate()
+
+
 func is_busy() -> bool:
 	return phase != Phase.BET and phase != Phase.OVER
 
 
 ## Can the dice be thrown right now? Returns "" or the reason.
 func can_throw() -> String:
+	if mode == Mode.RUNNING_TOTAL:
+		return "" if phase == Phase.BET or phase == Phase.HELD else "The dice are still rolling."
 	if poc.is_over():
 		return "The table is over."
 	if phase != Phase.BET and phase != Phase.HELD:
@@ -315,7 +374,9 @@ func set_reduced_motion(on: bool) -> void:
 
 ## Where die i waits in the hand.
 func hand_spot(i: int) -> Vector3:
-	return HAND + (DIE_SPREAD if i == 1 else -DIE_SPREAD) + Vector3(0, tuning.die_size * 0.5, 0)
+	var n := maxi(dice.size(), 1)
+	var x := (float(i) - float(n - 1) * 0.5) * HAND_GAP
+	return HAND + Vector3(x, tuning.die_size * 0.5, 0)
 
 
 ## The point on a horizontal plane (height y) under a screen position.
@@ -388,16 +449,52 @@ func _build_world() -> void:
 	add_child(sim)
 	sim.setup(tuning)
 	thrown.connect(func(_speed: float) -> void: sfx.play(&"dice_shake"))
-	for i in 2:
+	_set_dice_count(2)
+
+
+## How many dice a throw uses right now.
+func dice_per_throw() -> int:
+	return 2 if mode == Mode.CRAPS else clampi(total_dice_per_throw, 1, MAX_DICE)
+
+
+## Adds or removes visible dice so there are `n` (physics bodies follow on
+## demand in DiceSim). Per-die bookkeeping is resized to match.
+func _set_dice_count(n: int) -> void:
+	while dice.size() > n:
+		var d: DieVisual = dice.pop_back()
+		d.queue_free()
+	while dice.size() < n:
+		var i := dice.size()
 		var d := DieVisual.new(tuning.die_size)
 		d.name = "Die%d" % i
 		d.die_id = i
-		d.material = starting_dice[i].material if i < starting_dice.size() and starting_dice[i] != null else "bone"
 		d.impact.connect(_on_die_impact)
 		d.settled.connect(_on_die_settled)
 		add_child(d)
-		d.global_transform = Transform3D(Basis.IDENTITY, hand_spot(i))
 		dice.append(d)
+	for i in n:
+		var data := _die_data_for(i)
+		dice[i].material = data.material if data != null else "bone"
+		dice[i].global_transform = Transform3D(Basis.IDENTITY, hand_spot(i))
+	_remap_from.resize(n)
+	_remap_to.resize(n)
+	_last_impact.resize(n)
+	_rest_sent.resize(n)
+	_tumble_sent.resize(n)
+	_remap_from.fill(Quaternion.IDENTITY)
+	_remap_to.fill(Quaternion.IDENTITY)
+	if sim != null:
+		sim.ensure_bodies(n)
+
+
+## The DieData thrown as die i on the next throw (craps: the starting pair;
+## running total: the next dice in the loadout, in order, wrapping around).
+func _die_data_for(i: int) -> DieData:
+	if starting_dice.is_empty():
+		return null
+	if mode == Mode.CRAPS:
+		return starting_dice[mini(i, starting_dice.size() - 1)]
+	return starting_dice[(_loadout_i + i) % starting_dice.size()]
 
 
 func _cyl_body(n: String, radius: float, height: float, surface: StringName) -> StaticBody3D:
@@ -784,6 +881,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				set_reduced_motion(not reduced_motion)
 			KEY_T:
 				set_speed_mode((speed_mode + 1) % 3)
+			KEY_S:
+				stop_total()
 			KEY_F1:
 				debug_panel.visible = not debug_panel.visible
 
@@ -973,7 +1072,8 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 	var p0 := screen_to_plane(release_pos)
 	var p1 := screen_to_plane(release_pos + velocity * 0.05)
 	var dir := Vector2(p1.x - p0.x, p1.z - p0.z)
-	var start := Vector2(dice[0].global_position.x + dice[1].global_position.x, dice[0].global_position.z + dice[1].global_position.z) * 0.5
+	var c3 := _dice_center()
+	var start := Vector2(c3.x, c3.z)
 	var aim := (Vector2(AIM_AT.x, AIM_AT.z) - start).normalized()
 	if dir.length() < 0.0001:
 		dir = aim
@@ -986,9 +1086,12 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 	var speed := lerpf(tuning.throw_speed_min_mps, tuning.throw_speed_max_mps, k)
 	var lin: Array[Vector3] = []
 	var spin: Array[Vector3] = []
-	for i in 2:
-		var d := dir.rotated(deg_to_rad(-4.0 if i == 0 else 4.0))
-		var s := speed * (0.96 if i == 0 else 1.04)
+	var n := dice.size()
+	for i in n:
+		# Fan the dice out a little: -1..1 across the hand (0 for one die).
+		var f := 0.0 if n == 1 else (float(i) - float(n - 1) * 0.5) / (float(n - 1) * 0.5)
+		var d := dir.rotated(deg_to_rad(4.0 * f))
+		var s := speed * (1.0 + 0.04 * f)
 		lin.append(Vector3(d.x * s, tuning.throw_up_mps, d.y * s))
 		var axis := Vector3(_fx_rng.randf_range(-1, 1), _fx_rng.randf_range(-1, 1), _fx_rng.randf_range(-1, 1))
 		if axis.length() < 0.1:
@@ -997,8 +1100,26 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 	return {"lin": lin, "spin": spin, "speed": speed}
 
 
+## Middle of the visible dice.
+func _dice_center() -> Vector3:
+	var c := Vector3.ZERO
+	for d in dice:
+		c += d.global_position
+	return c / float(maxi(dice.size(), 1))
+
+
 func _pick_values() -> Array[int]:
 	var values: Array[int] = []
+	if mode == Mode.RUNNING_TOTAL:
+		# One value per die in this throw, from the seeded roller.
+		if _rig.size() >= dice.size():
+			values = _rig.slice(0, dice.size())
+			_rig.clear()
+			return values
+		var throw_dice: Array[DieData] = []
+		for i in dice.size():
+			throw_dice.append(_die_data_for(i))
+		return DiceRoller.face_values(roller.roll_dice(throw_dice))
 	if not _rig.is_empty():
 		values = _rig.duplicate()
 		_rig.clear()
@@ -1018,6 +1139,9 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 	_apply_speed()
 	# The result is decided NOW, at release, by the seeded roller.
 	var values := _pick_values()
+	if mode == Mode.RUNNING_TOTAL:
+		await _play_total_roll(values, velocity, release_pos)
+		return
 	var point_before := poc.table.craps.point
 	var report := poc.roll(values)
 	if report.rejected:
@@ -1030,49 +1154,12 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 	_set_why("")
 	sum_text.visible = false
 
-	# Throw the real physics dice (fast, during the wind-up) and record it.
-	var launch := launch_for(velocity, release_pos)
-	var starts: Array[Transform3D] = []
-	for d in dice:
-		var tr := d.global_transform
-		tr.origin.y = maxf(tr.origin.y, tuning.die_size * 0.75)
-		starts.append(tr)
-	_sync_colliders()
-	_windup()
-	var real_start := Time.get_ticks_msec()
-	var rec: ThrowRecording = await sim.simulate(starts, launch["lin"], launch["spin"], _fx_rng.randi())
-	last_recording = rec
-	# Face remap: pick the inner rotation that puts the wanted face where
-	# the physical top face ended up; blend into it during the first
-	# tumble frames so nothing pops (the dice spin 15-35 rad/s there).
-	for i in 2:
-		var want := DieVisual.remap_basis(rec.up_values[i], values[i], _fx_rng.randf_range(0.0, TAU))
-		var visual_now := dice[i].faces.global_transform.basis.orthonormalized()
-		var start_body := starts[i].basis.orthonormalized()
-		_remap_from[i] = (start_body.inverse() * visual_now).get_rotation_quaternion()
-		_remap_to[i] = want.get_rotation_quaternion()
-	# Let the wind-up finish in real time (masks the simulation).
-	var waited := (Time.get_ticks_msec() - real_start) / 1000.0
-	if waited < tuning.windup_time:
-		await get_tree().create_timer(tuning.windup_time - waited, true, false, true).timeout
-	_play_t = 0.0
-	_contact_i = 0
-	_last_impact = [-1.0, -1.0]
-	_rest_sent = [false, false]
-	_tumble_sent = [false, false]
-	if speed_mode == 2:
-		_play_t = rec.duration()  # Instant: straight to the result
-		_contact_i = rec.contacts.size()
-	while _play_t >= 0.0:
-		await get_tree().process_frame
-	await _settle_wobble()
-	for i in 2:
-		dice[i].settled.emit(i, dice[i].up_value())
+	await _throw_dice(values, velocity, release_pos)
 
 	# REVEAL: hold, punch, the sum pops in the outcome color.
 	phase = Phase.REVEAL
 	dice_landed.emit(values)
-	var mid := (dice[0].global_position + dice[1].global_position) * 0.5
+	var mid := _dice_center()
 	dealer.glance(mid.x)
 	camera.follow(mid, tuning.cam_reveal_time)
 	await _wait(tuning.reveal_hold)
@@ -1119,6 +1206,100 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 	sequence_finished.emit()
 
 
+## The physical throw shared by both modes: simulate the real dice fast
+## during the wind-up, remap faces to `values` (seeded), play it back and
+## settle. Returns once every die shows its value.
+func _throw_dice(values: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
+	# Throw the real physics dice (fast, during the wind-up) and record it.
+	var launch := launch_for(velocity, release_pos)
+	var starts: Array[Transform3D] = []
+	for d in dice:
+		var tr := d.global_transform
+		tr.origin.y = maxf(tr.origin.y, tuning.die_size * 0.75)
+		starts.append(tr)
+	_sync_colliders()
+	_windup()
+	var real_start := Time.get_ticks_msec()
+	var rec: ThrowRecording = await sim.simulate(starts, launch["lin"], launch["spin"], _fx_rng.randi())
+	last_recording = rec
+	# Face remap: pick the inner rotation that puts the wanted face where
+	# the physical top face ended up; blend into it during the first
+	# tumble frames so nothing pops (the dice spin 15-35 rad/s there).
+	for i in dice.size():
+		var want := DieVisual.remap_basis(rec.up_values[i], values[i], _fx_rng.randf_range(0.0, TAU))
+		var visual_now := dice[i].faces.global_transform.basis.orthonormalized()
+		var start_body := starts[i].basis.orthonormalized()
+		_remap_from[i] = (start_body.inverse() * visual_now).get_rotation_quaternion()
+		_remap_to[i] = want.get_rotation_quaternion()
+	# Let the wind-up finish in real time (masks the simulation).
+	var waited := (Time.get_ticks_msec() - real_start) / 1000.0
+	if waited < tuning.windup_time:
+		await get_tree().create_timer(tuning.windup_time - waited, true, false, true).timeout
+	_play_t = 0.0
+	_contact_i = 0
+	_last_impact.fill(-1.0)
+	_rest_sent.fill(false)
+	_tumble_sent.fill(false)
+	if speed_mode == 2:
+		_play_t = rec.duration()  # Instant: straight to the result
+		_contact_i = rec.contacts.size()
+	while _play_t >= 0.0:
+		await get_tree().process_frame
+	await _settle_wobble()
+	for i in dice.size():
+		dice[i].settled.emit(i, dice[i].up_value())
+
+
+## RUNNING_TOTAL mode: throw, add each die to the total, count the HUD up,
+## then the dice come back to the hand. Stop is a separate action.
+func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
+	last_values = values
+	throw_started.emit()
+	thrown.emit(velocity.length())
+	_set_why("")
+	sum_text.visible = false
+	await _throw_dice(values, velocity, release_pos)
+	phase = Phase.REVEAL
+	dice_landed.emit(values)
+	var mid := _dice_center()
+	camera.follow(mid, tuning.cam_reveal_time)
+	await _wait(tuning.reveal_hold)
+	_punch_dice()
+	sfx.play(&"dice_settle", 1.0, -3.0)
+	for i in values.size():
+		var data := _die_data_for(i)
+		running_total.add(values[i], data.display_name if data != null else "Die")
+	_loadout_i = (_loadout_i + values.size()) % maxi(starting_dice.size(), 1)
+	total_hud.set_line(running_total.target_line)
+	total_hud.show_total(running_total, speed_mode == 2)
+	sum_text.position = camera.cam.unproject_position(mid + Vector3(0, 0.16, -0.05))
+	sum_text.pop("+%d" % _sum(values), Palette.BONE, reduced_motion)
+	await _wait(0.45)
+	phase = Phase.RESET
+	camera.go_home(tuning.cam_return_time)
+	var rt := tuning.reset_time
+	var st := sum_text.create_tween()
+	st.tween_property(sum_text, "modulate:a", 0.0, rt)
+	for i in dice.size():
+		var d := dice[i]
+		dice[i].material = _die_data_for(i).material if _die_data_for(i) != null else "bone"
+		var tw := d.create_tween()
+		tw.tween_method(_arc_die.bind(d, d.global_position, hand_spot(i)), 0.0, 1.0, rt).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	await _wait(maxf(rt, tuning.cam_return_time) + 0.1)
+	_set_why("Total %d. Throw again or Stop (S)." % running_total.total)
+	phase = Phase.BET
+	_skip = false
+	Engine.time_scale = 1.0
+	sequence_finished.emit()
+
+
+static func _sum(values: Array[int]) -> int:
+	var t := 0
+	for v in values:
+		t += v
+	return t
+
+
 func _arc_die(p: float, d: DieVisual, from: Vector3, to: Vector3) -> void:
 	d.global_position = from.lerp(to, p) + Vector3(0, 0.06 * sin(PI * p), 0)
 
@@ -1138,14 +1319,14 @@ func _update_playback(delta: float) -> void:
 	var rec := last_recording
 	_play_t += delta
 	var t := minf(_play_t, rec.duration())
-	for i in 2:
+	for i in rec.count():
 		dice[i].global_transform = rec.sample(i, t)
 		var k := clampf(t / 0.08, 0.0, 1.0)
 		dice[i].faces.basis = Basis(_remap_from[i].slerp(_remap_to[i], k))
 	while _contact_i < rec.contacts.size() and (rec.contacts[_contact_i]["t"] as float) <= t:
 		_on_contact(rec.contacts[_contact_i])
 		_contact_i += 1
-	for i in 2:
+	for i in rec.count():
 		if not _tumble_sent[i] and rec.tumble_end_t[i] >= 0.0 and t >= rec.tumble_end_t[i]:
 			_tumble_sent[i] = true
 			dice[i].tumble_ending.emit(i, rec.tumble_end_speed[i])
@@ -1201,7 +1382,9 @@ func _on_die_settled(_die_id: int, _face: int) -> void:
 func _settle_wobble() -> void:
 	if reduced_motion or speed_mode == 2:
 		return
-	var base: Array[Basis] = [dice[0].global_transform.basis, dice[1].global_transform.basis]
+	var base: Array[Basis] = []
+	for d in dice:
+		base.append(d.global_transform.basis)
 	var t := 0.0
 	var dur := tuning.settle_wobble_time
 	while t < dur:
@@ -1209,9 +1392,9 @@ func _settle_wobble() -> void:
 		t += get_process_delta_time()
 		var k := clampf(t / dur, 0.0, 1.0)
 		var a := deg_to_rad(tuning.settle_wobble_deg) * sin(k * TAU * 1.5) * (1.0 - k)
-		for i in 2:
+		for i in dice.size():
 			dice[i].global_transform.basis = Basis(Vector3.RIGHT.rotated(Vector3.UP, i * 1.3), a) * base[i]
-	for i in 2:
+	for i in dice.size():
 		dice[i].global_transform.basis = base[i]
 
 
