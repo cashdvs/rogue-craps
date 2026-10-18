@@ -50,6 +50,7 @@ one) should also read [AGENTS.md](AGENTS.md), which has the technical details.
 - Short imperative summary, ideally with the module: `dealer: add table_win lines`,
   `betting: pay Field 2 at 2:1`.
 - One logical change per commit; explain *why* in the body if it isn't obvious.
+- Update your branch by rebasing on `main`, not by merging `main` in (history stays linear).
 - Reference issues with `#N`. Don't commit `.godot/`, builds or editor settings.
 
 ## 3. What makes a good PR
@@ -66,7 +67,12 @@ one) should also read [AGENTS.md](AGENTS.md), which has the technical details.
 
 - Every PR needs **green CI** and **one approving review** from a maintainer before merge.
 - Reviewers check scope, tests, determinism, typing and feel (for visual changes, we'll play it).
-- We usually **squash-merge**. Keep the PR title a good commit summary.
+- The full reviewer checklist is in [REVIEWING.md](REVIEWING.md) (on `main`).
+- History on `main` is **linear**: PRs are merged with **rebase / fast-forward**, never a merge
+  commit. Keep your commits clean, and **rebase** on `main` (don't merge `main` into your branch).
+- Aim for roughly ≤ 400 changed lines of code per PR (generated `.uid`/`.tres`/`.import` excluded).
+- PRs that change core rules or balance (Soul formulas, payouts, tuning defaults), CI/repo config,
+  or more than 2 modules are escalated to the Tiny Anvil team before merging.
 - Feel and design calls belong to the Tiny Anvil team; we may ask you to put a change behind a
   tuning flag instead of changing default behaviour.
 
@@ -115,13 +121,14 @@ They are not applied by any file in this repo.
   - Require branches to be up to date before merging: on
 - **Block force pushes**: on (don't allow force pushes to `main`)
 - **Restrict deletions**: on
-- **Require linear history**: optional (recommended if we squash-merge only)
+- **Require linear history**: on (matches REVIEWING.md: rebase / fast-forward merges only).
+  Optional if you'd rather allow squash merges too; squash also keeps history linear.
 - Do not allow bypassing the above settings: recommended once more than one maintainer exists
   (admins may need to bypass while the studio is a one-person team).
 
 ### Merging and claims
 
-- Squash-merge, keep titles in commit style.
+- Merge with rebase / fast-forward (linear history), per REVIEWING.md.
 - When accepting a module claim, update `docs/MODULES.md` and, if the claimant will review that
   area, uncomment/add a line in `.github/CODEOWNERS`.
 - Re-mirror `docs/design` and `docs/art` from the studio docs when they change, and update the
