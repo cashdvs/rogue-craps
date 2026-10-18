@@ -35,6 +35,48 @@ extends Resource
 ## Bellows: while in the handful, each Hot Hand adds this instead of hot_hand_mult_bonus.
 @export var bellows_hot_hand_mult_bonus: int = 2
 
+@export_group("Juice (scoring count-up, moments)")
+## Score tiers (bonfire_map_events_juice.md section 3): points < [0] = 0
+## sparks, < [1] = 1 flames, < [2] = 2 inferno, else 3 pillar (big).
+@export var juice_tier_thresholds: Array[int] = [100, 300, 1000]
+## Count-up beats (seconds at 1x): one pip tick per counted value, the Mult
+## chip slam, each extra chip (Hot Hand, Hellfire factor), the "x" sweep, the
+## total count-up and the banner hold. Big = the top tier.
+@export var juice_pip_gap: float = 0.08
+@export var juice_pip_gap_big: float = 0.14
+@export var juice_slam_time: float = 0.14
+@export var juice_chip_gap: float = 0.12
+@export var juice_sweep_time: float = 0.1
+@export var juice_count_time: float = 0.28
+@export var juice_count_time_big: float = 0.5
+@export var juice_banner_hold: float = 0.22
+@export var juice_banner_hold_big: float = 0.45
+## Hard caps on the whole sequence (everything is scaled down to fit).
+@export var juice_cap: float = 1.2
+@export var juice_cap_big: float = 2.0
+## count_tick sounds at most this often (Sound Designer).
+@export var juice_count_tick_min_gap: float = 0.03
+## Shake per tier (px, seconds); the top tier also slows time.
+@export var juice_shake_px: Array[float] = [0.0, 3.0, 7.0, 14.0]
+@export var juice_shake_time: Array[float] = [0.0, 0.1, 0.2, 0.35]
+@export var juice_slowmo_time: float = 0.25
+@export var juice_slowmo_scale: float = 0.3
+## Combo id -> banner tier (0 bone, 1 ember, 2 hellfire, 3 black-gold).
+@export var juice_banner_tiers: Dictionary = {
+	&"single": 0, &"pair": 0, &"run3": 0, &"two_pair": 1, &"trips": 1, &"run4": 1,
+	&"full_house": 2, &"run5": 2, &"quads": 2, &"five_kind": 3,
+}
+## Moments.
+@export var juice_hot_hand_fly_time: float = 0.5
+@export var juice_bank_flow_time: float = 0.55
+@export var juice_stamp_gap: float = 0.3
+@export var juice_ash_time: float = 0.5
+@export var juice_flask_crack_delay: float = 0.35
+## Unbanked pot that makes the crowd roar (CrowdLayers pot fraction 1).
+@export var juice_crowd_full_pot: int = 1500
+## Table 1 tutorial: the first throw lands a pair + a run of 3.
+@export var tutorial_first_throw: Array[int] = [2, 2, 4, 5, 6]
+
 @export_group("Throw momentum (flick speed -> launch)")
 ## Flick speeds (screen px/s, after the Options "Throw sensitivity"
 ## multiplier) mapped onto the launch range below. Under flick_speed_min it's

@@ -8,6 +8,7 @@ signal closed
 var sliders: Dictionary = {}
 var fullscreen_check: CheckButton
 var vsync_check: CheckButton
+var tutorial_check: CheckButton
 var back_button: Button
 
 
@@ -35,6 +36,7 @@ func _init() -> void:
 	fullscreen_check = _check(box, &"fullscreen", "Fullscreen")
 	fullscreen_check.visible = _gs() == null or _gs().can_window()
 	vsync_check = _check(box, &"vsync", "VSync")
+	tutorial_check = _check(box, &"tutorial_enabled", "Table 1 tutorial")
 	back_button = OptionsPanel.menu_button("BACK")
 	back_button.pressed.connect(func() -> void:
 		visible = false
@@ -64,6 +66,7 @@ func sync_from_settings() -> void:
 		_update_value_label(k)
 	fullscreen_check.set_pressed_no_signal(bool(gs.get("fullscreen")))
 	vsync_check.set_pressed_no_signal(bool(gs.get("vsync")))
+	tutorial_check.set_pressed_no_signal(bool(gs.get("tutorial_enabled")))
 
 
 func _apply_option(key: StringName, value: Variant) -> void:

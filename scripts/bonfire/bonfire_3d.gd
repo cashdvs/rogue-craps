@@ -66,6 +66,17 @@ var _soul_before: int = 0
 var _finished_sent: bool = false
 ## Text on the felt from the rules (e.g. "LOCKED  4").
 var felt_label: Label3D
+## Scoring juice adapter (sounds / VFX; art + audio branches if present).
+var juice: BonfireJuice
+## Tutorial: -1 = GameSettings decides (Table 1, not seen), 0 = never,
+## 1 = always (tests). Set before add_child.
+var tutorial_override: int = -1
+## Dice of the pot being counted up, pip -> die index, its tier.
+var _juice_dice: Array[DieVisual] = []
+var _pip_die: Array[int] = []
+var _juice_tier: int = 0
+## What the lit dice of this throw could claim (no selection yet).
+var _throw_claims: Array = []
 
 
 func _ready() -> void:
@@ -107,6 +118,20 @@ func _ready() -> void:
 	add_child(pause_menu)
 	pause_menu.set_run_mode(setup.run_mode)
 	pause_menu.forfeit_confirmed.connect(func() -> void: forfeit())
+	juice = BonfireJuice.new()
+	add_child(juice)
+	juice.setup(self)
+	bhud.set_combos(bonfire_tuning)
+	var cu := bhud.countup
+	cu.pip.connect(_on_count_pip)
+	cu.slam.connect(func(k: int) -> void:
+		if speed_mode != 2:
+			juice.slam_sound(k))
+	cu.count_tick.connect(func(f: float) -> void:
+		if speed_mode != 2:
+			juice.count_sound(f))
+	cu.banner.connect(_on_count_banner)
+	cu.finished.connect(func() -> void: juice.drop(_juice_dice))
 	felt_label = Label3D.new()
 	felt_label.name = "RuleFeltText"
 	felt_label.font_size = 96
@@ -143,6 +168,12 @@ func new_run(seed_value: int = -1) -> void:
 		specials.append(td.special)
 	run.set_rules(TableRules.build(setup.rules, specials), seed_value)
 	run.table_event.connect(_on_table_event)
+	if bhud.countup.is_playing():
+		bhud.countup.fast_forward()
+	bhud.countup.clear(0.0)
+	bhud.pulse_cards([])
+	_throw_claims = []
+	juice.crowd_start()
 	_soul_before = run.soul
 	_finished_sent = false
 	bhud.end_panel.visible = false
@@ -152,6 +183,7 @@ func new_run(seed_value: int = -1) -> void:
 	pause_menu.set_forfeit_enabled(true)
 	phase = Phase.BET
 	_set_why("Grab the %d dice and flick them. Scoring dice catch fire." % run.cold)
+	_maybe_start_tutorial()
 	_refresh_hud()
 
 
@@ -324,17 +356,27 @@ func throw_again() -> bool:
 		if not run.potted.has(i):
 			cold_now.append(throw_dice[i])
 	var why := run.rethrow_block_reason()
+	var sel := run.selection()
+	var hot_before := run.hot_hands
+	var per_hot := run.mult_bonus() / maxi(hot_before, 1)
+	var faces_now := run.selection_faces()
 	var rt := run.rethrow()
 	if rt.is_empty():
 		_refuse(why if why != "" else "Pot at least one burning die first.")
 		return false
 	pot_dice.append_array(potted_now)
+	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
+	juice.crowd_pot(run.pot)
+	_tutorial_hint(2)
 	if rt["hot"]:
-		bhud.flash("HOT HAND!  +%d MULT" % run.mult_bonus(), Palette.EMBER)
-		sfx.play(&"win_big", 1.1, -4.0)
 		_taunt(&"bonfire_hot")
-		_reset_hand_dice()
+		# The lists change now; the dice ignite and fly back after the count-up.
+		pot_dice.clear()
+		throw_dice.clear()
+		_set_active(all_dice)
+		_hot_hand_moment()
 		_set_why("Hot Hand! All %d dice back, +%d mult on every pot this hand." % [run.cold, run.mult_bonus()])
+		_tutorial_hint(4)
 	else:
 		for d in cold_now:
 			_set_lit(d, false)
@@ -345,21 +387,121 @@ func throw_again() -> bool:
 	return true
 
 
+## Hot Hand: after the count-up every die ignites, the banner reads
+## "HOT HAND xN", and the dice fly back to the hand trailing fire.
+func _hot_hand_moment() -> void:
+	if bhud.countup.is_playing():
+		await bhud.countup.finished
+	if run.is_over() or phase != Phase.BET:
+		return
+	var list := all_dice.duplicate()
+	juice.drop(list, true)
+	for d in list:
+		_set_lit(d, false)
+		d.visible = true
+		d.scale = Vector3.ONE
+	juice.hot_hand(list)
+	bhud.flash("HOT HAND x%d" % run.hot_hands if run.hot_hands > 1 else "HOT HAND!", Palette.EMBER)
+	var fly := bonfire_tuning.juice_hot_hand_fly_time if not reduced_motion else 0.22
+	if speed_mode == 2:
+		fly = 0.05
+	juice.fly_start(list, fly)
+	_to_hand(fly)
+	get_tree().create_timer(fly + 0.05, true, false, false).timeout.connect(func() -> void: juice.fly_stop(list))
+
+
+## Starts the count-up for a committed pot (sel = its score before commit).
+func _start_count_up(sel: Dictionary, dice_list: Array[DieVisual], faces: Array, hot_hands: int, per_hot: int) -> void:
+	if not sel.get("valid", false):
+		return
+	if bhud.countup.is_playing():
+		bhud.countup.fast_forward()
+	var t := bonfire_tuning
+	var tier := JuicePlan.tier(int(sel["points"]), t)
+	var chips := JuicePlan.chips(sel, hot_hands, per_hot)
+	var vals: Array = sel["values"]
+	_pip_die.clear()
+	for k in faces.size():
+		var f: Dictionary = faces[k]
+		var m: FaceModData = f.get("mod")
+		var n := 2 if m != null and m.effect == FaceModData.Effect.TWIN and not run.rule_ctx()["no_mods"] else 1
+		for j in n:
+			_pip_die.append(k)
+	var plan := JuicePlan.timeline(vals.size(), chips.size() - 1, tier, speed_mode, t)
+	_juice_dice = dice_list.duplicate()
+	_juice_tier = tier
+	juice.lift(_juice_dice, plan["big"], test_speed * (2.0 if speed_mode == 1 else 1.0) * (20.0 if speed_mode == 2 else 1.0))
+	bhud.countup.play({"base": int(sel["base"]), "values": vals, "chips": chips, "points": int(sel["points"]),
+		"name": str(sel["name"]), "score_tier": tier, "banner_tier": JuicePlan.banner_tier(StringName(sel["combo"]), t)},
+		plan, test_speed, reduced_motion)
+
+
+func _on_count_pip(i: int) -> void:
+	if speed_mode != 2:
+		juice.pip_sound(i)
+	var k: int = _pip_die[i] if i < _pip_die.size() else -1
+	if k >= 0 and k < _juice_dice.size() and is_instance_valid(_juice_dice[k]):
+		var d := _juice_dice[k]
+		d.body_material.set_shader_parameter("emission_color", Palette.EMBER)
+		d.body_material.set_shader_parameter("emission_energy", 1.1)
+
+
+func _on_count_banner(score_tier: int, _banner_tier: int) -> void:
+	if speed_mode == 2:
+		juice.sfx(juice.stinger(score_tier), 1.0, 0.0, 0.0, &"rim_hit", 1.2, -6.0)
+	else:
+		juice.banner_sound(score_tier)
+	juice.escalate(score_tier, _juice_dice, reduced_motion, speed_mode == 2)
+
+
+## Tap / click / any action: finish the count-up now.
+func fast_forward_juice() -> bool:
+	if bhud.countup.is_playing():
+		bhud.countup.fast_forward()
+		return true
+	return false
+
+
 func bank() -> Dictionary:
 	if phase != Phase.BET or not run.can_continue():
 		_refuse("Pot at least one burning die to bank.")
 		return {}
+	fast_forward_juice()
+	var sel := run.selection()
+	var hot_before := run.hot_hands
+	var per_hot := run.mult_bonus() / maxi(hot_before, 1)
+	var faces_now := run.selection_faces()
+	var potted_now: Array[DieVisual] = []
+	for i in run.potted:
+		potted_now.append(throw_dice[i])
+	var all_pot: Array[DieVisual] = pot_dice.duplicate()
+	all_pot.append_array(potted_now)
 	var r := run.bank()
+	phase = Phase.RESOLVE
+	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
+	if bhud.countup.is_playing():
+		await bhud.countup.finished
+	# Bank: embers flow to the pile, each claimed bounty gets its wax stamp.
 	bhud.flash("BANKED +%d" % int(r["gain"]), Palette.BRASS_HI)
-	sfx.play(&"chip_collect")
+	juice.bank_sound()
+	juice.crowd_pot(0)
 	_taunt(&"bonfire_bank")
+	var flow := bonfire_tuning.juice_bank_flow_time if speed_mode != 2 else 0.05
+	bhud.ember_flow(int(r["gain"]) / 25, flow, reduced_motion)
+	juice.ember_pile(pot_slot(0) + Vector3(-0.12, -tuning.die_size * 0.5, 0))
 	var names: Array[String] = []
 	for b: BountyData in run.all_bounties():
 		if (r["ticked"] as Array).has(b.id):
 			names.append(b.display_name)
-	if not names.is_empty():
-		sfx.play(&"win_big", 1.2, -6.0)
 	bhud.flash_ticks(r["ticked"])
+	for id: StringName in r["ticked"]:
+		bhud.stamp_claimed(id, reduced_motion)
+		juice.stamp_sound()
+		if speed_mode != 2:
+			await _wait(bonfire_tuning.juice_stamp_gap / test_speed)
+	_tutorial_hint(3)
+	juice.drop(all_pot)
+	bhud.countup.clear()
 	_set_why("Banked %d points.%s" % [int(r["gain"]), (" Bounty: " + ", ".join(names) + "!") if not names.is_empty() else ""])
 	hand_result.emit(r)
 	await _after_hand()
@@ -383,8 +525,92 @@ func pick_die(i: int) -> bool:
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	_layout_throw()
+	if run.can_continue():
+		_tutorial_hint(1)
 	_refresh_hud()
 	return true
+
+
+## Bounty cards the current selection could claim (or, with nothing
+## selected, what the lit dice could claim).
+func claimable_bounties() -> Array:
+	if run == null or run.state != BonfireRun.State.PICK or not run.bounties_count():
+		return []
+	if run.potted.is_empty():
+		return _throw_claims
+	var sel := run.selection()
+	if not sel["valid"]:
+		return []
+	return _open_ticks(sel["bounty_values"])
+
+
+func _open_ticks(values: Array) -> Array:
+	var open: Array = []
+	for b: BountyData in run.all_bounties():
+		if not run.is_ticked(b):
+			open.append(b)
+	return BonfireScoring.bounty_ticks(open, values)
+
+
+func _compute_throw_claims() -> void:
+	_throw_claims = []
+	if run.state != BonfireRun.State.PICK:
+		return
+	var dice_now := run.throw_dice()
+	var ctx := run.rule_ctx()
+	for sub: Array in BonfireScoring.matching_subsets(dice_now, bonfire_tuning, ctx):
+		var pick: Array = []
+		for i in sub:
+			pick.append(dice_now[i])
+		var sc := BonfireScoring.score_selection(pick, bonfire_tuning, 0, ctx)
+		for id in _open_ticks(sc["bounty_values"]):
+			if not _throw_claims.has(id):
+				_throw_claims.append(id)
+
+
+# --- Tutorial -------------------------------------------------------------------------
+
+func _settings() -> Node:
+	return get_node_or_null("/root/GameSettings")
+
+
+func _is_table_one() -> bool:
+	return setup != null and setup.goal != null and (setup.goal == bonfire_tuning.table_goal or setup.goal.display_name == "Table 1")
+
+
+func tutorial_wanted() -> bool:
+	if tutorial_override >= 0:
+		return tutorial_override == 1
+	# Only the real game (the table is the current scene), never tests / tools.
+	if get_tree().current_scene != self:
+		return false
+	var gs := _settings()
+	if gs == null or not _is_table_one():
+		return false
+	return bool(gs.get("tutorial_enabled")) and not bool(gs.get("tutorial_seen"))
+
+
+func _maybe_start_tutorial() -> void:
+	var tut := bhud.tutorial
+	tut.visible = false
+	tut.active = false
+	if not tutorial_wanted():
+		return
+	tut.start()
+	var gs := _settings()
+	if gs != null and gs.has_method("set_option"):
+		gs.set_option(&"tutorial_seen", true)
+	# The first throw lands a pair + a run of 3 (if the handful allows).
+	var want: Array[int] = bonfire_tuning.tutorial_first_throw.duplicate()
+	if setup.dice.size() >= want.size():
+		while want.size() < setup.dice.size():
+			want.append(3)
+		rig_faces(want)
+
+
+func _tutorial_hint(k: int) -> void:
+	if bhud != null and bhud.tutorial.active:
+		bhud.tutorial.hint(k)
 
 
 func die_at_screen(p: Vector2) -> int:
@@ -450,6 +676,11 @@ func _mods_for(slots: Array[int]) -> Array:
 
 
 func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
+	# A throw ends any count-up still running; lifted / trailing dice let go.
+	fast_forward_juice()
+	juice.drop(all_dice, true)
+	juice.fly_stop(all_dice)
+	bhud.pulse_cards([])
 	throw_slots = slots.duplicate()
 	var values := _values_for(slots)
 	var mods := _mods_for(slots)
@@ -487,6 +718,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	th.slots = slots.duplicate()
 	th.positions = _felt_pos.duplicate()
 	var ok := run.land_throw(th)
+	_compute_throw_claims()
 	if not th.changes.is_empty():
 		await _show_face_changes(th)
 		if run.is_over():
@@ -511,6 +743,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		sfx.play(&"rim_hit", 0.8, -6.0)
 		_set_why("%d burning. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
+		_tutorial_hint(0)
 	else:
 		await _bust()
 	_skip = false
@@ -572,6 +805,7 @@ func sensitivity() -> float:
 func _refresh_hud() -> void:
 	if bhud != null and run != null:
 		bhud.refresh(run, phase == Phase.BET)
+		bhud.pulse_cards(claimable_bounties())
 	if felt_label != null and run != null:
 		var lines: Array[String] = []
 		for r in run.rules:
@@ -663,6 +897,10 @@ func _take_down() -> String:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
+	var tap := event as InputEventScreenTouch
+	if ((mb != null and mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed) or (tap != null and tap.pressed)) and fast_forward_juice():
+		get_viewport().set_input_as_handled()
+		return
 	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and run != null \
 			and run.state == BonfireRun.State.PICK and phase == Phase.BET:
 		var i := die_at_screen(mb.position)
@@ -745,7 +983,13 @@ func _bust() -> void:
 	bhud.flash("BUST!  -%d SOUL" % int(r["soul_lost"]), Color("#FF2E3E"))
 	_burn_soul(int(r["soul_lost"]))
 	_camera_shake(tuning.shake_craps_px, 0.3)
-	sfx.play(&"seven_out")
+	# Flames snuff, dice ash over, the Soul flask cracks, pending stamps crumble.
+	juice.bust(throw_dice, reduced_motion)
+	bhud.crumble_pending(reduced_motion)
+	bhud.flask_crack(soul_meter.get_global_rect(), reduced_motion)
+	juice.crowd_pot(0)
+	bhud.countup.clear()
+	_tutorial_hint(3)
 	_embers(_dice_center(), 24, 10)
 	_taunt(&"bonfire_bust")
 	_set_why("Nothing caught fire. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
@@ -785,13 +1029,13 @@ func _reset_hand_dice() -> void:
 	_to_hand()
 
 
-func _to_hand() -> void:
+func _to_hand(seconds: float = 0.22) -> void:
 	_kill_hand_tweens()
 	for i in dice.size():
 		var d := dice[i]
 		var tw := d.create_tween()
 		_hand_tweens.append(tw)
-		tw.tween_method(_arc_die.bind(d, d.global_position, hand_spot(i)), 0.0, 1.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_method(_arc_die.bind(d, d.global_position, hand_spot(i)), 0.0, 1.0, seconds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 
 
 func _kill_hand_tweens() -> void:
