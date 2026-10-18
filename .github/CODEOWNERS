@@ -1,0 +1,18 @@
+# CODEOWNERS for Dice of the Damned.
+# Everything is commented out on purpose: GitHub would otherwise auto-request reviews from these
+# owners and, with branch protection, could require reviewers who don't exist yet.
+# When a module claim is accepted (see docs/MODULES.md), a maintainer uncomments or adds a line.
+#
+# Default owner
+# *                               @cashdvs
+#
+# Modules (fill in handles as claims are accepted)
+# /scripts/core/dice_roller.gd    @cashdvs
+# /scripts/core/throw_gesture.gd  @cashdvs
+# /scripts/core/craps_*.gd        @owner-of-betting
+# /resources/bets/                @owner-of-betting
+# /scripts/core/dealer_lines.gd   @owner-of-dealer
+# /resources/dealer/              @owner-of-dealer
+# /scripts/audio/                 @owner-of-audio
+# /tests/qa_/                     @cashdvs
+# /.github/                       @cashdvs

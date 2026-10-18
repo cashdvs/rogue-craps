@@ -1,0 +1,62 @@
+name: Feature / task
+description: Propose a feature or a well-scoped task for one module.
+title: "[module] short description"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep it to something one PR can deliver. Check docs/MODULES.md and existing issues first.
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options:
+        - dice-physics
+        - betting
+        - soul
+        - table-rules
+        - dealer
+        - shop
+        - map
+        - bosses
+        - ui
+        - audio
+        - art-import
+        - tools / CI
+        - not sure
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What and why
+      description: What should change, and what problem does it solve for the player or team?
+    validations:
+      required: true
+  - type: input
+    id: design_ref
+    attributes:
+      label: Design doc reference
+      description: Section of docs/design/gamblers-descent.md or docs/art/*.md, if any.
+      placeholder: "e.g. gamblers-descent.md §5 (Field)"
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist a reviewer can verify.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Relevant files
+      description: Files you expect to touch (see docs/MODULES.md).
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test expectations
+      description: Which checks should be added to tests/test_*.gd?

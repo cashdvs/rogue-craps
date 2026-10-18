@@ -1,0 +1,57 @@
+name: Claim a module
+description: Ask to take ownership of a module (or a sub-task in one) from docs/MODULES.md.
+title: "[claim] module name"
+labels: ["module-claim"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read docs/MODULES.md first. A maintainer will reply and update the owner if accepted.
+        Claims with no activity for 14 days are released.
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options:
+        - dice-physics
+        - betting
+        - soul
+        - table-rules
+        - dealer
+        - shop
+        - map
+        - bosses
+        - ui
+        - audio
+        - art-import
+    validations:
+      required: true
+  - type: input
+    id: who
+    attributes:
+      label: Who's doing the work
+      description: Your GitHub handle, and the AI agent/tool if one is writing code.
+      placeholder: "@you, using <agent>"
+    validations:
+      required: true
+  - type: textarea
+    id: plan
+    attributes:
+      label: Plan
+      description: What's your first PR? What comes after? Keep each PR small.
+    validations:
+      required: true
+  - type: input
+    id: timeline
+    attributes:
+      label: Rough timeline
+      placeholder: "first PR within a week"
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Ground rules
+      options:
+        - label: I've read CONTRIBUTING.md and AGENTS.md
+          required: true
+        - label: I'll keep PRs small, with tests, and stay inside this module's files
+          required: true

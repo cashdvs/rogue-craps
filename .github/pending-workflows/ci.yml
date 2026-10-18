@@ -1,0 +1,60 @@
+# CI: runs the headless Godot test suite (run_tests.sh) on every PR and on pushes to main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_DIR: ${{ github.workspace }}/../godot
+
+jobs:
+  tests:
+    # Keep this job name stable: branch protection requires the "tests" check.
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GODOT_DIR }}
+          key: godot-${{ env.GODOT_VERSION }}-stable-linux-x86_64
+
+      - name: Download Godot ${{ env.GODOT_VERSION }} (headless Linux)
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$GODOT_DIR"
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o /tmp/godot.zip "$url"
+          unzip -q -o /tmp/godot.zip -d "$GODOT_DIR"
+          mv "$GODOT_DIR/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_DIR/godot"
+          chmod +x "$GODOT_DIR/godot"
+
+      - name: Godot version
+        run: |
+          echo "GODOT=$GODOT_DIR/godot" >> "$GITHUB_ENV"
+          "$GODOT_DIR/godot" --headless --version
+
+      - name: Import project
+        # Registers class_name scripts and imports assets into .godot/ (fresh checkout).
+        run: |
+          "$GODOT" --headless --path . --import || true
+          test -d .godot || { echo "Import did not create .godot/"; exit 1; }
+
+      - name: Run tests
+        run: ./run_tests.sh
