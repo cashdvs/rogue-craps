@@ -4,7 +4,8 @@
 ##   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver vulkan \
 ##       --resolution 1280x720 --fixed-fps 30 --write-movie /tmp/throw.avi \
 ##       --script res://tools/movie_table_3d.gd
-## (Tooling only; not part of the game or the tests.)
+## Needs a display and Vulkan (xvfb + lavapipe works). Write the .avi under
+## /tmp (never inside the repo). Tooling only; not part of the game or tests.
 extends SceneTree
 
 var scene: Table3D
