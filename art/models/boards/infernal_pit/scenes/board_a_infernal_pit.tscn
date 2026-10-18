@@ -1,0 +1,99 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/felt_floor.glb" id="1_vl2b1"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/rails.glb" id="2_ywowp"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/trim_studs.glb" id="3_nfldj"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/backboard.glb" id="4_mqgvi"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/body_skirt.glb" id="5_eu3dg"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/target_plaque.tscn" id="6_k5cny"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/total_dial.tscn" id="7_m4ggk"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/chip_tray.tscn" id="8_odgxm"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/corner_cap.tscn" id="9_w5w3m"]
+
+[node name="Board" type="Node3D" unique_id=1837909419]
+
+[node name="Visual" type="Node3D" parent="." unique_id=801854973]
+
+[node name="Floor" type="Node3D" parent="Visual" unique_id=1865209907 instance=ExtResource("1_vl2b1")]
+
+[node name="FloorDecal" type="Decal" parent="Visual" unique_id=518483560]
+visible = false
+size = Vector3(0.6, 0.05, 0.6)
+
+[node name="Rails" type="Node3D" parent="Visual" unique_id=424586948 instance=ExtResource("2_ywowp")]
+
+[node name="Trim" type="Node3D" parent="Visual" unique_id=977200549 instance=ExtResource("3_nfldj")]
+
+[node name="Backboard" type="Node3D" parent="Visual" unique_id=25817161 instance=ExtResource("4_mqgvi")]
+
+[node name="Body" type="Node3D" parent="Visual" unique_id=1570908456 instance=ExtResource("5_eu3dg")]
+
+[node name="Anchors" type="Node3D" parent="." unique_id=1499315019]
+
+[node name="TargetPlate" type="Marker3D" parent="Anchors" unique_id=338000142]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, -0.61)
+
+[node name="Plate" type="Node3D" parent="Anchors/TargetPlate" unique_id=16838157 instance=ExtResource("6_k5cny")]
+
+[node name="TotalPlate" type="Marker3D" parent="Anchors" unique_id=1603231855]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0.61)
+
+[node name="Plate" type="Node3D" parent="Anchors/TotalPlate" unique_id=1440059301 instance=ExtResource("7_m4ggk")]
+
+[node name="BurnLine" type="Marker3D" parent="Anchors" unique_id=667258160]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, -0.4)
+
+[node name="ChipTray" type="Marker3D" parent="Anchors" unique_id=1500092071]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, 0)
+
+[node name="Tray" type="Node3D" parent="Anchors/ChipTray" unique_id=317135838 instance=ExtResource("8_odgxm")]
+
+[node name="Corner_FL" type="Marker3D" parent="Anchors" unique_id=1644628382]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.11, 0.11, -0.61)
+
+[node name="Cap" type="Node3D" parent="Anchors/Corner_FL" unique_id=58757137 instance=ExtResource("9_w5w3m")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)
+
+[node name="Corner_FR" type="Marker3D" parent="Anchors" unique_id=1551072300]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, -0.61)
+
+[node name="Cap" type="Node3D" parent="Anchors/Corner_FR" unique_id=462876658 instance=ExtResource("9_w5w3m")]
+
+[node name="Corner_NL" type="Marker3D" parent="Anchors" unique_id=386655864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.11, 0.11, 0.61)
+
+[node name="Cap" type="Node3D" parent="Anchors/Corner_NL" unique_id=1963237600 instance=ExtResource("9_w5w3m")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+
+[node name="Corner_NR" type="Marker3D" parent="Anchors" unique_id=444212234]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, 0.61)
+
+[node name="Cap" type="Node3D" parent="Anchors/Corner_NR" unique_id=883537746 instance=ExtResource("9_w5w3m")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0, 0, 0)
+
+[node name="RailProp_FL" type="Marker3D" parent="Anchors" unique_id=155365911]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.11, -0.61)
+
+[node name="RailProp_FR" type="Marker3D" parent="Anchors" unique_id=260733121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.11, -0.61)
+
+[node name="Zones" type="Node3D" parent="Anchors" unique_id=208357485]
+
+[node name="Lighting" type="Node3D" parent="." unique_id=724860269]
+
+[node name="KeyLight" type="SpotLight3D" parent="Lighting" unique_id=150157065]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 1.35, -0.05)
+light_color = Color(1, 0.6901961, 0.4392157, 1)
+light_energy = 7.0
+shadow_enabled = true
+spot_range = 3.0
+spot_angle = 38.0
+spot_angle_attenuation = 1.6
+
+[node name="RimLight" type="OmniLight3D" parent="Lighting" unique_id=165648711]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -1.4)
+light_color = Color(0.9098039, 0.38431373, 0.16470589, 1)
+light_energy = 0.4
+omni_range = 2.5
+
+[node name="Ambient" type="Node3D" parent="." unique_id=1452783968]
