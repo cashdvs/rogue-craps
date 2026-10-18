@@ -92,6 +92,7 @@ var _remap_to: Array[Quaternion] = [Quaternion.IDENTITY, Quaternion.IDENTITY]
 var _last_hover: bool = false
 var _last_impact: Array[float] = [-1.0, -1.0]
 var _rest_sent: Array[bool] = [false, false]
+var _input_clock: float = 0.0
 var _tumble_sent: Array[bool] = [false, false]
 
 # Nodes (built in code).
@@ -750,7 +751,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif phase == Phase.BET and _pass_contains(p):
 				_add_chip()
 		elif mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and phase == Phase.HELD:
-			var v := gesture.release(p, Time.get_ticks_msec() / 1000.0)
+			var v := gesture.release(p, _input_clock)
 			phase = Phase.BET
 			throw(v, p, gesture.drag_distance())
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and phase == Phase.BET and _pass_contains(p):
@@ -764,7 +765,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			table.felt_print.pass_hover = hover
 			table.felt_print.refresh()
 		if phase == Phase.HELD:
-			gesture.move(mm.position, Time.get_ticks_msec() / 1000.0)
+			gesture.move(mm.position, _input_clock)
 		return
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo:
@@ -809,12 +810,15 @@ func _grab(p: Vector2) -> void:
 		_refuse_throw(reason)
 		return
 	phase = Phase.HELD
-	gesture.press(p, Time.get_ticks_msec() / 1000.0)
+	gesture.press(p, _input_clock)
 	sfx.play(&"dice_grab")
 	_set_why("Flick to throw! (A slow release drops them back in your hand.)")
 
 
 func _process(delta: float) -> void:
+	# Gesture clock: frame time with hit-stop/slow-mo removed (not the wall
+	# clock), so flick speed stays right in recordings and slow frames.
+	_input_clock += delta / maxf(Engine.time_scale, 0.001)
 	_t += delta
 	_hand_shake = maxf(_hand_shake - delta, 0.0)
 	if phase == Phase.HELD:
