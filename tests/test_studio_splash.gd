@@ -38,7 +38,7 @@ func _run() -> void:
 	var packed := load(SPLASH) as PackedScene
 	_check(packed != null, "splash scene loads")
 	var next_path := str(ProjectSettings.get_setting("boot/next_scene", ""))
-	_check(next_path == "res://scenes/table_3d.tscn", "boot/next_scene is the 3D table (%s)" % next_path)
+	_check(next_path == "res://scenes/burn_line.tscn", "boot/next_scene is the Burn Line sandbox (%s)" % next_path)
 	_check(next_path != "" and load(next_path) is PackedScene, "boot/next_scene points at a loadable scene (%s)" % next_path)
 	var tl: Dictionary = (load("res://scripts/splash/studio_splash.gd") as GDScript).load_timeline("res://assets/branding/studio/splash_timings.json")
 	_check(not tl.is_empty() and tl.has("layers") and tl.has("reduced_motion"), "motion spec splash_timings.json parses")

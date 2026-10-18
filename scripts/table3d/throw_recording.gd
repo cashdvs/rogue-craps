@@ -4,31 +4,54 @@
 class_name ThrowRecording
 extends RefCounted
 
+## Any number of dice (1 for a single-die throw). Call init(n) first.
 ## Seconds between frames (1 / physics ticks per second of the simulation).
 var dt: float = 1.0 / 120.0
 ## frames[die] = Array of Transform3D, one per tick, starting at release.
-var frames: Array = [[], []]
+var frames: Array = []
 ## {"t": s, "die": int, "kind": &"felt"|&"rail"|&"backboard"|&"die"|&"chip"|&"puck",
 ##  "speed": relative contact speed m/s, "impulse": N*s, "other": other die id or -1}
 var contacts: Array[Dictionary] = []
 ## When each die physically came to rest (s into the recording).
-var rest_t: Array[float] = [-1.0, -1.0]
+var rest_t: Array[float] = []
 ## When each die's spin first dropped under tuning.tumble_end_rad_s, and how fast it was.
-var tumble_end_t: Array[float] = [-1.0, -1.0]
-var tumble_end_speed: Array[float] = [0.0, 0.0]
+var tumble_end_t: Array[float] = []
+var tumble_end_speed: Array[float] = []
 ## Physical top face of each die at rest (before the face remap).
-var up_values: Array[int] = [1, 1]
-## Did both dice really come to rest (false = timed out and were damped)?
+var up_values: Array[int] = []
+## Did all dice really come to rest (false = timed out and were damped)?
 var settled: bool = false
 ## Did the settle assist fire (a die still moving at assist_start)?
 var assisted: bool = false
-## How many dice the assist actually eased (0-2).
+## How many dice the assist actually eased.
 var assisted_dice: int = 0
 ## How many small nudges un-cocked a die leaning on the rail.
 var nudges: int = 0
 
 
+## Sizes every per-die array for `n` dice.
+func init(n: int) -> void:
+	frames = []
+	rest_t = []
+	tumble_end_t = []
+	tumble_end_speed = []
+	up_values = []
+	for i in n:
+		frames.append([])
+		rest_t.append(-1.0)
+		tumble_end_t.append(-1.0)
+		tumble_end_speed.append(0.0)
+		up_values.append(1)
+
+
+## How many dice this throw had.
+func count() -> int:
+	return frames.size()
+
+
 func duration() -> float:
+	if frames.is_empty():
+		return 0.0
 	return maxf(float((frames[0] as Array).size() - 1), 0.0) * dt
 
 

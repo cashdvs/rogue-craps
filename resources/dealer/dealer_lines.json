@@ -1,5 +1,5 @@
 {
-	"_comment": "Dealer taunts for the POC table. Edit freely: event id -> list of lines. One is picked at random, never the same line twice in a row. Events: natural, craps, point_set, point_hit, seven_out, big_bet, low_soul, table_win, table_fail.",
+	"_comment": "Dealer taunts for the POC table. Edit freely: event id -> list of lines. One is picked at random, never the same line twice in a row. Events: natural, craps, point_set, point_hit, seven_out, big_bet, low_soul, table_win, table_fail. Burn Line sandbox: burn_on_line, burn_exact, burn_close, burn_miss, burn_bust, burn_table_clear, burn_table_fail.",
 	"natural": [
 		"Beginner's luck. It burns out fast.",
 		"Enjoy it. I'm keeping count.",
@@ -51,5 +51,34 @@
 		"House wins. House always wins.",
 		"Pay the man. With your soul.",
 		"Come back when you've got more to lose."
+	],
+	"burn_on_line": [
+		"Right on the Line. Feeling brave?",
+		"Stop now. Or don't. I'd love that."
+	],
+	"burn_exact": [
+		"Exact. The Line didn't even feel you.",
+		"Clean. I hate clean."
+	],
+	"burn_close": [
+		"One short. Cowardice pays, a little.",
+		"Close. Close never counts in my house."
+	],
+	"burn_miss": [
+		"Folding that early? Adorable.",
+		"You stopped in the shallows."
+	],
+	"burn_bust": [
+		"Over the Line. Smell that? That's you.",
+		"Burn, baby. Burn.",
+		"Greed tastes like smoke."
+	],
+	"burn_table_clear": [
+		"Fine. Take your coin. The next Line is hungrier.",
+		"You walk away. This time."
+	],
+	"burn_table_fail": [
+		"The Line always wins.",
+		"Out of hands, out of luck."
 	]
 }
