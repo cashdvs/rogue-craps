@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in the game, tests or tooling doesn't work.
+title: "[bug] short description"
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the seed (F1 debug panel) and any forced rolls so it's reproducible.
+      placeholder: |
+        1. Seed 1234, restart
+        2. Bet 10 on Pass, throw
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or branch
+      placeholder: "e.g. main @ ca2ab96"
+  - type: input
+    id: godot
+    attributes:
+      label: Godot version and OS
+      placeholder: "4.7.2-stable, Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module (if known)
+      options:
+        - dice-physics
+        - betting
+        - soul
+        - table-rules
+        - dealer
+        - ui
+        - audio
+        - art-import
+        - tools / CI
+        - not sure
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots or captures
+      description: Paste test output or attach media.
+      render: shell

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contributor guide
+    url: https://github.com/cashdvs/rogue-craps/blob/main/CONTRIBUTING.md
+    about: Setup, workflow, branch naming and how to claim a module.
+  - name: Module ownership map
+    url: https://github.com/cashdvs/rogue-craps/blob/main/docs/MODULES.md
+    about: Which sub-sections exist, who owns them, and what's unclaimed.
