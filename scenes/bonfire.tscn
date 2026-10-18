@@ -1,0 +1,13 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/bonfire/bonfire_3d.gd" id="1_bonfire"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_diedata"]
+[ext_resource type="Resource" path="res://resources/dice/standard_d6.tres" id="3_d6"]
+[ext_resource type="Resource" path="res://resources/tuning/poc_tuning.tres" id="4_tuning"]
+[ext_resource type="Resource" path="res://resources/tuning/bonfire_tuning.tres" id="5_bonfire"]
+
+[node name="Bonfire" type="Node3D"]
+script = ExtResource("1_bonfire")
+bonfire_tuning = ExtResource("5_bonfire")
+starting_dice = Array[ExtResource("2_diedata")]([ExtResource("3_d6")])
+tuning = ExtResource("4_tuning")
