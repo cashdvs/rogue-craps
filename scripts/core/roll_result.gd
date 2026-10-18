@@ -9,11 +9,12 @@ extends RefCounted
 ## Every possible outcome of a single roll in craps.
 enum Outcome {
 	NO_DECISION,  ## Point phase, rolled neither the Point nor 7. Keep rolling.
-	NATURAL_WIN,  ## Come-out 7 or 11. Pass Line wins.
-	CRAPS_LOSS,   ## Come-out 2, 3 or 12. Pass Line loses.
+	NATURAL_WIN,  ## Come-out 7 or 11. Pass wins.
+	CRAPS_LOSS,   ## Come-out 2, 3 or 12. Pass loses.
 	POINT_SET,    ## Come-out 4/5/6/8/9/10. That number becomes the Point.
-	POINT_HIT,    ## Point phase, rolled the Point again. Pass Line wins.
-	SEVEN_OUT,    ## Point phase, rolled a 7. Pass Line loses.
+	POINT_HIT,    ## Point phase, rolled the Point again. Pass wins.
+	SEVEN_OUT,    ## Point phase, rolled a 7. Pass loses.
+	INVALID,      ## Rejected roll (total outside 2-12, or no dice). Nothing changes.
 }
 
 ## The individual die values rolled (e.g. [3, 4]).
@@ -32,14 +33,19 @@ var point_after: int = 0
 var message: String = ""
 
 
-## True for outcomes where a Pass Line bet wins.
+## True for outcomes where a Pass bet wins.
 func is_win() -> bool:
 	return outcome == Outcome.NATURAL_WIN or outcome == Outcome.POINT_HIT
 
 
-## True for outcomes where a Pass Line bet loses.
+## True for outcomes where a Pass bet loses.
 func is_loss() -> bool:
 	return outcome == Outcome.CRAPS_LOSS or outcome == Outcome.SEVEN_OUT
+
+
+## True if CrapsRound refused this roll. Bets and state are untouched.
+func is_invalid() -> bool:
+	return outcome == Outcome.INVALID
 
 
 ## A "decision" means the round ended (win or loss) and resets to come-out.

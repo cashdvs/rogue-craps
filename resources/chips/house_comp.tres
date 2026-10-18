@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ChipData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/chip_data.gd" id="1_n6dcn"]
+
+[resource]
+script = ExtResource("1_n6dcn")
+id = &"house_comp"
+display_name = "House Comp"
+description = "+1 Coin of interest per roll you finish under the limit (doubles interest). (Not implemented yet.)"
+hook_ids = Array[StringName]([&"on_table_won"])

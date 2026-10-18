@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="DieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_face.gd" id="1_tdau7"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_jimxj"]
+
+[sub_resource type="Resource" id="Resource_ecmqi"]
+script = ExtResource("1_tdau7")
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_1unuf"]
+script = ExtResource("1_tdau7")
+value = 2
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ovjvk"]
+script = ExtResource("1_tdau7")
+value = 3
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_kb3pf"]
+script = ExtResource("1_tdau7")
+value = 4
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_te8os"]
+script = ExtResource("1_tdau7")
+value = 5
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_sv6xc"]
+script = ExtResource("1_tdau7")
+value = 6
+tags = PackedStringArray()
+
+[resource]
+script = ExtResource("2_jimxj")
+display_name = "Weighted Bone"
+faces = Array[ExtResource("1_tdau7")]([SubResource("Resource_ecmqi"), SubResource("Resource_1unuf"), SubResource("Resource_ovjvk"), SubResource("Resource_kb3pf"), SubResource("Resource_te8os"), SubResource("Resource_sv6xc")])
+ability_id = &"weighted_bone"
+ability_description = "Once per table, reroll this die. (Not implemented yet.)"
+level_up_costs = PackedInt32Array(15, 30, 50)

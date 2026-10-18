@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ChipData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/chip_data.gd" id="1_kvlog"]
+
+[resource]
+script = ExtResource("1_kvlog")
+id = &"seventh_seal"
+display_name = "Seventh Seal"
+description = "The first Seven-out each floor counts as a push instead of a loss. (Not implemented yet.)"
+hook_ids = Array[StringName]([&"on_seven_out"])

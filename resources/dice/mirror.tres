@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="DieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_face.gd" id="1_wr67f"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_ntwjr"]
+
+[sub_resource type="Resource" id="Resource_7agaq"]
+script = ExtResource("1_wr67f")
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_bdq8u"]
+script = ExtResource("1_wr67f")
+value = 2
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_p8a03"]
+script = ExtResource("1_wr67f")
+value = 3
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_uuptd"]
+script = ExtResource("1_wr67f")
+value = 4
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_rfaj5"]
+script = ExtResource("1_wr67f")
+value = 5
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_1rlty"]
+script = ExtResource("1_wr67f")
+value = 6
+tags = PackedStringArray()
+
+[resource]
+script = ExtResource("2_ntwjr")
+display_name = "Mirror Die"
+faces = Array[ExtResource("1_wr67f")]([SubResource("Resource_7agaq"), SubResource("Resource_bdq8u"), SubResource("Resource_p8a03"), SubResource("Resource_uuptd"), SubResource("Resource_rfaj5"), SubResource("Resource_1rlty")])
+ability_id = &"mirror"
+ability_description = "1 in 6 chance to copy the other die's face. (Not implemented yet.)"
+level_up_costs = PackedInt32Array(15, 30, 50)

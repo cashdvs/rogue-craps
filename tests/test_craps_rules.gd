@@ -19,6 +19,8 @@ func _initialize() -> void:
 	_test_point_phase_for_every_point()
 	_test_reset_after_decisions()
 	_test_rigged_rules()
+	_test_invalid_totals()
+	_test_faceless_die_and_seeds()
 	_test_seeded_rolls_from_die_data()
 	_test_sample_resources_load()
 
@@ -158,7 +160,7 @@ func _test_reset_after_decisions() -> void:
 	_check_eq(counter[0], 2, "roll_resolved signal fires once per roll")
 
 
-# --- Boss "rigging" hooks -----------------------------------------------------
+# --- Boss "rigging" hooks and rule precedence ---------------------------------
 
 func _test_rigged_rules() -> void:
 	var craps := CrapsRound.new()
@@ -167,6 +169,98 @@ func _test_rigged_rules() -> void:
 	craps.craps_totals.append(11)                # ...and makes it craps instead.
 	_check_eq(_outcome_str(craps.resolve_total(11).outcome), "CRAPS_LOSS",
 		"rigged: Dealer can turn 11 into craps")
+
+	# Precedence 1: a total in BOTH natural and craps lists is a Natural.
+	craps = CrapsRound.new()
+	craps.craps_totals.append(7)
+	_check_eq(_outcome_str(craps.resolve_total(7).outcome), "NATURAL_WIN",
+		"precedence: total in both natural and craps lists counts as Natural")
+
+	# Precedence 2: natural list beats setting a Point.
+	craps = CrapsRound.new()
+	craps.natural_totals.append(4)
+	_check_eq(_outcome_str(craps.resolve_total(4).outcome), "NATURAL_WIN",
+		"precedence: a rigged natural 4 wins instead of setting a Point")
+
+	# Precedence 3: craps list beats setting a Point.
+	craps = CrapsRound.new()
+	craps.craps_totals.append(6)
+	_check_eq(_outcome_str(craps.resolve_total(6).outcome), "CRAPS_LOSS",
+		"precedence: a rigged craps 6 loses instead of setting a Point")
+
+	# Precedence 4: seven_out_total equal to the Point -> Point hit wins.
+	craps = CrapsRound.new()
+	craps.resolve_total(8)
+	craps.seven_out_total = 8
+	_check_eq(_outcome_str(craps.resolve_total(8).outcome), "POINT_HIT",
+		"precedence: seven_out_total == Point counts as Point hit")
+
+	# A moved seven-out: 7 becomes no decision, 6 now sevens-out.
+	craps = CrapsRound.new()
+	craps.resolve_total(9)
+	craps.seven_out_total = 6
+	_check_eq(_outcome_str(craps.resolve_total(7).outcome), "NO_DECISION",
+		"rigged: with seven_out_total=6, a 7 is no decision")
+	_check_eq(_outcome_str(craps.resolve_total(6).outcome), "SEVEN_OUT",
+		"rigged: with seven_out_total=6, a 6 sevens-out")
+
+
+# --- Invalid totals (QA) ------------------------------------------------------
+
+func _test_invalid_totals() -> void:
+	print("      (the next few lines may print expected warnings/errors)")
+	for bad in [0, 1, 13, -3, 18]:
+		var craps := CrapsRound.new()
+		var r := craps.resolve_total(bad)
+		_check(r.is_invalid() and not r.is_decision() and craps.phase == CrapsRound.Phase.COME_OUT and craps.point == 0,
+			"invalid: come-out total %d is rejected, state unchanged" % bad, str(r))
+	var craps := CrapsRound.new()
+	craps.resolve_total(5)
+	var r := craps.resolve_total(13)
+	_check(r.is_invalid() and craps.point == 5 and craps.phase == CrapsRound.Phase.POINT,
+		"invalid: total 13 during Point phase keeps Point 5")
+	var no_dice: Array[int] = []
+	_check(craps.resolve_dice(no_dice).is_invalid() and craps.point == 5,
+		"invalid: resolve_dice([]) is rejected, Point kept")
+	var zero_dice: Array[int] = [0, 1]
+	_check(craps.resolve_dice(zero_dice).is_invalid(), "invalid: dice [0, 1] (total 1) rejected")
+
+
+# --- Faceless dice and seeds (QA) ---------------------------------------------
+
+func _test_faceless_die_and_seeds() -> void:
+	var empty_die := DieData.new()
+	empty_die.display_name = "Blank"
+	_check(not empty_die.is_valid(), "faceless: a die with no faces is not valid")
+	var roller := DiceRoller.new(1)
+	print("      (the next lines print EXPECTED errors about a faceless die)")
+	_check(roller.roll_die(empty_die) == null, "faceless: roll_die returns null (no fake 0)")
+	var good := DieData.make_standard_d6()
+	var mixed: Array[DieData] = [good, empty_die]
+	var faces := roller.roll_dice(mixed)
+	_check(faces.is_empty(), "faceless: roll_dice with a faceless die returns no faces at all")
+	_check(DiceRoller.face_values(faces).is_empty(), "faceless: no values, so nothing can count as 0")
+	var with_null: Array[DieFace] = [DieFace.make(3), null]
+	_check(DiceRoller.face_values(with_null).is_empty(), "faceless: a null face makes face_values empty, not 0")
+
+	# Seeds: only -1 is random. Other negatives are repeatable seeds.
+	var dice: Array[DieData] = [good, good]
+	for s in [-5, -2, 0]:
+		var a := DiceRoller.new(s)
+		var b := DiceRoller.new(s)
+		var same := true
+		for i in range(30):
+			if DiceRoller.face_values(a.roll_dice(dice)) != DiceRoller.face_values(b.roll_dice(dice)):
+				same = false
+		_check(same, "seeds: seed %d is deterministic" % s)
+	_check_eq(DiceRoller.RANDOM_SEED, -1, "seeds: RANDOM_SEED constant is -1")
+	var r1 := DiceRoller.new(-1)
+	var r2 := DiceRoller.new(-1)
+	var differ := false
+	for i in range(30):
+		if DiceRoller.face_values(r1.roll_dice(dice)) != DiceRoller.face_values(r2.roll_dice(dice)):
+			differ = true
+	_check(differ, "seeds: seed -1 randomizes (two rollers differ)")
 
 
 # --- Deterministic dice rolling -----------------------------------------------
@@ -226,11 +320,9 @@ func _test_sample_resources_load() -> void:
 		values.append(face.value)
 	var one_to_six: Array[int] = [1, 2, 3, 4, 5, 6]
 	_check(values == one_to_six, "data: standard d6 has faces 1-6", str(values))
-
-	var bet := load("res://resources/bets/pass_line.tres") as BetType
-	_check(bet != null and bet.id == &"pass_line" and bet.is_starter(), "data: Pass Line bet loads and is a starter")
-	if bet != null:
-		_check_eq(bet.profit_for(10), 10, "data: Pass Line pays even money")
-
-	var relic := load("res://resources/relics/rabbits_foot.tres") as RelicData
-	_check(relic != null and relic.listens_to(&"on_seven_out"), "data: Rabbit's Foot relic loads with its hook")
+	for id in ["ember", "weighted_bone", "mirror", "lucky_knuckle"]:
+		var die := load("res://resources/dice/%s.tres" % id) as DieData
+		_check(die != null and die.is_valid() and die.ability_id == StringName(id), "data: %s die loads" % id)
+	for id in ["devils_marker", "house_comp", "hot_streak", "seventh_seal", "twin_fangs"]:
+		var chip := load("res://resources/chips/%s.tres" % id) as ChipData
+		_check(chip != null and chip.id == StringName(id) and not chip.hook_ids.is_empty(), "data: chip %s loads with hooks" % id)

@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="DieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_face.gd" id="1_psh30"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_dapbf"]
+
+[sub_resource type="Resource" id="Resource_11fh0"]
+script = ExtResource("1_psh30")
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ihtq1"]
+script = ExtResource("1_psh30")
+value = 2
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_a6lem"]
+script = ExtResource("1_psh30")
+value = 3
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_c5dcf"]
+script = ExtResource("1_psh30")
+value = 4
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_mex81"]
+script = ExtResource("1_psh30")
+value = 5
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_a485a"]
+script = ExtResource("1_psh30")
+value = 6
+tags = PackedStringArray()
+
+[resource]
+script = ExtResource("2_dapbf")
+display_name = "Ember Die"
+faces = Array[ExtResource("1_psh30")]([SubResource("Resource_11fh0"), SubResource("Resource_ihtq1"), SubResource("Resource_a6lem"), SubResource("Resource_c5dcf"), SubResource("Resource_mex81"), SubResource("Resource_a485a")])
+ability_id = &"ember"
+ability_description = "After a Natural, your next bet pays +1 Coin per pip shown. (Not implemented yet.)"
+level_up_costs = PackedInt32Array(15, 30, 50)

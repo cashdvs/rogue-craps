@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="DieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_face.gd" id="1_trecx"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_7ixrd"]
+
+[sub_resource type="Resource" id="Resource_7a71f"]
+script = ExtResource("1_trecx")
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_vlbbp"]
+script = ExtResource("1_trecx")
+value = 2
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_b2k8w"]
+script = ExtResource("1_trecx")
+value = 3
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_cvhmv"]
+script = ExtResource("1_trecx")
+value = 4
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_s1n27"]
+script = ExtResource("1_trecx")
+value = 5
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_uolt6"]
+script = ExtResource("1_trecx")
+value = 6
+tags = PackedStringArray()
+
+[resource]
+script = ExtResource("2_7ixrd")
+display_name = "Lucky Knuckle"
+faces = Array[ExtResource("1_trecx")]([SubResource("Resource_7a71f"), SubResource("Resource_vlbbp"), SubResource("Resource_b2k8w"), SubResource("Resource_cvhmv"), SubResource("Resource_s1n27"), SubResource("Resource_uolt6")])
+ability_id = &"lucky_knuckle"
+ability_description = "The first Seven-out each table refunds 50% of your Pass bet. (Not implemented yet.)"
+level_up_costs = PackedInt32Array(15, 30, 50)
