@@ -7,7 +7,9 @@ from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.transformPen import TransformPen
 from PIL import Image
 from shapes import *
-OUT="/workspace/dice/art/branding/studio"; SRC=OUT+"/src"
+from pathlib import Path
+# Paths relative to this script: outputs go to the studio folder above src/.
+SRC=str(Path(__file__).resolve().parent); OUT=str(Path(SRC).parent)
 S=2.4    # px per anvil unit at 2x layout  (anvil ≈ 500 px wide)
 meta={}
 
