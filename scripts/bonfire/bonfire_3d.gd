@@ -29,6 +29,9 @@ var _felt_pos: Array[Vector3] = []
 var _brng := RandomNumberGenerator.new()
 var _lights: Dictionary = {}
 var _hand_tweens: Array[Tween] = []
+## The last throw's launch (tests/tools): lin, spin, speed, k, flick.
+var last_launch: Dictionary = {}
+var _player_flick: bool = false
 
 
 func _ready() -> void:
@@ -230,6 +233,56 @@ func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector
 	sequence_finished.emit()
 
 
+## Throw momentum: the flick's speed scales the launch speed, its arc and
+## the spin (bonfire_tuning "Throw momentum"). Direction is Table3D's (flick
+## direction kept in the aim cone).
+func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
+	var base := super(velocity, release_pos)
+	var bt := bonfire_tuning
+	var k := launch_k(velocity.length())
+	var speed := lerpf(bt.launch_speed_min_mps, bt.launch_speed_max_mps, k)
+	var up := lerpf(bt.launch_up_min_mps, bt.launch_up_max_mps, k)
+	var spin_mag := lerpf(bt.spin_min_rad_s, bt.spin_max_rad_s, k)
+	var lin: Array[Vector3] = []
+	var spin: Array[Vector3] = []
+	var n := dice.size()
+	var dir := Vector2(base["lin"][0].x, base["lin"][0].z).normalized()
+	if n > 1:
+		# Undo Table3D's 4-degree fan on die 0 to get the aim direction back.
+		var c := Vector2.ZERO
+		for v: Vector3 in base["lin"]:
+			c += Vector2(v.x, v.z).normalized()
+		dir = c.normalized()
+	for i in n:
+		var f := 0.0 if n == 1 else (float(i) - float(n - 1) * 0.5) / (float(n - 1) * 0.5)
+		var d := dir.rotated(deg_to_rad(bt.fan_deg * f))
+		var s := speed * (1.0 + 0.04 * f)
+		lin.append(Vector3(d.x * s, up, d.y * s))
+		var axis: Vector3 = base["spin"][i]
+		axis = axis.normalized() if axis.length() > 0.001 else Vector3.RIGHT
+		spin.append(axis * spin_mag * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter)))
+	last_launch = {"lin": lin, "spin": spin, "speed": speed, "k": k, "flick": velocity.length()}
+	return last_launch
+
+
+## 0..1 strength of a flick (after the curve).
+func launch_k(flick_speed: float) -> float:
+	var bt := bonfire_tuning
+	var k := clampf((flick_speed - bt.flick_speed_min) / maxf(bt.flick_speed_max - bt.flick_speed_min, 1.0), 0.0, 1.0)
+	return pow(k, maxf(bt.launch_exponent, 0.01))
+
+
+## Options > Throw sensitivity multiplies the flick speed (keyboard quick
+## throws stay a fixed medium throw).
+func throw(velocity: Vector2, release_pos: Vector2 = Vector2.INF, drag: float = -1.0) -> bool:
+	return super(velocity * (sensitivity() if _player_flick else 1.0), release_pos, drag)
+
+
+func sensitivity() -> float:
+	var gs := get_node_or_null("/root/GameSettings")
+	return float(gs.get("throw_sensitivity")) if gs != null else 1.0
+
+
 func _refresh_hud() -> void:
 	if bhud != null and run != null:
 		bhud.refresh(run, phase == Phase.BET)
@@ -265,7 +318,10 @@ func _unhandled_input(event: InputEvent) -> void:
 					return
 			KEY_S, KEY_UP, KEY_DOWN, KEY_EQUAL, KEY_MINUS, KEY_KP_ADD, KEY_BACKSPACE:
 				return
+	# A mouse/touch release is the player's flick: sensitivity applies.
+	_player_flick = mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed
 	super(event)
+	_player_flick = false
 
 
 func _process(delta: float) -> void:
