@@ -13,17 +13,26 @@ body:
     attributes:
       label: Module
       options:
+        - table-3d
         - dice-physics
+        - feel
         - betting
         - soul
+        - run
+        - dice-bag
         - table-rules
-        - dealer
         - shop
-        - map
+        - map-events
         - bosses
+        - embers
+        - dealer
         - ui
+        - shaders
         - audio
+        - fonts
         - art-import
+        - qa
+        - tools-ci
     validations:
       required: true
   - type: input

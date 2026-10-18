@@ -17,8 +17,8 @@ one) should also read [AGENTS.md](AGENTS.md), which has the technical details.
    ./run_tests.sh
    ```
 4. Play: `"$GODOT" --path .` or open the project in the Godot editor.
-5. Read the design doc ([docs/design/gamblers-descent.md](docs/design/gamblers-descent.md)),
-   especially §12 (the proof-of-concept scope), and skim [docs/MODULES.md](docs/MODULES.md).
+5. Read the design summary ([docs/DESIGN.md](docs/DESIGN.md)), especially the
+   proof-of-concept scope, and skim [docs/MODULES.md](docs/MODULES.md).
 
 ## 2. Workflow
 
@@ -68,8 +68,11 @@ one) should also read [AGENTS.md](AGENTS.md), which has the technical details.
 - Every PR needs **green CI** and **one approving review** from a maintainer before merge.
 - Reviewers check scope, tests, determinism, typing and feel (for visual changes, we'll play it).
 - The full reviewer checklist is in [REVIEWING.md](REVIEWING.md) (on `main`).
-- History on `main` is **linear**: PRs are merged with **rebase / fast-forward**, never a merge
-  commit. Keep your commits clean, and **rebase** on `main` (don't merge `main` into your branch).
+- History on `main` is **linear** (no merge commits):
+  - **Outside contributor PRs are squash-merged.** Your PR becomes one commit, so make the PR
+    title a good commit summary.
+  - **Team PRs are merged with rebase or fast-forward**, keeping their individual commits.
+  - Either way, update your branch by **rebasing** on `main`, not by merging `main` in.
 - Aim for roughly ≤ 400 changed lines of code per PR (generated `.uid`/`.tres`/`.import` excluded).
 - PRs that change core rules or balance (Soul formulas, payouts, tuning defaults), CI/repo config,
   or more than 2 modules are escalated to the Tiny Anvil team before merging.
@@ -78,19 +81,19 @@ one) should also read [AGENTS.md](AGENTS.md), which has the technical details.
 
 ## 5. Docs and design changes
 
-`docs/design/` and `docs/art/` are mirrors of the studio's working documents. Please don't edit
-them in PRs; open an issue to propose a design change or report a mistake. Number changes need a
-designer's OK.
+[docs/DESIGN.md](docs/DESIGN.md) is a public summary; the full design and art docs are
+maintained by the Tiny Anvil team. Please don't edit `DESIGN.md` in a feature PR. Open an issue to
+propose a design change or report a mistake. Changes to game numbers need the Game Designer's OK.
 
 ## 6. Claiming a module
 
-The game is split into claimable modules (dice physics, betting, Soul, table rules, dealer, shop,
-map/events, bosses, UI, audio, art import). See [docs/MODULES.md](docs/MODULES.md) for paths,
+The game is split into claimable feature modules (betting, Soul, run, dice bag, table rules,
+shop, map/events, bosses, dealer, audio and more; some core modules take issues only). See [docs/MODULES.md](docs/MODULES.md) for paths,
 status and owners.
 
 1. Open a **Claim a module** issue (issue templates, "New issue").
 2. Describe the first PR you plan and a rough timeline.
-3. A maintainer accepts it and updates `docs/MODULES.md`.
+3. PM accepts it and updates `docs/MODULES.md`.
 4. Claims with no activity for 14 days are released.
 
 ## 7. Code of conduct
@@ -98,10 +101,20 @@ status and owners.
 Be kind, be specific, assume good faith. Harassment isn't tolerated. Maintainers may close PRs or
 issues and block accounts that don't follow this.
 
-## 8. Licence
+## 8. License
 
-There's no licence file in this repository yet (that's an open item for the maintainers). Until
-one is added, ask a maintainer before starting large contributions.
+This repository is **proprietary**: see [LICENSE](LICENSE). Copyright (c) 2026 Tiny Anvil
+(Cash Davis). All rights reserved. In short:
+
+- You may not use, copy, modify or distribute the code or assets without prior written permission
+  from Tiny Anvil.
+- Anything you submit (code, assets, docs) is **assigned to Tiny Anvil** on submission. Where an
+  assignment isn't possible, you grant Tiny Anvil a perpetual, irrevocable, worldwide,
+  royalty-free license to it, with the right to sublicense.
+- You confirm you have the right to submit it (it's your own work, or you have permission, and
+  any third-party asset's license allows it).
+
+**Opening a pull request means you agree to these terms.** The PR template has a checkbox for it.
 
 ## Maintainers
 
@@ -113,7 +126,8 @@ They are not applied by any file in this repo.
 - **Require a pull request before merging**
   - Required approvals: **1**
   - **Dismiss stale pull request approvals when new commits are pushed**: on
-  - Require review from Code Owners: **off** for now (CODEOWNERS is commented out)
+  - Require review from Code Owners: **off** for now. `@cashdvs` owns every path in CODEOWNERS
+    and can't approve their own PRs, so turning this on would block team PRs opened from that account
   - Require conversation resolution before merging: on
 - **Require status checks to pass before merging**: on
   - Required check: **`tests`** (job in workflow `CI`, `.github/workflows/ci.yml`; shown as
@@ -121,15 +135,17 @@ They are not applied by any file in this repo.
   - Require branches to be up to date before merging: on
 - **Block force pushes**: on (don't allow force pushes to `main`)
 - **Restrict deletions**: on
-- **Require linear history**: on (matches REVIEWING.md: rebase / fast-forward merges only).
-  Optional if you'd rather allow squash merges too; squash also keeps history linear.
+- **Require linear history**: on. Squash merges (outside contributors) and rebase /
+  fast-forward merges (team) both keep it linear; disable "Allow merge commits" in
+  Settings → General.
 - Do not allow bypassing the above settings: recommended once more than one maintainer exists
-  (admins may need to bypass while the studio is a one-person team).
+  (admins may need to bypass while only one GitHub account has access).
 
 ### Merging and claims
 
-- Merge with rebase / fast-forward (linear history), per REVIEWING.md.
+- Squash-merge outside contributor PRs; rebase or fast-forward team PRs. Never a merge commit.
+- Check the PR's license checkbox is ticked before merging an outside contribution.
 - When accepting a module claim, update `docs/MODULES.md` and, if the claimant will review that
   area, uncomment/add a line in `.github/CODEOWNERS`.
-- Re-mirror `docs/design` and `docs/art` from the studio docs when they change, and update the
-  dates in `docs/README.md`.
+- Keep `docs/DESIGN.md` in step with the team's living design doc when the public-facing basics
+  change (no internal names or process notes).

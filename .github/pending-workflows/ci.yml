@@ -52,9 +52,24 @@ jobs:
 
       - name: Import project
         # Registers class_name scripts and imports assets into .godot/ (fresh checkout).
+        # Fails on a non-zero exit, on script/parse errors, or if .godot/ wasn't created.
         run: |
-          "$GODOT" --headless --path . --import || true
-          test -d .godot || { echo "Import did not create .godot/"; exit 1; }
+          set -o pipefail
+          "$GODOT" --headless --path . --import 2>&1 | tee import.log
+          if grep -qE "SCRIPT ERROR|Parse Error" import.log; then
+            echo "::error::Import reported script errors"; exit 1
+          fi
+          test -d .godot || { echo "::error::Import did not create .godot/"; exit 1; }
 
       - name: Run tests
         run: ./run_tests.sh
+
+      - name: Main scene smoke test (headless)
+        # Runs the main scene for 300 frames with no display. Fails on a non-zero exit, a hang,
+        # or any SCRIPT ERROR / Parse Error in the output.
+        run: |
+          set -o pipefail
+          timeout 120 "$GODOT" --headless --path . --quit-after 300 2>&1 | tee smoke.log
+          if grep -qE "SCRIPT ERROR|Parse Error" smoke.log; then
+            echo "::error::Main scene printed script errors"; exit 1
+          fi

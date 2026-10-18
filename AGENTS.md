@@ -11,8 +11,11 @@ against **Dice of the Damned** by **Tiny Anvil**. Humans should also read
   keyboard).
 - You roll your way out of an infernal casino: bet on the Pass Line, hit a Coin target within a
   roll limit, and protect your **Soul** (the game's HP), which burns on bad rolls.
-- **Current stage: proof of concept (POC).** One table, 2 plain dice, Pass Line (plus Odds), Soul,
-  a 12-roll limit, a Coin target and a taunting Dealer. The goal is *feel*. The 2D table is on
+- **Current stage: proof of concept (POC).** One table, 2 plain dice, the Pass Line, Soul,
+  a 12-roll limit, a Coin target and a taunting Dealer. **Odds** exist in the logic
+  (`CrapsTable`) but aren't on the 2D felt yet. Their rules: Odds can only be placed while a Point
+  is on, need a Pass Line bet underneath, are capped at 2× the Pass bet (`odds_max_multiple` in
+  `TuningData`), and ignore the 5–25 table limits. The goal is *feel*. The 2D table is on
   `main` (`scenes/table.tscn`); a top-down 3D table is being built by the core team (see
   [docs/MODULES.md](docs/MODULES.md)).
 - Shop, map, bosses, dice rarities, face mods and sacrifice are **designed but not built**.
@@ -21,15 +24,16 @@ against **Dice of the Damned** by **Tiny Anvil**. Humans should also read
 
 | Doc | Why |
 |---|---|
-| [docs/design/gamblers-descent.md](docs/design/gamblers-descent.md) | The design doc. §12 is the POC scope; §2–3 are table and Soul rules. |
-| [docs/art/poc_feel.md](docs/art/poc_feel.md) | Timings and "moments" for the 2D POC table. |
-| [docs/art/poc_3d.md](docs/art/poc_3d.md) | Camera, materials, lighting and dice physics for the 3D table. |
-| [docs/art/style_guide.md](docs/art/style_guide.md) | Palette and colour rules (Soul cyan `#4FE6E0` is only for Soul). |
-| [docs/MODULES.md](docs/MODULES.md) | Which sub-section owns which files, and how to claim one. |
+| [docs/DESIGN.md](docs/DESIGN.md) | Public design summary: pillars, core loop, craps rules, Coin and Soul, table goal, POC scope. |
+| [docs/MODULES.md](docs/MODULES.md) | The feature modules, which files each owns, owners, and how to claim one. |
+| [REVIEWING.md](REVIEWING.md) | What reviewers check on every PR. |
 
-The files under `docs/design/` and `docs/art/` are **mirrors** of the studio's working docs, which
-live outside the repo on the studio machine (`/workspace/dice/design`, `/workspace/dice/art/concept`).
-Don't edit them in a feature PR; open an issue if something is wrong. See [docs/README.md](docs/README.md).
+The full design and art documents are maintained by the Tiny Anvil team outside this repo.
+Issues quote any extra numbers or specs they need. Don't edit `docs/DESIGN.md` in a feature PR;
+open an issue if something looks wrong.
+
+**License:** the code and assets are proprietary (see [LICENSE](LICENSE)). Contributions you
+submit are assigned (or licensed) to Tiny Anvil, so only submit work you have the right to submit.
 
 ## 2. Install Godot 4.7.2 (headless, Linux)
 
@@ -55,7 +59,8 @@ release page.) No display or GPU is needed for tests: everything runs with `--he
 
 ## 3. Run the game and the tests
 
-Point `GODOT` at your binary (the scripts default to the studio path `/home/box/tools/godot/godot`):
+Point `GODOT` at your binary (`run_tests.sh` reads `$GODOT`; its built-in fallback path only exists on
+the studio machine, so always set it):
 
 ```bash
 export GODOT=~/tools/godot/godot
@@ -107,11 +112,11 @@ resources/bets/          pass/field/any_craps.tres + bet_catalog.tres
 resources/dice/          standard_d6.tres
 resources/dealer/        dealer_lines.json: Dealer taunt lines per event
 audio/sfx/               Baked .wav sound effects (from tools/bake_sfx.gd)
-fonts/                   Alfa Slab One, Barlow Condensed (SIL OFL; licences alongside)
+fonts/                   Alfa Slab One, Barlow Condensed (SIL OFL; licenses alongside)
 shaders/                 felt, backdrop, bulb_light, grade
 tests/                   test_*.gd (headless SceneTree scripts); tests/qa_/ is owned by QA
 tools/                   generate_sample_resources, bake_sfx, capture_table, demo_table
-docs/                    Mirrored design/art docs + MODULES.md
+docs/                    DESIGN.md (public design summary), MODULES.md (module map)
 .github/                 PR/issue templates and CI
 ```
 
@@ -169,26 +174,29 @@ needs it, because it rewrites files in `resources/`.
    (generated `.uid`/`.tres`/`.import` excluded). No drive-by refactors or reformatting.
    Rebase on `main` to update your branch; no merge commits (history is linear).
 2. **Tests required for logic.** Any change in `scripts/core/` or `scripts/data/` needs new or
-   updated checks in `tests/test_*.gd` (follow the existing `_check(condition, name)` pattern and
+   updated checks in `tests/test_*.gd` (follow the existing check pattern in the file you extend,
+   e.g. `_check(condition, name)` or `check(...)`, and exit with
    `quit(1 if _failed > 0 else 0)`). A new test file named `tests/test_*.gd` runs automatically.
    `./run_tests.sh` must pass locally and in CI.
 3. **Stay in your module.** Only touch files owned by the module you're working on
    ([docs/MODULES.md](docs/MODULES.md)). If you must touch another module's files, keep it
-   minimal and explain why in the PR. Don't edit `tests/qa_/` (QA owns it) or `docs/design`,
-   `docs/art` (mirrors).
+   minimal and explain why in the PR. A "module" is a feature module from MODULES.md, not a
+   folder. **`tests/qa_/`** (owned by QA): you may **add** checks, but never weaken or remove
+   existing ones. Don't edit `docs/DESIGN.md` in a feature PR.
 4. **Never commit `.godot/`** (the import cache; it's in `.gitignore`), editor settings, builds,
    or large binaries. Do commit the `*.uid` files Godot creates next to new scripts, and the
    `*.import` files next to new assets.
 5. **Keep seeded determinism** (see §5). If a test depends on randomness, give it a seed.
-6. **Don't change game numbers on your own.** Numbers come from the design doc; if you think one
+6. **Don't change game numbers on your own.** Numbers come from the Game Designer; if you think one
    is wrong, say so in the PR or an issue.
 7. Visual changes need a screenshot or short capture in the PR.
 8. Don't change CI, `project.godot` or `run_tests.sh` unless the issue asks for it.
 9. Fill in the PR template. Link the issue (`Closes #N`). Branch names: see CONTRIBUTING.md.
+10. Opening a PR means agreeing to the contribution terms in [LICENSE](LICENSE).
 
 Reviewers use [REVIEWING.md](REVIEWING.md) (gate checks, conformance, feel checks, safety). Read
 it to know what your PR will be checked against. In particular: no network/HTTP/telemetry code,
 no `OS.execute`/shell calls, no secrets, and no unexplained binaries; every asset needs its source
-and a compatible licence next to it.
+and a compatible license next to it.
 
 If you're unsure, open a draft PR early and ask.

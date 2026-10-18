@@ -38,15 +38,26 @@ body:
     attributes:
       label: Module (if known)
       options:
+        - table-3d
         - dice-physics
+        - feel
         - betting
         - soul
+        - run
+        - dice-bag
         - table-rules
+        - shop
+        - map-events
+        - bosses
+        - embers
         - dealer
         - ui
+        - shaders
         - audio
+        - fonts
         - art-import
-        - tools / CI
+        - qa
+        - tools-ci
         - not sure
   - type: textarea
     id: logs

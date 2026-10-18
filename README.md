@@ -3,13 +3,16 @@
 [![CI](https://github.com/cashdvs/rogue-craps/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cashdvs/rogue-craps/actions/workflows/ci.yml)
 
 A single-player craps roguelite by **Tiny Anvil** (working title *The Gambler's Descent*; design
-doc: [`docs/design/gamblers-descent.md`](docs/design/gamblers-descent.md), v0.4 section 12). The
+summary: [`docs/DESIGN.md`](docs/DESIGN.md)). The
 current build is the **proof-of-concept table**, where the goal is feel. You get 2 plain bone
 dice, a Pass Line, Soul, a 12-roll limit, a target bankroll, and a taunting Dealer. Visuals and
-timings follow the art spec in [`docs/art/poc_feel.md`](docs/art/poc_feel.md).
+timings follow the team's POC feel spec.
 
 **Contributing:** humans start with [CONTRIBUTING.md](CONTRIBUTING.md), AI coding agents with
 [AGENTS.md](AGENTS.md). Claimable sub-sections are listed in [docs/MODULES.md](docs/MODULES.md).
+
+**License:** proprietary, all rights reserved; see [LICENSE](LICENSE). Contributions are
+assigned (or licensed) to Tiny Anvil on submission.
 
 ## Run
 

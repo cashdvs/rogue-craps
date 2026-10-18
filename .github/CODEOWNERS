@@ -1,18 +1,47 @@
 # CODEOWNERS for Dice of the Damned.
-# Everything is commented out on purpose: GitHub would otherwise auto-request reviews from these
-# owners and, with branch protection, could require reviewers who don't exist yet.
-# When a module claim is accepted (see docs/MODULES.md), a maintainer uncomments or adds a line.
-#
-# Default owner
-# *                               @cashdvs
-#
-# Modules (fill in handles as claims are accepted)
-# /scripts/core/dice_roller.gd    @cashdvs
-# /scripts/core/throw_gesture.gd  @cashdvs
-# /scripts/core/craps_*.gd        @owner-of-betting
-# /resources/bets/                @owner-of-betting
-# /scripts/core/dealer_lines.gd   @owner-of-dealer
-# /resources/dealer/              @owner-of-dealer
-# /scripts/audio/                 @owner-of-audio
-# /tests/qa_/                     @cashdvs
-# /.github/                       @cashdvs
+# @cashdvs is the only GitHub account with access today, so it owns every path.
+# The comments name the Tiny Anvil team role that owns each area (see docs/MODULES.md).
+# When a module claim is accepted, PM adds the claimant's handle to the matching line.
+# Note: in CODEOWNERS the LAST matching line wins, so the default line comes first.
+
+# Default owner for everything
+*                                   @cashdvs
+
+# 3D table, dice physics, feel/juice, shaders: Godot Dev
+/scripts/table3d/                   @cashdvs
+/scenes/table_3d.tscn               @cashdvs
+/scripts/core/dice_roller.gd        @cashdvs
+/scripts/core/throw_gesture.gd      @cashdvs
+/scripts/table/                     @cashdvs
+/shaders/                           @cashdvs
+
+# Run, shop, map/events, Embers, dice bag, bet slots/betting, Soul, table rules, bosses: Systems Dev
+/scripts/core/                      @cashdvs
+/scripts/data/                      @cashdvs
+/resources/bets/                    @cashdvs
+/resources/dice/                    @cashdvs
+
+# Dealer / taunts: assigned by PM
+/resources/dealer/                  @cashdvs
+
+# Audio: Sound Designer
+/scripts/audio/                     @cashdvs
+/audio/                             @cashdvs
+
+# Art, art import, fonts: Art Director
+/fonts/                             @cashdvs
+
+# Tuning numbers and design summary: Game Designer
+/resources/tuning/                  @cashdvs
+/docs/DESIGN.md                     @cashdvs
+
+# QA checks: QA Tester
+/tests/qa_/                         @cashdvs
+
+# CI, tooling, contributor docs: PM
+/.github/                           @cashdvs
+/run_tests.sh                       @cashdvs
+/AGENTS.md                          @cashdvs
+/CONTRIBUTING.md                    @cashdvs
+/docs/MODULES.md                    @cashdvs
+/LICENSE                            @cashdvs
