@@ -307,7 +307,7 @@ func _test_rule_ids() -> void:
 	var st := r2.table_setup()
 	st.table_dice.resize(5)
 	var ts := st.to_table_setup(base)
-	_check(st.owned_dice_count == 7 and (not "owned_dice_count" in ts or int(ts.get("owned_dice_count")) == 7),
+	_check(st.owned_dice_count == 7 and ts.owned_dice_count == 7 and ts.dice.size() == 5,
 		"setup: owned_dice_count = every die owned (7), even with 5 brought to the table")
 
 

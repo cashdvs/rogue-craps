@@ -45,8 +45,7 @@ func to_table_setup(base: BonfireTuning) -> TableSetup:
 	ts.table_seed = seed_value
 	ts.run_mode = true
 	ts.rules = rule_entries()
-	if "owned_dice_count" in ts:
-		ts.set("owned_dice_count", owned_dice_count)
+	ts.owned_dice_count = owned_dice_count
 	return ts
 
 
