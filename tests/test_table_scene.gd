@@ -87,6 +87,25 @@ func _test_scene() -> void:
 	scene.rng_seed = 2026
 	root.add_child(scene)
 	await process_frame
+	# Every frame from here on: the bubble is never visible without readable
+	# text, and the big sum label is never visible while a banner is up.
+	var mon := {"bubble_frames": 0, "empty_bubble": 0, "banner_frames": 0, "overlap": 0}
+	var monitor := func() -> void:
+		var b := scene.bubble
+		if b.visible:
+			mon["bubble_frames"] += 1
+			var l := b.label
+			if l.text.strip_edges() == "" or not l.visible or l.visible_characters == 0 or l.label_settings.font_color.a < 0.9 or l.label_settings.font_size < 20:
+				mon["empty_bubble"] += 1
+		var live_banner := false
+		for n in scene.banner_layer.get_children():
+			if not n.is_queued_for_deletion():
+				live_banner = true
+		if live_banner:
+			mon["banner_frames"] += 1
+			if scene.sum_text.visible and scene.sum_text.modulate.a > 0.0:
+				mon["overlap"] += 1
+	process_frame.connect(monitor)
 	var poc := scene.poc
 	var t := scene.tuning
 	check(poc.bankroll.coin == 20 and poc.soul == 40 and poc.rolls_left() == 12, "starts at doc v0.3 numbers")
@@ -230,5 +249,16 @@ func _test_scene() -> void:
 	scene.throw(Vector2(-2500, -1200))
 	await scene.sequence_finished
 	check(scene.poc.rolls_used == 1 and scene.poc.bankroll.coin == 25, "reduced-motion roll resolves")
+	process_frame.disconnect(monitor)
+	check(mon["bubble_frames"] > 30 and mon["empty_bubble"] == 0, "bubble visible only with text (%d visible frames, %d empty)" % [mon["bubble_frames"], mon["empty_bubble"]])
+	check(mon["banner_frames"] > 30 and mon["overlap"] == 0, "sum never visible over a banner (%d banner frames, %d overlaps)" % [mon["banner_frames"], mon["overlap"]])
+	# say("") never shows an empty bubble.
+	var bub := DealerBubble.new()
+	root.add_child(bub)
+	bub.say("")
+	check(not bub.visible, "empty line does not show the bubble")
+	bub.say("Tick tock.")
+	check(bub.visible and bub.label.text == "Tick tock.", "bubble shows the full line immediately")
+	bub.queue_free()
 	scene.queue_free()
 	await create_timer(1.0).timeout

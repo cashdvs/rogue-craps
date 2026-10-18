@@ -11,6 +11,8 @@ var text_color: Color = Palette.BONE
 var text_size: int = 120
 var rays: bool = false
 var jitter: bool = false
+## The roll total, drawn as a round badge inside the ribbon's left end (0 = none).
+var badge: int = 0
 var _t: float = 0.0
 var _rng := RandomNumberGenerator.new()
 
@@ -44,8 +46,11 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var font := Palette.display_font()
-	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x + 160.0
+	var text_w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x
 	var hh := text_size * 0.62
+	var badge_r := hh * 0.72
+	var badge_slot := badge_r * 2.0 + 30.0 if badge > 0 else 0.0
+	var w := text_w + 160.0 + badge_slot
 	if rays:
 		for i in 12:
 			var a := _t * 0.6 + TAU * float(i) / 12.0
@@ -67,6 +72,13 @@ func _draw() -> void:
 	draw_polyline(closed, Palette.PIT_BLACK, 6.0, true)
 	draw_line(Vector2(-w * 0.5, -hh + 12) + off, Vector2(w * 0.5, -hh + 12) + off, Color(Palette.BRASS, 0.8), 3.0)
 	draw_line(Vector2(-w * 0.5, hh - 12) + off, Vector2(w * 0.5, hh - 12) + off, Color(Palette.BRASS, 0.8), 3.0)
-	Palette.draw_ink_text(self, off + Vector2(0, -4), text, text_size, text_color, 14, true)
+	Palette.draw_ink_text(self, off + Vector2(badge_slot * 0.5, -4), text, text_size, text_color, 14, true)
+	if badge > 0:
+		var c := off + Vector2(-w * 0.5 + 40.0 + badge_r, 0)
+		draw_circle(c, badge_r + 5.0, Palette.PIT_BLACK)
+		draw_circle(c, badge_r, Palette.BONE)
+		draw_arc(c, badge_r - 6.0, 0.0, TAU, 40, ribbon_color, 3.0)
+		Palette.draw_ink_text(self, c + Vector2(0, -2), str(badge), int(badge_r * 1.15), ribbon_color.darkened(0.2), 0, true)
 	if subtext != "":
-		Palette.draw_ink_text(self, off + Vector2(0, hh + 44), subtext, 48, text_color, 10, true)
+		# Above the ribbon (below it is where the dice land).
+		Palette.draw_ink_text(self, off + Vector2(0, -hh - 34), subtext, 44, text_color, 10, true)

@@ -880,7 +880,7 @@ func _resolve(report: PocRollReport, point_before: int) -> void:
 		RollResult.Outcome.NATURAL_WIN:
 			_point_rolls = 0
 			_win_fx(center, 24, tuning.shake_natural_px, 0.15, tuning.hitstop_natural_ms)
-			_banner("NATURAL!", "", Palette.BURGUNDY, Palette.BRASS_HI, tuning.resolve_natural, true)
+			_banner("NATURAL!", "", Palette.BURGUNDY, Palette.BRASS_HI, tuning.resolve_natural, true, 120, false, r.total)
 			sfx.play(&"win_big")
 			_dealer(&"sulk", &"natural")
 			_settle_chips(payout, report)
@@ -889,7 +889,7 @@ func _resolve(report: PocRollReport, point_before: int) -> void:
 			_point_rolls = 0
 			_win_fx(center, 40, tuning.shake_point_hit_px, 0.2, tuning.hitstop_point_hit_ms)
 			_ring(puck.position)
-			_banner("POINT HIT!", "", Palette.BURGUNDY, Palette.BRASS_HI, tuning.resolve_point_hit, true)
+			_banner("POINT HIT!", "", Palette.BURGUNDY, Palette.BRASS_HI, tuning.resolve_point_hit, true, 120, false, r.total)
 			sfx.play(&"win_big", 1.1)
 			_dealer(&"sulk", &"point_hit")
 			_settle_chips(payout, report)
@@ -900,7 +900,7 @@ func _resolve(report: PocRollReport, point_before: int) -> void:
 		RollResult.Outcome.CRAPS_LOSS:
 			var sub := {2: "SNAKE EYES", 3: "ACE-DEUCE", 12: "BOXCARS"}.get(r.total, "") as String
 			_loss_fx(center, 16, 8, tuning.shake_craps_px, 0.2, tuning.hitstop_craps_ms, 0.2)
-			_banner("CRAPS", sub, Palette.OXBLOOD, Palette.DANGER, tuning.resolve_craps, false)
+			_banner("CRAPS", sub, Palette.OXBLOOD, Palette.DANGER, tuning.resolve_craps, false, 120, false, r.total)
 			sfx.play(&"seven_out", 1.3, -6.0)
 			_dealer(&"gloat", &"craps")
 			_settle_chips(payout, report)
@@ -931,7 +931,7 @@ func _resolve(report: PocRollReport, point_before: int) -> void:
 			_cracks(center)
 			_grade_pulse("desaturate", 0.45, tuning.resolve_seven_out)
 			puck.flash_danger()
-			_banner("SEVEN OUT", "", Palette.DANGER_DARK, Palette.DANGER, tuning.resolve_seven_out, false, 130, true)
+			_banner("SEVEN OUT", "", Palette.DANGER_DARK, Palette.DANGER, tuning.resolve_seven_out, false, 130, true, r.total)
 			sfx.play(&"seven_out")
 			_dealer(&"gloat", &"seven_out")
 			_settle_chips(payout, report)
@@ -1169,10 +1169,14 @@ func _burst(at: Vector2, amount: int, colors: Array[Color], v_min: float, v_max:
 	get_tree().create_timer(life + 0.5, true, false, true).timeout.connect(p.queue_free)
 
 
-func _banner(text: String, sub: String, ribbon: Color, text_col: Color, duration: float, rays: bool, size: int = 120, jitter: bool = false) -> void:
+## Shows a moment banner. The big sum label is hidden first and the total
+## moves onto the ribbon as a badge (`badge`), so the two never overlap.
+func _banner(text: String, sub: String, ribbon: Color, text_col: Color, duration: float, rays: bool, size: int = 120, jitter: bool = false, badge: int = 0) -> void:
 	for b in banner_layer.get_children():
 		b.queue_free()
+	sum_text.visible = false
 	var b := Banner.new()
+	b.badge = badge
 	b.text = text
 	b.subtext = sub
 	b.ribbon_color = ribbon
