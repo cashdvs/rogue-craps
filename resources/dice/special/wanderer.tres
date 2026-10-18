@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialDieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_die_data.gd" id="1_fuuer"]
+
+[resource]
+script = ExtResource("1_fuuer")
+id = &"wanderer"
+display_name = "Wanderer Die"
+description = "A run containing it may skip one value."
+price = 18

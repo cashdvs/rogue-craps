@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FaceModData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="1_yhbmd"]
+
+[resource]
+script = ExtResource("1_yhbmd")
+id = &"hellfire"
+display_name = "Hellfire Face"
+description = "x1.5 mult when scored."
+mult_factor = 1.5
+price = 14

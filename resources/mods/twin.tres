@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FaceModData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="1_wllr3"]
+
+[resource]
+script = ExtResource("1_wllr3")
+id = &"twin"
+display_name = "Twin Face"
+description = "Counts as two dice of its value."
+effect = 2
+price = 9

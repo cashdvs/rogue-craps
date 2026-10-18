@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FaceModData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="1_6fya2"]
+
+[resource]
+script = ExtResource("1_6fya2")
+id = &"blood"
+display_name = "Blood Face"
+description = "+4 mult; costs 1 Soul when scored."
+effect = 4
+amount = 4
+soul_cost = 1
+price = 6

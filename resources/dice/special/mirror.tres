@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="SpecialDieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_die_data.gd" id="1_ms0th"]
+
+[resource]
+script = ExtResource("1_ms0th")
+id = &"mirror"
+display_name = "Mirror Die"
+description = "After landing, copies the face of the nearest die."

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialDieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_die_data.gd" id="1_u3s3g"]
+
+[resource]
+script = ExtResource("1_u3s3g")
+id = &"blood_pact"
+display_name = "Blood Pact Die"
+description = "When scored: +1 mult per 5 missing Soul."
+price = 18

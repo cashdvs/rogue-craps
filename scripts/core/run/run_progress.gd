@@ -1,0 +1,222 @@
+## Everything that persists between nodes on a Bonfire run: Soul, Embers,
+## the handful of dice (with face mods), Seal levels per combo (plus the
+## rare Seals' moves), combos banked, and contract pieces.
+##
+## Pure logic: events, rests, the shop and table results all change it
+## through these methods; views listen to `changed`.
+class_name RunProgress
+extends RefCounted
+
+signal changed()
+## Emitted once when Soul reaches 0 (the run ends).
+signal run_ended()
+
+var data: RunData
+var soul: int
+var max_soul: int
+var embers: int
+var dice: Array[RunDie] = []
+## Combo id -> Seal levels gained (0 = base combo from bonfire_tuning.tres).
+var seal_levels: Dictionary[StringName, int] = {}
+## Combo id -> base / mult moved by Transference (x = base, y = mult).
+var seal_moves: Dictionary[StringName, Vector2i] = {}
+## Combo id -> times banked this run (Black Seal). The table reports these.
+var banked: Dictionary[StringName, int] = {}
+var contract_pieces: int = 0
+
+
+func _init(run_data: RunData) -> void:
+	data = run_data
+	max_soul = data.max_soul
+	soul = data.starting_soul
+	embers = data.starting_embers
+	for i in data.starting_dice:
+		dice.append(RunDie.new())
+
+
+func is_over() -> bool:
+	return soul <= 0
+
+
+## Change Soul, clamped to 0..max_soul. Returns the real change.
+func change_soul(delta: int) -> int:
+	var before: int = soul
+	soul = clampi(soul + delta, 0, max_soul)
+	if soul != before:
+		changed.emit()
+		if soul <= 0:
+			run_ended.emit()
+	return soul - before
+
+
+func change_embers(delta: int) -> int:
+	var before: int = embers
+	embers = maxi(embers + delta, 0)
+	if embers != before:
+		changed.emit()
+	return embers - before
+
+
+func can_add_die() -> bool:
+	return dice.size() < data.max_dice
+
+
+func special_die(id: StringName) -> SpecialDieData:
+	for d in data.special_dice:
+		if d.id == id:
+			return d
+	return null
+
+
+## Price of `mod` on die i: +mod_price_step_percent per mod already on it.
+func mod_price(mod: FaceModData, die_i: int) -> int:
+	var n: int = 0
+	if die_i >= 0 and die_i < dice.size():
+		n = dice[die_i].modded_faces().size() - dice[die_i].faces.count(RunDie.BLANK)
+	return mod.price * (100 + data.mod_price_step_percent * n) / 100
+
+
+## Embers a die sells for (special dice: half their price; plain dice: 0).
+func sell_value(die_i: int) -> int:
+	var d := special_die(dice[die_i].special_id) if die_i >= 0 and die_i < dice.size() else null
+	return d.price * data.die_sell_percent / 100 if d != null else 0
+
+
+## Sell die i (never below the starting handful). Returns the Embers paid.
+func sell_die(die_i: int) -> int:
+	if die_i < 0 or die_i >= dice.size() or dice.size() <= data.starting_dice:
+		return -1
+	var v := sell_value(die_i)
+	dice.remove_at(die_i)
+	change_embers(v)
+	changed.emit()
+	return v
+
+
+func add_die(special: StringName) -> bool:
+	if not can_add_die():
+		return false
+	dice.append(RunDie.new(special))
+	changed.emit()
+	return true
+
+
+## Every (die, face) holding a real mod (Blank doesn't count: it's a curse).
+func modded_faces() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for d in dice.size():
+		for f in dice[d].modded_faces():
+			if dice[d].faces[f] != RunDie.BLANK:
+				out.append(Vector2i(d, f))
+	return out
+
+
+func has_face_mod() -> bool:
+	return not modded_faces().is_empty()
+
+
+func set_face(die_i: int, face_i: int, mod_id: StringName) -> bool:
+	if die_i < 0 or die_i >= dice.size() or face_i < 0 or face_i >= dice[die_i].faces.size():
+		return false
+	dice[die_i].faces[face_i] = mod_id
+	changed.emit()
+	return true
+
+
+func seal_level(combo: StringName) -> int:
+	return seal_levels.get(combo, 0)
+
+
+func add_seal_levels(combo: StringName, levels: int) -> void:
+	if combo == &"" or levels == 0:
+		return
+	seal_levels[combo] = maxi(seal_level(combo) + levels, 0)
+	changed.emit()
+
+
+func record_bank(combo: StringName) -> void:
+	if combo != &"":
+		banked[combo] = banked.get(combo, 0) + 1
+
+
+## The combo banked most this run (ties: the higher-ranked one); &"" if none.
+func most_banked() -> StringName:
+	var best: StringName = &""
+	var best_n: int = 0
+	for c in data.seal_combos:
+		var n: int = banked.get(c, 0)
+		if n > 0 and n >= best_n:
+			best = c
+			best_n = n
+	return best
+
+
+## Base / mult the Seals add to `combo` on top of its starting values.
+func seal_bonus(combo: StringName) -> Vector2i:
+	var lv: int = seal_level(combo)
+	var m: Vector2i = seal_moves.get(combo, Vector2i.ZERO)
+	return Vector2i(lv * int(data.seal_base_step.get(combo, 0)) + m.x, lv * int(data.seal_mult_step.get(combo, 0)) + m.y)
+
+
+## Transference Seal: move up to transference_max_mult mult, and the matching
+## base (the source's base per mult), from one combo to another. A combo
+## never goes below its starting values. Returns the mult moved (0 = refused).
+func transference(from: StringName, to: StringName, mult: int) -> int:
+	if from == to or not data.seal_combos.has(from) or not data.seal_combos.has(to):
+		return 0
+	var b := seal_bonus(from)
+	var moved: int = mini(mini(mult, data.transference_max_mult), b.y)
+	if moved <= 0:
+		return 0
+	var per: int = int(data.seal_base_step.get(from, 0)) / maxi(int(data.seal_mult_step.get(from, 1)), 1)
+	var base: int = mini(moved * per, b.x)
+	seal_moves[from] = seal_moves.get(from, Vector2i.ZERO) - Vector2i(base, moved)
+	seal_moves[to] = seal_moves.get(to, Vector2i.ZERO) + Vector2i(base, moved)
+	changed.emit()
+	return moved
+
+
+## Black Seal: +1 level to the most-banked combo. False if nothing banked yet.
+func black_seal() -> bool:
+	var c := most_banked()
+	if c == &"":
+		return false
+	add_seal_levels(c, 1)
+	return true
+
+
+## Ashen Seal: reset `from` to Lv1 and move its levels to `to`, which must be
+## the same or a rarer combo (later in seal_combos). Returns the levels moved.
+func ashen_seal(from: StringName, to: StringName) -> int:
+	var i: int = data.seal_combos.find(from)
+	var j: int = data.seal_combos.find(to)
+	var lv: int = seal_level(from)
+	if i < 0 or j < 0 or j < i or from == to or lv <= 0:
+		return 0
+	seal_levels[from] = 0
+	add_seal_levels(to, lv)
+	return lv
+
+
+## A contract piece (one per boss): +contract_max_soul max Soul, heal to full.
+func gain_contract_piece() -> void:
+	contract_pieces += 1
+	max_soul += data.contract_max_soul
+	soul = max_soul
+	changed.emit()
+
+
+## A copy of `base` with Seal levels added to each combo's base and mult
+## (build content: Pair +5/+1 per level, ...). The table plays this copy.
+func leveled_tuning(base: BonfireTuning) -> BonfireTuning:
+	var t := base.duplicate() as BonfireTuning
+	var combos: Array[BonfireCombo] = []
+	for c in base.combos:
+		var copy := c.duplicate() as BonfireCombo
+		var b := seal_bonus(c.id)
+		copy.base += b.x
+		copy.mult += b.y
+		combos.append(copy)
+	t.combos = combos
+	t.starting_soul = soul
+	return t
