@@ -1,6 +1,6 @@
 ## Bonfire sandbox on the 3D table: grab and flick a handful of real dice
 ## (seeded faces via the pre-sim remap), scoring dice CATCH FIRE, click them
-## into the pot on the near rail, then BANK or THROW the cold dice again.
+## into the pot on the far rail, then BANK or THROW the cold dice again.
 ## Rules live in BonfireRun / BonfireScoring; numbers in bonfire_tuning.tres.
 class_name Bonfire3D
 extends Table3D
@@ -8,8 +8,9 @@ extends Table3D
 signal throw_resolved(faces: Array[int], lit: Array[int])
 signal hand_result(result: Dictionary)
 
-## The pot: a row of set-aside dice on the near rail (left of centre).
-const POT_ORIGIN := Vector3(-0.62, 0.0, 0.61)
+## The pot: a row of set-aside dice on the far rail, between the chip props
+## and the rake (the near rail is too close to the camera).
+const POT_ORIGIN := Vector3(-0.19, 0.0, -0.61)
 const POT_GAP: float = 0.095
 const PICK_RADIUS_PX: float = 60.0
 
@@ -269,6 +270,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	if hand_label.text == "BET FIRST":
+		hand_label.text = ""  # no bets here
 	for d: DieVisual in _lights:
 		var l: OmniLight3D = _lights[d]
 		if l.visible:
