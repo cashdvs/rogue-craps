@@ -62,6 +62,14 @@ static func make(event: StringName) -> AudioStreamWAV:
 	return _to_wav(samples)
 
 
+## Every file tools/bake_sfx.gd writes for this synth: {file name: sound}.
+static func bake_all() -> Dictionary[String, AudioStreamWAV]:
+	var out: Dictionary[String, AudioStreamWAV] = {}
+	for event in EVENTS:
+		out[String(event) + ".wav"] = make(event)
+	return out
+
+
 # --- Building blocks ------------------------------------------------------------
 
 static func _buffer(seconds: float) -> PackedFloat32Array:
