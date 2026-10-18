@@ -12,18 +12,26 @@ body:
     attributes:
       label: Module
       options:
+        - table-3d
         - dice-physics
+        - feel
         - betting
         - soul
+        - run
+        - dice-bag
         - table-rules
-        - dealer
         - shop
-        - map
+        - map-events
         - bosses
+        - embers
+        - dealer
         - ui
+        - shaders
         - audio
+        - fonts
         - art-import
-        - tools / CI
+        - qa
+        - tools-ci
         - not sure
     validations:
       required: true
@@ -38,8 +46,8 @@ body:
     id: design_ref
     attributes:
       label: Design doc reference
-      description: Section of docs/design/gamblers-descent.md or docs/art/*.md, if any.
-      placeholder: "e.g. gamblers-descent.md §5 (Field)"
+      description: Section of docs/DESIGN.md, if any.
+      placeholder: "e.g. DESIGN.md, Craps rules"
   - type: textarea
     id: acceptance
     attributes:

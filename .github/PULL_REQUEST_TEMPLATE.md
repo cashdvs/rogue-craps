@@ -12,7 +12,7 @@ Closes #
 
 ## Module
 
-<!-- Which module from docs/MODULES.md? e.g. dealer, betting, soul, dice-physics, ui, audio. -->
+<!-- Which feature module from docs/MODULES.md? e.g. betting, soul, shop, map-events, dealer, audio. -->
 <!-- If you touched another module's files, list them and say why. -->
 
 ## Tests
@@ -37,5 +37,7 @@ Closes #
 - [ ] No hard-coded game numbers (tuning lives in `resources/tuning/poc_tuning.tres` / `TuningData`)
 - [ ] Randomness goes through the seeded `DiceRoller` (determinism kept)
 - [ ] No `.godot/` folder, builds or editor settings committed; new `*.uid` / `*.import` files included
-- [ ] Didn't edit `docs/design/`, `docs/art/` (mirrors) or `tests/qa_/` (QA-owned)
+- [ ] `tests/qa_/`: only added checks; no existing check weakened or removed
+- [ ] Didn't edit `docs/DESIGN.md` (open an issue for design changes)
 - [ ] If an AI agent wrote this, a human or the agent reviewed the diff before opening the PR
+- [ ] I agree my contribution is assigned/licensed to Tiny Anvil per [LICENSE](../LICENSE)
