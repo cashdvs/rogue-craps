@@ -11,4 +11,7 @@ These are the Art Director's source scripts for every file in `assets/branding/s
 
 **Requirements:** Python 3, Pillow, cairosvg, uharfbuzz, and fontTools.
 **Font input (not committed):** `build.py` expects the variable `Fredoka.ttf` in this folder. Get it from Google Fonts or github.com/hafontia/Fredoka-One. Its license is `OFL.txt` here. On the first run the script instances it to `Fredoka-Bold-instance.ttf` (wght 700, wdth 100).
-**Paths:** the scripts are committed unchanged from the Art Director's staging copy, so `OUT`/`D` still point at `/workspace/dice/art/branding/studio/` (and `previews.py` reads a Barlow font from `/workspace/dice/game/fonts/`). Edit those constants to build somewhere else, then copy the results here, keeping the same file names.
+**Paths:** every script resolves paths relative to its own folder, so you can run it from any working directory (`python3 assets/branding/studio/src/build.py`).
+- `build.py` writes into the studio folder above `src/`. That overwrites the committed layers, and also writes lockup, icon and SVG files that the repo doesn't track. Run it on a copy if you only want to compare.
+- `splash_preview.py` reads `../splash_timings.json` and the layer PNGs.
+- `previews.py` reads the repo's `fonts/BarlowCondensed-Bold.ttf` and writes contact sheets to `$PREVIEW_OUT` (default `<tmp>/tiny_anvil_previews/`).

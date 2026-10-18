@@ -1,8 +1,15 @@
 import io, cairosvg, sys
 from PIL import Image, ImageDraw, ImageFont
 from shapes import *
-D="/workspace/dice/art/branding/studio/"; P="/workspace/dice/art/concept/studio_logo_final/"
-F="/workspace/dice/game/fonts/BarlowCondensed-Bold.ttf"
+import os
+from pathlib import Path
+# Paths relative to this script (src/ -> studio/ -> branding/ -> assets/ -> repo root).
+_HERE=Path(__file__).resolve().parent
+D=str(_HERE.parent)+"/"
+# Contact sheets go to $PREVIEW_OUT (default: <tmp>/tiny_anvil_previews/, outside the Godot project).
+import tempfile
+P=os.environ.get("PREVIEW_OUT", os.path.join(tempfile.gettempdir(), "tiny_anvil_previews")).rstrip("/")+"/"; os.makedirs(P, exist_ok=True)
+F=str(_HERE.parents[3]/"fonts"/"BarlowCondensed-Bold.ttf")
 fT=ImageFont.truetype(F,34); fS=ImageFont.truetype(F,22)
 def svgpng(svg=None,url=None,w=None,h=None):
     return Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg.encode() if svg else None,url=url,output_width=w,output_height=h))).convert("RGBA")

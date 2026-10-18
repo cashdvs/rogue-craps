@@ -67,11 +67,12 @@ jobs:
         run: ./run_tests.sh
 
       - name: Main scene smoke test (headless)
-        # Runs the main scene for 300 frames with no display. Fails on a non-zero exit, a hang,
+        # Runs the main scene for 900 frames with no display: the boot splash (~367 headless frames)
+        # hands over to table_3d, so both get covered. Fails on a non-zero exit, a hang,
         # or any SCRIPT ERROR / Parse Error in the output.
         run: |
           set -o pipefail
-          timeout 120 "$GODOT" --headless --path . --quit-after 300 2>&1 | tee smoke.log
+          timeout 120 "$GODOT" --headless --path . --quit-after 900 2>&1 | tee smoke.log
           if grep -qE "SCRIPT ERROR|Parse Error" smoke.log; then
             echo "::error::Main scene printed script errors"; exit 1
           fi

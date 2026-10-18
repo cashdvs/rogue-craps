@@ -1,7 +1,8 @@
 """Renders splash frames straight from ../splash_timings.json + the real PNG layers (for previews / QA)."""
 import json, math, random, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-D="/workspace/dice/art/branding/studio/"
+from pathlib import Path
+D=str(Path(__file__).resolve().parent.parent)+"/"  # the studio folder above src/
 J=json.load(open(D+"splash_timings.json"))
 def ease(trans, e, x):
     def ein(x):
