@@ -88,6 +88,10 @@ xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . \
   --rendering-driver opengl3 --resolution 1920x1080 --script res://tools/capture_table.gd
 ```
 
+Known quirk: `tools/capture_table.gd` and `tools/demo_table.gd` currently write to a
+studio-machine folder (`OUT` at the top of `capture_table.gd`). Point it at a local folder in your
+working copy for captures, and don't commit that change.
+
 Some "ERROR:" lines in test output are expected: tests deliberately feed bad input to check it is
 rejected. Only the `N passed, M failed` summaries and the exit code matter.
 
