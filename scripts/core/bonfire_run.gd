@@ -25,19 +25,26 @@ var pot: int = 0
 var hot_hands: int = 0
 var cold: int = 5
 var throw_faces: Array[int] = []
+## Per die of this throw: that face's mod (FaceModData or null).
+var throw_mods: Array = []
+## Dice in a full handful (Hot Hand = all of them potted in one hand).
+var dice_count: int = 5
 var potted: Array[int] = []
 ## Bounty id -> times banked / pending this hand.
 var ticks: Dictionary = {}
 var pending: Dictionary = {}
 var last_result: Dictionary = {}
+var forfeited: bool = false
 ## Filled when the table ends: {"points_embers", "clear_embers", "soul_lost", ...}.
 var table_summary: Dictionary = {}
 
 
-func _init(t: BonfireTuning, g: TableGoal = null) -> void:
+## soul_override / dice_override: -1 = tuning.starting_soul / tuning.dice_count.
+func _init(t: BonfireTuning, g: TableGoal = null, soul_override: int = -1, dice_override: int = -1) -> void:
 	tuning = t
 	goal = g if g != null else t.table_goal
-	soul = t.starting_soul
+	soul = t.starting_soul if soul_override < 0 else soul_override
+	dice_count = t.dice_count if dice_override <= 0 else dice_override
 	hands_left = goal.hands
 	_start_hand()
 
@@ -45,8 +52,9 @@ func _init(t: BonfireTuning, g: TableGoal = null) -> void:
 func _start_hand() -> void:
 	pot = 0
 	hot_hands = 0
-	cold = tuning.dice_count
+	cold = dice_count
 	throw_faces.clear()
+	throw_mods.clear()
 	potted.clear()
 	pending.clear()
 	state = State.AIM
@@ -60,27 +68,40 @@ func all_bounties() -> Array:
 	return goal.required + goal.bonus
 
 
-## The faces of a throw of `cold` dice. Returns true if something lit.
-func set_throw(faces: Array[int]) -> bool:
+## The faces of a throw of `cold` dice (and each face's mod, FaceModData or
+## null; omit for plain dice). Returns true if something lit.
+func set_throw(faces: Array[int], mods: Array = []) -> bool:
 	throw_faces = faces.duplicate()
+	throw_mods = mods.duplicate()
+	throw_mods.resize(faces.size())
 	potted.clear()
 	if lit().is_empty():
 		_bust()
 		return false
 	if not tuning.bounty_requires_pot:
-		_add_pending(faces)
+		_add_pending(BonfireScoring.plain_values(throw_dice()))
 	state = State.PICK
 	return true
 
 
 func lit() -> Array[int]:
-	return BonfireScoring.lit_indices(throw_faces, tuning)
+	return BonfireScoring.lit_indices(throw_dice(), tuning)
 
 
+## This throw as scoring dice ({value, mod}).
+func throw_dice() -> Array:
+	var out: Array = []
+	for i in throw_faces.size():
+		out.append(BonfireScoring.make_die(throw_faces[i], throw_mods[i] if i < throw_mods.size() else null))
+	return out
+
+
+## The selected dice as scoring dice ({value, mod}).
 func selection_faces(sel: Array[int] = potted) -> Array:
+	var all := throw_dice()
 	var f: Array = []
 	for i in sel:
-		f.append(throw_faces[i])
+		f.append(all[i])
 	return f
 
 
@@ -94,7 +115,7 @@ func toggle(i: int) -> bool:
 		return true
 	var next := potted.duplicate()
 	next.append(i)
-	if not BonfireScoring.can_extend(next, throw_faces, tuning):
+	if not BonfireScoring.can_extend(next, throw_dice(), tuning):
 		return false
 	potted = next
 	return true
@@ -124,7 +145,8 @@ func is_hot() -> bool:
 func _commit_pot() -> void:
 	pot += throw_points()
 	if tuning.bounty_requires_pot:
-		_add_pending(selection_faces())
+		# The scored combo's effective values (Twins doubled, Wilds as scored).
+		_add_pending(selection()["values"])
 
 
 func _add_pending(faces: Array) -> void:
@@ -141,9 +163,10 @@ func rethrow() -> Dictionary:
 	cold -= potted.size()
 	var hot := cold <= 0
 	if hot:
-		cold = tuning.dice_count
+		cold = dice_count
 		hot_hands += 1
 	throw_faces.clear()
+	throw_mods.clear()
 	potted.clear()
 	state = State.AIM
 	return {"hot": hot, "cold": cold}
@@ -223,6 +246,32 @@ func _end_table(st: State) -> void:
 	embers += converted + clear
 	table_summary = {"points_embers": converted, "clear_embers": clear, "timeout_soul": soul_lost, "points": points}
 	state = st
+
+
+## Give up the table (run mode): ends it like running out of hands
+## (timeout Soul per unticked required bounty, points still convert to
+## Embers, no clear bonus); the hand in progress is lost. False if over.
+func forfeit() -> bool:
+	if is_over():
+		return false
+	forfeited = true
+	pending.clear()
+	pot = 0
+	potted.clear()
+	throw_faces.clear()
+	throw_mods.clear()
+	_end_table(State.FAILED)
+	last_result = {"kind": &"forfeit", "state": state, "points": points, "soul": soul}
+	return true
+
+
+## Ids of the bounties banked so far (required and bonus).
+func claimed_bounties() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for b: BountyData in all_bounties():
+		if is_ticked(b):
+			out.append(b.id)
+	return out
 
 
 func is_over() -> bool:

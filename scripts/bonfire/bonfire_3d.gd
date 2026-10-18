@@ -2,17 +2,32 @@
 ## (seeded faces via the pre-sim remap), scoring dice CATCH FIRE, click them
 ## into the pot on the far rail, then BANK or THROW the cold dice again.
 ## Rules live in BonfireRun / BonfireScoring; numbers in bonfire_tuning.tres.
+##
+## Opened by the run: set `setup` (TableSetup: the handful as TableDie with
+## faces / weights / face mods, goal, starting + max Soul, tuning, seed)
+## BEFORE add_child. Run mode hides Restart / Quit to title, Esc offers
+## Forfeit table, and the end panel's CONTINUE emits finished(TableOutcome);
+## the table never changes scenes. No setup = the sandbox (5 Bone, Table 1).
 class_name Bonfire3D
 extends Table3D
 
 signal throw_resolved(faces: Array[int], lit: Array[int])
 signal hand_result(result: Dictionary)
+## Run mode: the table is done (end panel CONTINUE, or finish()). Emitted once.
+signal finished(outcome: TableOutcome)
 
 ## The pot: a row of set-aside dice on the far rail, between the chip props
 ## and the rake (the near rail is too close to the camera).
 const POT_ORIGIN := Vector3(-0.19, 0.0, -0.61)
 const POT_GAP: float = 0.095
 const PICK_RADIUS_PX: float = 60.0
+## Most dice one handful can hold (Table3D.MAX_DICE is the craps-era cap).
+const MAX_HANDFUL: int = 12
+## Face-mod looks (cheap decals on the die faces).
+const HELLFIRE_COLOR := Color("#E2380C")
+const WILD_COLOR := Color("#C88A00")
+const TWIN_COLOR := Color("#2A1A10")
+const RAINBOW: Array[Color] = [Color("#D7261E"), Color("#E7A400"), Color("#1E9E4A"), Color("#2266CC")]
 
 @export var bonfire_tuning: BonfireTuning
 ## Seed for the dice faces (-1 = random).
@@ -33,13 +48,32 @@ var _hand_tweens: Array[Tween] = []
 var last_launch: Dictionary = {}
 var _player_flick: bool = false
 var pause_menu: PauseMenu
+## How this table was opened (null before _ready = sandbox).
+var setup: TableSetup
+## all_dice[i] -> its TableDie.
+var _die_of: Dictionary = {}
+## The physical face slots of the current throw (index = throw_dice index).
+var throw_slots: Array[int] = []
+var _soul_before: int = 0
+var _finished_sent: bool = false
 
 
 func _ready() -> void:
+	if setup != null and setup.tuning != null:
+		bonfire_tuning = setup.tuning
 	if bonfire_tuning == null:
 		bonfire_tuning = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	if setup == null:
+		setup = TableSetup.sandbox(bonfire_tuning, bonfire_tuning.dice_count)
+	if setup.dice.is_empty():
+		for i in bonfire_tuning.dice_count:
+			setup.dice.append(TableDie.new())
+	if setup.goal == null:
+		setup.goal = bonfire_tuning.table_goal
+	if setup.table_seed >= 0:
+		bonfire_seed = setup.table_seed
 	mode = Mode.RUNNING_TOTAL
-	total_dice_per_throw = bonfire_tuning.dice_count
+	total_dice_per_throw = clampi(setup.dice.size(), 1, MAX_HANDFUL)
 	super()
 	total_hud.visible = false
 	stack.visible = false
@@ -48,13 +82,21 @@ func _ready() -> void:
 	help_label.text = "Grab the dice and flick (Space: quick throw). Click burning dice to pot ONE combo.\nB: Bank   Space: throw the rest   T: speed 1x/2x/Instant   R: reduced motion"
 	(table.felt_material as ShaderMaterial).set_shader_parameter("use_overlay", false)
 	all_dice = dice.duplicate()
+	for i in all_dice.size():
+		var td: TableDie = setup.dice[mini(i, setup.dice.size() - 1)]
+		_die_of[all_dice[i]] = td
+		apply_die_look(all_dice[i], td)
 	bhud = BonfireHud.new()
 	hud.add_child(bhud)
 	bhud.bank_pressed.connect(func() -> void: bank())
 	bhud.throw_pressed.connect(func() -> void: throw_again())
 	bhud.restart_pressed.connect(func() -> void: new_run(-1 if bonfire_seed < 0 else bonfire_seed + 1))
+	bhud.continue_pressed.connect(func() -> void: finish())
+	bhud.set_run_mode(setup.run_mode)
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
+	pause_menu.set_run_mode(setup.run_mode)
+	pause_menu.forfeit_confirmed.connect(func() -> void: forfeit())
 	new_run(bonfire_seed)
 
 
@@ -67,19 +109,171 @@ func new_run(seed_value: int = -1) -> void:
 		_brng.seed = seed_value * 7919 + 3
 	else:
 		_brng.randomize()
-	run = BonfireRun.new(bonfire_tuning)
+	run = BonfireRun.new(bonfire_tuning, setup.goal, setup.starting_soul, setup.dice.size())
+	_soul_before = run.soul
+	_finished_sent = false
 	bhud.end_panel.visible = false
-	soul_meter.setup(run.soul, bonfire_tuning.starting_soul)
+	soul_meter.setup(run.soul, maxi(setup.max_soul, run.soul))
 	_soul_shown = run.soul
 	_reset_hand_dice()
+	pause_menu.set_forfeit_enabled(true)
 	phase = Phase.BET
 	_set_why("Grab the %d dice and flick them. Scoring dice catch fire." % run.cold)
 	_refresh_hud()
 
 
-## Rig the next throw's faces (one per cold die).
+## Rig the next throw's faces (one VALUE per cold die; each die shows the
+## first face slot carrying that value).
 func rig_faces(faces: Array[int]) -> void:
 	_rig = faces.duplicate()
+	_rig_is_slots = false
+
+
+## Rig the next throw by physical face SLOT (1..6) per cold die (to land a
+## specific modded face).
+func rig_slots(slots: Array[int]) -> void:
+	_rig = slots.duplicate()
+	_rig_is_slots = true
+
+
+var _rig_is_slots: bool = false
+
+
+## Is this table opened by the run?
+func is_run_mode() -> bool:
+	return setup != null and setup.run_mode
+
+
+## The table's result so far (final once run.is_over()).
+func outcome() -> TableOutcome:
+	return TableOutcome.from_run(run, _soul_before)
+
+
+## Run mode: give up the table (Pause > Forfeit table > confirm). Ends it
+## like a timeout (see BonfireRun.forfeit) and shows the end panel; CONTINUE
+## then emits finished. Returns false if the table was already over.
+func forfeit() -> bool:
+	if run == null or run.is_over():
+		return false
+	if not run.forfeit():
+		return false
+	_kill_hand_tweens()
+	phase = Phase.OVER
+	_burn_soul(maxi(_soul_shown - run.soul, 0))
+	for d in all_dice:
+		_set_lit(d, false)
+	_set_why("Table forfeited.")
+	bhud.show_end(run)
+	_refresh_hud()
+	hand_result.emit(run.last_result)
+	return true
+
+
+## Run mode: hand the outcome back (once). The table never changes scenes;
+## the run frees it. Returns the outcome, or null if not over / already sent.
+func finish() -> TableOutcome:
+	if run == null or not run.is_over() or _finished_sent:
+		return null
+	_finished_sent = true
+	var o := outcome()
+	finished.emit(o)
+	return o
+
+
+## The TableDie behind a die on the table.
+func table_die(d: DieVisual) -> TableDie:
+	return _die_of.get(d)
+
+
+## Shows a TableDie on a die: its face values (pips) and a cheap decal per
+## modded face: Hellfire red-orange rim + glowing pips, Wild rainbow rim +
+## gold pips, Twin a double outline, Blank plain bone over the pips.
+func apply_die_look(d: DieVisual, td: TableDie) -> void:
+	if td == null:
+		return
+	if td.faces != [1, 2, 3, 4, 5, 6]:
+		var lab: Array[int] = []
+		for v in td.faces:
+			lab.append(clampi(v, 1, 6))
+		lab.resize(6)
+		d.set_look(Palette.BONE, Palette.PIT_BLACK, lab)
+	var old := d.faces.get_node_or_null("FaceMods")
+	if old != null:
+		old.free()
+	var root := Node3D.new()
+	root.name = "FaceMods"
+	d.faces.add_child(root)
+	for slot in range(1, 7):
+		var m := td.mod_at(slot)
+		if m != null:
+			_add_mod_decal(root, d, slot, m)
+
+
+func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> void:
+	var e := d.edge
+	var n := DieVisual.FACE_AXES[slot] as Vector3
+	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
+	u = (u - n * u.dot(n)).normalized()
+	var v := n.cross(u)
+	# Everything sits just above the pip tops (h + 0.01 e) so the die's ink
+	# outline pass can't swallow it; fills would hide the pips, so the
+	# coloured mods are a rim + tinted pips.
+	var lift := e * 0.5 + 0.014 * e
+	match m.effect:
+		FaceModData.Effect.MULT_FACTOR:
+			var c: Array[Color] = [HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR]
+			_decal_frame(root, n, u, v, lift, e * 0.88, e * 0.08, c)
+			_tint_pips(d, n, HELLFIRE_COLOR)
+		FaceModData.Effect.WILD:
+			_decal_frame(root, n, u, v, lift, e * 0.88, e * 0.08, RAINBOW)
+			_tint_pips(d, n, WILD_COLOR)
+		FaceModData.Effect.TWIN:
+			var c: Array[Color] = [TWIN_COLOR, TWIN_COLOR, TWIN_COLOR, TWIN_COLOR]
+			_decal_frame(root, n, u, v, lift, e * 0.84, e * 0.04, c)
+			_decal_frame(root, n, u, v, lift, e * 0.70, e * 0.04, c)
+		FaceModData.Effect.BLANK:
+			# A plain bone face over the pips.
+			_decal_quad(root, n, u, v, lift, e * 0.86, e * 0.86, Vector2.ZERO, Palette.BONE, false)
+
+
+## Recolours (and lights) the pips on the face with outward normal `n`.
+func _tint_pips(d: DieVisual, n: Vector3, col: Color) -> void:
+	var pips := d.faces.get_node_or_null("Pips")
+	if pips == null:
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = col
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for p in pips.get_children():
+		if p is MeshInstance3D and (p as MeshInstance3D).position.dot(n) > d.edge * 0.3:
+			(p as MeshInstance3D).material_override = mat
+
+
+func _decal_quad(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float, w: float, ht: float,
+		off: Vector2, col: Color, glow: bool) -> void:
+	var q := QuadMesh.new()
+	q.size = Vector2(w, ht)
+	var mi := MeshInstance3D.new()
+	mi.mesh = q
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = col
+	mat.roughness = 0.85
+	if glow:
+		# Unshaded: the lit-die ember glow would wash a shaded colour out.
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.transform = Transform3D(Basis(u, v, n), n * lift + u * off.x + v * off.y)
+	root.add_child(mi)
+
+
+## A square outline (4 strips, one colour each) of outer size `size`.
+func _decal_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float, size: float, thick: float, cols: Array[Color]) -> void:
+	var o := (size - thick) * 0.5
+	_decal_quad(root, n, u, v, lift, size, thick, Vector2(0, o), cols[0], true)
+	_decal_quad(root, n, u, v, lift, thick, size, Vector2(o, 0), cols[1], true)
+	_decal_quad(root, n, u, v, lift, size, thick, Vector2(0, -o), cols[2], true)
+	_decal_quad(root, n, u, v, lift, thick, size, Vector2(-o, 0), cols[3], true)
 
 
 ## Space / THROW: in AIM throws the dice; after a throw, pots the picked dice
@@ -179,24 +373,52 @@ func can_throw() -> String:
 	if phase != Phase.BET and phase != Phase.HELD:
 		return "The dice are still rolling."
 	if run.is_over():
-		return "The table is over. Restart."
+		return "The table is over. Continue." if is_run_mode() else "The table is over. Restart."
 	if run.state != BonfireRun.State.AIM:
 		return "Pot your burning dice, then Throw again or Bank."
 	return ""
 
 
+## Table3D throws by physical face SLOT, so this returns one slot (1..6)
+## per active die: rigged, or rolled with the die's face weights.
 func _pick_values() -> Array[int]:
 	var v: Array[int] = []
 	if _rig.size() >= dice.size():
-		v = _rig.slice(0, dice.size())
+		for i in dice.size():
+			var td := _td(i)
+			var slot := _rig[i] if _rig_is_slots else td.slot_for_value(_rig[i])
+			v.append(clampi(slot if slot > 0 else _rig[i], 1, 6))
 		_rig.clear()
 		return v
 	for i in dice.size():
-		v.append(_brng.randi_range(1, 6))
+		v.append(_td(i).roll_slot(_brng))
 	return v
 
 
-func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
+func _td(i: int) -> TableDie:
+	var td: TableDie = _die_of.get(dice[i])
+	return td if td != null else TableDie.new()
+
+
+## Active dice i -> (value, mod) for the slots it landed on.
+func _values_for(slots: Array[int]) -> Array[int]:
+	var out: Array[int] = []
+	for i in slots.size():
+		out.append(_td(i).value_at(slots[i]))
+	return out
+
+
+func _mods_for(slots: Array[int]) -> Array:
+	var out: Array = []
+	for i in slots.size():
+		out.append(_td(i).mod_at(slots[i]))
+	return out
+
+
+func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
+	throw_slots = slots.duplicate()
+	var values := _values_for(slots)
+	var mods := _mods_for(slots)
 	last_values = values
 	# Throw from the hand ring even if the gather tween hasn't finished.
 	_kill_hand_tweens()
@@ -208,18 +430,24 @@ func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector
 	throw_started.emit()
 	thrown.emit(velocity.length())
 	_set_why("")
-	await _throw_dice(values, velocity, release_pos)
+	await _throw_dice(slots, velocity, release_pos)
+	if run.is_over():
+		_end_sequence_after_forfeit()
+		return
 	phase = Phase.REVEAL
 	dice_landed.emit(values)
 	camera.follow(_dice_center(), tuning.cam_reveal_time)
 	await _wait(tuning.reveal_hold)
+	if run.is_over():
+		_end_sequence_after_forfeit()
+		return
 	_punch_dice()
 	sfx.play(&"dice_settle", 1.0, -3.0)
 	_felt_pos.clear()
 	for d in throw_dice:
 		_felt_pos.append(d.global_position)
-	var ok := run.set_throw(values)
-	var lit := BonfireScoring.lit_indices(values, bonfire_tuning)
+	var ok := run.set_throw(values, mods)
+	var lit := run.lit()
 	throw_resolved.emit(values, lit)
 	if ok:
 		for i in lit:
@@ -352,11 +580,30 @@ func hand_spot(i: int) -> Vector3:
 		return HAND + Vector3(0, tuning.die_size * 0.5, 0)
 	var r := tuning.die_size * 0.6 / sin(PI / float(n))
 	r = maxf(r, tuning.die_size * 0.65)
+	# Big handfuls: keep the whole ring on the felt.
+	var margin := tuning.die_size * 0.75
+	var c := HAND
+	c.x = minf(c.x, Table3DBuilder.FELT_HALF.x - r - margin)
+	c.z = minf(c.z, Table3DBuilder.FELT_HALF.y - r * 0.9 - margin)
 	var a := TAU * float(i) / float(n) + 0.3
-	return HAND + Vector3(cos(a) * r, tuning.die_size * 0.5, sin(a) * r * 0.9)
+	return c + Vector3(cos(a) * r, tuning.die_size * 0.5, sin(a) * r * 0.9)
+
+
+## Bonfire handfuls aren't capped at Table3D.MAX_DICE (runs grow to 7+).
+func dice_per_throw() -> int:
+	return 2 if mode == Mode.CRAPS else clampi(total_dice_per_throw, 1, MAX_HANDFUL)
 
 
 # --- Internals ----------------------------------------------------------------------
+
+## A throw finished playing after the table was forfeited mid-roll.
+func _end_sequence_after_forfeit() -> void:
+	phase = Phase.OVER
+	_skip = false
+	Engine.time_scale = 1.0
+	_refresh_hud()
+	sequence_finished.emit()
+
 
 func _bust() -> void:
 	phase = Phase.RESOLVE
@@ -375,6 +622,7 @@ func _bust() -> void:
 
 func _after_hand() -> void:
 	if run.is_over():
+		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER
 		_taunt(&"bonfire_clear" if run.state == BonfireRun.State.CLEARED else &"bonfire_fail")
 		bhud.show_end(run)
@@ -383,6 +631,9 @@ func _after_hand() -> void:
 	phase = Phase.RESET
 	camera.go_home(tuning.cam_return_time)
 	await _wait(0.25)
+	if run.is_over():  # forfeited meanwhile
+		phase = Phase.OVER
+		return
 	_reset_hand_dice()
 	phase = Phase.BET
 	_refresh_hud()

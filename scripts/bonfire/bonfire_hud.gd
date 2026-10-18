@@ -7,6 +7,8 @@ extends Control
 signal bank_pressed
 signal throw_pressed
 signal restart_pressed
+## Run mode: the end panel's CONTINUE (hand the outcome back to the run).
+signal continue_pressed
 
 var coin_label: Label
 var points_label: Label
@@ -23,6 +25,7 @@ var end_panel: PanelContainer
 var end_title: Label
 var end_body: Label
 var restart_button: Button
+var continue_button: Button
 
 
 func _init() -> void:
@@ -80,6 +83,11 @@ func _init() -> void:
 	restart_button.custom_minimum_size = Vector2(360, 80)
 	restart_button.pressed.connect(func() -> void: restart_pressed.emit())
 	box.add_child(restart_button)
+	continue_button = _button("CONTINUE", 34, Palette.FELT_DARK)
+	continue_button.custom_minimum_size = Vector2(360, 80)
+	continue_button.visible = false
+	continue_button.pressed.connect(func() -> void: continue_pressed.emit())
+	box.add_child(continue_button)
 
 
 func refresh(run: BonfireRun, can_act: bool) -> void:
@@ -97,13 +105,15 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 			throw_label.text = "Click burning dice: pot ONE combo"
 		else:
 			throw_label.text = "not a combo yet..."
+	elif run.forfeited:
+		throw_label.text = ""
 	else:
 		throw_label.text = "Grab the %d dice and flick" % run.cold
 	mult_label.text = ("+%d MULT" % run.mult_bonus()) if run.mult_bonus() > 0 else ""
 	bank_button.disabled = not (can_act and run.can_continue())
 	if picking:
 		throw_button.disabled = not (can_act and run.can_continue())
-		throw_button.text = "HOT HAND! ALL %d" % run.tuning.dice_count if run.is_hot() else "THROW %d AGAIN" % (run.throw_faces.size() - run.potted.size())
+		throw_button.text = "HOT HAND! ALL %d" % run.dice_count if run.is_hot() else "THROW %d AGAIN" % (run.throw_faces.size() - run.potted.size())
 	else:
 		throw_button.disabled = not can_act
 		throw_button.text = "THROW %d  (Space)" % run.cold
@@ -155,6 +165,12 @@ func flash(text: String, col: Color) -> void:
 	tw.tween_property(result_label, "modulate:a", 0.0, 0.4)
 
 
+## Run mode: CONTINUE instead of RESTART on the end panel.
+func set_run_mode(on: bool) -> void:
+	restart_button.visible = not on
+	continue_button.visible = on
+
+
 func show_end(run: BonfireRun) -> void:
 	var sm := run.table_summary
 	var ember_line := "Points %d -> %d Embers%s.  Embers %d." % [run.points, int(sm.get("points_embers", 0)),
@@ -163,6 +179,9 @@ func show_end(run: BonfireRun) -> void:
 		BonfireRun.State.CLEARED:
 			end_title.text = "TABLE CLEARED"
 			end_body.text = "Every bounty banked with %d hands to spare.\n%s\nSoul %d." % [run.hands_left, ember_line, run.soul]
+		_ when run.forfeited and run.state != BonfireRun.State.RUN_OVER:
+			end_title.text = "TABLE FORFEITED"
+			end_body.text = "You walked away with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
 		BonfireRun.State.RUN_OVER:
 			end_title.text = "SOUL BURNED OUT"
 			end_body.text = "The bonfire took everything.\n%s" % ember_line

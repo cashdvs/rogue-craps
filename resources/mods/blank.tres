@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FaceModData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="1_k4f4t"]
+
+[resource]
+script = ExtResource("1_k4f4t")
+id = &"blank"
+display_name = "Blank Face"
+description = "Never lights."
+effect = 3
+is_curse = true
