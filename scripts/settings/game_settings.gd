@@ -1,6 +1,7 @@
 ## Autoload "GameSettings": player options, saved to user://settings.cfg
 ## (ConfigFile) and applied on boot: Master / SFX / Music volume (0..1),
-## fullscreen, VSync, throw sensitivity (multiplies flick speed).
+## fullscreen, VSync, throw sensitivity (multiplies flick speed), the Table 1
+## tutorial toggle and whether it has been seen.
 ## Buses: default_bus_layout.tres has Master -> SFX, Music; missing buses are
 ## created at runtime (SfxManager does the same for SFX) so an existing
 ## layout from the Sound Designer is never replaced.
@@ -20,6 +21,10 @@ var music_volume: float = 0.8
 var fullscreen: bool = false
 var vsync: bool = true
 var throw_sensitivity: float = 1.0
+## Options toggle: show the Table 1 tutorial (turning it on again resets
+## tutorial_seen so it plays once more).
+var tutorial_enabled: bool = true
+var tutorial_seen: bool = false
 
 
 func _ready() -> void:
@@ -28,11 +33,13 @@ func _ready() -> void:
 	apply()
 
 
-const KEYS: Array[StringName] = [&"master_volume", &"sfx_volume", &"music_volume", &"fullscreen", &"vsync", &"throw_sensitivity"]
+const KEYS: Array[StringName] = [&"master_volume", &"sfx_volume", &"music_volume", &"fullscreen", &"vsync", &"throw_sensitivity",
+	&"tutorial_enabled", &"tutorial_seen"]
 
 
 func defaults() -> Dictionary:
-	return {&"master_volume": 1.0, &"sfx_volume": 1.0, &"music_volume": 0.8, &"fullscreen": false, &"vsync": true, &"throw_sensitivity": 1.0}
+	return {&"master_volume": 1.0, &"sfx_volume": 1.0, &"music_volume": 0.8, &"fullscreen": false, &"vsync": true, &"throw_sensitivity": 1.0,
+		&"tutorial_enabled": true, &"tutorial_seen": false}
 
 
 func reset_to_defaults() -> void:
@@ -50,6 +57,8 @@ func set_option(key: StringName, value: Variant) -> void:
 	elif BUSES.has(key):
 		value = clampf(float(value), 0.0, 1.0)
 	set(key, value)
+	if key == &"tutorial_enabled" and bool(value):
+		tutorial_seen = false
 	apply()
 	save_settings()
 	changed.emit(key)

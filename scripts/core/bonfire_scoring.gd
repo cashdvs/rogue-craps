@@ -28,26 +28,39 @@ static func _shape(faces: Array) -> Array[int]:
 	return s
 
 
-static func _is_run(faces: Array, length: int) -> bool:
+## `length` distinct values in a row; with `gap` (the Wanderer) one value
+## may be skipped once (1-2-4-5 = a run of 4).
+static func _is_run(faces: Array, length: int, gap: bool = false) -> bool:
 	if faces.size() != length:
 		return false
 	var s := faces.duplicate()
 	s.sort()
 	for i in range(1, s.size()):
-		if int(s[i]) != int(s[i - 1]) + 1:
+		if int(s[i]) == int(s[i - 1]):
 			return false
-	return true
+	var span := int(s[-1]) - int(s[0])
+	return span == length - 1 or (gap and span == length)
+
+
+## The skipped value of a gapped run (0 = no gap).
+static func _run_gap(faces: Array) -> int:
+	var s := faces.duplicate()
+	s.sort()
+	for i in range(1, s.size()):
+		if int(s[i]) == int(s[i - 1]) + 2:
+			return int(s[i]) - 1
+	return 0
 
 
 ## Does `faces` EXACTLY form combo `c`?
-static func matches(c: BonfireCombo, faces: Array) -> bool:
+static func matches(c: BonfireCombo, faces: Array, gap: bool = false) -> bool:
 	match c.kind:
 		BonfireCombo.Kind.SINGLE:
 			return faces.size() == 1 and c.single_faces.has(int(faces[0]))
 		BonfireCombo.Kind.N_OF_A_KIND:
 			return faces.size() == c.n and _shape(faces) == [c.n]
 		BonfireCombo.Kind.RUN:
-			return _is_run(faces, c.n)
+			return _is_run(faces, c.n, gap)
 		BonfireCombo.Kind.TWO_PAIR:
 			return faces.size() == 4 and _shape(faces) == [2, 2]
 		BonfireCombo.Kind.FULL_HOUSE:
@@ -56,13 +69,13 @@ static func matches(c: BonfireCombo, faces: Array) -> bool:
 
 
 ## The highest-ranked combo exactly matching `faces` (null if none).
-static func match_combo(faces: Array, t: BonfireTuning, excluded: Array = []) -> BonfireCombo:
+static func match_combo(faces: Array, t: BonfireTuning, excluded: Array = [], gap: bool = false) -> BonfireCombo:
 	if faces.is_empty():
 		return null
 	for k in range(t.combos.size() - 1, -1, -1):
 		if excluded.has(t.combos[k].id):
 			continue
-		if matches(t.combos[k], faces):
+		if matches(t.combos[k], faces, gap):
 			return t.combos[k]
 	return null
 
@@ -102,6 +115,10 @@ static func _is_kind(c: BonfireCombo, kind: BonfireCombo.Kind, n: int = -1) -> b
 ##     MULTIPLICATIVELY (two Hellfires = x2.25).
 ##   MULT_ADD (Ember Pip +2, Blood +4): + amount mult. Blood's soul_cost is
 ##     summed into "soul_cost" (the run charges it when the pot is potted).
+##     With ctx soul: the cost after ctx blood_cost (a Callable, e.g. the
+##     Bloodletter's x2); if paying it would take the last Soul, nothing is
+##     paid and the Blood faces give no mult ("blood_refused").
+##   Curse faces (is_curse, e.g. Blank) stay on under ctx no_mods.
 ##   STAIR: if the combo is a RUN, + amount base per die in that run (each
 ##     Stair face adds it).
 ##   EMBER (Gilded): + amount Embers when potted (summed into "embers").
@@ -113,6 +130,9 @@ static func _is_kind(c: BonfireCombo, kind: BonfireCombo.Kind, n: int = -1) -> b
 ##   cracked: x cracked_factor on its pot (shattering is the run's job).
 ##   blood_pact: + 1 mult per blood_pact_soul_step missing Soul
 ##     (ctx soul / max_soul).
+##   wanderer: a run containing it may skip one value once (1-2-4-5 = Run
+##     of 4); the skipped value adds nothing. Step applies first.
+##     "bounty_values" closes the gap for run bounties.
 ##   last_breath: potted from a rethrow (ctx is_rethrow) of 1..
 ##     last_breath_max_dice dice (ctx throw_size): x last_breath_factor.
 ## Returns {valid, all_used, points, combo, name, base (incl. stair),
@@ -127,7 +147,8 @@ static func _is_kind(c: BonfireCombo, kind: BonfireCombo.Kind, n: int = -1) -> b
 ##     (Greedy Pot); soul / max_soul / throw_size / is_rethrow (special dice).
 static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, ctx: Dictionary = {}) -> Dictionary:
 	var bad := {"valid": false, "all_used": false, "points": 0, "combo": &"", "name": "", "base": 0, "stair": 0, "faces_sum": 0,
-		"mult": 0, "adds": 0, "factor": 1.0, "values": [], "soul_cost": 0, "embers": 0, "kindling": false, "specials": []}
+		"mult": 0, "adds": 0, "factor": 1.0, "values": [], "soul_cost": 0, "embers": 0, "kindling": false, "specials": [],
+		"gapped": false, "bounty_values": [], "blood_refused": false}
 	if dice.is_empty() or dice.size() < int(ctx.get("min_dice", 1)):
 		return bad
 	var no_mods: bool = ctx.get("no_mods", false)
@@ -138,6 +159,7 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 	var wilds := 0
 	var factor := 1.0
 	var adds := 0
+	var blood_adds := 0
 	var stairs := 0
 	var soul_cost := 0
 	var embers := 0
@@ -149,8 +171,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 		var sp := StringName(d.get("special", &""))
 		if sp != &"":
 			specials.append(sp)
-		var eff := -1 if no_mods else _effect(d)
 		var m: FaceModData = d.get("mod")
+		var eff := -1 if no_mods and not (m != null and m.is_curse) else _effect(d)
 		if eff != FaceModData.Effect.WILD and eff != FaceModData.Effect.STEP and cold.has(v):
 			return bad
 		match eff:
@@ -169,6 +191,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 			FaceModData.Effect.MULT_ADD:
 				vals.append(v)
 				adds += m.amount
+				if m.soul_cost > 0:
+					blood_adds += m.amount
 				soul_cost += m.soul_cost
 			FaceModData.Effect.STAIR:
 				vals.append(v)
@@ -181,6 +205,17 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 				kindling = true
 			_:
 				vals.append(v)
+	var blood_refused := false
+	if soul_cost > 0 and ctx.has("soul"):
+		var bc: Variant = ctx.get("blood_cost")
+		var cost := int((bc as Callable).call(soul_cost)) if bc is Callable else soul_cost
+		if int(ctx["soul"]) - cost < 1:
+			blood_refused = true
+			adds -= blood_adds
+			soul_cost = 0
+		else:
+			soul_cost = cost
+	var gap_ok := specials.has(&"wanderer")
 	var best := bad
 	var best_rank := -1
 	var step_opts := _step_options(steps, cold)
@@ -192,7 +227,7 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 			for k in st.size():
 				all.append(int(st[k]))
 				stepped = stepped or int(st[k]) != steps[k]
-			var c := match_combo(all, t, excluded)
+			var c := match_combo(all, t, excluded, gap_ok)
 			if c == null or (stepped and c.kind != BonfireCombo.Kind.RUN):
 				continue
 			var sum := 0
@@ -221,12 +256,23 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 			var mult := c.mult + mult_bonus + a
 			var pts := floori((c.base + stair + sum) * mult * f + 0.000001)
 			var rank := t.combos.find(c)
+			var gv := _run_gap(all) if c.kind == BonfireCombo.Kind.RUN and gap_ok else 0
 			if pts > int(best["points"]) or (pts == int(best["points"]) and rank > best_rank) or not best["valid"]:
 				best = {"valid": true, "all_used": true, "points": pts, "combo": c.id, "name": c.display_name,
 					"base": c.base + stair, "stair": stair, "faces_sum": sum, "mult": mult, "adds": a, "factor": f,
-					"values": all, "soul_cost": soul_cost, "embers": embers, "kindling": kindling, "specials": specials}
+					"values": all, "soul_cost": soul_cost, "embers": embers, "kindling": kindling, "specials": specials,
+					"gapped": gv > 0, "bounty_values": _close_gap(all, gv), "blood_refused": blood_refused}
 				best_rank = rank
 	return best
+
+
+## A gapped run's values with the gap closed (values above it moved down 1),
+## so it ticks the run bounty of its length.
+static func _close_gap(vals: Array, gap_value: int) -> Array:
+	var out: Array = []
+	for v in vals:
+		out.append(int(v) - 1 if gap_value > 0 and int(v) > gap_value else int(v))
+	return out
 
 
 ## Every choice of value for each Step face: its value or +-1 (1-6, not cold).

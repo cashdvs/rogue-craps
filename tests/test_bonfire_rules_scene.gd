@@ -81,6 +81,7 @@ func _run() -> void:
 	st.table_seed = 3
 	st.dice[0].special = &"cracked"
 	st.dice[0].run_die_id = &"cracked_5"
+	st.owned_dice_count = 7  # above the Cracked floor (5)
 	s = await make_table(st)
 	r = s.run
 	check(r.rules.size() == 1 and r.rules[0] is DieCracked and s.bhud.rule_rows().size() == 1, "a Cracked die in the handful adds its handler + HUD row")

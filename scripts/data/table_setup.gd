@@ -24,6 +24,9 @@ var run_mode: bool = true
 ## resource is accepted as an entry too. Short Table / Heavy Burn are
 ## labels only: set goal.hands / tuning.bust_soul_loss for them.
 var rules: Array = []
+## Dice the player owns in the run bag (Cracked never shatters at <= 5).
+## -1 = dice.size().
+var owned_dice_count: int = -1
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.

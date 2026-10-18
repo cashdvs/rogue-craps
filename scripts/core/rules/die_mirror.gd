@@ -1,7 +1,9 @@
 ## Mirror Die: "rolls 1-6 normally, then takes the face of the nearest die
 ## still in the tray (ties go to the lower face). If no other die is in the
 ## tray, its own roll stands. The copy counts as a natural face." The tray =
-## the dice of this throw (potted dice are out of it). Nearest by settled
+## the dice of this throw (potted dice are out of it); only non-Mirror dice
+## are copied (several Mirrors each copy the landed non-Mirror dice; a
+## Mirror with no other die keeps its roll). Nearest by settled
 ## position; the copy shows the Mirror's own face with that value (so its
 ## own mod there, if any), and happens before anything lights. Several
 ## Mirrors copy the rolls as they landed.
@@ -17,7 +19,7 @@ func on_throw_landed(_run: BonfireRun, th: TableThrow) -> void:
 		var best := -1
 		var best_d := INF
 		for j in th.size():
-			if j == i:
+			if j == i or th.special(j) == &"mirror":
 				continue
 			var dist := 0.0
 			if th.positions.size() == th.size():
