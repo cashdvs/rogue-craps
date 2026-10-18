@@ -8,3 +8,6 @@ id = &"collector"
 display_name = "The Collector"
 description = "Face mods do nothing on a hand's first throw."
 kind = 1
+params = {
+"throws": 1
+}

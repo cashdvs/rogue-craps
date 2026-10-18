@@ -6,6 +6,6 @@
 script = ExtResource("1_k4f4t")
 id = &"blank"
 display_name = "Blank Face"
-description = "Never lights."
+description = "Never lights. A pot can't include it."
 effect = 3
 is_curse = true

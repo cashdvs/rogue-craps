@@ -8,3 +8,6 @@ id = &"straight_man"
 display_name = "The Straight Man"
 description = "Only 5-die runs count."
 kind = 1
+params = {
+"min_run": 5
+}

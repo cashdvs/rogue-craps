@@ -8,3 +8,4 @@ id = &"bellows"
 display_name = "Bellows Die"
 description = "While in your handful, each Hot Hand gives +2 mult instead of +1."
 price = 18
+faces = Array[int]([1, 2, 3, 4, 5, 6])

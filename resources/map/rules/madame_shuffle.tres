@@ -8,3 +8,6 @@ id = &"madame_shuffle"
 display_name = "Madame Shuffle"
 description = "Rerolls your highest unpotted die after each throw."
 kind = 1
+params = {
+"count": 1
+}

@@ -8,3 +8,4 @@ id = &"coven"
 display_name = "Coven Die"
 description = "Trips or Full House containing it get x2 mult."
 price = 24
+faces = Array[int]([1, 2, 3, 4, 5, 6])

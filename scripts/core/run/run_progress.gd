@@ -23,6 +23,7 @@ var seal_moves: Dictionary[StringName, Vector2i] = {}
 ## Combo id -> times banked this run (Black Seal). The table reports these.
 var banked: Dictionary[StringName, int] = {}
 var contract_pieces: int = 0
+var _next_die_id: int = 0
 
 
 func _init(run_data: RunData) -> void:
@@ -31,7 +32,7 @@ func _init(run_data: RunData) -> void:
 	soul = data.starting_soul
 	embers = data.starting_embers
 	for i in data.starting_dice:
-		dice.append(RunDie.new())
+		dice.append(_new_die(&""))
 
 
 func is_over() -> bool:
@@ -96,9 +97,41 @@ func sell_die(die_i: int) -> int:
 func add_die(special: StringName) -> bool:
 	if not can_add_die():
 		return false
-	dice.append(RunDie.new(special))
+	dice.append(_new_die(special))
 	changed.emit()
 	return true
+
+
+func _new_die(special: StringName) -> RunDie:
+	var d := RunDie.new(special)
+	d.id = StringName("%s_%d" % [special if special != &"" else &"bone", _next_die_id])
+	_next_die_id += 1
+	return d
+
+
+func die_index(id: StringName) -> int:
+	for i in dice.size():
+		if dice[i].id == id:
+			return i
+	return -1
+
+
+## Remove dice for good (a shattered Cracked die), face mods and all. Never
+## below RunData.cracked_min_dice (the table enforces that ruling; this is a
+## guard): extra removals are ignored with a warning. Returns how many went.
+func remove_dice(ids: Array) -> int:
+	var n := 0
+	for id in ids:
+		var i := die_index(StringName(id))
+		if i >= 0 and dice.size() <= data.cracked_min_dice:
+			push_warning("RunProgress.remove_dice: ignoring '%s'; the handful can't drop below %d dice." % [id, data.cracked_min_dice])
+			continue
+		if i >= 0:
+			dice.remove_at(i)
+			n += 1
+	if n > 0:
+		changed.emit()
+	return n
 
 
 ## Every (die, face) holding a real mod (Blank doesn't count: it's a curse).
@@ -134,12 +167,20 @@ func add_seal_levels(combo: StringName, levels: int) -> void:
 	changed.emit()
 
 
+## Count banked pots, one entry per pot (TableOutcome.banked_combos).
+func record_banks(combos: Array) -> void:
+	for c in combos:
+		record_bank(StringName(c))
+
+
 func record_bank(combo: StringName) -> void:
 	if combo != &"":
 		banked[combo] = banked.get(combo, 0) + 1
 
 
-## The combo banked most this run (ties: the higher-ranked one); &"" if none.
+## The combo banked most this run; &"" if none. Ties go to the higher-ranked
+## combo (later in RunData.seal_combos, e.g. run3 beats pair). Single isn't
+## a Seal combo, so banked singles never count.
 func most_banked() -> StringName:
 	var best: StringName = &""
 	var best_n: int = 0
@@ -208,6 +249,40 @@ func gain_contract_piece() -> void:
 
 ## A copy of `base` with Seal levels added to each combo's base and mult
 ## (build content: Pair +5/+1 per level, ...). The table plays this copy.
+## The handful as the Bonfire table throws it: each RunDie as a TableDie with
+## its run die id, special kind (TableDie.special), the special die's face
+## values / weights, its per-face mods, and Heavy faces weighted
+## RunData.heavy_weight (the table doesn't read Heavy itself).
+func table_dice() -> Array[TableDie]:
+	var lib: Array = data.face_mods.duplicate()
+	var blank: FaceModData = load("res://resources/mods/blank.tres")
+	if not lib.has(blank):
+		lib.append(blank)
+	var out: Array[TableDie] = []
+	for d in dice:
+		var sd := special_die(d.special_id)
+		var td := TableDie.from_mod_ids(d.faces, lib, sd.id if sd != null else &"bone",
+			sd.display_name if sd != null else "Bone", sd.id if sd != null else &"")
+		td.run_die_id = d.id
+		if sd != null:
+			td.faces = sd.faces.duplicate()
+			td.weights = sd.weights.duplicate()
+		var heavy := false
+		for m in td.mods:
+			heavy = heavy or (m != null and (m as FaceModData).effect == FaceModData.Effect.HEAVY)
+		if heavy:
+			if td.weights.size() != td.faces.size():
+				td.weights.clear()
+				for i in td.faces.size():
+					td.weights.append(1.0)
+			for i in td.faces.size():
+				var m: FaceModData = td.mods[i]
+				if m != null and m.effect == FaceModData.Effect.HEAVY:
+					td.weights[i] *= data.heavy_weight
+		out.append(td)
+	return out
+
+
 func leveled_tuning(base: BonfireTuning) -> BonfireTuning:
 	var t := base.duplicate() as BonfireTuning
 	var combos: Array[BonfireCombo] = []
