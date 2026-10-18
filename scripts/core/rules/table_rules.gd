@@ -41,12 +41,15 @@ const DIE_SCRIPTS := {
 	&"mirror": preload("res://scripts/core/rules/die_mirror.gd"),
 	&"cracked": preload("res://scripts/core/rules/die_cracked.gd"),
 	&"bellows": preload("res://scripts/core/rules/die_bellows.gd"),
+	# Scored in BonfireScoring (run gap); the handler only shows it.
+	&"wanderer": preload("res://scripts/core/rules/rule_label.gd"),
 }
 ## Special die id -> [name, one line] for the HUD.
 const DIE_INFO := {
 	&"mirror": ["Mirror Die", "Copies the nearest die in the tray (ties: lower)."],
 	&"cracked": ["Cracked Die", "x2 mult on its pot; 1 in 6 it shatters for good."],
 	&"bellows": ["Bellows Die", "Each Hot Hand gives +2 mult instead of +1."],
+	&"wanderer": ["Wanderer Die", "A run with it may skip one value (1-2-4-5)."],
 }
 
 

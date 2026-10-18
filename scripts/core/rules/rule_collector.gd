@@ -1,5 +1,6 @@
 ## The Collector (boss): "Face mods are off on the first throw" of each
-## hand: every face (incl. Blank) is plain for lighting and scoring.
+## hand: every face mod is plain for lighting and scoring. Blank is a curse
+## face, not a mod, so it stays Blank (BonfireScoring keeps is_curse faces).
 ## params.throws (default 1).
 class_name RuleCollector
 extends TableRule

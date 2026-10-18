@@ -175,7 +175,9 @@ func _bosses() -> void:
 	check(r.throw_points() == 126, "Collector: Hellfire off on the first throw (126, not 189)")
 	r = run_with([rule(&"collector")])
 	r.set_throw([5, 2, 3, 6, 6], [M.blank, null, null, null, null])
-	check(r.lit().has(0), "Collector: a Blank 5 is a plain 5 on the first throw")
+	check(not r.lit().has(0) and r.lit().has(3), "Collector: Blank is a curse face, it stays Blank on the first throw")
+	r = run_with([rule(&"collector")])
+	r.set_throw([5, 2, 3, 6, 6])
 	pot(r, [0])
 	r.rethrow()
 	r.set_throw([4, 4, 4, 2], [M.hellfire, null, null, null])
@@ -195,10 +197,20 @@ func _bosses() -> void:
 	r = run_with([rule(&"bloodletter")])
 	soul = r.soul
 	r.forfeit()
-	check(r.soul == soul - 2 * 3 * t.table_goal.timeout_soul_per_bounty and int(r.table_summary["timeout_soul"]) == 18, "Bloodletter: timeout / forfeit Soul doubled (18)")
+	check(r.soul == soul - 2 * 3 * t.table_goal.timeout_soul_per_bounty and int(r.table_summary["timeout_soul"]) == 18, "Bloodletter: forfeit Soul doubled (18)")
+	r = run_with([rule(&"bloodletter")], [], null, 2)
+	soul = r.soul
+	r.hands_left = 1
+	r.set_throw([2, 6])
+	check(r.state == BonfireRun.State.FAILED and int(r.table_summary["timeout_soul"]) == 18 and r.soul == soul - 2 - 18, "Bloodletter: end-of-table unticked bounties cost 6 each (18), bust 2")
 
 
 func _mods() -> void:
+	# Hellfire: factors multiply, rounded down ONCE on the final score.
+	var hh := sc([d(4, M.hellfire), d(4, M.hellfire), d(4, null, &"cracked")])
+	check(int(hh["points"]) == floori(42 * 3 * 1.5 * 1.5 * 2.0) and int(hh["points"]) == 567, "Hellfire x2 + Cracked: 42x3 x4.5 = 567 (one floor)")
+	check(int(sc([d(5, M.hellfire), d(5, M.hellfire)])["points"]) == floori(20 * 2 * 2.25), "two Hellfire 5s: 20x2 x2.25 = 90")
+	check(int(sc([d(1, M.hellfire)])["points"]) == 9 and int(sc([d(5, M.hellfire), d(5, M.hellfire), d(5, M.hellfire)])["points"]) == floori(45 * 3 * 3.375), "Hellfire: no intermediate rounding (455)")
 	# Heavy: ignored at the table.
 	check(int(sc([d(4, M.heavy), d(4)])["points"]) == int(sc([d(4), d(4)])["points"]), "Heavy: scores as a plain face")
 	# Ember Pip
@@ -218,8 +230,21 @@ func _mods() -> void:
 	r.soul = 1
 	r.set_throw([4, 4, 2, 3, 6], [M.blood, null, null, null, null])
 	pot(r, [0, 1])
+	check(r.throw_points() == 36 and r.selection()["blood_refused"], "Blood: at 1 Soul it can't pay, so no +4 (36)")
 	r.bank()
-	check(r.soul == 1, "Blood: never takes the last Soul")
+	check(r.soul == 1, "Blood: ...and nothing is paid")
+	r = run_with([rule(&"bloodletter")])
+	r.soul = 2
+	r.set_throw([4, 4, 2, 3, 6], [M.blood, null, null, null, null])
+	pot(r, [0, 1])
+	r.bank()
+	check(r.soul == 2 and r.points == 36, "Blood under Bloodletter at 2 Soul: 2 would take the last, so no pay, no bonus")
+	r = run_with([])
+	r.soul = 2
+	r.set_throw([4, 4, 2, 3, 6], [M.blood, null, null, null, null])
+	pot(r, [0, 1])
+	r.bank()
+	check(r.soul == 1 and r.points == 108, "Blood at 2 Soul: pays 1, +4 mult (108)")
 	# Gilded
 	r = run_with([], [], null, 3)
 	r.set_throw([5, 2, 6], [M.gilded, null, null])
@@ -275,6 +300,15 @@ func _specials() -> void:
 	r.land_throw(th)
 	pot(r, [0, 1])
 	check(r.selection()["combo"] == &"pair" and r.throw_faces == [6, 6], "Mirror: the copy is a natural face (6-6 pair)")
+	r = run_with([], [&"mirror"], null, 3)
+	th = TableThrow.make([2, 6, 4], [], [die(&"mirror"), die(&"mirror"), die()])
+	th.positions = [Vector3.ZERO, Vector3(0.05, 0, 0), Vector3(0.4, 0, 0)] as Array[Vector3]
+	r.land_throw(th)
+	check(r.throw_faces == [4, 4, 4], "Mirror: copies the nearest NON-Mirror die (both Mirrors -> 4)")
+	r = run_with([], [&"mirror"], null, 2)
+	th = TableThrow.make([2, 6], [], [die(&"mirror"), die(&"mirror")])
+	r.land_throw(th)
+	check(th.changes.is_empty(), "Mirror: only Mirrors in the tray -> each keeps its roll")
 	r = run_with([rule(&"madame_shuffle")], [&"mirror"], null, 2)
 	th = TableThrow.make([1, 6], [], [die(&"mirror"), die()])
 	r.land_throw(th)
@@ -285,6 +319,7 @@ func _specials() -> void:
 	var tc := t.duplicate() as BonfireTuning
 	tc.cracked_shatter_chance = 1.0
 	r = run_with([], [&"cracked", &"cracked"], tc, 5)
+	r.owned_dice_count = 7
 	var tds := [die(&"cracked", &"cracked_1"), die(&"cracked", &"cracked_2"), die(), die(), die()]
 	var shattered_events := [0]
 	r.table_event.connect(func(e: StringName, _d: Dictionary) -> void:
@@ -294,23 +329,54 @@ func _specials() -> void:
 	pot(r, [0, 2])
 	r.rethrow()
 	check(r.shattered == [&"cracked_1"] and shattered_events[0] == 1, "Cracked: of two Cracked dice only the potted one shatters (run_die_id)")
-	check(r.dice_count == 4 and r.cold == 3, "Cracked: the table has one die fewer")
+	check(r.dice_count == 4 and r.cold == 3 and r.owned_dice_count == 6, "Cracked: the table has one die fewer")
 	r.set_throw([2, 1, 5], [], [tds[1], tds[3], tds[4]])
 	pot(r, [2])
 	r.bank()
 	check(r.cold == 4 and r.dice_count == 4, "Cracked: next hand throws 4 (gone for the rest of the table)")
 	check(TableOutcome.from_run(r, r.soul).shattered_dice == ([&"cracked_1"] as Array[StringName]), "Cracked: TableOutcome.shattered_dice lists it")
 	r = run_with([], [&"cracked"], tc, 2)
+	r.owned_dice_count = 6
 	r.set_throw([3, 3], [], [die(&"cracked"), die()])
 	pot(r, [0, 1])
 	r.bank()
 	check(r.shattered == ([&"cracked"] as Array[StringName]), "Cracked: falls back to TableDie.id without a run_die_id")
+	r = run_with([], [&"cracked"], tc, 5)
+	r.set_throw([3, 3, 2, 6, 6], [], [die(&"cracked", &"c1"), die(), die(), die(), die()])
+	pot(r, [0, 1])
+	r.bank()
+	check(r.owned_dice_count == 5 and r.shattered.is_empty() and r.dice_count == 5, "Cracked floor: never shatters while you own 5 dice")
+	r = run_with([], [&"cracked"], tc, 6)
+	r.set_throw([3, 3, 2, 6, 6, 4], [], [die(&"cracked", &"c1"), die(), die(), die(), die(), die()])
+	pot(r, [0, 1])
+	r.bank()
+	check(r.shattered.size() == 1 and r.owned_dice_count == 5 and not r.can_shatter(), "Cracked floor: from 6 owned it shatters once, then the bag is at 5")
 	tc.cracked_shatter_chance = 0.0
 	r = run_with([], [&"cracked"], tc, 2)
 	r.set_throw([3, 3], [], [die(&"cracked", &"c9"), die()])
 	pot(r, [0, 1])
 	r.bank()
 	check(r.shattered.is_empty() and r.dice_count == 2, "Cracked: no shatter when the roll misses")
+
+	# Wanderer: a run may skip one value once.
+	var wd := func(v: int) -> Dictionary: return d(v, null, &"wanderer")
+	var s4 := sc([d(1), d(2), wd.call(4), d(5)])
+	check(s4["combo"] == &"run4" and s4["gapped"] and int(s4["faces_sum"]) == 12 and int(s4["points"]) == (35 + 12) * 4, "Wanderer: 1-2-4-5 = Run of 4, the gap adds nothing (188)")
+	check(sc([d(1), d(2), d(3), d(4), wd.call(6)])["combo"] == &"run5", "Wanderer: 1-2-3-4-6 = Run of 5")
+	check(not sc([d(1), d(2), d(4), d(5)])["valid"], "no Wanderer: 1-2-4-5 isn't a run")
+	check(not sc([d(1), wd.call(3), d(5)])["valid"], "Wanderer: only ONE gap (1-3-5 isn't a run)")
+	check(not sc([d(1), d(2), wd.call(4), d(4)])["valid"] and sc([wd.call(2), d(3), d(4)])["combo"] == &"run3", "Wanderer: still N dice for a run of N; plain runs still work")
+	check(sc([d(1), d(2), wd.call(4), d(6, M.step)])["combo"] == &"run4", "Wanderer + Step: 1-2-4-6 with Step 6->5 = Run of 4")
+	r = run_with([], [&"wanderer"], null, 3)
+	r.set_throw([1, 2, 4], [], [die(), die(), die(&"wanderer")])
+	pot(r, [0, 1, 2])
+	check(r.selection()["combo"] == &"run3", "Wanderer at the table: 1-2-4 lights as a Run of 3")
+	r.bank()
+	check(r.is_ticked(t.table_goal.required[1]), "Wanderer: the gapped run ticks the Run of 3 bounty")
+	r = run_with([rule(&"straight_man")], [&"wanderer"])
+	r.set_throw([1, 2, 3, 4, 6], [], [die(), die(), die(), die(), die(&"wanderer")])
+	pot(r, [0, 1, 2, 3, 4])
+	check(r.selection()["combo"] == &"run5", "Straight Man allows a gapped 5-die run")
 
 	# Bellows: Hot Hands give +2.
 	r = run_with([], [&"bellows"])
