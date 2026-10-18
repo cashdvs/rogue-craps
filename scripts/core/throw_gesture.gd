@@ -30,8 +30,17 @@ func move(p: Vector2, time_s: float) -> void:
 	if not active:
 		return
 	last_point = p
-	_samples.append(Vector3(p.x, p.y, time_s))
-	# Keep only what the velocity window needs (plus one older sample).
+	# Input arrives in batches, one per frame, and every event in a batch
+	# gets the same frame timestamp. Only the LAST position of a batch is
+	# really "where the mouse was at that time", so a new sample with the
+	# same timestamp replaces the previous one. (Keeping the early ones made
+	# a 30 fps flick read up to 1.7x too fast.)
+	if _samples.size() >= 2 and absf(_samples[_samples.size() - 1].z - time_s) <= 0.0001:
+		_samples[_samples.size() - 1] = Vector3(p.x, p.y, time_s)
+	else:
+		_samples.append(Vector3(p.x, p.y, time_s))
+	# Keep only what the velocity window needs, plus one sample older than
+	# the window (the low-fps fallback below measures from it).
 	while _samples.size() > 2 and time_s - _samples[1].z > tuning.throw_sample_window:
 		_samples.pop_front()
 
@@ -45,20 +54,26 @@ func release(p: Vector2, time_s: float) -> Vector2:
 	return velocity_at(time_s)
 
 
-## Average velocity over the last throw_sample_window seconds.
+## Average velocity over (at least) the last throw_sample_window seconds,
+## measured between real sample times, so it is right at any frame rate.
+## The reference sample is the newest one at least a window older than the
+## release. If there is none (a short drag), the oldest sample is used. On a
+## slow frame or a hitch (frame longer than the window) that is the previous
+## frame's sample, so a hard flick still reads as a hard flick instead of 0.
 func velocity_at(time_s: float) -> Vector2:
 	if _samples.size() < 2:
 		return Vector2.ZERO
 	var newest := _samples[_samples.size() - 1]
-	var oldest := _samples[0]
+	var ref := _samples[0]
 	for s in _samples:
-		if time_s - s.z <= tuning.throw_sample_window:
-			oldest = s
+		if newest.z - s.z >= tuning.throw_sample_window:
+			ref = s  # keep the newest such sample
+		else:
 			break
-	var dt := newest.z - oldest.z
+	var dt := newest.z - ref.z
 	if dt <= 0.0001:
-		return Vector2.ZERO
-	return Vector2(newest.x - oldest.x, newest.y - oldest.y) / dt
+		return Vector2.ZERO  # press and release in the same frame: a click
+	return Vector2(newest.x - ref.x, newest.y - ref.y) / dt
 
 
 func drag_distance() -> float:

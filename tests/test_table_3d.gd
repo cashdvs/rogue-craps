@@ -38,6 +38,7 @@ func _run() -> void:
 	root.add_child(scene)
 	await process_frame
 	await _test_weak_and_strong(scene)
+	await _test_flick_clock(scene)
 	await _test_faces_and_bounds(scene)
 	await _test_audio_hooks(scene)
 	await _test_timing_stats(scene)
@@ -122,6 +123,80 @@ func _test_weak_and_strong(s: Table3D) -> void:
 	check(s.phase == Table3D.Phase.ROLL, "strong flick starts the roll")
 	await s.sequence_finished
 	check(s.poc.rolls_used == 1, "strong throw used one roll")
+
+
+## Flick timing through the real input path and Table3D's game clock
+## (QA on PR #13): frames are stepped by hand at a given fps and
+## Engine.time_scale, mouse events arrive in per-frame batches. A strong
+## flick must throw with a speed within 15% of the truth; a slow drag drops.
+func _test_flick_clock(s: Table3D) -> void:
+	s.test_speed = 10.0
+	var cases: Array[Vector3] = []  # fps, time_scale, release hitch (s)
+	for fps in [10.0, 20.0, 60.0, 144.0]:
+		for ts in [0.05, 0.5, 1.0, 2.0]:
+			cases.append(Vector3(fps, ts, 0.0))
+	cases.append(Vector3(60.0, 1.0, 0.12))
+	cases.append(Vector3(30.0, 0.05, 0.09))
+	var speeds: Array[float] = []
+	var cb := func(v: float) -> void: speeds.append(v)
+	s.thrown.connect(cb)
+	var drops: Array[int] = [0]
+	var cb_drop := func() -> void: drops[0] += 1
+	s.dropped_back.connect(cb_drop)
+	for c in cases:
+		_bet(s)
+		speeds.clear()
+		var threw := await _scripted_flick(s, c.x, c.y, c.z, 1800.0)
+		var got := speeds[0] if not speeds.is_empty() else 0.0
+		var err := absf(got - 1800.0) / 1800.0
+		check(threw and err <= 0.15, "1800 px/s flick at %.0f fps, time scale %.2f, %.0f ms hitch: throws, read %.0f px/s" % [c.x, c.y, c.z * 1000.0, got])
+		if threw:
+			await s.sequence_finished
+	for ts in [0.05, 1.0, 2.0]:
+		_bet(s)
+		var before := drops[0]
+		var threw := await _scripted_flick(s, 20.0, ts, 0.0, 250.0)
+		check(not threw and drops[0] == before + 1, "slow drag at 20 fps, time scale %.2f drops back" % ts)
+	s.thrown.disconnect(cb)
+	s.dropped_back.disconnect(cb_drop)
+
+
+## Grabs the dice, moves the mouse steadily at `speed` px/s for 0.3 s and
+## releases, stepping Table3D._process by hand. Returns true if it threw.
+func _scripted_flick(s: Table3D, fps: float, ts: float, hitch: float, speed: float) -> bool:
+	s.set_process(false)
+	Engine.time_scale = ts
+	var hand := s.camera.cam.unproject_position(Table3D.HAND)
+	var dir := Vector2(-0.55, -0.83).normalized()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = hand
+	s._unhandled_input(press)
+	var real_t := 0.0
+	var ev_t := 0.004
+	var flick := 0.3
+	while real_t < flick - 0.0001:
+		var dt := 1.0 / fps
+		if hitch > 0.0 and real_t + dt >= flick - hitch:
+			dt = flick - real_t  # the release frame is one long hitch
+		real_t += dt
+		s._process(dt * ts)  # the engine passes scaled delta
+		while ev_t <= real_t + 0.00001:
+			var mm := InputEventMouseMotion.new()
+			mm.position = hand + dir * speed * ev_t
+			mm.button_mask = MOUSE_BUTTON_MASK_LEFT
+			s._unhandled_input(mm)
+			ev_t += 0.004
+	Engine.time_scale = 1.0
+	var rel := InputEventMouseButton.new()
+	rel.button_index = MOUSE_BUTTON_LEFT
+	rel.pressed = false
+	rel.position = hand + dir * speed * real_t
+	s._unhandled_input(rel)
+	s.set_process(true)
+	await process_frame
+	return s.phase != Table3D.Phase.BET and s.phase != Table3D.Phase.HELD
 
 
 func _test_faces_and_bounds(s: Table3D) -> void:
