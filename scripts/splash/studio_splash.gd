@@ -26,7 +26,7 @@
 ##     (one pre-mixed sting) and no splash_<id> cues fire.
 ## So the sting never plays on top of the per-cue sounds. A cue plays a stream
 ## from `cue_streams` (inspector) or, if none is set,
-## res://audio/sfx/<event>.wav when that file exists; otherwise it is silent.
+## <sfx_dir>/<event>.wav (default res://audio/sfx/) when that file exists; otherwise it is silent.
 ## See assets/branding/studio/GODOT.md.
 extends Node2D
 
@@ -58,6 +58,9 @@ const EASE := {
 @export_file("*.tscn") var next_scene_override: String = ""
 ## Optional sound per cue event, e.g. {&"splash_clang": preload(...)}.
 @export var cue_streams: Dictionary[StringName, AudioStream] = {}
+## Folder searched for <event>.wav when cue_streams has no stream (set before
+## the splash starts; tests point it at an empty folder).
+@export_dir var sfx_dir: String = SFX_DIR
 ## Layer PNGs are authored at 2x; every scale in the timeline multiplies this.
 @export var base_scale: float = 0.5
 ## Force the reduced-motion variant (SplashState.reduced_motion also enables it).
@@ -352,7 +355,7 @@ func cue_mode() -> StringName:
 func _stream_for(event: StringName) -> AudioStream:
 	var stream: AudioStream = cue_streams.get(event)
 	if stream == null:
-		var path := SFX_DIR + String(event) + ".wav"
+		var path := sfx_dir.path_join(String(event) + ".wav")
 		if ResourceLoader.exists(path):
 			stream = load(path) as AudioStream
 	return stream

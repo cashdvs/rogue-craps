@@ -9,6 +9,9 @@
 extends SceneTree
 
 const SPLASH := "res://scenes/studio_splash.tscn"
+## A folder that doesn't exist: the splash finds no <event>.wav there, so the
+## cue checks don't depend on which splash sounds are in res://audio/sfx/.
+const NO_SFX := "res://tests/no_such_sfx_dir/"
 
 var _failed: int = 0
 var _state: Node
@@ -140,7 +143,14 @@ func _run() -> void:
 	var rm_other := await _play_until_change(packed, 5.0, -1.0, null, {&"studio_splash": beep, &"splash_twinkle": beep})
 	_check(rm_other.cues == [&"studio_splash"], "a per-cue stream the reduced variant doesn't use doesn't block the sting (%s)" % [rm_other.cues])
 	_state.reduced_motion = false
-	_state.reduced_motion = false
+
+	# --- sfx_dir: the <event>.wav fallback folder is overridable ------------------
+	var probe := packed.instantiate()
+	probe.sfx_dir = "res://audio/sfx/"
+	_check(probe._stream_for(&"chip_collect") != null, "sfx_dir: finds <event>.wav in the folder it points at")
+	probe.sfx_dir = NO_SFX
+	_check(probe._stream_for(&"chip_collect") == null, "sfx_dir: an empty/missing folder finds nothing")
+	probe.free()
 
 	if current_scene != null:
 		current_scene.free()
@@ -151,6 +161,7 @@ func _run() -> void:
 
 ## Instantiates the splash as the current scene and waits until the scene
 ## changes (or `timeout` s). Optionally pushes `event` at `input_at` s.
+## Sounds come only from `streams` (cue_streams); sfx_dir points at NO_SFX.
 func _play_until_change(packed: PackedScene, timeout: float, input_at: float, event: InputEvent, streams: Dictionary = {}) -> Dictionary:
 	var result := {"changed": false, "seconds": 0.0, "cues": [], "skipped": -1, "blocked": false, "hammer_visible": true, "mode": &""}
 	if current_scene != null:
@@ -159,12 +170,12 @@ func _play_until_change(packed: PackedScene, timeout: float, input_at: float, ev
 		old.queue_free()
 		await process_frame
 	var splash := packed.instantiate()
+	splash.sfx_dir = NO_SFX
 	for k: StringName in streams:
 		splash.cue_streams[k] = streams[k]
 	var cues: Array = result.cues
 	splash.cue.connect(func(e: StringName) -> void:
 		if cues.is_empty():
-			result.hammer_visible = splash.get_node("%Hammer").visible
 			result.mode = splash.cue_mode()
 		cues.append(e))
 	splash.finished.connect(func(was_skipped: bool) -> void: result.skipped = 1 if was_skipped else 0)
@@ -173,8 +184,13 @@ func _play_until_change(packed: PackedScene, timeout: float, input_at: float, ev
 	result.blocked = splash.replay_blocked
 	var started := Time.get_ticks_msec()
 	var pushed := false
+	var saw_start := false
 	while true:
 		await process_frame
+		if not saw_start and is_instance_valid(splash) and splash.playing:
+			# The hammer as the timeline starts (reduced motion hides it).
+			saw_start = true
+			result.hammer_visible = splash.get_node("%Hammer").visible
 		var t := (Time.get_ticks_msec() - started) / 1000.0
 		if current_scene != splash:
 			result.changed = true
