@@ -8,3 +8,4 @@ id = &"blood_pact"
 display_name = "Blood Pact Die"
 description = "When scored: +1 mult per 5 missing Soul."
 price = 18
+faces = Array[int]([1, 2, 3, 4, 5, 6])

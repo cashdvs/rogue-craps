@@ -8,3 +8,4 @@ id = &"twin_flame"
 display_name = "Twin Flame Die"
 description = "A Pair or Two Pair containing it gets +4 mult."
 price = 18
+faces = Array[int]([1, 2, 3, 4, 5, 6])

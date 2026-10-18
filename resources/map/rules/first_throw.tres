@@ -7,3 +7,6 @@ script = ExtResource("1_diita")
 id = &"first_throw"
 display_name = "First Throw"
 description = "Bounties only count on a hand's first throw."
+params = {
+"throws": 1
+}

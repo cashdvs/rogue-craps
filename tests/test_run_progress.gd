@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_test_prices()
 	_test_rare_seals()
 	_test_contract()
+	_test_table_dice()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_run = null
 	quit(1 if _failed > 0 else 0)
@@ -138,3 +139,54 @@ func _test_contract() -> void:
 	p.soul = 10
 	p.gain_contract_piece()
 	_check(p.contract_pieces == 1 and p.max_soul == 40 and p.soul == 40, "contract: +5 max Soul and heal to full")
+
+
+func _test_table_dice() -> void:
+	var p := RunProgress.new(_run)
+	p.set_face(0, 3, &"hellfire")
+	p.set_face(1, 0, RunDie.BLANK)
+	p.add_die(&"cracked")
+	var td := p.table_dice()
+	_check(td.size() == 6 and td[0].mod_at(4) != null and td[0].mod_at(4).id == &"hellfire" and td[0].mod_at(1) == null,
+		"table dice: per-face mods ride on TableDie (RunDie face i = slot i+1)")
+	_check(td[1].mod_at(1) != null and td[1].mod_at(1).effect == FaceModData.Effect.BLANK, "table dice: Blank faces too")
+	_check(td[5].special == &"cracked" and td[2].special == &"" and td[5].run_die_id == p.dice[5].id and td[0].run_die_id == &"bone_0",
+		"table dice: special kind and run die id on every TableDie")
+	_check(td[5].id == &"cracked" and td[5].faces == ([1, 2, 3, 4, 5, 6] as Array[int]) and td[2].id == &"bone",
+		"table dice: special die id and faces from its data")
+	var all_defined := true
+	for d in _run.special_dice:
+		all_defined = all_defined and d.faces == ([1, 2, 3, 4, 5, 6] as Array[int]) and d.weights.is_empty()
+	_check(_run.special_dice.size() == 9 and all_defined, "special dice: plain Bone 1-6, equal weights (GD spec)")
+	var q := RunProgress.new(_run)
+	q.add_die(&"cracked")
+	q.add_die(&"cracked")
+	var ids: Array[StringName] = []
+	for d in q.dice:
+		ids.append(d.id)
+	_check(ids.size() == 7 and ids[5] == &"cracked_5" and ids[6] == &"cracked_6" and ids[0] == &"bone_0" and not ids.slice(1).has(ids[0]),
+		"run dice: unique ids (two Cracked dice told apart)")
+	q.set_face(5, 2, &"hellfire")
+	_check(q.remove_dice([&"cracked_5", &"nope"]) == 1 and q.dice.size() == 6 and q.die_index(&"cracked_6") == 5
+		and q.modded_faces().is_empty(), "remove_dice: only that die goes, with its mods")
+	_check(q.remove_dice([&"cracked_6", &"bone_0"]) == 1 and q.dice.size() == 5 and q.die_index(&"bone_0") == 0,
+		"remove_dice: never below 5 dice (Cracked ruling); extra removals ignored")
+	var h := RunProgress.new(_run)
+	h.set_face(2, 2, &"heavy")
+	h.set_face(2, 4, &"heavy")
+	var hd := h.table_dice()
+	_check(hd[2].weights == ([1.0, 1.0, 2.0, 1.0, 2.0, 1.0] as Array[float]) and hd[0].weights.is_empty(),
+		"Heavy: each Heavy face weighs heavy_weight (2) on the TableDie; plain dice stay even")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var hits := 0
+	for k in 6000:
+		if hd[2].roll_slot(rng) == 3:
+			hits += 1
+	_check(hits > 1400 and hits < 1850, "Heavy: the face lands about twice as often (2/8 of rolls: %d of 6000)" % hits)
+	var b := RunProgress.new(_run)
+	b.record_banks([&"pair", &"single", &"run3", &"pair", &"run3", &"single", &"single"])
+	_check(b.banked[&"pair"] == 2 and b.banked[&"run3"] == 2 and b.most_banked() == &"run3",
+		"banked: counts per combo, repeats kept; tie goes to the higher-ranked combo; singles never count")
+	b.record_banks([&"pair"])
+	_check(b.most_banked() == &"pair" and b.black_seal() and b.seal_level(&"pair") == 1, "Black Seal: +1 to the most-banked combo")

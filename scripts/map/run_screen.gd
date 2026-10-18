@@ -3,8 +3,9 @@
 ## the run's Soul / Embers / Seals on a top bar. All rules live in MapRun;
 ## this only displays them and forwards clicks.
 ##
-## Tables: "Play at the table" opens the Bonfire 3D scene (scenes/bonfire.tscn,
-## not modified) with the run's Soul, leveled combos and this node's goal;
+## Tables: "Play at the table" opens Bonfire3D in run mode with a TableSetup
+## (the run's dice and mods, Soul, Seal-leveled combos, this node's goal) and
+## applies its finished(TableOutcome);
 ## "Stub: clear / miss" resolves instantly for quick playthroughs.
 ## Launch: godot --path . res://scenes/run.tscn
 class_name RunScreen
@@ -25,8 +26,7 @@ var _ui: CanvasLayer
 var _bar: Label
 var _panel_root: CenterContainer
 var _panel_box: VBoxContainer
-var _table: Node
-var _table_layer: CanvasLayer
+var _table: Bonfire3D
 
 
 func _ready() -> void:
@@ -154,34 +154,22 @@ func _show_table() -> void:
 
 
 func _play_table() -> void:
-	var t := run.table_setup().to_tuning(bonfire_tuning)
-	_table = (load("res://scenes/bonfire.tscn") as PackedScene).instantiate()
-	_table.set("bonfire_tuning", t)
+	var t := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+	t.setup = run.table_setup().to_table_setup(bonfire_tuning)
+	_table = t
 	_ui.visible = false
-	add_child(_table)
-	_table.connect("hand_result", _on_hand_result)
+	add_child(t)
+	t.finished.connect(_on_table_finished)
 
 
-func _on_hand_result(_r: Dictionary) -> void:
-	var br: BonfireRun = _table.get("run")
-	if br == null or not br.is_over() or _table_layer != null:
-		return
-	_table_layer = CanvasLayer.new()
-	_table_layer.layer = 50
-	add_child(_table_layer)
-	var b := RunTheme.button("Back to the map", 30)
-	b.position = Vector2(40, 40)
-	var cleared := br.state == BonfireRun.State.CLEARED
-	var soul := br.soul
-	var embers := br.embers
-	b.pressed.connect(func() -> void:
+## Bonfire3D.finished (CONTINUE on its end panel): apply the outcome, free
+## the table (run mode never changes scenes) and go on.
+func _on_table_finished(o: TableOutcome) -> void:
+	if _table != null:
 		_table.queue_free()
 		_table = null
-		_table_layer.queue_free()
-		_table_layer = null
-		_ui.visible = true
-		run.finish_table(cleared, soul, embers))
-	_table_layer.add_child(b)
+	_ui.visible = true
+	run.apply_outcome(o)
 
 
 func _show_reward() -> void:

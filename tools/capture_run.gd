@@ -1,5 +1,6 @@
 ## Screenshots of the run screens: the floor map (a few nodes in) an event
-## (The Devil's Deal, with a greyed-out choice), the shop and the boss table entry.
+## (The Devil's Deal, with a greyed-out choice), the shop, the boss table entry, and the
+## real Bonfire3D table opened by the run with modded run dice.
 ##   xvfb-run -a -s "-screen 0 1920x1080x24" godot --path . --rendering-driver opengl3 \
 ##     --resolution 1920x1080 --script res://tools/capture_run.gd -- --out=/tmp/shots/
 extends SceneTree
@@ -43,6 +44,22 @@ func _initialize() -> void:
 	scene.run.screen = MapRun.Screen.TABLE
 	scene.refresh()
 	await _shot("boss_table.png")
+	# The real Bonfire3D opened from the run: the run's dice with face mods.
+	var p := scene.run.progress
+	p.set_face(0, 3, &"hellfire")
+	p.set_face(1, 5, &"wild")
+	p.set_face(2, 1, &"twin")
+	p.set_face(3, 0, RunDie.BLANK)
+	scene._play_table()
+	var t: Bonfire3D = scene._table
+	for i in 60:
+		await process_frame
+	t.rig_slots([4, 6, 2, 1, 4, 3] as Array[int])
+	if t.quick_throw():
+		await t.sequence_finished
+	for i in 30:
+		await process_frame
+	await _shot("run_table_mods.png")
 	scene.queue_free()
 	await process_frame
 	quit()

@@ -1,6 +1,7 @@
 ## A special die (build content v0.3, Game Designer prices): takes a slot
-## in the handful and can still take face mods. Data only; the table's
-## rules for each die arrive with the table setup (Godot Dev).
+## in the handful and can still take face mods. Data only.
+## Faces: all 9 are plain Bone 1-6, equal weights (design/
+## bonfire_build_content.md, "Special die faces"); identity is the ability.
 class_name SpecialDieData
 extends Resource
 
@@ -9,3 +10,7 @@ extends Resource
 @export_multiline var description: String = ""
 ## Shop price in Embers; it sells for RunData.die_sell_percent of this.
 @export var price: int = 12
+## Value on each face slot (slot k = faces[k-1]), as TableDie.faces.
+@export var faces: Array[int] = [1, 2, 3, 4, 5, 6]
+## Roll weight per face slot; empty = even.
+@export var weights: Array[float] = []

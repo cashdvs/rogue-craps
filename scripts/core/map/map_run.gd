@@ -163,6 +163,8 @@ func table_setup() -> RunTableSetup:
 	var s := RunTableSetup.new()
 	s.goal = goal
 	s.dice = progress.dice.duplicate()
+	s.table_dice = progress.table_dice()
+	s.owned_dice_count = progress.dice.size()
 	s.start_soul = progress.soul
 	s.max_soul = progress.max_soul
 	s.seed_value = hash([run_seed, floor_index, map.current_id, &"table", boss_misses])
@@ -182,8 +184,7 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 		return
 	progress.change_soul(soul_after - progress.soul)
 	progress.change_embers(embers)
-	for c in banked:
-		progress.record_bank(c)
+	progress.record_banks(banked)
 	if progress.is_over():
 		_set_screen(Screen.RUN_OVER)
 		return
@@ -203,6 +204,16 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 		progress.gain_contract_piece()
 	_roll_rewards()
 	_set_screen(Screen.REWARD)
+
+
+## The 3D table's result (Bonfire3D.finished): Soul after it (bust, timeout
+## or forfeit penalties included), every Ember it paid, cleared or not (a
+## forfeit is a miss; at the boss that's a re-sit or the end of the run).
+## Dice the table shattered (Cracked) leave the bag for good, mods and all;
+## each banked pot's combo counts toward the Black Seal.
+func apply_outcome(o: TableOutcome) -> void:
+	progress.remove_dice(o.shattered_dice)
+	finish_table(o.cleared and not o.forfeited, o.soul_after, o.embers, o.banked_combos)
 
 
 ## STUB table: resolve instantly. A clear pays the floor's clear Embers; a

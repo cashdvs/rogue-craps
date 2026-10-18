@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_test_boss()
 	_test_rest_and_shop()
 	_test_rules_and_seals()
+	_test_rule_ids()
 	_test_full_run()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_data = null
@@ -216,14 +217,98 @@ func _test_rules_and_seals() -> void:
 	_check(setup.dice.size() == 5 and setup.start_soul == run.progress.soul and setup.max_soul == 35 and setup.goal == g, "setup: dice, Soul, goal")
 	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
 	run.progress.add_seal_levels(&"pair", 1)
-	var t := run.table_setup().to_tuning(base)
-	_check(t.bust_soul_loss == 3 and t.table_goal == g and t.combos[1].mult == base.combos[1].mult + 1, "setup: tuning copy for the 3D table")
+	run.progress.set_face(0, 3, &"hellfire")
+	var ts := run.table_setup().to_table_setup(base)
+	var t := ts.tuning
+	_check(t.bust_soul_loss == 3 and t.table_goal == g and t.combos[1].mult == base.combos[1].mult + 1, "TableSetup: Seal-leveled tuning with the bust cost")
+	_check(ts.dice.size() == 5 and ts.dice[0].mod_at(4).id == &"hellfire" and ts.goal == g and ts.run_mode
+		and ts.starting_soul == run.progress.soul and ts.max_soul == run.progress.max_soul and ts.table_seed == run.table_setup().seed_value,
+		"TableSetup: dice with mods, goal, starting / max Soul, seed, run mode")
+	# Outcomes from Bonfire3D.finished.
+	var o := TableOutcome.new()
+	o.banked_combos = [&"trips", &"pair", &"trips"] as Array[StringName]
+	o.cleared = true
+	o.soul_after = run.progress.soul - 2
+	o.embers = 17
+	var e0 := run.progress.embers
+	var s0 := run.progress.soul
+	run.apply_outcome(o)
+	_check(run.screen == S.REWARD and run.progress.embers == e0 + 17 and run.progress.soul == s0 - 2, "outcome: cleared -> Soul / Embers applied, Seal reward")
+	_check(run.progress.banked.get(&"trips", 0) == 2 and run.progress.banked.get(&"pair", 0) == 1 and run.progress.most_banked() == &"trips",
+		"outcome: banked_combos counted per pot -> Black Seal target")
+	var rb := MapRun.new(_data, 8)
+	_enter(rb, NT.BOSS)
+	var bo := TableOutcome.new()
+	bo.forfeited = true
+	bo.soul_after = rb.progress.soul - 9
+	rb.apply_outcome(bo)
+	_check(rb.screen == S.TABLE and rb.boss_misses == 1 and rb.progress.soul == 26, "outcome: boss forfeit -> -9 Soul and a re-sit")
+	rb.apply_outcome(bo)
+	_check(rb.screen == S.RUN_OVER, "outcome: a second boss miss ends the run")
+	var rc := MapRun.new(_data, 8)
+	rc.progress.add_die(&"cracked")
+	rc.progress.set_face(5, 0, &"wild")
+	_enter(rc, NT.TABLE)
+	var plain := TableOutcome.new()
+	plain.cleared = true
+	plain.soul_after = rc.progress.soul
+	rc.apply_outcome(plain)
+	_check(rc.progress.dice.size() == 6, "outcome: nothing shattered -> handful unchanged")
+	rc.take_seal(-1)
+	_enter(rc, NT.TABLE)
+	var cracked_id: StringName = rc.progress.dice[5].id
+	var sh := TableOutcome.new()
+	sh.cleared = true
+	sh.soul_after = rc.progress.soul
+	sh.shattered_dice = [cracked_id] as Array[StringName]
+	rc.apply_outcome(sh)
+	_check(rc.progress.dice.size() == 5 and rc.progress.die_index(cracked_id) == -1 and rc.progress.modded_faces().is_empty()
+		and rc.screen == S.REWARD, "outcome: a shattered Cracked die leaves the bag with its face mods")
 	var r3 := MapRun.new(_data, 8)
 	r3.progress.record_bank(&"run3")
 	_check(r3.seal_usable(&"black") and not r3.seal_usable(&"ashen", {"from": &"pair", "to": &"trips"}), "seals: Black needs a banked combo, Ashen a levelled one")
 	r3.progress.add_seal_levels(&"pair", 2)
 	_check(r3._grant_seal(&"ashen", {"from": &"pair", "to": &"trips"}) and r3.progress.seal_level(&"trips") == 2, "seals: Ashen through MapRun")
 	_check(r3._grant_seal(&"transference", {"from": &"trips", "to": &"quads"}) and r3.progress.seal_bonus(&"quads").y == 2, "seals: Transference through MapRun")
+
+
+## Every rule id the run can emit is one the table knows, with the agreed
+## default params, sent to TableSetup.rules as {"id", "params"}.
+func _test_rule_ids() -> void:
+	var allowed := {&"cold_sixes": {"face": 6}, &"first_throw": {"throws": 1}, &"short_table": {}, &"heavy_burn": {},
+		&"greedy_pot": {"min_pot": 2}, &"cold_hands": {}, &"madame_shuffle": {"count": 1},
+		&"pit_boss": {"faces": [1, 2, 3, 4, 5, 6]}, &"ashmouth": {}, &"straight_man": {"min_run": 5},
+		&"collector": {"throws": 1}, &"bloodletter": {"soul_cost_mult": 2}}
+	var emitted: Array[RunRuleData] = []
+	for f: FloorData in _data.floors:
+		for r in f.elite_twists + f.boss_cheats:
+			if not emitted.has(r):
+				emitted.append(r)
+	var ok := emitted.size() == 12
+	for r in emitted:
+		if not allowed.has(r.id) or str(r.params) != str(allowed[r.id]):
+			ok = false
+			print("  bad rule: ", r.id, " ", r.params)
+	_check(ok, "rules: all 12 emitted ids are the table's ids, with the agreed params")
+	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
+	var seen_ids: Dictionary = {}
+	for s in 30:
+		var run := MapRun.new(_data, s)
+		for t in [NT.ELITE, NT.BOSS]:
+			_enter(run, t)
+			for e: Dictionary in run.table_setup().to_table_setup(base).rules:
+				seen_ids[e["id"]] = true
+				ok = ok and e.keys().size() == 2 and allowed.has(e["id"]) and str(e["params"]) == str(allowed[e["id"]])
+	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} with known ids (%d seen)" % seen_ids.size())
+	var r2 := MapRun.new(_data, 3)
+	r2.progress.add_die(&"cracked")
+	r2.progress.add_die(&"mirror")
+	_enter(r2, NT.TABLE)
+	var st := r2.table_setup()
+	st.table_dice.resize(5)
+	var ts := st.to_table_setup(base)
+	_check(st.owned_dice_count == 7 and (not "owned_dice_count" in ts or int(ts.get("owned_dice_count")) == 7),
+		"setup: owned_dice_count = every die owned (7), even with 5 brought to the table")
 
 
 func _test_full_run() -> void:

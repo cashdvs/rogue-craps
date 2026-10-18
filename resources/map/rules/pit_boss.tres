@@ -8,3 +8,6 @@ id = &"pit_boss"
 display_name = "The Pit Boss"
 description = "One random face value is locked each hand and never lights (shown on the felt)."
 kind = 1
+params = {
+"faces": [1, 2, 3, 4, 5, 6]
+}

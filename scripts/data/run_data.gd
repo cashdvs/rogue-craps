@@ -25,6 +25,13 @@ extends Resource
 @export var mod_price_step_percent: int = 50
 ## A special die sells for floor(price * this / 100) (GD: half).
 @export var die_sell_percent: int = 50
+## Heavy Face ("lands twice as often", build content): roll weight of a
+## Heavy face vs 1.0 for every other face. The table ignores Heavy; the run
+## puts it in TableDie.weights.
+@export var heavy_weight: float = 2.0
+## A Cracked die never shatters while you own this many dice or fewer (GD
+## "Rules rulings"); RunProgress.remove_dice won't go below it either.
+@export var cracked_min_dice: int = 5
 ## Combos a Seal can level, lowest first (ids from bonfire_tuning.tres).
 @export var seal_combos: Array[StringName] = [&"pair", &"run3", &"two_pair", &"trips", &"run4",
 	&"full_house", &"run5", &"quads", &"five_kind"]
