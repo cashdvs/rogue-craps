@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RunRuleData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="1_upgbi"]
+
+[resource]
+script = ExtResource("1_upgbi")
+id = &"collector"
+display_name = "The Collector"
+description = "Face mods do nothing on a hand's first throw."
+kind = 1

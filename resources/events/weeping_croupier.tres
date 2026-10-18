@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_i2jov"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_f7yms"]
+[ext_resource type="Resource" path="res://resources/mods/blank.tres" id="3_65f0u"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="4_03575"]
+
+[sub_resource type="Resource" id="Resource_3eqcp"]
+script = ExtResource("2_f7yms")
+amount = -5
+
+[sub_resource type="Resource" id="Resource_1m0pt"]
+script = ExtResource("2_f7yms")
+kind = 4
+amount = 1
+seal = &"two_pair"
+
+[sub_resource type="Resource" id="Resource_ca70s"]
+script = ExtResource("1_i2jov")
+label = "Leave a piece of yourself: -5 Soul, Two Pair Seal +1."
+result_text = "Something of you stays in the chair."
+effects = Array[ExtResource("2_f7yms")]([SubResource("Resource_3eqcp"), SubResource("Resource_1m0pt")])
+
+[sub_resource type="Resource" id="Resource_7648e"]
+script = ExtResource("2_f7yms")
+kind = 1
+amount = 12
+
+[sub_resource type="Resource" id="Resource_rhd70"]
+script = ExtResource("2_f7yms")
+kind = 2
+mod = ExtResource("3_65f0u")
+target = 2
+
+[sub_resource type="Resource" id="Resource_n112u"]
+script = ExtResource("1_i2jov")
+label = "Take his winnings: +12 Embers, a random face goes Blank."
+result_text = "His chips are cold. One of your dice goes quiet."
+effects = Array[ExtResource("2_f7yms")]([SubResource("Resource_7648e"), SubResource("Resource_rhd70")])
+
+[sub_resource type="Resource" id="Resource_vtyix"]
+script = ExtResource("1_i2jov")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("4_03575")
+id = &"weeping_croupier"
+title = "The Weeping Croupier"
+body = "A croupier with ash-streaked cheeks deals to an empty chair. 'He never came back,' she whispers. 'Take his luck, but leave something of yourself.'"
+art_note = "Croupier dealing to an empty chair, ghostly handprint on the felt."
+choices = Array[ExtResource("1_i2jov")]([SubResource("Resource_ca70s"), SubResource("Resource_n112u"), SubResource("Resource_vtyix")])

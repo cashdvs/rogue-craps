@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_panr1"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_v8cpl"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_m1yci"]
+
+[sub_resource type="Resource" id="Resource_vho1k"]
+script = ExtResource("2_v8cpl")
+kind = 3
+
+[sub_resource type="Resource" id="Resource_04a67"]
+script = ExtResource("2_v8cpl")
+amount = 15
+
+[sub_resource type="Resource" id="Resource_kmgll"]
+script = ExtResource("1_panr1")
+label = "Offer for life: give a face mod, +15 Soul."
+result_text = "Warmth floods back into you."
+effects = Array[ExtResource("2_v8cpl")]([SubResource("Resource_vho1k"), SubResource("Resource_04a67")])
+requires_face_mod = true
+
+[sub_resource type="Resource" id="Resource_yxc0d"]
+script = ExtResource("2_v8cpl")
+kind = 3
+
+[sub_resource type="Resource" id="Resource_k05gi"]
+script = ExtResource("2_v8cpl")
+kind = 4
+amount = 2
+seal = &"trips"
+
+[sub_resource type="Resource" id="Resource_yxxit"]
+script = ExtResource("1_panr1")
+label = "Offer for power: give a face mod, Trips Seal +2."
+result_text = "Three marks glow on the stone."
+effects = Array[ExtResource("2_v8cpl")]([SubResource("Resource_yxc0d"), SubResource("Resource_k05gi")])
+requires_face_mod = true
+
+[sub_resource type="Resource" id="Resource_vtyix"]
+script = ExtResource("1_panr1")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_m1yci")
+id = &"altar"
+title = "The Altar"
+body = "A cracked altar pulses with old heat. Offer it something you've carved, and it gives something back."
+art_note = "Black stone altar with a die-shaped hollow and rising embers."
+choices = Array[ExtResource("1_panr1")]([SubResource("Resource_kmgll"), SubResource("Resource_yxxit"), SubResource("Resource_vtyix")])
