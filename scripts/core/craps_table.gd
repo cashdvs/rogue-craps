@@ -18,6 +18,8 @@ signal rolled(report: TableReport)
 ## Doc section 2: minimum bet 5, Floor 1 table cap 25 (per bet).
 var min_bet: int = 5
 var max_bet: int = 25
+## Doc section 5: Odds behind Pass go up to this many times the Pass bet.
+var odds_max_multiple: int = 2
 
 var bankroll: Bankroll
 var craps := CrapsRound.new()
@@ -59,6 +61,10 @@ func can_place(bet_type: BetType, amount: int) -> String:
 	if not bankroll.can_afford(amount):
 		return "Not enough Coin (have %d, need %d)." % [bankroll.coin, amount]
 	var new_stake := stake_on(bet_type.id) + amount
+	# Odds are an add-on behind Pass: their own rules replace the table
+	# min / cap (real craps: odds aren't bound by the table limits).
+	if bet_type.rule == BetType.Rule.ODDS:
+		return _can_place_odds(new_stake)
 	if new_stake < min_bet:
 		return "Minimum bet is %d." % min_bet
 	if new_stake > max_bet:
@@ -66,6 +72,23 @@ func can_place(bet_type: BetType, amount: int) -> String:
 	# Real craps: the Pass bet goes down before the come-out roll.
 	if bet_type.rule == BetType.Rule.PASS and craps.has_point():
 		return "Pass can only be placed before the come-out roll."
+	return ""
+
+
+## Odds rules (doc section 5): only while a Point is on, only with a Pass
+## bet underneath, and at most odds_max_multiple x the Pass stake in total.
+func _can_place_odds(new_stake: int) -> String:
+	if not craps.has_point():
+		return "Odds can only be placed once a Point is on."
+	var pass_stake := 0
+	for bet in active_bets:
+		if bet.bet_type.rule == BetType.Rule.PASS:
+			pass_stake += bet.stake
+	if pass_stake <= 0:
+		return "Odds need a Pass Line bet underneath."
+	var cap := pass_stake * maxi(odds_max_multiple, 0)
+	if new_stake > cap:
+		return "Odds are capped at %dx your Pass bet (max %d)." % [odds_max_multiple, cap]
 	return ""
 
 

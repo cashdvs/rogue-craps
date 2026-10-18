@@ -206,6 +206,46 @@ func _test_odds_rule() -> void:
 		var p := BetResolver.resolve_one(_roll(_dice_for(point), point), ActiveBet.new(odds, 10))
 		_check(p.result == BetPayout.Result.WIN and p.profit == want[point], "odds: point %d pays +%d on 10" % [point, want[point]])
 
+	# Placement rules (QA P2): Point on, Pass underneath, cap 2x Pass.
+	var pass_bet := _catalog.find(&"pass")
+	var t := CrapsTable.new(Bankroll.new(200))
+	var reason := t.place_bet(odds, 10)
+	_check(reason.contains("Point"), "odds: refused on the come-out (no Point)", reason)
+	_check(t.place_bet(pass_bet, 10) == "", "odds: Pass 10 placed")
+	reason = t.place_bet(odds, 10)
+	_check(reason.contains("Point") and t.stake_on(&"odds") == 0, "odds: still refused with Pass but no Point", reason)
+	t.roll(_dice_for(6))  # Point 6.
+	_check(t.craps.point == 6, "odds: point 6 set")
+	_check(t.place_bet(odds, 20) == "", "odds: 2x Pass (20 on 10) allowed")
+	reason = t.place_bet(odds, 1)
+	_check(reason.contains("2x") and t.stake_on(&"odds") == 20, "odds: past 2x Pass refused", reason)
+	_check(t.bankroll.coin == 170, "odds: refused bets cost nothing", str(t.bankroll.coin))
+	_check(t.place_bet(odds, 3) != "" and t.can_place(odds, 0) != "", "odds: raising over the cap or 0 refused")
+	# Odds ignore the table min / cap (they follow the Pass bet).
+	var t2 := CrapsTable.new(Bankroll.new(200))
+	t2.place_bet(pass_bet, 25)
+	t2.roll(_dice_for(8))
+	_check(t2.place_bet(odds, 2) == "", "odds: below the table minimum is fine behind Pass")
+	_check(t2.place_bet(odds, 48) == "" and t2.stake_on(&"odds") == 50, "odds: up to 50 behind a 25 Pass (above the 25 table cap)")
+	# A Point with no Pass bet underneath.
+	var t3 := CrapsTable.new(Bankroll.new(200))
+	t3.roll(_dice_for(5))
+	reason = t3.place_bet(odds, 5)
+	_check(t3.craps.point == 5 and reason.contains("Pass"), "odds: refused without a Pass bet", reason)
+	# Multiplier is data: 3x when configured.
+	var t4 := CrapsTable.new(Bankroll.new(200))
+	t4.odds_max_multiple = 3
+	t4.place_bet(pass_bet, 10)
+	t4.roll(_dice_for(4))
+	_check(t4.place_bet(odds, 30) == "" and t4.place_bet(odds, 1) != "", "odds: cap follows odds_max_multiple (3x)")
+	# Odds settle with the Point: hit pays true odds (6 -> 6:5 on 20 = +24).
+	var hit := t.roll(_dice_for(6))
+	var odds_win := 0
+	for pay in hit.payouts:
+		if pay.bet.id() == &"odds":
+			odds_win = pay.profit
+	_check(odds_win == 24 and t.stake_on(&"odds") == 0, "odds: settles on the point hit (+24)", str(odds_win))
+
 
 # --- CrapsTable ----------------------------------------------------------------------
 

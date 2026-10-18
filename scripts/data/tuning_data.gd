@@ -47,6 +47,10 @@ extends Resource
 ## Soul at or below this makes the Dealer taunt "low_soul" (once per table).
 @export var dealer_low_soul_threshold: int = 12
 
+@export_group("Odds (doc 5)")
+## Odds behind Pass may total at most this many times the Pass stake (doc: 2x).
+@export var odds_max_multiple: int = 2
+
 @export_group("Throw gesture (Cash: grab and flick the dice)")
 ## A release slower than this (px/s, 1920x1080 space) drops the dice back
 ## into the hand instead of throwing.

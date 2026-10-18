@@ -41,6 +41,7 @@ func _init(tuning_data: TuningData, starting_soul: int = -1) -> void:
 	table = CrapsTable.new(bankroll)
 	table.min_bet = tuning.min_bet
 	table.max_bet = tuning.max_bet
+	table.odds_max_multiple = tuning.odds_max_multiple
 	soul = tuning.soul_max if starting_soul < 0 else starting_soul
 	soul_at_start = soul
 
@@ -111,7 +112,9 @@ func roll(die_values: Array[int]) -> PocRollReport:
 	for p in tr.payouts:
 		if p.result == BetPayout.Result.LOSE:
 			report.coin_lost += p.bet.stake
-	if tuning.soul_on_loss:
+	# Soul burns only when a stake actually lost on this roll: a seven-out
+	# (or craps) with nothing on the felt costs no Soul (QA P2).
+	if tuning.soul_on_loss and report.coin_lost > 0:
 		report.soul_damage = soul_damage_for(tr.roll.outcome, report.coin_lost, tuning, rule)
 	report.explanation = _explain(tr, report)
 	if report.soul_damage > 0:
@@ -126,7 +129,8 @@ func roll(die_values: Array[int]) -> PocRollReport:
 ##   Seven-out:        seven_out_base + ceil(lost / 10)   x rule multiplier (Hot Seven = 2)
 ##   Craps (come-out): craps_base     + ceil(lost / 10)   x rule multiplier
 ##   Other losing roll:                 floor(lost / 10)  x rule multiplier
-## "lost" = stakes of the bets that LOST on this roll.
+## "lost" = stakes of the bets that LOST on this roll. This is the raw doc
+## formula; roll() only applies it when lost > 0 (no losing stake = no Soul).
 static func soul_damage_for(outcome: RollResult.Outcome, coin_lost: int, t: TuningData, r: TableRuleData) -> int:
 	var per := maxi(t.soul_per_coin_lost, 1)
 	@warning_ignore("integer_division")

@@ -29,6 +29,7 @@ func _initialize() -> void:
 	_test_miss_penalty()
 	_test_table_flow_soul()
 	_test_hot_seven_toggle()
+	_test_no_stake_no_soul()
 	_test_target_clear()
 	_test_out_of_rolls()
 	_test_bust()
@@ -133,6 +134,23 @@ func _test_table_flow_soul() -> void:
 	t.place_bet(_bet(&"field"), 10)
 	t.roll(_dice(2, 6))  # 8: Field 10 lost -> 1.
 	_check(soul_events == [[29, -1, "Losses"]], "table: soul_changed fires with the reason", str(soul_events))
+
+
+func _test_no_stake_no_soul() -> void:
+	# QA P2: a seven-out (or craps) with nothing on the felt costs 0 Soul.
+	var t := PocTable.new(_tuning)
+	var r := t.roll(_dice(1, 1))  # Craps, no bet.
+	_check(r.soul_damage == 0 and t.soul == 40, "no stake: craps costs no Soul", str(r.soul_damage))
+	t.roll(_dice(2, 2))  # Point 4, no bet.
+	r = t.roll(_dice(3, 4))  # Seven-out, no bet.
+	_check(r.table_report.roll.outcome == RollResult.Outcome.SEVEN_OUT and r.coin_lost == 0, "no stake: it was a seven-out with nothing lost")
+	_check(r.soul_damage == 0 and t.soul == 40, "no stake: seven-out costs no Soul", "%d / soul %d" % [r.soul_damage, t.soul])
+	_check(not r.explanation.contains("Soul."), "no stake: explanation mentions no Soul cost", r.explanation)
+	# Same seven-out WITH a stake still burns (Hot Seven on in these tests).
+	t.place_bet(_bet(&"pass"), 5)
+	t.roll(_dice(2, 2))
+	r = t.roll(_dice(3, 4))
+	_check(r.soul_damage == 6, "with a 5 stake the seven-out still burns (2+1)x2 = 6", str(r.soul_damage))
 
 
 func _test_hot_seven_toggle() -> void:
