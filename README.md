@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/cashdvs/rogue-craps/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cashdvs/rogue-craps/actions/workflows/ci.yml)
 
-A single-player craps roguelite by **Tiny Anvil Games** (working title *The Gambler's Descent*; design
+A single-player craps roguelite by **Tiny Anvil Games** (design
 summary: [`docs/DESIGN.md`](docs/DESIGN.md)). The
 current build is the **proof-of-concept table**, where the goal is feel. You get 2 plain bone
 dice, a Pass Line, Soul, a 12-roll limit, a target bankroll, and a taunting Dealer. Visuals and

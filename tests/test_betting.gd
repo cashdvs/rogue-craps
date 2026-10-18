@@ -10,7 +10,7 @@ var _catalog: BetCatalog
 
 
 func _initialize() -> void:
-	print("=== The Gambler's Descent: betting tests ===")
+	print("=== Dice of the Damned: betting tests ===")
 	_catalog = load("res://resources/bets/bet_catalog.tres") as BetCatalog
 	_check(_catalog != null and _catalog.bets.size() == 3, "data: bet catalog has Pass, Field, Any Craps")
 	if _catalog == null:

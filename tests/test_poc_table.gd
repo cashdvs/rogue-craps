@@ -13,7 +13,7 @@ var _tuning: TuningData
 
 
 func _initialize() -> void:
-	print("=== The Gambler's Descent: POC table tests ===")
+	print("=== Dice of the Damned: POC table tests ===")
 	_catalog = load("res://resources/bets/bet_catalog.tres") as BetCatalog
 	var shipped := load("res://resources/tuning/poc_tuning.tres") as TuningData
 	_check(_catalog != null and shipped != null, "data: catalog and tuning load")
