@@ -1,7 +1,7 @@
 # Dice of the Damned: design summary
 
 A short public summary of the game design, written for contributors. The full living design and
-art documents are maintained by the Tiny Anvil team; if an issue needs a number or detail that
+art documents are maintained by the Tiny Anvil Games team; if an issue needs a number or detail that
 isn't here, it will quote it. All numbers are first-pass placeholders, and the numbers the game
 actually uses live in `resources/tuning/poc_tuning.tres`.
 

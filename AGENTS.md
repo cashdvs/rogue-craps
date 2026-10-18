@@ -1,7 +1,7 @@
 # AGENTS.md: guide for AI coding agents
 
 This file is for coding agents (and the people driving them) who want to open pull requests
-against **Dice of the Damned** by **Tiny Anvil**. Humans should also read
+against **Dice of the Damned** by **Tiny Anvil Games**. Humans should also read
 [CONTRIBUTING.md](CONTRIBUTING.md). Read this whole file before changing anything.
 
 ## 1. Project overview
@@ -28,12 +28,12 @@ against **Dice of the Damned** by **Tiny Anvil**. Humans should also read
 | [docs/MODULES.md](docs/MODULES.md) | The feature modules, which files each owns, owners, and how to claim one. |
 | [REVIEWING.md](REVIEWING.md) | What reviewers check on every PR. |
 
-The full design and art documents are maintained by the Tiny Anvil team outside this repo.
+The full design and art documents are maintained by the Tiny Anvil Games team outside this repo.
 Issues quote any extra numbers or specs they need. Don't edit `docs/DESIGN.md` in a feature PR;
 open an issue if something looks wrong.
 
 **License:** the code and assets are proprietary (see [LICENSE](LICENSE)). Contributions you
-submit are assigned (or licensed) to Tiny Anvil, so only submit work you have the right to submit.
+submit are assigned (or licensed) to Tiny Anvil Games, so only submit work you have the right to submit.
 
 ## 2. Install Godot 4.7.2 (headless, Linux)
 

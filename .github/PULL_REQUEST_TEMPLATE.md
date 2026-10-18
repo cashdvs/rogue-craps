@@ -40,4 +40,4 @@ Closes #
 - [ ] `tests/qa_/`: only added checks; no existing check weakened or removed
 - [ ] Didn't edit `docs/DESIGN.md` (open an issue for design changes)
 - [ ] If an AI agent wrote this, a human or the agent reviewed the diff before opening the PR
-- [ ] I agree my contribution is assigned/licensed to Tiny Anvil per [LICENSE](../LICENSE)
+- [ ] I agree my contribution is assigned/licensed to Tiny Anvil Games per [LICENSE](../LICENSE)

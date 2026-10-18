@@ -1,6 +1,6 @@
 # Contributing to Dice of the Damned
 
-Thanks for helping! Dice of the Damned is a craps-style dice roguelite by **Tiny Anvil**, built
+Thanks for helping! Dice of the Damned is a craps-style dice roguelite by **Tiny Anvil Games**, built
 in Godot 4.7.2. We welcome PRs from people and from AI coding agents. Agents (and anyone driving
 one) should also read [AGENTS.md](AGENTS.md), which has the technical details.
 
@@ -75,14 +75,14 @@ one) should also read [AGENTS.md](AGENTS.md), which has the technical details.
   - Either way, update your branch by **rebasing** on `main`, not by merging `main` in.
 - Aim for roughly ≤ 400 changed lines of code per PR (generated `.uid`/`.tres`/`.import` excluded).
 - PRs that change core rules or balance (Soul formulas, payouts, tuning defaults), CI/repo config,
-  or more than 2 modules are escalated to the Tiny Anvil team before merging.
-- Feel and design calls belong to the Tiny Anvil team; we may ask you to put a change behind a
+  or more than 2 modules are escalated to the Tiny Anvil Games team before merging.
+- Feel and design calls belong to the Tiny Anvil Games team; we may ask you to put a change behind a
   tuning flag instead of changing default behaviour.
 
 ## 5. Docs and design changes
 
 [docs/DESIGN.md](docs/DESIGN.md) is a public summary; the full design and art docs are
-maintained by the Tiny Anvil team. Please don't edit `DESIGN.md` in a feature PR. Open an issue to
+maintained by the Tiny Anvil Games team. Please don't edit `DESIGN.md` in a feature PR. Open an issue to
 propose a design change or report a mistake. Changes to game numbers need the Game Designer's OK.
 
 ## 6. Claiming a module
@@ -103,13 +103,13 @@ issues and block accounts that don't follow this.
 
 ## 8. License
 
-This repository is **proprietary**: see [LICENSE](LICENSE). Copyright (c) 2026 Tiny Anvil
+This repository is **proprietary**: see [LICENSE](LICENSE). Copyright (c) 2026 Tiny Anvil Games
 (Cash Davis). All rights reserved. In short:
 
 - You may not use, copy, modify or distribute the code or assets without prior written permission
-  from Tiny Anvil.
-- Anything you submit (code, assets, docs) is **assigned to Tiny Anvil** on submission. Where an
-  assignment isn't possible, you grant Tiny Anvil a perpetual, irrevocable, worldwide,
+  from Tiny Anvil Games.
+- Anything you submit (code, assets, docs) is **assigned to Tiny Anvil Games** on submission. Where an
+  assignment isn't possible, you grant Tiny Anvil Games a perpetual, irrevocable, worldwide,
   royalty-free license to it, with the right to sublicense.
 - You confirm you have the right to submit it (it's your own work, or you have permission, and
   any third-party asset's license allows it).

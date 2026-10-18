@@ -11,7 +11,7 @@ status, its team owner and whether it's open to outside contributors.
 
 - **Status:** `Built (POC)` = on `main` and tested · `In progress` = being built right now ·
   `Designed` = in the design, no code yet.
-- **Owner** is the Tiny Anvil team role responsible for the module. Owners review PRs in their
+- **Owner** is the Tiny Anvil Games team role responsible for the module. Owners review PRs in their
   module; the default GitHub owner for every path is `@cashdvs` (see `.github/CODEOWNERS`).
 - **Open to contributors:** `Yes` = claim it or pick up issues · `Issues only` = take labelled
   issues, but coordinate before larger work.
