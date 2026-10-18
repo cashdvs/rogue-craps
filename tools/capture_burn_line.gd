@@ -33,8 +33,11 @@ func ready_to_act() -> void:
 func throw_slot(slot: int) -> void:
 	await ready_to_act()
 	s.rig_next_slot(slot)
-	if s.quick_throw():
+	var ok := s.quick_throw()
+	print("throw slot %d (%s): %s" % [slot, s.current_die().id, ok])
+	if ok:
 		await s.sequence_finished
+	print("  total %d, phase %d" % [s.run.total, s.phase])
 
 
 func _run() -> void:
