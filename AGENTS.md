@@ -77,8 +77,10 @@ export GODOT=~/tools/godot/godot
 "$GODOT" --headless --path . --script res://tests/test_poc_table.gd
 "$GODOT" --headless --path . --script res://tests/test_table_3d.gd   # 3D table + real physics
 
-# 4) Play (needs a display). Main scene = the 3D table; the 2D table is still runnable:
+# 4) Play (needs a display). Main scene = the boot splash, which opens the 3D table
+#    ([boot] next_scene in project.godot). Run a table directly to skip the splash:
 "$GODOT" --path .
+"$GODOT" --path . res://scenes/table_3d.tscn
 "$GODOT" --path . res://scenes/table.tscn
 # Editor
 "$GODOT" --editor --path .

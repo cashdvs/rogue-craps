@@ -30,7 +30,7 @@ SplashState="*res://scripts/splash/splash_state.gd"
 
 [boot]
 
-next_scene="res://scenes/table.tscn"
+next_scene="res://scenes/table_3d.tscn"
 
 [debug]
 

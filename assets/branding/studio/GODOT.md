@@ -5,7 +5,7 @@ studio splash once per boot and then opens the scene named in `project.godot`:
 
 ```ini
 [boot]
-next_scene="res://scenes/table.tscn"   ; the title/main scene, a one-line change
+next_scene="res://scenes/table_3d.tscn"   ; the title/main scene, a one-line change
 ```
 
 `SplashState` (autoload, `scripts/splash/splash_state.gd`) records that the splash already ran,
