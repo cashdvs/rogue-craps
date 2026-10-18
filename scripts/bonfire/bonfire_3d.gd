@@ -32,6 +32,7 @@ var _hand_tweens: Array[Tween] = []
 ## The last throw's launch (tests/tools): lin, spin, speed, k, flick.
 var last_launch: Dictionary = {}
 var _player_flick: bool = false
+var pause_menu: PauseMenu
 
 
 func _ready() -> void:
@@ -52,6 +53,8 @@ func _ready() -> void:
 	bhud.bank_pressed.connect(func() -> void: bank())
 	bhud.throw_pressed.connect(func() -> void: throw_again())
 	bhud.restart_pressed.connect(func() -> void: new_run(-1 if bonfire_seed < 0 else bonfire_seed + 1))
+	pause_menu = PauseMenu.new()
+	add_child(pause_menu)
 	new_run(bonfire_seed)
 
 
@@ -309,6 +312,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo:
 		match key.keycode:
+			KEY_ESCAPE:
+				if phase == Phase.HELD:
+					phase = Phase.BET
+				pause_menu.open()
+				get_viewport().set_input_as_handled()
+				return
 			KEY_B:
 				bank()
 				return
