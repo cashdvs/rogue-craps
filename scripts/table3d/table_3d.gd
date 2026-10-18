@@ -140,6 +140,8 @@ var target_label: Label
 var rolls_label: Label
 var table_label: Label
 var hand_label: Label
+var help_label: Label
+var info_box: VBoxContainer
 var end_layer: CanvasLayer
 var end_title: Label
 var end_body: Label
@@ -662,6 +664,7 @@ func _build_hud() -> void:
 	hud.add_child(bubble)
 
 	var info := VBoxContainer.new()
+	info_box = info
 	info.position = Vector2(1700, 40)
 	info.custom_minimum_size = Vector2(200, 0)
 	info.add_theme_constant_override("separation", 0)
@@ -690,6 +693,7 @@ func _build_hud() -> void:
 	hud.add_child(why_label)
 
 	var help := Label.new()
+	help_label = help
 	help.position = Vector2(24, 14)
 	help.size = Vector2(460, 120)
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
