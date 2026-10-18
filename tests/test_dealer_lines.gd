@@ -10,7 +10,7 @@ var _failed: int = 0
 
 
 func _initialize() -> void:
-	print("=== The Gambler's Descent: dealer lines tests ===")
+	print("=== Dice of the Damned: dealer lines tests ===")
 	var dl := DealerLines.from_json_file("res://resources/dealer/dealer_lines.json", 42)
 	_check(dl != null, "lines: dealer_lines.json loads")
 	if dl == null:

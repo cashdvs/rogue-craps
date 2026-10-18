@@ -14,7 +14,7 @@ var _failed: int = 0
 
 
 func _initialize() -> void:
-	print("=== The Gambler's Descent: craps rules tests ===")
+	print("=== Dice of the Damned: craps rules tests ===")
 	_test_come_out_every_total()
 	_test_point_phase_for_every_point()
 	_test_reset_after_decisions()
