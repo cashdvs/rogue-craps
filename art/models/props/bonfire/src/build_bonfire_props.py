@@ -11,7 +11,7 @@ the glTF exporter converts back, so every .glb is in Godot space at scale 1.
                        shard's centre so a crumble animation can tumble them in place)
   soul_flask.glb       0.094 m Soul flask (slots soul_glass, soul_liquid, cork, brass)
   ember_pile.glb       0.06 m pile of 9 coal lumps with hot faces (slots coal, ember_hot)
-  mult_chip.glb        the red Mult chip, 0.068 x 0.009 m (slots mult_body, mult_inlay)
+  mult_chip.glb        the red Mult chip, 0.055 x 0.006 m (in-game chip size) (slots mult_body, mult_inlay)
 """
 import math
 import os
@@ -316,33 +316,36 @@ def build_ember_pile(out_dir, seed=11):
 
 # --- mult chip ------------------------------------------------------------------------------
 
-CHIP_R = 0.034
-CHIP_H = 0.009
+# In-game chip size (scripts/table3d/chip_3d.gd: 0.055 x 0.006 m), so the Mult chip sits in a stack.
+CHIP_R = 0.0275
+CHIP_H = 0.006
+CHIP_BEVEL = 0.0009
+CHIP_RECESS = 0.0006
 
 
 def build_mult_chip(out_dir, seg=32):
     p = Part("MultChip", ["mult_body", "mult_inlay"])
-    body = [(CHIP_R * 0.94, 0.0), (CHIP_R, 0.0012), (CHIP_R, CHIP_H - 0.0012), (CHIP_R * 0.94, CHIP_H),
+    body = [(CHIP_R * 0.94, 0.0), (CHIP_R, CHIP_BEVEL), (CHIP_R, CHIP_H - CHIP_BEVEL), (CHIP_R * 0.94, CHIP_H),
             (CHIP_R * 0.70, CHIP_H)]
     rows = lathe(p, body, seg, "mult_body", cap_bottom=True)
-    inlay = [(CHIP_R * 0.70, CHIP_H - 0.0008), (CHIP_R * 0.66, CHIP_H - 0.0008)]
+    inlay = [(CHIP_R * 0.70, CHIP_H - CHIP_RECESS), (CHIP_R * 0.66, CHIP_H - CHIP_RECESS)]
     irows = [[p.v((r * math.cos(2 * math.pi * i / seg), y, r * math.sin(2 * math.pi * i / seg))) for i in range(seg)]
              for (r, y) in inlay]
     p.rings([rows[-1], irows[0]], "mult_body")
     p.rings(irows, "mult_inlay")
-    p.fan(irows[-1], (0, CHIP_H - 0.0008, 0), "mult_inlay")
+    p.fan(irows[-1], (0, CHIP_H - CHIP_RECESS, 0), "mult_inlay")
     export([p.to_object()], out_dir, "mult_chip")
 
 
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     out_dir = os.path.abspath(argv[0]) if argv else os.path.normpath(os.path.join(HERE, ".."))
+    only = argv[1:]  # optional: build only these props, e.g. -- <out_dir> mult_chip
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    build_wax_stamp(out_dir)
-    build_wax_shards(out_dir)
-    build_soul_flask(out_dir)
-    build_ember_pile(out_dir)
-    build_mult_chip(out_dir)
+    for name, fn in [("wax_stamp", build_wax_stamp), ("wax_stamp_shards", build_wax_shards),
+                     ("soul_flask", build_soul_flask), ("ember_pile", build_ember_pile), ("mult_chip", build_mult_chip)]:
+        if not only or name in only:
+            fn(out_dir)
     print("TOTALS", TRIS)
 
 

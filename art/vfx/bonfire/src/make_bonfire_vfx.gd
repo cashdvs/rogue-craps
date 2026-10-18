@@ -121,7 +121,7 @@ func _materials() -> void:
 	_toon(P + "materials/cork.tres", Color("#5A3A24"), Color("#140A06"), {"wrap": 0.3}, 1.0, 0)
 	_toon(P + "materials/brass.tres", BRASS, Color("#3A2A10"), {"spec_size": 0.92, "wrap": 0.3}, 1.0, 0)
 	_toon(P + "materials/coal.tres", Color("#161212"), Color("#0A0606"), {"rim_color": EMBER, "rim_strength": 0.5, "rim_power": 2.0, "wrap": 0.2}, 1.0, 1)
-	_toon(P + "materials/mult_body.tres", HELLFIRE, Color("#3B0D14"), {"chip_mode": true, "chip_radius": 0.034,
+	_toon(P + "materials/mult_body.tres", HELLFIRE, Color("#3B0D14"), {"chip_mode": true, "chip_radius": 0.0275,
 		"notch_color": BONE, "ring_color": BRASS_HI, "spec_size": 0.94, "spec_strength": 0.4, "mid_tint": 0.7, "wrap": 0.3}, 1.0, 1)
 	_toon(P + "materials/mult_inlay.tres", OXBLOOD, Color("#140406"), {"wrap": 0.3, "mid_tint": 0.8})
 	_save_mat(_sm(V + "shaders/ember_glow.gdshader", {}), P + "materials/ember_hot.tres")
@@ -301,7 +301,6 @@ func _tier(n: int, cpu: bool) -> void:
 	var root := Node3D.new()
 	root.name = ["", "FireTier1Embers", "FireTier2Flames", "FireTier3Inferno", "FireTier4Pillar"][n]
 	var emitters: Array[String] = []
-	var tall := AABB(Vector3(-0.35, -0.1, -0.35), Vector3(0.7, 1.1, 0.7))
 	match n:
 		1:
 			_particles(root, "Sparks", "fire_spark", 12, 0.7, Vector2(1, 1), {"box": Vector3(0.035, 0.01, 0.035),
@@ -327,7 +326,10 @@ func _tier(n: int, cpu: bool) -> void:
 				"scale": Vector2(0.012, 0.02), "ramp": [1.0, 1.0, 0.6, 0.0]})
 			emitters = ["Flames", "Core", "Sparks"]
 		4:
-			for spec in [["Column", "fire_column", 0.065, 0.03, 0.62], ["ColumnCore", "fire_column_core", 0.04, 0.012, 0.5]]:
+			# ONE central pillar for the whole potted group (design section 6). Origin = the group's
+			# centre on the felt (y = 0); sized for 5 dice across ~0.66 m. The dice keep tier 3
+			# (inferno) per die underneath it.
+			for spec in [["Column", "fire_column", 0.15, 0.05, 0.85], ["ColumnCore", "fire_column_core", 0.09, 0.02, 0.7]]:
 				var mi := MeshInstance3D.new()
 				mi.name = spec[0]
 				var cyl := CylinderMesh.new()
@@ -341,20 +343,19 @@ func _tier(n: int, cpu: bool) -> void:
 				mi.mesh = cyl
 				mi.material_override = load(V + "materials/%s.tres" % spec[1])
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				mi.position = Vector3(0, -0.04 + spec[4] * 0.5, 0)
 				var pivot := Node3D.new()  # scales up from the felt
 				pivot.name = spec[0] + "Pivot"
-				pivot.position = Vector3(0, -0.04, 0)
 				root.add_child(pivot)
 				mi.position = Vector3(0, spec[4] * 0.5, 0)
 				pivot.add_child(mi)
-			_particles(root, "Flames", "fire_flame_hell", 18, 0.5, Vector2(0.09, 0.14), {"box": Vector3(0.05, 0.02, 0.05),
-				"at": Vector3(0, 0.03, 0), "vel": Vector2(0.1, 0.25), "spread": 15.0, "scale": Vector2(0.8, 1.3),
-				"ramp": [0.35, 1.0, 0.85, 0.0], "aabb": tall})
-			_particles(root, "Sparks", "fire_spark", 24, 0.8, Vector2(1, 1), {"box": Vector3(0.04, 0.05, 0.04),
-				"at": Vector3(0, 0.1, 0), "vel": Vector2(0.5, 1.1), "spread": 20.0, "gravity": -0.6,
-				"scale": Vector2(0.012, 0.022), "ramp": [1.0, 1.0, 0.6, 0.0], "aabb": tall})
-			_quad(root, "ShockRing", load(V + "materials/fire_ring.tres"), Vector2(0.3, 0.3), Vector3(0, -0.038, 0), true)
+			var group := AABB(Vector3(-0.8, -0.1, -0.8), Vector3(1.6, 1.8, 1.6))
+			_particles(root, "Flames", "fire_flame_hell", 24, 0.55, Vector2(0.12, 0.2), {"box": Vector3(0.3, 0.02, 0.09),
+				"at": Vector3(0, 0.06, 0), "vel": Vector2(0.12, 0.3), "spread": 12.0, "scale": Vector2(0.8, 1.3),
+				"ramp": [0.35, 1.0, 0.85, 0.0], "aabb": group})
+			_particles(root, "Sparks", "fire_spark", 32, 0.9, Vector2(1, 1), {"box": Vector3(0.2, 0.06, 0.08),
+				"at": Vector3(0, 0.18, 0), "vel": Vector2(0.6, 1.3), "spread": 20.0, "gravity": -0.6,
+				"scale": Vector2(0.018, 0.03), "ramp": [1.0, 1.0, 0.6, 0.0], "aabb": group})
+			_quad(root, "ShockRing", load(V + "materials/fire_ring.tres"), Vector2(0.8, 0.8), Vector3(0, 0.002, 0), true)
 			emitters = ["Flames", "Sparks"]
 	var ign := _clip(IGNITE)
 	var snf := _clip(SNUFF)
@@ -384,7 +385,7 @@ func _tier(n: int, cpu: bool) -> void:
 				[hold_end, Vector3(1, 1, 1)], [TIER_BURST[n], Vector3(0.4, 0.15, 0.4)]])
 			_track(burst, hp, [[0.0, 1.0], [hold_end, 1.0], [TIER_BURST[n], 0.0]])
 		_track(reset, "ShockRing:scale", [[0.0, Vector3(0.001, 1, 0.001)]])
-		_track(burst, "ShockRing:scale", [[0.0, Vector3(0.2, 1, 0.2)], [0.35, Vector3(1.6, 1, 1.6)], [0.36, Vector3(0.001, 1, 0.001)]])
+		_track(burst, "ShockRing:scale", [[0.0, Vector3(0.2, 1, 0.2)], [0.35, Vector3(1.3, 1, 1.3)], [0.36, Vector3(0.001, 1, 0.001)]])
 		_track(burst, "ShockRing:instance_shader_parameters/heat", [[0.0, 1.0], [0.35, 0.0]])
 		_track(ign, "ShockRing:scale", [[0.0, Vector3(0.2, 1, 0.2)], [IGNITE, Vector3(0.8, 1, 0.8)]])
 		_track(snf, "ShockRing:scale", [[0.0, Vector3(0.001, 1, 0.001)]])
@@ -552,6 +553,7 @@ func _dice_scenes() -> void:
 	_player(hh, {"hot_hand": fly})
 	_save(hh, V + "scenes/dice/hot_hand_demo.tscn")
 	# Ash demo: one stand-in with the ash material; the clips animate its instance uniforms.
+	# bust (default): ash 0 -> 1 -> 0 in 0.5 s, back to bone (the dice stay in the bag).
 	var ash := Node3D.new()
 	ash.name = "AshDieDemo"
 	var die := _standin(ash, "Die", load(V + "materials/ash_body.tres"))
@@ -566,11 +568,12 @@ func _dice_scenes() -> void:
 	_track(back, "Die:instance_shader_parameters/ash", [[0.0, 0.0], [0.12, 1.0], [0.4, 1.0], [0.5, 0.0]])
 	_track(back, "Die:instance_shader_parameters/dissolve", [[0.0, 0.0]])
 	_track(back, "Puff:emitting", [[0.0, true]])
-	var crumble := _clip(0.5)
-	_track(crumble, "Die:instance_shader_parameters/ash", [[0.0, 0.0], [0.12, 1.0]])
-	_track(crumble, "Die:instance_shader_parameters/dissolve", [[0.0, 0.0], [0.3, 0.0], [0.5, 1.0]])
-	_track(crumble, "Puff:emitting", [[0.0, true]])
-	_player(ash, {"RESET": reset, "bust_ash": back, "bust_crumble": crumble})
+	# Not a bust: only a Cracked die that shatters crumbles away (design section 6).
+	var shatter := _clip(0.5)
+	_track(shatter, "Die:instance_shader_parameters/ash", [[0.0, 0.0], [0.12, 1.0]])
+	_track(shatter, "Die:instance_shader_parameters/dissolve", [[0.0, 0.0], [0.3, 0.0], [0.5, 1.0]])
+	_track(shatter, "Puff:emitting", [[0.0, true]])
+	_player(ash, {"RESET": reset, "bust": back, "cracked_shatter": shatter})
 	_save(ash, V + "scenes/dice/ash_die_demo.tscn")
 
 
@@ -710,12 +713,12 @@ func _props() -> void:
 	var body: Node3D = r[1]
 	var na := Marker3D.new()
 	na.name = "NumberAnchor"
-	na.transform = Transform3D(Basis(Vector3.RIGHT, Vector3(0, 0, -1), Vector3.UP), Vector3(0, 0.0086, 0))
+	na.transform = Transform3D(Basis(Vector3.RIGHT, Vector3(0, 0, -1), Vector3.UP), Vector3(0, 0.006, 0))
 	body.add_child(na)
-	var flare := _quad(root, "Flare", load(V + "materials/fire_ring.tres"), Vector2(0.16, 0.16), Vector3(0, 0.001, 0), true)
+	var flare := _quad(root, "Flare", load(V + "materials/fire_ring.tres"), Vector2(0.13, 0.13), Vector3(0, 0.001, 0), true)
 	flare.set_instance_shader_parameter("heat", 0.0)
 	_particles(root, "Sparks", "fire_spark", 12, 0.35, Vector2(1, 1), {"one_shot": true, "expl": 1.0,
-		"box": Vector3(0.03, 0.002, 0.03), "at": Vector3(0, 0.005, 0), "vel": Vector2(0.3, 0.6), "spread": 75.0,
+		"box": Vector3(0.024, 0.002, 0.024), "at": Vector3(0, 0.004, 0), "vel": Vector2(0.3, 0.6), "spread": 75.0,
 		"gravity": -1.2, "scale": Vector2(0.01, 0.016), "ramp": [1.0, 1.0, 0.5, 0.0]})
 	reset = _clip(0.001)
 	_track(reset, "Body:position", [[0.0, Vector3.ZERO]])

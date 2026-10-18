@@ -18,7 +18,7 @@ the glbs (the clips are in the scenes). Each scene is `Root -> Body (animated) -
 | `wax_stamp_shards.glb` | the seal in 7 jagged shards (`Shard0..6`, origins at the shard centres) | 1,012 | wax, wax_letter |
 | `soul_flask.glb` | 0.094 m round flask: glass, Soul liquid, cork, brass collar | 1,014 | soul_glass, soul_liquid, cork, brass |
 | `ember_pile.glb` | 0.06 m pile of 9 faceted coal lumps with hot faces | 720 | coal, ember_hot |
-| `mult_chip.glb` | red Mult chip 0.068 x 0.009 m (a hero size; game chips are 0.055 x 0.006) | 448 | mult_body, mult_inlay |
+| `mult_chip.glb` | red Mult chip 0.055 x 0.006 m, the in-game chip size (`chip_3d.gd`), so it stacks with the bet chips | 448 | mult_body, mult_inlay |
 
 | Scene | Clips (s) | Particles | Hooks |
 |---|---|---|---|
@@ -27,11 +27,15 @@ the glbs (the clips are in the scenes). Each scene is `Root -> Body (animated) -
 | `scenes/soul_flask.tscn` | crack 0.35 (shake, cracks spread, drips start), drip (loop) | 6 | instance `fill` 0..1 on `Body/Model/SoulFlask` = Soul level; `crack` 0..1 |
 | `scenes/soul_flask_cracked.tscn` | the cracked state, autoplays `drip` | 6 | same |
 | `scenes/ember_pile.tscn` | idle (loop, autoplay), collect 0.2 (embers arrive), pickup 0.35 | 16 | play `collect` per ember batch; instance `heat` on `Body/Model/EmberPile` |
-| `scenes/mult_chip.tscn` | slam 0.30 (drops, squashes, flare ring, sparks) | 12 | label on `Body/NumberAnchor` (+Z = up, +X = right, reads upright from the player); Hot Hand chips stack 0.0095 m apart |
+| `scenes/mult_chip.tscn` | slam 0.30 (drops, squashes, flare ring, sparks) | 12 | label on `Body/NumberAnchor` (+Z = up, +X = right, reads upright from the player); Hot Hand chips stack 0.0065 m apart |
 
 Materials (`materials/`): toon_noir for wax, wax_letter (Brass hi), cork, brass, coal (ember rim) and
 mult_body (toon chip mode: hellfire red `#C8281E`, Bone notches, Brass hi ring), mult_inlay (Oxblood);
 `soul_glass` / `soul_liquid` / `ember_hot` use the Bonfire shaders. Ink hulls: `prop_ink_mode0/1`.
+Confirmed in design/bonfire_map_events_juice.md section 6: the CLAIMED stamp and the Soul flask are 3D
+table props (not HUD), ember pickup and ember pile are this one asset (idle, collect, pickup), and the
+Mult chip is the in-game 0.055 m chip.
+
 Soul cyan is on the flask only: it is the Soul meter, the player's colour.
 
 **UVs:** Smart UV Project with 2% margin. There are no textures; all the looks are shader colour.

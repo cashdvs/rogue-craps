@@ -29,24 +29,24 @@ Regenerate everything (materials and scenes are generated; the shaders are hand-
   `scenes/fire/cpu/*_cpu.tscn` with the same node names and clips. Use the CPU copies if
   GPU particles are a problem on a target (old GLES3 / Compatibility devices). Other scenes can be
   converted the same way (`CPUParticles3D.convert_from_particles`, as `make_bonfire_vfx.gd` does).
-- No light nodes. Fire "light" is HDR colour that blooms with the table's glow (threshold 1.0).
+- No light nodes. Fire "light" is HDR colour that blooms with the table's glow (threshold 1.0); bloom only, confirmed in design section 6.
 
 ## Contents and budgets
-Particle counts are per die (worst case is 5 dice).
+Particle counts are per die (worst case is 5 dice), except tier 4: **one** pillar per potted group.
 
 | Scene | What | Particles | Other | Clips (s) |
 |---|---|---|---|---|
 | `scenes/fire/fire_tier_1_embers.tscn` | score < 100: ember sparks rising off the die | 12 | | burst 0.8, ignite 0.12, snuff 0.2 |
 | `scenes/fire/fire_tier_2_flames.tscn` | 100-299: flames licking off the top face | 18 | | burst 1.0, ignite, snuff |
 | `scenes/fire/fire_tier_3_inferno.tscn` | 300-999: hellfire-red inferno wrapping the die | 40 | | burst 1.2, ignite, snuff |
-| `scenes/fire/fire_tier_4_pillar.tscn` | 1000+: a 0.62 m pillar of fire + spark fountain + felt shockwave | 42 | 2 open cylinders (64 tris), 1 quad | burst 1.8, ignite, snuff |
+| `scenes/fire/fire_tier_4_pillar.tscn` | 1000+: ONE central 0.85 m pillar of fire over the whole potted group (origin = group centre on the felt), a flame bed across the group, spark fountain and felt shockwave. The dice keep tier 3 per die | 56 per group (+ 5 x 40 inferno = 256 worst case) | 2 open cylinders (64 tris), 1 quad | burst 1.8, ignite, snuff |
 | `scenes/fire/cpu/*_cpu.tscn` | CPU fallback of each tier | same | | same |
 | `scenes/dice/potted_die_rig.tscn` | one potted die: lift, pop, glowing face and felt pool | 0 | 2 quads | lift_light 0.24, hold 0.6 (loop), drop 0.15 |
 | `scenes/dice/potted_dice_demo.tscn` | 5 rigs (stand-in dice), staggered | 0 | | pot_sequence_normal 0.56, pot_sequence_big 0.80 |
 | `scenes/dice/hot_hand_ignite.tscn` | Hot Hand ignite burst on one die | 22 | 1 quad | ignite 0.35 |
 | `scenes/dice/fire_trail.tscn` | fire trail component (world-space particles) | 54 | | start, stop |
 | `scenes/dice/hot_hand_demo.tscn` | 5 dice ignite and fly back to the hand trailing fire | 5 x 76 | | hot_hand 1.0 |
-| `scenes/dice/ash_die_demo.tscn` | the ash dice material on a stand-in + smoke puff | 8 | | bust_ash 0.5, bust_crumble 0.5 |
+| `scenes/dice/ash_die_demo.tscn` | the ash dice material on a stand-in + smoke puff | 8 | | bust 0.5 (default: ash 0 -> 1 -> 0, back to bone), cracked_shatter 0.5 (Cracked die only) |
 
 The stand-in dice in the demos are plain boxes; the real dice are `bone_d6.glb` (art/bone-d6-model).
 
@@ -63,7 +63,12 @@ or animate `instance_shader_parameters/<name>`). All Bonfire shaders include
 `shaders/bonfire_instance.gdshaderinc`, which declares them in the same order (Godot shares one
 instance block per node): `heat`, `glow`, `ash`, `dissolve`, `crack`, `fill`.
 
-- **Fire tier on a die:** instance the tier scene as a sibling of the die (or a child with
+- **Tier 4 pillar (one per score, not per die):** instance `fire_tier_4_pillar.tscn` once, at the
+  centre of the potted dice on the felt (y = 0): a `Marker3D` the dev owns, or the mean of the potted
+  dice positions with y = 0. It is sized for 5 dice across ~0.66 m; for a tighter or wider group scale
+  the root on X/Z (e.g. `scale = Vector3(spread / 0.66, 1, spread / 0.66)`). Play `burst` together with
+  `fire_tier_3_inferno` `burst` on each potted die (tiers 2-3 are per die).
+- **Fire tier on a die (tiers 1-3):** instance the tier scene as a sibling of the die (or a child with
   `top_level = true`) at the die's centre, kept upright. Then call `$AnimationPlayer.play("burst")` for
   the whole tier moment. To hold the fire for a custom time, call `play("ignite")` and later
   `play("snuff")`. `snuff` is also the bust "flames snuff out" (0.2 s). `local_coords` is on, so the
@@ -83,11 +88,13 @@ instance block per node): `heat`, `glow`, `ash`, `dissolve`, `crack`, `fill`.
   each flying die, play `start` when it launches and `stop` when it lands. Its particles are world-space,
   so they trail along whatever motion path the dev uses (the demo uses a 0.5 s arc). The demo
   shows the pacing.
-- **Ash dice (bust, 0.5 s):** on each die mesh, `set_surface_override_material(0, ash_body.tres)` and
+- **Ash dice (bust, 0.5 s). Default path: the dice go to ash and back to bone** (they stay in the
+  bag). On each die mesh, `set_surface_override_material(0, ash_body.tres)` and
   `(1, ash_pip.tres)` (bone_d6 slots: body, pips). Then tween instance `ash` 0 -> 1 over ~0.12 s, hold,
-  and either tween `ash` back to 0 (`bust_ash`: the die is reused) or tween `dissolve` 0 -> 1
-  (`bust_crumble`). Clear the overrides afterwards. At `ash` = 0 the material matches the bone die, so
-  the swap is invisible. The ember front on the spreading ash is part of the shader.
+  then tween `ash` back to 0 (clip `bust`: ash 0 -> 1 -> 0 inside 0.5 s).
+  **Cracked die shatters** (not a bust; only when a Cracked die breaks): same swap, tween `ash` to 1, then
+  `dissolve` 0 -> 1 (clip `cracked_shatter`); the die is gone afterwards.
+  Clear the overrides afterwards. At `ash` = 0 the material matches the bone die, so the swap is invisible. The ember front on the spreading ash is part of the shader.
 - **Combo banners:** colours below. The banner itself is the dev's UI.
 
 ## Combo banner palette (`palette/`)
@@ -98,8 +105,8 @@ tier: face, shade, ink/trim, glow). The swatches are drawn in `palette/combo_ban
 |---|---|---|---|---|---|
 | Bone white (Pair, Run of 3) | `#E8DCC0` | `#BFAF8E` | `#0E1414` | `#FFE2B0` | Bone, Bone shade, Pit Black, lamp bulb |
 | Ember orange (Two Pair, Trips, Run of 4) | `#E8622A` | `#A8401A` | `#0E1414` | `#F6A845` | Ember (style guide); shade/glow derived |
-| Hellfire red (Full House, Run of 5, Quads) | `#C8281E` | `#6E1A24` | `#0E1414` | `#E8622A` | **new** (no red in the style guide except DANGER, which is loss-only); Burgundy shade |
-| Black-gold (Five of a kind) | `#0E1414` | `#B08D3C` | `#E2C06A` | `#E2C06A` | Pit Black + Tarnished Brass / Brass hi |
+| Hellfire red (Full House, Run of 5, Quads) | `#C8281E` | `#6E1A24` | `#0E1414` | `#E8622A` | **new**, confirmed in design section 6 (DANGER `#FF2E3E` stays loss-only); Burgundy shade |
+| Black-gold (Five of a kind) | `#0E1414` | `#B08D3C` | `#E2C06A` | `#E2C06A` | Pit Black + Tarnished Brass / Brass hi (confirmed, section 6) |
 
 Text: Pit Black on bone and ember; Bone on hellfire; Brass hi on black-gold. Use Alfa Slab One with
 an ink outline (style guide).

@@ -16,7 +16,7 @@ const NORMAL_MAX: float = 1.2
 const BIG_MAX: float = 2.0
 const TIERS := {
 	1: ["fire_tier_1_embers", 0.8, 12], 2: ["fire_tier_2_flames", 1.0, 24],
-	3: ["fire_tier_3_inferno", 1.2, 48], 4: ["fire_tier_4_pillar", 1.8, 48],
+	3: ["fire_tier_3_inferno", 1.2, 48], 4: ["fire_tier_4_pillar", 1.8, 64],  # tier 4: ONE pillar per group
 }
 const INSTANCE_PARAMS: Array[String] = ["heat", "glow", "ash", "dissolve", "crack", "fill"]
 const PROP_TRIS := {"wax_stamp": 1500, "wax_stamp_shards": 1500, "soul_flask": 1500, "ember_pile": 1000, "mult_chip": 600}
@@ -85,6 +85,12 @@ func _test_fire_tiers() -> void:
 		_check(col != null and (col.mesh as CylinderMesh).height >= 0.5, "pillar: a fire column >= 0.5 m tall")
 		_check(col != null and _is_toon_fire(col.material_override), "pillar: column uses toon_fire")
 		_check(_tris(col.mesh) <= 64, "pillar: column <= 64 tris")
+		var pivot := pillar.get_node_or_null("ColumnPivot") as Node3D
+		_check(pivot != null and pivot.position.is_zero_approx(), "pillar: rises from the scene origin (the group centre on the felt)")
+		_check(col != null and (col.mesh as CylinderMesh).bottom_radius >= 0.12, "pillar: one central column wide enough for the potted group (not per die)")
+		var flames := pillar.get_node_or_null("Flames") as GPUParticles3D
+		var box: Vector3 = (flames.process_material as ParticleProcessMaterial).emission_box_extents if flames else Vector3.ZERO
+		_check(box.x >= 0.25, "pillar: flame bed spans the 5-dice group (half-width %.2f m)" % box.x)
 		pillar.free()
 
 
@@ -135,8 +141,21 @@ func _test_dice() -> void:
 	var ash := _load(V + "scenes/dice/ash_die_demo.tscn")
 	if ash:
 		var ap := ash.get_node("AnimationPlayer") as AnimationPlayer
-		for c in ["bust_ash", "bust_crumble"]:
+		for c in ["bust", "cracked_shatter"]:
 			_check(ap.has_animation(c) and is_equal_approx(ap.get_animation(c).length, 0.5), "ash demo: %s is 0.5 s" % c)
+		if ap.has_animation("bust"):
+			var b := ap.get_animation("bust")
+			var at := b.find_track(NodePath("Die:instance_shader_parameters/ash"), Animation.TYPE_VALUE)
+			var dt := b.find_track(NodePath("Die:instance_shader_parameters/dissolve"), Animation.TYPE_VALUE)
+			var peak := 0.0
+			for k in b.track_get_key_count(at):
+				peak = maxf(peak, b.track_get_key_value(at, k))
+			_check(peak >= 1.0 and is_zero_approx(b.value_track_interpolate(at, b.length)), "ash demo: bust goes ash 0 -> 1 -> 0 (returns to bone)")
+			_check(dt >= 0 and is_zero_approx(b.value_track_interpolate(dt, b.length)), "ash demo: bust never dissolves the die")
+		if ap.has_animation("cracked_shatter"):
+			var c := ap.get_animation("cracked_shatter")
+			var dt := c.find_track(NodePath("Die:instance_shader_parameters/dissolve"), Animation.TYPE_VALUE)
+			_check(dt >= 0 and is_equal_approx(c.value_track_interpolate(dt, c.length), 1.0), "ash demo: cracked_shatter dissolves the die away")
 		ash.free()
 
 
@@ -180,7 +199,7 @@ func _test_props() -> void:
 			"soul_flask":
 				_check(aabb.size.y <= 0.1, "soul flask: <= 0.10 m tall (%.3f)" % aabb.size.y)
 			"mult_chip":
-				_check(absf(aabb.size.x - 0.068) < 0.001 and absf(aabb.size.y - 0.009) < 0.0005, "mult chip: 0.068 x 0.009 m")
+				_check(absf(aabb.size.x - 0.055) < 0.001 and absf(aabb.size.y - 0.006) < 0.0005, "mult chip: 0.055 x 0.006 m (in-game chip size)")
 			"ember_pile":
 				_check(aabb.size.x < 0.07 and aabb.size.y < 0.04, "ember pile: fits a 0.07 m footprint")
 		root.free()
@@ -195,7 +214,7 @@ func _test_props() -> void:
 			"%s: %s <= %.2f s" % [s, clips[s][0], clips[s][1]])
 		if s == "mult_chip":
 			var na := root.get_node_or_null("Body/NumberAnchor") as Node3D
-			_check(na != null and na.basis.z.is_equal_approx(Vector3.UP) and na.position.y > 0.008, "mult chip: NumberAnchor on the top, facing up")
+			_check(na != null and na.basis.z.is_equal_approx(Vector3.UP) and na.position.y >= 0.0055 and na.position.y <= 0.0065, "mult chip: NumberAnchor on the top, facing up")
 		root.free()
 	var cracked := _load(P + "scenes/soul_flask_cracked.tscn")
 	if cracked:

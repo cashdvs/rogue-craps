@@ -7,18 +7,18 @@
 [ext_resource type="Material" path="res://art/vfx/bonfire/materials/fire_ring.tres" id="5_camrv"]
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_k2gu7"]
-top_radius = 0.03
-bottom_radius = 0.065
-height = 0.62
+top_radius = 0.05
+bottom_radius = 0.15
+height = 0.85
 radial_segments = 16
 rings = 1
 cap_top = false
 cap_bottom = false
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_r55qs"]
-top_radius = 0.012
-bottom_radius = 0.04
-height = 0.5
+top_radius = 0.02
+bottom_radius = 0.09
+height = 0.7
 radial_segments = 16
 rings = 1
 cap_top = false
@@ -26,7 +26,7 @@ cap_bottom = false
 
 [sub_resource type="QuadMesh" id="QuadMesh_chfv0"]
 material = ExtResource("3_rdrxu")
-size = Vector2(0.09, 0.14)
+size = Vector2(0.12, 0.2)
 
 [sub_resource type="Gradient" id="Gradient_n5kio"]
 offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
@@ -40,7 +40,7 @@ offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.6, 1, 1, 1, 0)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_necam"]
-size = Vector2(0.3, 0.3)
+size = Vector2(0.8, 0.8)
 
 [sub_resource type="Animation" id="Animation_thnhu"]
 length = 0.001
@@ -261,7 +261,7 @@ tracks/8/keys = {
 "times": PackedFloat32Array(0, 0.35, 0.36),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 0,
-"values": [Vector3(0.2, 1, 0.2), Vector3(1.6, 1, 1.6), Vector3(0.001, 1, 0.001)]
+"values": [Vector3(0.2, 1, 0.2), Vector3(1.3, 1, 1.3), Vector3(0.001, 1, 0.001)]
 }
 tracks/9/type = "value"
 tracks/9/imported = false
@@ -482,71 +482,69 @@ _data = {
 &"snuff": SubResource("Animation_ossqy")
 }
 
-[node name="FireTier4Pillar" type="Node3D" unique_id=2073726642]
+[node name="FireTier4Pillar" type="Node3D" unique_id=1552601339]
 
-[node name="ColumnPivot" type="Node3D" parent="." unique_id=1213063368]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+[node name="ColumnPivot" type="Node3D" parent="." unique_id=2118608067]
 
-[node name="Column" type="MeshInstance3D" parent="ColumnPivot" unique_id=1725294159]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 0)
+[node name="Column" type="MeshInstance3D" parent="ColumnPivot" unique_id=1691813298]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.425, 0)
 material_override = ExtResource("1_a2v17")
 cast_shadow = 0
 mesh = SubResource("CylinderMesh_k2gu7")
 
-[node name="ColumnCorePivot" type="Node3D" parent="." unique_id=870519104]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+[node name="ColumnCorePivot" type="Node3D" parent="." unique_id=2346988]
 
-[node name="ColumnCore" type="MeshInstance3D" parent="ColumnCorePivot" unique_id=1055300690]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+[node name="ColumnCore" type="MeshInstance3D" parent="ColumnCorePivot" unique_id=353588401]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
 material_override = ExtResource("2_35xpu")
 cast_shadow = 0
 mesh = SubResource("CylinderMesh_r55qs")
 
-[node name="Flames" type="CPUParticles3D" parent="." unique_id=1166115862]
+[node name="Flames" type="CPUParticles3D" parent="." unique_id=972035007]
 cast_shadow = 0
 emitting = false
-amount = 18
-lifetime = 0.5
+amount = 24
+lifetime = 0.55
 fixed_fps = 30
-visibility_aabb = AABB(-0.35, -0.1, -0.35, 0.7, 1.1, 0.7)
+visibility_aabb = AABB(-0.8, -0.1, -0.8, 1.6, 1.8, 1.6)
 local_coords = true
 mesh = SubResource("QuadMesh_chfv0")
 emission_shape = 3
-emission_box_extents = Vector3(0.05, 0.02, 0.05)
+emission_box_extents = Vector3(0.3, 0.02, 0.09)
 direction = Vector3(0, 1, 0)
-spread = 15.0
+spread = 12.0
 gravity = Vector3(0, 0, 0)
-initial_velocity_min = 0.1
-initial_velocity_max = 0.25
+initial_velocity_min = 0.12
+initial_velocity_max = 0.3
 scale_amount_min = 0.8
 scale_amount_max = 1.3
 color_ramp = SubResource("Gradient_n5kio")
 
-[node name="Sparks" type="CPUParticles3D" parent="." unique_id=1365594783]
+[node name="Sparks" type="CPUParticles3D" parent="." unique_id=1262646954]
 cast_shadow = 0
 emitting = false
-amount = 24
-lifetime = 0.8
+amount = 32
+lifetime = 0.9
 fixed_fps = 30
-visibility_aabb = AABB(-0.35, -0.1, -0.35, 0.7, 1.1, 0.7)
+visibility_aabb = AABB(-0.8, -0.1, -0.8, 1.6, 1.8, 1.6)
 local_coords = true
 mesh = SubResource("QuadMesh_7e48l")
 emission_shape = 3
-emission_box_extents = Vector3(0.04, 0.05, 0.04)
+emission_box_extents = Vector3(0.2, 0.06, 0.08)
 direction = Vector3(0, 1, 0)
 spread = 20.0
 gravity = Vector3(0, -0.6, 0)
-initial_velocity_min = 0.5
-initial_velocity_max = 1.1
-scale_amount_min = 0.012
-scale_amount_max = 0.022
+initial_velocity_min = 0.6
+initial_velocity_max = 1.3
+scale_amount_min = 0.018
+scale_amount_max = 0.03
 color_ramp = SubResource("Gradient_dd4yf")
 
-[node name="ShockRing" type="MeshInstance3D" parent="." unique_id=256539413]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.038, 0)
+[node name="ShockRing" type="MeshInstance3D" parent="." unique_id=945286737]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, 0)
 material_override = ExtResource("5_camrv")
 cast_shadow = 0
 mesh = SubResource("PlaneMesh_necam")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1606704183]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1142488781]
 libraries/ = SubResource("AnimationLibrary_oqwyx")

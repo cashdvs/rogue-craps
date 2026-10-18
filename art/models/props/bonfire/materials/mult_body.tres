@@ -37,4 +37,4 @@ shader_parameter/scorch = null
 shader_parameter/chip_mode = true
 shader_parameter/notch_color = Color(0.9098039, 0.8627451, 0.7529412, 1)
 shader_parameter/ring_color = Color(0.8862745, 0.7529412, 0.41568628, 1)
-shader_parameter/chip_radius = 0.034
+shader_parameter/chip_radius = 0.0275

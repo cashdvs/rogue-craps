@@ -140,18 +140,18 @@ tracks/2/keys = {
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_fai00"]
 _data = {
 &"RESET": SubResource("Animation_fqn6a"),
-&"bust_ash": SubResource("Animation_ijnwc"),
-&"bust_crumble": SubResource("Animation_wim4h")
+&"bust": SubResource("Animation_ijnwc"),
+&"cracked_shatter": SubResource("Animation_wim4h")
 }
 
-[node name="AshDieDemo" type="Node3D" unique_id=1803057185]
+[node name="AshDieDemo" type="Node3D" unique_id=588982510]
 
-[node name="Die" type="MeshInstance3D" parent="." unique_id=314652014]
+[node name="Die" type="MeshInstance3D" parent="." unique_id=1201962287]
 material_override = ExtResource("1_ienal")
 instance_shader_parameters/ash = 0.0
 mesh = SubResource("BoxMesh_of1d6")
 
-[node name="Puff" type="GPUParticles3D" parent="." unique_id=1996649830]
+[node name="Puff" type="GPUParticles3D" parent="." unique_id=32790830]
 cast_shadow = 0
 emitting = false
 lifetime = 0.5
@@ -162,5 +162,5 @@ local_coords = true
 process_material = SubResource("ParticleProcessMaterial_05je6")
 draw_pass_1 = SubResource("QuadMesh_abelq")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1177712231]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1495557457]
 libraries/ = SubResource("AnimationLibrary_fai00")
