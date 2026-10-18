@@ -1,53 +1,63 @@
 # Reviewing PRs: Dice of the Damned (repo: rogue-craps)
 
-The reviewer (PM, with QA support) works through this checklist for every PR. Contributor rules live in
-**AGENTS.md**; if this file and AGENTS.md disagree, AGENTS.md wins and a follow-up PR fixes this file.
+The reviewer (PM, with QA support) works through this checklist for every PR.
+**AGENTS.md is the source of truth** for contributor rules (with CONTRIBUTING.md and
+docs/MODULES.md). If this file disagrees with them, AGENTS.md wins and a follow-up PR fixes this file.
 
-> Assumptions (AGENTS.md was not in the repo or any branch when this was written): module names come
-> from the README "Layout" section, tests follow the existing `tests/test_*.gd` / `tests/qa_/qa_*.gd`
-> convention, and history is linear (no merge commits). Re-align once AGENTS.md lands.
-
-## Modules (for "stays in its module" and the 2-module rule)
-`scripts/core` (pure rules) · `scripts/data` (+ `resources/`) · `scripts/table` (POC table scene) ·
-`scripts/table3d` · `scripts/audio` · `scripts/ui` (greybox) · `shaders/` · `tools/` · `tests/`.
-Tests for the module being changed don't count as a second module.
+## Modules
+"Module" means a **feature module in [docs/MODULES.md](docs/MODULES.md)**: Dice physics, Betting, Soul,
+Table rules, Dealer, Shop, Map/events, Bosses, UI, Audio, Art import, QA, Tools/CI. Use its "Owns" and
+"Planned paths" columns to decide which module a file belongs to.
+- A module's own tests count as part of that module.
+- **Shared files** (`project.godot`, `run_tests.sh`, `.github/`, `scripts/data/tuning_data.gd`,
+  `resources/tuning/poc_tuning.tres`) belong to Tiny Anvil core. A small, declared addition (e.g. one
+  new `TuningData` export for the PR's module) doesn't count as an extra module. Anything more does.
+- `scripts/table/table_scene.gd` is shared by several modules: keep edits small and mention them in the PR.
 
 ## 1. Gate checks (all must pass)
-- [ ] CI is green, if a workflow exists (there's no `.github/workflows` yet, so the local run is the gate).
-- [ ] On the PR head, in a clean worktree: `./run_tests.sh` exits 0, including `tests/qa_/qa_*.gd`.
+- [ ] **CI green:** the required `tests` check passes once the workflow is live in `.github/workflows/`.
+      Until then, the gate is a local run: `./run_tests.sh` exits 0 on the PR head in a clean
+      worktree (it includes `tests/qa_/qa_*.gd`).
 - [ ] `godot --headless --path . --quit-after 300` prints no script errors, warnings or crashes.
 - [ ] No new `push_error`/`WARNING` output in the test run beyond what tests trigger on purpose.
 
 ## 2. Conformance
-- [ ] Follows AGENTS.md (naming, layout, commit/PR rules).
-- [ ] Stays within the module(s) the PR description claims.
-- [ ] Behavior changes come with tests: rules → `tests/test_*.gd`; scenes → scene smoke/input tests.
-      `tests/qa_/` belongs to QA; contributors may add to it but not weaken existing checks.
+- [ ] Follows AGENTS.md (conventions, folder layout, PR rules) and fills in the PR template.
+- [ ] Stays within the module(s) it claims (see Modules above).
+- [ ] Behavior changes come with tests in `tests/test_*.gd` (scenes: smoke/input tests).
+- [ ] **`tests/qa_/`:** contributors may **add** checks there, but must never weaken or remove an
+      existing one (no loosened tolerances, deleted checks, or skipped scripts). QA owns the folder.
+- [ ] Doesn't edit the mirrored docs in `docs/design/` or `docs/art/` (open an issue instead).
 - [ ] Small and focused: one concern, roughly ≤ 400 changed lines of code (excluding generated
-      `.uid`/`.tres`/`.import` files). Larger PRs get split unless AGENTS.md says otherwise.
-- [ ] Commit messages say what changed and why. No unrelated reformatting.
+      `.uid`/`.tres`/`.import`). Clean commit messages, no unrelated reformatting.
 
 ## 3. Gameplay and feel changes
-- [ ] Play-check headlessly: scripted input like `tests/qa_/qa_input_edges.gd` (real InputEvents via
-      `Input.parse_input_event`) and seeded sims like `tests/qa_/qa_craps_stats.gd`.
-- [ ] Rule/odds changes: rerun the seeded sim; results stay within 3 SE of the expected rates.
+- [ ] Play-check headlessly: scripted input like `tests/qa_/qa_input_edges.gd` and seeded sims like
+      `tests/qa_/qa_craps_stats.gd`. Rule/odds changes: rerun the sim (within 3 SE of the expected rates).
 - [ ] List in the review what still needs a human to play: flick thresholds, timings, shake/hit-stop,
-      readability, audio, difficulty curve.
+      readability, audio, difficulty.
 
 ## 4. Outcome
-- **Clean PR:** approve, then merge with **rebase / fast-forward** (history is linear, no merge commits).
+- **Clean PR:** approve and merge.
+  - **Outside contributors' PRs: squash merge.**
+  - **Team bots' PRs: rebase / fast-forward** (keeps their commits; history stays linear).
+- **Self-merge:** the team's own bots may self-merge **docs-only or trivial** PRs (typos, comments,
+  README/docs fixes, no code or config behavior change) once tests pass. Anything in §5 is never
+  self-merged.
 - **Otherwise:** request changes. Every comment gives `file:line`, what is wrong, why, and a concrete fix.
 
 ## 5. Escalate to PM, do NOT merge, when a PR:
-- changes core rules or balance: Soul formulas, payouts/odds, roll limits, targets, `tuning_data.gd`
+- changes core rules or balance: Soul formulas, payouts/odds, roll limits, targets, `TuningData`
   defaults or `resources/tuning/*.tres`;
-- touches more than 2 modules (see the list above);
-- changes CI or repo config: workflows, `run_tests.sh`, `project.godot`, export presets, `.gitignore`,
-  `AGENTS.md`, `REVIEWING.md`;
+- touches **more than 2 feature modules** (per docs/MODULES.md, shared-file rule above);
+- changes CI or repo config: `.github/` (workflows, CODEOWNERS, templates), `run_tests.sh`,
+  `project.godot`, export presets, `.gitignore`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/MODULES.md`,
+  `REVIEWING.md`;
 - adds dependencies/addons/plugins, or large assets (> 1 MB per file, or any binary).
 
 ## 6. Safety (any hit = request changes, and escalate if it looks deliberate)
 - [ ] No secrets, tokens, keys or credentials (including in `.tres`, `.cfg` and export presets).
-- [ ] No network, HTTP, telemetry, analytics or auto-update code (`HTTPRequest`, `StreamPeer*`, `OS.shell_*`/`OS.execute`).
-- [ ] No unexplained binaries or executables. Every asset has its source and a compatible license
-      next to it (like `fonts/`), and the PR description credits it.
+- [ ] No network, HTTP, telemetry, analytics or auto-update code (`HTTPRequest`, `StreamPeer*`,
+      `OS.execute`/shell calls).
+- [ ] No unexplained binaries or executables. Every asset has its source and a compatible license next
+      to it (like `fonts/`), and the PR description credits it.
