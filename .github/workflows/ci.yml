@@ -17,7 +17,7 @@ concurrency:
 env:
   GODOT_VERSION: "4.7.2"
   # Scene for the "table scene smoke test" step (runs it directly, bypassing the boot splash).
-  TABLE_SCENE: res://scenes/table_3d.tscn
+  TABLE_SCENE: res://scenes/burn_line.tscn
   GODOT_DIR: ${{ github.workspace }}/../godot
 
 jobs:
