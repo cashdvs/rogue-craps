@@ -28,7 +28,7 @@ signal cue(event: StringName)
 ## Emitted right before the scene changes.
 signal finished(skipped: bool)
 
-const DEFAULT_NEXT_SCENE: String = "res://scenes/table.tscn"
+const DEFAULT_NEXT_SCENE: String = "res://scenes/table_3d.tscn"
 ## project.godot setting with the scene to open after the splash.
 const NEXT_SCENE_SETTING: String = "boot/next_scene"
 const SFX_DIR: String = "res://audio/sfx/"

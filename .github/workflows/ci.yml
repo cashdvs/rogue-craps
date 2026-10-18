@@ -17,8 +17,7 @@ concurrency:
 env:
   GODOT_VERSION: "4.7.2"
   # Scene for the "table scene smoke test" step (runs it directly, bypassing the boot splash).
-  # Switch to res://scenes/table_3d.tscn once the 3D table is on main.
-  TABLE_SCENE: res://scenes/table.tscn
+  TABLE_SCENE: res://scenes/table_3d.tscn
   GODOT_DIR: ${{ github.workspace }}/../godot
 
 jobs:
