@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BetCatalog" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bet_type.gd" id="1_n1p3o"]
+[ext_resource type="Resource" path="res://resources/bets/pass.tres" id="2_w6wi6"]
+[ext_resource type="Resource" path="res://resources/bets/field.tres" id="3_lbb2f"]
+[ext_resource type="Resource" path="res://resources/bets/hard_8.tres" id="4_k54h2"]
+[ext_resource type="Script" path="res://scripts/data/bet_catalog.gd" id="5_4g77k"]
+
+[resource]
+script = ExtResource("5_4g77k")
+bets = Array[ExtResource("1_n1p3o")]([ExtResource("2_w6wi6"), ExtResource("3_lbb2f"), ExtResource("4_k54h2")])

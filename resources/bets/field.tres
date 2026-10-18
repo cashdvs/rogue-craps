@@ -6,5 +6,11 @@
 script = ExtResource("1_oumd2")
 id = &"field"
 display_name = "Field"
-unlock_cost = 50
-description = "One-roll bet: wins on 2, 3, 4, 9, 10, 11, 12. (Shop unlock; logic not implemented yet.)"
+rule = 2
+payout_overrides = Dictionary[int, Vector2i]({
+2: Vector2i(2, 1),
+12: Vector2i(3, 1)
+})
+winning_totals = Array[int]([2, 3, 4, 9, 10, 11, 12])
+unlock_cost = 20
+description = "One roll: wins on 2, 3, 4, 9, 10, 11, 12. Pays 1:1, but 2 pays 2:1 and 12 pays 3:1."
