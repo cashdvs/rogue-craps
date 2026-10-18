@@ -7,3 +7,4 @@ script = ExtResource("1_ms0th")
 id = &"mirror"
 display_name = "Mirror Die"
 description = "After landing, copies the face of the nearest die."
+faces = Array[int]([1, 2, 3, 4, 5, 6])

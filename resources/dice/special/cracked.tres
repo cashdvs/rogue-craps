@@ -7,3 +7,4 @@ script = ExtResource("1_025nr")
 id = &"cracked"
 display_name = "Cracked Die"
 description = "x2 mult on its pot; 1 in 6 chance it shatters after scoring."
+faces = Array[int]([1, 2, 3, 4, 5, 6])

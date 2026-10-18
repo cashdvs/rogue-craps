@@ -8,3 +8,4 @@ id = &"wanderer"
 display_name = "Wanderer Die"
 description = "A run containing it may skip one value."
 price = 18
+faces = Array[int]([1, 2, 3, 4, 5, 6])

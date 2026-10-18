@@ -7,3 +7,4 @@ script = ExtResource("1_3vydr")
 id = &"extra"
 display_name = "Extra Die"
 description = "A plain Bone die that adds +1 die to your handful (max 7)."
+faces = Array[int]([1, 2, 3, 4, 5, 6])
