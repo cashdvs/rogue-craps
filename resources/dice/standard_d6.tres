@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="DieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_face.gd" id="1_1dbb0"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_1bf8o"]
+
+[sub_resource type="Resource" id="Resource_vbsu2"]
+script = ExtResource("1_1dbb0")
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_5r8tm"]
+script = ExtResource("1_1dbb0")
+value = 2
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ipo62"]
+script = ExtResource("1_1dbb0")
+value = 3
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_5qhgd"]
+script = ExtResource("1_1dbb0")
+value = 4
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_rbfib"]
+script = ExtResource("1_1dbb0")
+value = 5
+tags = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_g70om"]
+script = ExtResource("1_1dbb0")
+value = 6
+tags = PackedStringArray()
+
+[resource]
+script = ExtResource("2_1bf8o")
+display_name = "Standard Die"
+faces = Array[ExtResource("1_1dbb0")]([SubResource("Resource_vbsu2"), SubResource("Resource_5r8tm"), SubResource("Resource_ipo62"), SubResource("Resource_5qhgd"), SubResource("Resource_rbfib"), SubResource("Resource_g70om")])
+ability_description = "No ability. Honest as they come."

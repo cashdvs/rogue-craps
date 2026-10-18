@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_1bdjo"]
+
+[resource]
+script = ExtResource("1_1bdjo")
+id = &"rabbits_foot"
+display_name = "Rabbit's Foot"
+description = "The first seven-out each floor is ignored. (Logic not implemented yet.)"
+hook_ids = Array[StringName]([&"on_seven_out"])

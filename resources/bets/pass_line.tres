@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="BetType" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bet_type.gd" id="1_r4qed"]
+
+[resource]
+script = ExtResource("1_r4qed")
+id = &"pass_line"
+display_name = "Pass Line"
+description = "Wins on a come-out 7 or 11, or when the Point is hit. Loses on 2, 3, 12, or a seven-out."

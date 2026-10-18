@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BetType" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bet_type.gd" id="1_oumd2"]
+
+[resource]
+script = ExtResource("1_oumd2")
+id = &"field"
+display_name = "Field"
+unlock_cost = 50
+description = "One-roll bet: wins on 2, 3, 4, 9, 10, 11, 12. (Shop unlock; logic not implemented yet.)"
