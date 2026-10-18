@@ -110,11 +110,13 @@ rejected. Only the `N passed, M failed` summaries and the exit code matter.
 ## 4. Folder map (as of `main`)
 
 ```
-project.godot            Godot project "Dice of the Damned" (main scene: res://scenes/table_3d.tscn;
+project.godot            Godot project "Dice of the Damned" (main scene: res://scenes/studio_splash.tscn,
+                         the boot splash, which then opens [boot] next_scene = res://scenes/table_3d.tscn;
                          Forward+ renderer, Mobile renderer on mobile; Jolt Physics at 120 Hz)
 run_tests.sh             Runs tests/test_*.gd and tests/qa_/qa_*.gd headless
-scenes/                  table_3d.tscn (3D POC table, main scene), table.tscn (2D POC table,
-                         reference), greybox.tscn (old debug screen)
+scenes/                  table_3d.tscn (3D POC table), table.tscn (2D POC table, reference),
+                         studio_splash.tscn (Tiny Anvil Games boot splash, main scene),
+                         greybox.tscn (old debug screen)
 scripts/data/            Resource classes (data definitions): DieFace, DieData, BetType,
                          BetCatalog, TuningData, TableRuleData
 scripts/core/            Pure game logic, no nodes (RefCounted): DiceRoller, CrapsRound,
@@ -129,6 +131,8 @@ scripts/table/           2D table scene views (some reused by the 3D table's HUD
                          dealer_bubble, table_painter, rule_plaque, shake_camera, palette
 scripts/audio/           SfxSynth (procedural sounds) + SfxManager (prefers audio/sfx/<event>.wav)
 scripts/ui/              greybox.gd
+scripts/splash/          studio_splash.gd (timeline player), splash_state.gd (SplashState autoload)
+assets/branding/studio/  Studio logo layers + splash_timings.json motion spec (Art Director)
 resources/tuning/        poc_tuning.tres: ALL the table numbers
 resources/bets/          pass/field/any_craps.tres + bet_catalog.tres
 resources/dice/          standard_d6.tres
