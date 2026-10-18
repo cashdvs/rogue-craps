@@ -26,7 +26,7 @@ func _frames(n: int) -> void:
 
 func _run() -> void:
 	check(str(ProjectSettings.get_setting("boot/next_scene", "")) == "res://scenes/title.tscn", "splash continues to the title")
-	check(TitleScreen.play_scene_path() == "res://scenes/bonfire.tscn", "Play target is Bonfire")
+	check(TitleScreen.play_scene_path() == "res://scenes/run.tscn", "Play target is the run (map) scene")
 	var t := (load("res://scenes/title.tscn") as PackedScene).instantiate() as TitleScreen
 	root.add_child(t)
 	current_scene = t
