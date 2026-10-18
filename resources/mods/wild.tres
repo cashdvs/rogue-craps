@@ -8,3 +8,4 @@ id = &"wild"
 display_name = "Wild Face"
 description = "Counts as any value."
 effect = 1
+price = 9

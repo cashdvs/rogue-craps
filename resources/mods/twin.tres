@@ -8,3 +8,4 @@ id = &"twin"
 display_name = "Twin Face"
 description = "Counts as two dice of its value."
 effect = 2
+price = 9
