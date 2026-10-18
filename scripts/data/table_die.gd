@@ -12,6 +12,18 @@ var faces: Array[int] = [1, 2, 3, 4, 5, 6]
 var weights: Array[float] = []
 ## Face mod per face slot (FaceModData or null), same length as faces.
 var mods: Array = [null, null, null, null, null, null]
+## Special die kind (RunDie.special_id: &"mirror", &"cracked", ...; &"" =
+## a plain die). Scoring specials live in BonfireScoring, table-side ones in
+## TableRules.DIE_SCRIPTS. All special dice have plain 1-6 faces.
+var special: StringName = &""
+## Unique per run die (e.g. &"cracked_5"; set by the run). `id` stays the
+## die type. TableOutcome.shattered_dice lists this (id if empty).
+var run_die_id: StringName = &""
+
+
+## The id the run knows this die by: run_die_id, else id.
+func key() -> StringName:
+	return run_die_id if run_die_id != &"" else id
 
 
 func _init(die_id: StringName = &"bone", name: String = "Bone") -> void:
@@ -44,8 +56,10 @@ func slot_for_value(value: int) -> int:
 
 ## A plain Bone die with face mods by id per face (RunDie.faces style:
 ## &"" = plain), looked up in `library` (e.g. RunData.face_mods).
-static func from_mod_ids(mod_ids: Array, library: Array, die_id: StringName = &"bone", name: String = "Bone") -> TableDie:
+static func from_mod_ids(mod_ids: Array, library: Array, die_id: StringName = &"bone", name: String = "Bone",
+		special_id: StringName = &"") -> TableDie:
 	var d := TableDie.new(die_id, name)
+	d.special = special_id
 	for i in mini(mod_ids.size(), 6):
 		var want := StringName(mod_ids[i])
 		if want == &"":

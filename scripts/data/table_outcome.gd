@@ -13,6 +13,13 @@ var points: int = 0
 ## Ids of the bounties banked (required and bonus).
 var bounties_claimed: Array[StringName] = []
 var hands_used: int = 0
+## One combo id per banked pot (busted hands' pots aren't banked), in order,
+## repeats kept: e.g. [&"pair", &"pair", &"run5"].
+var banked_combos: Array[StringName] = []
+## TableDie.run_die_id (TableDie.id if empty) of each die that shattered
+## here (Cracked): gone from the bag
+## for good, with its mods.
+var shattered_dice: Array[StringName] = []
 
 
 static func from_run(r: BonfireRun, soul_before: int) -> TableOutcome:
@@ -25,4 +32,6 @@ static func from_run(r: BonfireRun, soul_before: int) -> TableOutcome:
 	o.points = r.points
 	o.bounties_claimed = r.claimed_bounties()
 	o.hands_used = r.goal.hands - r.hands_left
+	o.banked_combos = r.banked_combos.duplicate()
+	o.shattered_dice = r.shattered.duplicate()
 	return o

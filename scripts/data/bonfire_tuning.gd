@@ -17,6 +17,22 @@ extends Resource
 ## combo that exactly matches it.
 @export var combos: Array[BonfireCombo] = []
 
+@export_group("Special dice (build content v0.3)")
+## Twin Flame: a Pair or Two Pair containing it gets + this mult.
+@export var twin_flame_mult: int = 4
+## Coven: Trips or Full House containing it get x this.
+@export var coven_factor: float = 2.0
+## Cracked: x this on its pot, and this chance it shatters after scoring.
+@export var cracked_factor: float = 2.0
+@export var cracked_shatter_chance: float = 1.0 / 6.0
+## Last Breath: potted from a rethrow of 1..last_breath_max_dice dice: x factor.
+@export var last_breath_factor: float = 3.0
+@export var last_breath_max_dice: int = 2
+## Blood Pact: + 1 mult per this much missing Soul (max Soul - Soul).
+@export var blood_pact_soul_step: int = 5
+## Bellows: while in the handful, each Hot Hand adds this instead of hot_hand_mult_bonus.
+@export var bellows_hot_hand_mult_bonus: int = 2
+
 @export_group("Throw momentum (flick speed -> launch)")
 ## Flick speeds (screen px/s, after the Options "Throw sensitivity"
 ## multiplier) mapped onto the launch range below. Under flick_speed_min it's

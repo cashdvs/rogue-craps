@@ -13,6 +13,7 @@ signal continue_pressed
 var coin_label: Label
 var points_label: Label
 var checklist: VBoxContainer
+var checklist_panel: PanelContainer
 var bounty_rows: Dictionary = {}
 var hands_label: Label
 var pot_label: Label
@@ -26,6 +27,9 @@ var end_title: Label
 var end_body: Label
 var restart_button: Button
 var continue_button: Button
+## Active table rules (twists / boss cheats / special dice): name + one line.
+var rules_panel: PanelContainer
+var rules_box: VBoxContainer
 
 
 func _init() -> void:
@@ -41,6 +45,7 @@ func _init() -> void:
 	panel.custom_minimum_size = Vector2(310, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(panel)
+	checklist_panel = panel
 	checklist = VBoxContainer.new()
 	checklist.add_theme_constant_override("separation", 4)
 	panel.add_child(checklist)
@@ -61,6 +66,20 @@ func _init() -> void:
 	bank_button.custom_minimum_size = Vector2(310, 84)
 	bank_button.pressed.connect(func() -> void: bank_pressed.emit())
 	col.add_child(bank_button)
+	rules_panel = PanelContainer.new()
+	rules_panel.name = "RulesPanel"
+	rules_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.8)))
+	# Right column, under the bounty checklist (placed in _refresh_rules).
+	rules_panel.position = Vector2(1580, 380)
+	rules_panel.custom_minimum_size = Vector2(310, 0)
+	rules_panel.size = Vector2(310, 0)
+	rules_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rules_panel.visible = false
+	add_child(rules_panel)
+	checklist_panel.resized.connect(_place_rules)
+	rules_box = VBoxContainer.new()
+	rules_box.add_theme_constant_override("separation", 6)
+	rules_panel.add_child(rules_box)
 	end_panel = PanelContainer.new()
 	end_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.94)))
 	end_panel.position = Vector2(560, 300)
@@ -95,6 +114,7 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	points_label.text = "points %d  (1 Ember / %d)" % [run.points, run.tuning.points_per_ember]
 	hands_label.text = "HANDS LEFT %d" % run.hands_left
 	_refresh_checklist(run)
+	_refresh_rules(run)
 	pot_label.text = "POT %d" % run.hand_pot()
 	var picking := run.state == BonfireRun.State.PICK
 	if picking:
@@ -112,11 +132,58 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	mult_label.text = ("+%d MULT" % run.mult_bonus()) if run.mult_bonus() > 0 else ""
 	bank_button.disabled = not (can_act and run.can_continue())
 	if picking:
-		throw_button.disabled = not (can_act and run.can_continue())
+		throw_button.disabled = not (can_act and run.rethrow_block_reason() == "")
 		throw_button.text = "HOT HAND! ALL %d" % run.dice_count if run.is_hot() else "THROW %d AGAIN" % (run.throw_faces.size() - run.potted.size())
 	else:
 		throw_button.disabled = not can_act
 		throw_button.text = "THROW %d  (Space)" % run.cold
+
+
+## One row per active rule: NAME (brass; red for a boss cheat) + its line.
+func _refresh_rules(run: BonfireRun) -> void:
+	var want: Array[String] = []
+	for r in run.rules:
+		want.append("%s|%s|%d" % [r.display_name, r.info_line(run), r.kind])
+	var have: Array[String] = []
+	for c in rules_box.get_children():
+		have.append(str(c.get_meta("key", "")))
+	rules_panel.visible = not want.is_empty()
+	_place_rules()
+	if have == want:
+		return
+	for c in rules_box.get_children():
+		rules_box.remove_child(c)
+		c.queue_free()
+	for k in want.size():
+		var r: TableRule = run.rules[k]
+		var row := VBoxContainer.new()
+		row.set_meta("key", want[k])
+		row.add_theme_constant_override("separation", 0)
+		var name_l := Label.new()
+		name_l.text = r.display_name.to_upper()
+		var col := Color("#FF5A4A") if r.kind == TableRule.Kind.CHEAT else (Palette.EMBER if r.kind == TableRule.Kind.DIE else Palette.BRASS_HI)
+		name_l.label_settings = Palette.label_settings(24, col, 5, true)
+		row.add_child(name_l)
+		var line := Label.new()
+		line.text = r.info_line(run)
+		line.label_settings = Palette.label_settings(20, Palette.BONE, 4)
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		line.custom_minimum_size = Vector2(290, 0)
+		row.add_child(line)
+		rules_box.add_child(row)
+	rules_panel.reset_size()
+
+
+func _place_rules() -> void:
+	rules_panel.position.y = checklist_panel.position.y + checklist_panel.size.y + 14
+
+
+## Names of the rules the HUD shows (tests).
+func rule_rows() -> Array[String]:
+	var out: Array[String] = []
+	for c in rules_box.get_children():
+		out.append(str(c.get_meta("key", "")))
+	return out
 
 
 func _refresh_checklist(run: BonfireRun) -> void:

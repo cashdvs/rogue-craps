@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="FaceModData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="1_7h3a6"]
+
+[resource]
+script = ExtResource("1_7h3a6")
+id = &"ember_pip"
+display_name = "Ember Pip"
+description = "+2 mult when in a scoring pot."
+effect = 4
+amount = 2
+price = 6

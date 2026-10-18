@@ -56,25 +56,28 @@ static func matches(c: BonfireCombo, faces: Array) -> bool:
 
 
 ## The highest-ranked combo exactly matching `faces` (null if none).
-static func match_combo(faces: Array, t: BonfireTuning) -> BonfireCombo:
+static func match_combo(faces: Array, t: BonfireTuning, excluded: Array = []) -> BonfireCombo:
 	if faces.is_empty():
 		return null
 	for k in range(t.combos.size() - 1, -1, -1):
+		if excluded.has(t.combos[k].id):
+			continue
 		if matches(t.combos[k], faces):
 			return t.combos[k]
 	return null
 
 
-## A die for scoring: its face value and that face's mod (FaceModData or
-## null). Plain ints are accepted anywhere a die is (value, no mod).
-static func make_die(value: int, mod: FaceModData = null) -> Dictionary:
-	return {"value": value, "mod": mod}
+## A die for scoring: its face value, that face's mod (FaceModData or null)
+## and the die's special-die id (&"" = plain Bone; e.g. &"coven"). Plain ints
+## are accepted anywhere a die is (value, no mod, no special).
+static func make_die(value: int, mod: FaceModData = null, special: StringName = &"") -> Dictionary:
+	return {"value": value, "mod": mod, "special": special}
 
 
 static func _die(x: Variant) -> Dictionary:
 	if x is Dictionary:
 		return x
-	return {"value": int(x), "mod": null}
+	return {"value": int(x), "mod": null, "special": &""}
 
 
 static func _effect(d: Dictionary) -> int:
@@ -82,77 +85,182 @@ static func _effect(d: Dictionary) -> int:
 	return -1 if m == null else int(m.effect)
 
 
+static func _is_kind(c: BonfireCombo, kind: BonfireCombo.Kind, n: int = -1) -> bool:
+	return c.kind == kind and (n < 0 or c.n == n)
+
+
+## Scores ONE pot: the highest-paying combo the dice EXACTLY form.
+## points = floor((base + stair + faces) x (mult + mult_bonus + adds) x factor)
+##
 ## Face mods (FaceModData, spec in scripts/data/face_mod_data.gd):
 ##   BLANK: never lights or scores (a pot containing it is illegal).
 ##   TWIN: counts as two dice of its value (combo shape and faces sum).
-##   WILD: counts as any value 1-6; the value giving the best legal combo
-##     (most points, then highest rank) is used.
-##   MULT_FACTOR (Hellfire x1.5): the pot's mult x mult_factor. Several such
-##     faces in one pot stack MULTIPLICATIVELY (two Hellfires = x2.25),
-##     applied after the Hot Hand bonus; points are rounded down.
-## Returns {valid, all_used, points, combo, name, base, faces_sum, mult
-## (int, combo + bonus), factor (float), values (the effective values used,
-## Twins doubled, Wilds assigned)}.
-static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0) -> Dictionary:
-	var bad := {"valid": false, "all_used": false, "points": 0, "combo": &"", "name": "", "base": 0, "faces_sum": 0,
-		"mult": 0, "factor": 1.0, "values": []}
-	if dice.is_empty():
+##   WILD: counts as any value 1-6.
+##   STEP: counts as its value or +-1, but the +-1 only for a RUN combo.
+##   Wild / Step values are chosen for the most points (then highest rank).
+##   MULT_FACTOR (Hellfire x1.5): x mult_factor; several stack
+##     MULTIPLICATIVELY (two Hellfires = x2.25).
+##   MULT_ADD (Ember Pip +2, Blood +4): + amount mult. Blood's soul_cost is
+##     summed into "soul_cost" (the run charges it when the pot is potted).
+##   STAIR: if the combo is a RUN, + amount base per die in that run (each
+##     Stair face adds it).
+##   EMBER (Gilded): + amount Embers when potted (summed into "embers").
+##   KINDLING: "kindling" = true (the run arms its next-rethrow-can't-bust).
+##   HEAVY: roll weight only (the run's side); nothing here.
+## Special dice (numbers in BonfireTuning, "Special dice"):
+##   twin_flame: Pair or Two Pair containing it: + twin_flame_mult mult.
+##   coven: Trips or Full House containing it: x coven_factor.
+##   cracked: x cracked_factor on its pot (shattering is the run's job).
+##   blood_pact: + 1 mult per blood_pact_soul_step missing Soul
+##     (ctx soul / max_soul).
+##   last_breath: potted from a rethrow (ctx is_rethrow) of 1..
+##     last_breath_max_dice dice (ctx throw_size): x last_breath_factor.
+## Returns {valid, all_used, points, combo, name, base (incl. stair),
+## stair, faces_sum, mult (combo + bonus + adds), adds, factor, values (the
+## effective values used), soul_cost, embers, kindling, specials}.
+## `ctx` (optional; table rules fill most of it, see TableRule):
+##   no_mods: bool - every face counts as plain (The Collector);
+##   cold_values: Array[int] - dice showing these values never light or score,
+##     and a Wild / Step can't become one (Cold Sixes, The Pit Boss);
+##   excluded_combos: Array[StringName] - these combos don't count (The
+##     Straight Man); min_dice: int - a pot needs at least this many dice
+##     (Greedy Pot); soul / max_soul / throw_size / is_rethrow (special dice).
+static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, ctx: Dictionary = {}) -> Dictionary:
+	var bad := {"valid": false, "all_used": false, "points": 0, "combo": &"", "name": "", "base": 0, "stair": 0, "faces_sum": 0,
+		"mult": 0, "adds": 0, "factor": 1.0, "values": [], "soul_cost": 0, "embers": 0, "kindling": false, "specials": []}
+	if dice.is_empty() or dice.size() < int(ctx.get("min_dice", 1)):
 		return bad
+	var no_mods: bool = ctx.get("no_mods", false)
+	var cold: Array = ctx.get("cold_values", [])
+	var excluded: Array = ctx.get("excluded_combos", [])
 	var vals: Array[int] = []
+	var steps: Array[int] = []
 	var wilds := 0
 	var factor := 1.0
+	var adds := 0
+	var stairs := 0
+	var soul_cost := 0
+	var embers := 0
+	var kindling := false
+	var specials: Array[StringName] = []
 	for x in dice:
 		var d := _die(x)
 		var v := int(d["value"])
-		match _effect(d):
+		var sp := StringName(d.get("special", &""))
+		if sp != &"":
+			specials.append(sp)
+		var eff := -1 if no_mods else _effect(d)
+		var m: FaceModData = d.get("mod")
+		if eff != FaceModData.Effect.WILD and eff != FaceModData.Effect.STEP and cold.has(v):
+			return bad
+		match eff:
 			FaceModData.Effect.BLANK:
 				return bad
 			FaceModData.Effect.WILD:
 				wilds += 1
+			FaceModData.Effect.STEP:
+				steps.append(v)
 			FaceModData.Effect.TWIN:
 				vals.append(v)
 				vals.append(v)
 			FaceModData.Effect.MULT_FACTOR:
 				vals.append(v)
-				factor *= (d["mod"] as FaceModData).mult_factor
+				factor *= m.mult_factor
+			FaceModData.Effect.MULT_ADD:
+				vals.append(v)
+				adds += m.amount
+				soul_cost += m.soul_cost
+			FaceModData.Effect.STAIR:
+				vals.append(v)
+				stairs += m.amount
+			FaceModData.Effect.EMBER:
+				vals.append(v)
+				embers += m.amount
+			FaceModData.Effect.KINDLING:
+				vals.append(v)
+				kindling = true
 			_:
 				vals.append(v)
 	var best := bad
 	var best_rank := -1
-	for assign in _wild_assignments(wilds):
-		var all: Array[int] = vals.duplicate()
-		all.append_array(assign)
-		var c := match_combo(all, t)
-		if c == null:
-			continue
-		var sum := 0
-		for f in all:
-			sum += f
-		var mult := c.mult + mult_bonus
-		var pts := floori((c.base + sum) * mult * factor + 0.000001)
-		var rank := t.combos.find(c)
-		if pts > int(best["points"]) or (pts == int(best["points"]) and rank > best_rank) or not best["valid"]:
-			best = {"valid": true, "all_used": true, "points": pts, "combo": c.id, "name": c.display_name,
-				"base": c.base, "faces_sum": sum, "mult": mult, "factor": factor, "values": all}
-			best_rank = rank
+	var step_opts := _step_options(steps, cold)
+	for assign in _wild_assignments(wilds, cold):
+		for st: Array in step_opts:
+			var all: Array[int] = vals.duplicate()
+			all.append_array(assign)
+			var stepped := false
+			for k in st.size():
+				all.append(int(st[k]))
+				stepped = stepped or int(st[k]) != steps[k]
+			var c := match_combo(all, t, excluded)
+			if c == null or (stepped and c.kind != BonfireCombo.Kind.RUN):
+				continue
+			var sum := 0
+			for f in all:
+				sum += f
+			var stair := stairs * all.size() if c.kind == BonfireCombo.Kind.RUN else 0
+			var a := adds
+			var f := factor
+			for sp in specials:
+				match sp:
+					&"twin_flame":
+						if _is_kind(c, BonfireCombo.Kind.N_OF_A_KIND, 2) or c.kind == BonfireCombo.Kind.TWO_PAIR:
+							a += t.twin_flame_mult
+					&"coven":
+						if _is_kind(c, BonfireCombo.Kind.N_OF_A_KIND, 3) or c.kind == BonfireCombo.Kind.FULL_HOUSE:
+							f *= t.coven_factor
+					&"cracked":
+						f *= t.cracked_factor
+					&"blood_pact":
+						var missing := maxi(int(ctx.get("max_soul", 0)) - int(ctx.get("soul", 0)), 0)
+						a += missing / maxi(t.blood_pact_soul_step, 1)
+					&"last_breath":
+						var n := int(ctx.get("throw_size", 0))
+						if bool(ctx.get("is_rethrow", false)) and n >= 1 and n <= t.last_breath_max_dice:
+							f *= t.last_breath_factor
+			var mult := c.mult + mult_bonus + a
+			var pts := floori((c.base + stair + sum) * mult * f + 0.000001)
+			var rank := t.combos.find(c)
+			if pts > int(best["points"]) or (pts == int(best["points"]) and rank > best_rank) or not best["valid"]:
+				best = {"valid": true, "all_used": true, "points": pts, "combo": c.id, "name": c.display_name,
+					"base": c.base + stair, "stair": stair, "faces_sum": sum, "mult": mult, "adds": a, "factor": f,
+					"values": all, "soul_cost": soul_cost, "embers": embers, "kindling": kindling, "specials": specials}
+				best_rank = rank
 	return best
 
 
-## Every multiset of `n` values 1-6 (order doesn't matter for combos).
-static func _wild_assignments(n: int) -> Array:
-	var out: Array = []
-	var cur: Array[int] = []
-	_assign_rec(n, 1, cur, out)
+## Every choice of value for each Step face: its value or +-1 (1-6, not cold).
+static func _step_options(steps: Array[int], cold: Array) -> Array:
+	var out: Array = [[]]
+	for v in steps:
+		var next: Array = []
+		for prefix: Array in out:
+			for o in [v, v - 1, v + 1]:
+				if o >= 1 and o <= 6 and not cold.has(o):
+					var p := prefix.duplicate()
+					p.append(o)
+					next.append(p)
+		out = next
 	return out
 
 
-static func _assign_rec(n: int, from: int, cur: Array[int], out: Array) -> void:
+## Every multiset of `n` values 1-6 not in `cold` (order doesn't matter).
+static func _wild_assignments(n: int, cold: Array = []) -> Array:
+	var out: Array = []
+	var cur: Array[int] = []
+	_assign_rec(n, 1, cur, out, cold)
+	return out
+
+
+static func _assign_rec(n: int, from: int, cur: Array[int], out: Array, cold: Array) -> void:
 	if cur.size() == n:
 		out.append(cur.duplicate())
 		return
 	for v in range(from, 7):
+		if cold.has(v):
+			continue
 		cur.append(v)
-		_assign_rec(n, v, cur, out)
+		_assign_rec(n, v, cur, out, cold)
 		cur.pop_back()
 
 
@@ -166,7 +274,7 @@ static func formula(s: Dictionary) -> String:
 
 
 ## Every subset of the throw (as index arrays) that exactly forms a combo.
-static func matching_subsets(dice: Array, t: BonfireTuning) -> Array:
+static func matching_subsets(dice: Array, t: BonfireTuning, ctx: Dictionary = {}) -> Array:
 	var out: Array = []
 	var n := dice.size()
 	for mask in range(1, 1 << n):
@@ -176,16 +284,16 @@ static func matching_subsets(dice: Array, t: BonfireTuning) -> Array:
 			if mask & (1 << i):
 				idx.append(i)
 				sub.append(dice[i])
-		if score_selection(sub, t)["valid"]:
+		if score_selection(sub, t, 0, ctx)["valid"]:
 			out.append(idx)
 	return out
 
 
 ## Dice that are part of ANY combo in the throw (a Wild lights if any value
 ## makes it part of one; a Blank never lights).
-static func lit_indices(dice: Array, t: BonfireTuning) -> Array[int]:
+static func lit_indices(dice: Array, t: BonfireTuning, ctx: Dictionary = {}) -> Array[int]:
 	var lit: Array[int] = []
-	for s in matching_subsets(dice, t):
+	for s in matching_subsets(dice, t, ctx):
 		for i in s:
 			if not lit.has(i):
 				lit.append(i)
@@ -194,10 +302,10 @@ static func lit_indices(dice: Array, t: BonfireTuning) -> Array[int]:
 
 
 ## True if the selected indices are part of some combo subset of the throw.
-static func can_extend(sel: Array, dice: Array, t: BonfireTuning) -> bool:
+static func can_extend(sel: Array, dice: Array, t: BonfireTuning, ctx: Dictionary = {}) -> bool:
 	if sel.is_empty():
 		return true
-	for s in matching_subsets(dice, t):
+	for s in matching_subsets(dice, t, ctx):
 		var ok := true
 		for i in sel:
 			if not (s as Array).has(i):
@@ -209,13 +317,13 @@ static func can_extend(sel: Array, dice: Array, t: BonfireTuning) -> bool:
 
 
 ## Best single-pot score available in the throw (0 = bust).
-static func best_points(dice: Array, t: BonfireTuning, mult_bonus: int = 0) -> int:
+static func best_points(dice: Array, t: BonfireTuning, mult_bonus: int = 0, ctx: Dictionary = {}) -> int:
 	var best := 0
-	for s in matching_subsets(dice, t):
+	for s in matching_subsets(dice, t, ctx):
 		var sub: Array = []
 		for i in s:
 			sub.append(dice[i])
-		best = maxi(best, int(score_selection(sub, t, mult_bonus)["points"]))
+		best = maxi(best, int(score_selection(sub, t, mult_bonus, ctx)["points"]))
 	return best
 
 

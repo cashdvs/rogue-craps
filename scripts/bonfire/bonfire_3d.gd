@@ -8,6 +8,10 @@
 ## BEFORE add_child. Run mode hides Restart / Quit to title, Esc offers
 ## Forfeit table, and the end panel's CONTINUE emits finished(TableOutcome);
 ## the table never changes scenes. No setup = the sandbox (5 Bone, Table 1).
+## setup.rules (twists / boss cheats) and the handful's special dice become
+## TableRule handlers on the BonfireRun; their face changes (Madame Shuffle,
+## Mirror) flip the die with a tint before anything lights, a shattered
+## Cracked die bursts and leaves the table, the Pit Boss lock is on the felt.
 class_name Bonfire3D
 extends Table3D
 
@@ -28,6 +32,10 @@ const HELLFIRE_COLOR := Color("#E2380C")
 const WILD_COLOR := Color("#C88A00")
 const TWIN_COLOR := Color("#2A1A10")
 const RAINBOW: Array[Color] = [Color("#D7261E"), Color("#E7A400"), Color("#1E9E4A"), Color("#2266CC")]
+## Tint of a die whose face a rule changed (by rule id; others use the default).
+const CHANGE_TINT := {&"mirror": Color("#BFE3FF"), &"madame_shuffle": Color("#C060FF")}
+const CHANGE_TINT_DEFAULT := Color("#FFFFFF")
+const FLIP_TIME: float = 0.3
 
 @export var bonfire_tuning: BonfireTuning
 ## Seed for the dice faces (-1 = random).
@@ -56,6 +64,8 @@ var _die_of: Dictionary = {}
 var throw_slots: Array[int] = []
 var _soul_before: int = 0
 var _finished_sent: bool = false
+## Text on the felt from the rules (e.g. "LOCKED  4").
+var felt_label: Label3D
 
 
 func _ready() -> void:
@@ -97,6 +107,17 @@ func _ready() -> void:
 	add_child(pause_menu)
 	pause_menu.set_run_mode(setup.run_mode)
 	pause_menu.forfeit_confirmed.connect(func() -> void: forfeit())
+	felt_label = Label3D.new()
+	felt_label.name = "RuleFeltText"
+	felt_label.font_size = 96
+	felt_label.pixel_size = 0.0011
+	felt_label.outline_size = 18
+	felt_label.modulate = Color("#FF4A3A")
+	felt_label.outline_modulate = Color(Palette.PIT_BLACK, 0.85)
+	felt_label.rotation_degrees = Vector3(-90, 0, 0)
+	felt_label.position = Vector3(0.05, 0.004, -0.33)
+	felt_label.shaded = false
+	add_child(felt_label)
 	new_run(bonfire_seed)
 
 
@@ -109,11 +130,22 @@ func new_run(seed_value: int = -1) -> void:
 		_brng.seed = seed_value * 7919 + 3
 	else:
 		_brng.randomize()
-	run = BonfireRun.new(bonfire_tuning, setup.goal, setup.starting_soul, setup.dice.size())
+	# Starting Soul never exceeds max Soul.
+	var start := setup.starting_soul
+	if setup.max_soul > 0:
+		start = mini(start, setup.max_soul)
+	run = BonfireRun.new(bonfire_tuning, setup.goal, start, setup.dice.size())
+	if setup.max_soul > 0:
+		run.max_soul = setup.max_soul
+	var specials: Array = []
+	for td in setup.dice:
+		specials.append(td.special)
+	run.set_rules(TableRules.build(setup.rules, specials), seed_value)
+	run.table_event.connect(_on_table_event)
 	_soul_before = run.soul
 	_finished_sent = false
 	bhud.end_panel.visible = false
-	soul_meter.setup(run.soul, maxi(setup.max_soul, run.soul))
+	soul_meter.setup(run.soul, run.max_soul)
 	_soul_shown = run.soul
 	_reset_hand_dice()
 	pause_menu.set_forfeit_enabled(true)
@@ -290,9 +322,10 @@ func throw_again() -> bool:
 	for i in throw_dice.size():
 		if not run.potted.has(i):
 			cold_now.append(throw_dice[i])
+	var why := run.rethrow_block_reason()
 	var rt := run.rethrow()
 	if rt.is_empty():
-		_refuse("Pot at least one burning die first.")
+		_refuse(why if why != "" else "Pot at least one burning die first.")
 		return false
 	pot_dice.append_array(potted_now)
 	if rt["hot"]:
@@ -446,10 +479,31 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	_felt_pos.clear()
 	for d in throw_dice:
 		_felt_pos.append(d.global_position)
-	var ok := run.set_throw(values, mods)
+	var tds: Array = []
+	for i in throw_dice.size():
+		tds.append(_td(i))
+	var th := TableThrow.make(values, mods, tds, run.rng)
+	th.slots = slots.duplicate()
+	th.positions = _felt_pos.duplicate()
+	var ok := run.land_throw(th)
+	if not th.changes.is_empty():
+		await _show_face_changes(th)
+		if run.is_over():
+			_end_sequence_after_forfeit()
+			return
+	values = run.throw_faces.duplicate()
+	last_values = values
 	var lit := run.lit()
 	throw_resolved.emit(values, lit)
-	if ok:
+	if not ok and run.kindling_saved:
+		# A Kindling face: nothing lit, but no bust. Same dice, throw again.
+		bhud.flash("KINDLING!  NO BUST", Palette.EMBER)
+		sfx.play(&"rim_hit", 1.3, -4.0)
+		_embers(_dice_center(), 14, 6)
+		_set_why("Kindling caught it: nothing burned, but no bust. Throw the %d dice again." % run.cold)
+		_to_hand()
+		phase = Phase.BET
+	elif ok:
 		for i in lit:
 			_set_lit(throw_dice[i], true)
 			_embers(throw_dice[i].global_position, 8, 2)
@@ -517,6 +571,85 @@ func sensitivity() -> float:
 func _refresh_hud() -> void:
 	if bhud != null and run != null:
 		bhud.refresh(run, phase == Phase.BET)
+	if felt_label != null and run != null:
+		var lines: Array[String] = []
+		for r in run.rules:
+			var ft := r.felt_text(run)
+			if ft != "":
+				lines.append(ft)
+		felt_label.text = "\n".join(lines)
+		felt_label.visible = not lines.is_empty() and not run.is_over()
+
+
+## Rule moments the table shows (juice / audio hook the same
+## BonfireRun.table_event).
+func _on_table_event(event: StringName, data: Dictionary) -> void:
+	match event:
+		&"die_shattered":
+			var i: int = data.get("index", -1)
+			if i >= 0 and i < throw_dice.size():
+				_shatter_die(throw_dice[i])
+		&"pot":
+			# Blood faces pay Soul as the pot scores.
+			_burn_soul(int(data.get("soul_cost", 0)))
+		&"hand_start":
+			_refresh_hud()
+
+
+## Rule face changes (Madame Shuffle's reroll, a Mirror's copy): each changed
+## die flips to its new face with a tint, before anything lights.
+func _show_face_changes(th: TableThrow) -> void:
+	var seen: Dictionary = {}
+	for ch: Dictionary in th.changes:
+		seen[int(ch["index"])] = ch
+	for i: int in seen:
+		if i >= throw_dice.size():
+			continue
+		var ch: Dictionary = seen[i]
+		var d := throw_dice[i]
+		var slot := int(th.slots[i])
+		if i < throw_slots.size():
+			throw_slots[i] = slot
+		var phys := DieVisual.value_up(d.global_transform.basis)
+		var to := DieVisual.remap_basis(phys, slot).get_rotation_quaternion()
+		if i < _remap_to.size() and dice.has(d):
+			var k := dice.find(d)
+			_remap_from[k] = to
+			_remap_to[k] = to
+		var from := d.faces.quaternion
+		var base := d.faces.position
+		var tint: Color = CHANGE_TINT.get(StringName(ch.get("by", &"")), CHANGE_TINT_DEFAULT)
+		d.body_material.set_shader_parameter("emission_color", tint)
+		var tw := d.create_tween()
+		tw.tween_method(func(k: float) -> void:
+			d.faces.quaternion = from.slerp(to, k)
+			d.faces.position = base + Vector3(0, sin(k * PI) * d.edge * 0.7, 0)
+			d.body_material.set_shader_parameter("emission_energy", 0.9 * (1.0 - k * 0.6)), 0.0, 1.0, FLIP_TIME)
+		tw.tween_callback(func() -> void: d.faces.position = base)
+	sfx.play(&"chip_place", 0.7, -2.0)
+	await _wait(FLIP_TIME + 0.08)
+	for i: int in seen:
+		if i < throw_dice.size():
+			_set_lit(throw_dice[i], false)
+
+
+## A Cracked die shatters: burst, gone for the rest of the table.
+func _shatter_die(d: DieVisual) -> void:
+	all_dice.erase(d)
+	bhud.flash("CRACKED DIE SHATTERED", Color("#FF2E3E"))
+	sfx.play(&"rim_hit", 0.55, 0.0)
+	_camera_shake(tuning.shake_craps_px * 0.5, 0.2)
+	_embers(d.global_position, 30, 12)
+	_set_lit(d, false)
+	var tw := d.create_tween()
+	tw.tween_property(d, "scale", Vector3.ONE * 1.25, 0.06)
+	tw.tween_property(d, "scale", Vector3.ONE * 0.05, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func() -> void: d.visible = false)
+
+
+## Dice still on this table (a shattered die is gone).
+func dice_left() -> int:
+	return all_dice.size()
 
 
 func _add_chip() -> String:
