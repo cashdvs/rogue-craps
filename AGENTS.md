@@ -142,10 +142,10 @@ fonts/                   Alfa Slab One, Barlow Condensed (SIL OFL; licenses alon
 shaders/                 2D: felt, backdrop, bulb_light, grade
 shaders/3d/              toon_noir (stepped toon lighting, felt/chip modes), outline (inverted-hull
                          ink), fx_unshaded, fx_particle (billboard particles)
-tests/                   test_*.gd (headless SceneTree scripts, incl. test_table_3d.gd); tests/qa_/ is
-                         owned by QA
+tests/                   test_*.gd (headless SceneTree scripts, incl. test_table_3d.gd and
+                         test_studio_splash.gd); tests/qa_/ is owned by QA
 tools/                   generate_sample_resources, bake_sfx, capture_table, demo_table (2D);
-                         capture_table_3d, stats_table_3d (3D)
+                         capture_table_3d, stats_table_3d (3D); capture_splash.sh (boot splash)
 docs/                    DESIGN.md (public design summary), MODULES.md (module map)
 .github/                 PR/issue templates and CI
 ```
