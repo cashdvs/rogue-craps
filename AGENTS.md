@@ -165,7 +165,9 @@ needs it, because it rewrites files in `resources/`.
 
 ## 7. Rules for PRs
 
-1. **Small, focused PRs.** One issue / one module per PR. No drive-by refactors or reformatting.
+1. **Small, focused PRs.** One issue / one module per PR, roughly ≤ 400 changed lines of code
+   (generated `.uid`/`.tres`/`.import` excluded). No drive-by refactors or reformatting.
+   Rebase on `main` to update your branch; no merge commits (history is linear).
 2. **Tests required for logic.** Any change in `scripts/core/` or `scripts/data/` needs new or
    updated checks in `tests/test_*.gd` (follow the existing `_check(condition, name)` pattern and
    `quit(1 if _failed > 0 else 0)`). A new test file named `tests/test_*.gd` runs automatically.
@@ -183,5 +185,10 @@ needs it, because it rewrites files in `resources/`.
 7. Visual changes need a screenshot or short capture in the PR.
 8. Don't change CI, `project.godot` or `run_tests.sh` unless the issue asks for it.
 9. Fill in the PR template. Link the issue (`Closes #N`). Branch names: see CONTRIBUTING.md.
+
+Reviewers use [REVIEWING.md](REVIEWING.md) (gate checks, conformance, feel checks, safety). Read
+it to know what your PR will be checked against. In particular: no network/HTTP/telemetry code,
+no `OS.execute`/shell calls, no secrets, and no unexplained binaries; every asset needs its source
+and a compatible licence next to it.
 
 If you're unsure, open a draft PR early and ask.
