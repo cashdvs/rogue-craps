@@ -1,4 +1,4 @@
-# The Gambler's Descent (Godot 4.7): POC table
+# Dice of the Damned (Godot 4.7): POC table
 
 A single-player 2D craps roguelite (design doc:
 `/workspace/dice/design/gamblers-descent.md`, v0.4 section 12). The current build is the
@@ -17,7 +17,7 @@ art spec in `/workspace/dice/art/concept/poc_feel.md`.
 /home/box/tools/godot/godot --editor --path /workspace/dice/game
 # All headless tests (imports first)
 ./run_tests.sh
-# QA's stats check (not in run_tests.sh)
+# One QA script by hand (run_tests.sh already runs all tests/qa_/qa_*.gd)
 /home/box/tools/godot/godot --headless --path . --script res://tests/qa_/qa_craps_stats.gd
 # Screenshots / movie (need a display; xvfb works)
 xvfb-run -a -s "-screen 0 1920x1080x24" /home/box/tools/godot/godot --path . \
@@ -91,7 +91,7 @@ scripts/table/             The POC table scene (drawn in code, no textures)
 scripts/audio/             SfxSynth (procedural sounds) + SfxManager (pool; prefers audio/sfx/<event>.wav)
 shaders/                   felt (stains, burns, edge darkening, flash, scorch), backdrop, bulb_light, grade
 fonts/                     Alfa Slab One + Barlow Condensed (SIL OFL, licenses alongside)
-tests/                     test_*.gd (run_tests.sh); tests/qa_/ belongs to QA
+tests/                     test_*.gd and qa_/qa_*.gd (both run by run_tests.sh); tests/qa_/ belongs to QA; PR review: REVIEWING.md
 tools/                     generate_sample_resources, bake_sfx, capture_table, demo_table
 ```
 
