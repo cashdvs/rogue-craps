@@ -1,12 +1,12 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://scripts/ui/main.gd" id="1_main"]
-[ext_resource type="Resource" path="res://resources/dice/standard_d6.tres" id="2_std"]
-[ext_resource type="Resource" path="res://resources/dice/lucky_d6.tres" id="3_lucky"]
-[ext_resource type="Resource" path="res://resources/bets/pass_line.tres" id="4_pass"]
-[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="5_diedata"]
+[ext_resource type="Script" path="res://scripts/ui/greybox.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_diedata"]
+[ext_resource type="Resource" path="res://resources/dice/ember.tres" id="3_ember"]
+[ext_resource type="Resource" path="res://resources/dice/lucky_knuckle.tres" id="4_knuckle"]
+[ext_resource type="Resource" path="res://resources/bets/bet_catalog.tres" id="6_catalog"]
 
-[node name="Main" type="Control"]
+[node name="Greybox" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -14,8 +14,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
-starting_dice = Array[ExtResource("5_diedata")]([ExtResource("2_std"), ExtResource("3_lucky")])
-bet_type = ExtResource("4_pass")
+starting_dice = Array[ExtResource("2_diedata")]([ExtResource("3_ember"), ExtResource("4_knuckle")])
+bet_catalog = ExtResource("6_catalog")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -31,130 +31,111 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = 30.0
-offset_right = -40.0
-offset_bottom = -30.0
+offset_left = 32.0
+offset_top = 20.0
+offset_right = -32.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="Layout"]
+[node name="TopBar" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 36
-text = "THE GAMBLER'S DESCENT  (greybox)"
-horizontal_alignment = 1
-
-[node name="DiceRow" type="HBoxContainer" parent="Layout"]
-layout_mode = 2
-theme_override_constants/separation = 60
+theme_override_constants/separation = 48
 alignment = 1
 
-[node name="Die1" type="VBoxContainer" parent="Layout/DiceRow"]
-layout_mode = 2
-
-[node name="Box" type="ColorRect" parent="Layout/DiceRow/Die1"]
-custom_minimum_size = Vector2(160, 160)
-layout_mode = 2
-color = Color(0.93, 0.93, 0.88, 1)
-
-[node name="Die1Value" type="Label" parent="Layout/DiceRow/Die1/Box"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
-theme_override_font_sizes/font_size = 96
-text = "-"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Die1Name" type="Label" parent="Layout/DiceRow/Die1"]
+[node name="TableLabel" type="Label" parent="Layout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Die 1"
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+text = "Greybox table"
 
-[node name="Die2" type="VBoxContainer" parent="Layout/DiceRow"]
-layout_mode = 2
-
-[node name="Box" type="ColorRect" parent="Layout/DiceRow/Die2"]
-custom_minimum_size = Vector2(160, 160)
-layout_mode = 2
-color = Color(0.93, 0.93, 0.88, 1)
-
-[node name="Die2Value" type="Label" parent="Layout/DiceRow/Die2/Box"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
-theme_override_font_sizes/font_size = 96
-text = "-"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Die2Name" type="Label" parent="Layout/DiceRow/Die2"]
+[node name="CoinLabel" type="Label" parent="Layout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Die 2"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 22
+text = "Coin: 0"
 
-[node name="TotalLabel" type="Label" parent="Layout"]
+
+
+
+[node name="DiceRow" type="HBoxContainer" parent="Layout"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "Total: -"
-horizontal_alignment = 1
+theme_override_constants/separation = 48
+alignment = 1
 
 [node name="StateRow" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
-theme_override_constants/separation = 80
+theme_override_constants/separation = 64
 alignment = 1
+
+[node name="TotalLabel" type="Label" parent="Layout/StateRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Total: -"
 
 [node name="PhaseLabel" type="Label" parent="Layout/StateRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 text = "Phase: Come-out"
 
 [node name="PointLabel" type="Label" parent="Layout/StateRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 text = "Point: OFF"
-
-[node name="ScoreLabel" type="Label" parent="Layout/StateRow"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Wins: 0   Losses: 0"
 
 [node name="ResultLabel" type="Label" parent="Layout"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 26
 text = "Result"
 horizontal_alignment = 1
 
-[node name="RollButton" type="Button" parent="Layout"]
+[node name="PayoutLabel" type="Label" parent="Layout"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 64)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 28
-text = "Roll (Space)"
-
-[node name="BetLabel" type="Label" parent="Layout"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Bet:"
+text = ""
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="BetsTitle" type="Label" parent="Layout"]
+layout_mode = 2
+text = "Place bets (each click adds the minimum stake):"
+horizontal_alignment = 1
+
+[node name="BetButtons" type="HFlowContainer" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+
+[node name="ActiveBetsLabel" type="Label" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "On the table: nothing"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ActionRow" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="ClearButton" type="Button" parent="Layout/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 56)
+layout_mode = 2
+text = "Clear bets"
+
+[node name="RollButton" type="Button" parent="Layout/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Roll (Space)"
