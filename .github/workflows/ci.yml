@@ -16,6 +16,9 @@ concurrency:
 
 env:
   GODOT_VERSION: "4.7.2"
+  # Scene for the "table scene smoke test" step (runs it directly, bypassing the boot splash).
+  # Switch to res://scenes/table_3d.tscn once the 3D table is on main.
+  TABLE_SCENE: res://scenes/table.tscn
   GODOT_DIR: ${{ github.workspace }}/../godot
 
 jobs:
@@ -72,4 +75,14 @@ jobs:
           timeout 120 "$GODOT" --headless --path . --quit-after 300 2>&1 | tee smoke.log
           if grep -qE "SCRIPT ERROR|Parse Error" smoke.log; then
             echo "::error::Main scene printed script errors"; exit 1
+          fi
+
+      - name: Table scene smoke test (headless)
+        # Runs $TABLE_SCENE directly for 300 frames (the main-scene step above only reaches the
+        # boot splash). Fails on a non-zero exit, a hang, or any SCRIPT ERROR / Parse Error.
+        run: |
+          set -o pipefail
+          timeout 120 "$GODOT" --headless --path . "$TABLE_SCENE" --quit-after 300 2>&1 | tee table_smoke.log
+          if grep -qE "SCRIPT ERROR|Parse Error" table_smoke.log; then
+            echo "::error::$TABLE_SCENE printed script errors"; exit 1
           fi

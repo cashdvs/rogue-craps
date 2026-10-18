@@ -120,7 +120,7 @@ resources/bets/          pass/field/any_craps.tres + bet_catalog.tres
 resources/dice/          standard_d6.tres
 resources/dealer/        dealer_lines.json: Dealer taunt lines per event
 audio/sfx/               Baked .wav sound effects (from tools/bake_sfx.gd)
-fonts/                   Alfa Slab One, Barlow Condensed, fredoka/ (SIL OFL; licenses alongside)
+fonts/                   Alfa Slab One, Barlow Condensed (SIL OFL; licenses alongside)
 shaders/                 felt, backdrop, bulb_light, grade
 tests/                   test_*.gd (headless SceneTree scripts); tests/qa_/ is owned by QA
 tools/                   generate_sample_resources, bake_sfx, capture_table, demo_table
