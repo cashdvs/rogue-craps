@@ -32,7 +32,7 @@ so changing back to the title/main scene never replays it.
 The splash never touches the audio buses or SfxManager. At each cue it emits
 `cue(event: StringName)` and plays a stream if one exists:
 1. one from the root node's `cue_streams` dictionary (Inspector), else
-2. `res://audio/sfx/<event>.wav` if that file exists, else it stays silent.
+2. `<sfx_dir>/<event>.wav` if that file exists (`sfx_dir` export, default `res://audio/sfx/`), else it stays silent.
 
 **Per-cue sounds and the single sting never play together.** When the splash starts it picks one mode
 (`cue_mode()`), separately for the full and the reduced-motion variant:
