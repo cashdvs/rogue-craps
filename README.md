@@ -1,83 +1,112 @@
-# The Gambler's Descent (Godot 4.7)
+# The Gambler's Descent (Godot 4.7): POC table
 
-A single-player 2D craps-style dice roguelite (design doc:
-`/workspace/dice/design/gamblers-descent.md`). Current state: craps rules, Coin
-bankroll, and Pass / Field / Hard 8 betting, with a plain greybox screen.
+A single-player 2D craps roguelite (design doc:
+`/workspace/dice/design/gamblers-descent.md`, v0.4 section 12). The current build is the
+**proof-of-concept table**, where the goal is feel. You get 2 plain bone dice, a Pass Line,
+Soul, a 12-roll limit, a target bankroll, and a taunting Dealer. Visuals and timings follow the
+art spec in `/workspace/dice/art/concept/poc_feel.md`.
 
 ## Run
 
 ```bash
-# Play (Roll button or Space)
+# Play (main scene = scenes/table.tscn)
 /home/box/tools/godot/godot --path /workspace/dice/game
-
-# Open in the editor
+# The old greybox screen is still available:
+/home/box/tools/godot/godot --path /workspace/dice/game res://scenes/greybox.tscn
+# Editor
 /home/box/tools/godot/godot --editor --path /workspace/dice/game
-
-# Tests (headless). On a fresh checkout, import once first so class_names register:
-/home/box/tools/godot/godot --headless --path /workspace/dice/game --import
-/home/box/tools/godot/godot --headless --path /workspace/dice/game --script res://tests/test_craps_rules.gd
-/home/box/tools/godot/godot --headless --path /workspace/dice/game --script res://tests/test_betting.gd
-/home/box/tools/godot/godot --headless --path /workspace/dice/game --script res://tests/test_greybox_scene.gd
-# ...or all at once:
+# All headless tests (imports first)
 ./run_tests.sh
+# QA's stats check (not in run_tests.sh)
+/home/box/tools/godot/godot --headless --path . --script res://tests/qa_/qa_craps_stats.gd
+# Screenshots / movie (need a display; xvfb works)
+xvfb-run -a -s "-screen 0 1920x1080x24" /home/box/tools/godot/godot --path . \
+  --rendering-driver opengl3 --resolution 1920x1080 --script res://tools/capture_table.gd
+xvfb-run -a -s "-screen 0 1920x1080x24" /home/box/tools/godot/godot --path . \
+  --rendering-driver opengl3 --resolution 1280x720 --fixed-fps 30 \
+  --write-movie /tmp/table_poc.avi --script res://tools/demo_table.gd
 ```
+
+## How to play (PC: mouse and keyboard)
+
+| Action | Input |
+|---|---|
+| Add a 5-Coin chip to the Pass Line (5-25, before the come-out only) | Click the bankroll chip stack or the Pass Line, or press Up/+ |
+| Take the bet down (before the come-out) | Right-click the stack or the Pass Line, or press Down/- |
+| Throw | **Press on the dice in your hand (bottom right), drag, and flick.** A slow release or a plain click drops them back into your hand. |
+| Quick throw (keyboard) | Space / Enter |
+| Fast-forward a roll | Click (or Space) during the reveal or resolve |
+| Reduced motion | R, or the F1 panel |
+| Debug: seed and restart, force the next roll, Hot Seven rule | F1 |
+
+The throw is decided **at release**. The seeded `DiceRoller` picks the faces. The flick's
+direction and speed plan the path (along the flick, off the rim, coming to rest in the landing
+zone), and the dice tween along that path and settle on the chosen faces. You can't throw while
+the come-out Pass bet is under 5 Coin. During a Point, the bet is locked and you throw again.
+
+## Tuning (one file)
+
+`resources/tuning/poc_tuning.tres` uses `TuningData` (`scripts/data/tuning_data.gd`), and the
+defaults in the script are the doc numbers:
+
+- **Table:** stake 20, target 40, 12 rolls, bets 5-25, chip value 5.
+- **Soul:** 40 Soul. The formulas are:
+  - Seven-out: 2 + ceil(lost/10).
+  - Craps: 1 + ceil(lost/10).
+  - Other losses: floor(lost/10).
+  - `soul_on_loss = true` (PM decision).
+- **End of table:** miss penalty 3 + 1 per 25% of the gap (max 7), bust 7, clear bonus +5, and +1
+  per unused roll.
+- **Throw gesture:** `min_throw_speed` (700 px/s), `min_throw_drag` (40 px), speed→distance,
+  throw time at slow and fast flicks, rim restitution.
+- **Spec timings:** wind-up, throw, bounces, settle, die B delay, reveal hold and punch, a resolve
+  duration per moment, reset, chip, payout and rake times, puck times, shake px and hit-stop ms per
+  moment, seven-out escalation caps, fast-forward speed, and the reduced-motion scale and particle
+  factor.
+- **Table rule (Hot Seven):** ships **off**, because doc v0.4 §12 puts table rules out of POC
+  scope. Use F1 or `table_rule_enabled` to try it.
+
+## Dealer lines
+
+`resources/dealer/dealer_lines.json` maps each event to a list of lines. The events are
+`natural`, `craps`, `point_set`, `point_hit`, `seven_out`, `big_bet` (stake ≥ 20), `low_soul`
+(Soul ≤ 12, once per table), `table_win`, and `table_fail`. A line is picked at random with no
+immediate repeats (`DealerLines`), and each one plays the `dealer_taunt` sound.
 
 ## Layout
 
 ```
-project.godot            1280x720
-scripts/data/            Resources: plain data, editable in the inspector
-  die_face.gd            DieFace  - value, effect_id, tags
-  die_data.gd            DieData  - name, level, faces[], ability id/description, level-up costs
-  bet_type.gd            BetType  - id, name, rule, payout_numerator/denominator, overrides, unlock cost
-  bet_catalog.gd         BetCatalog - the list of bets offered
-  chip_data.gd           ChipData - chips are the RELICS (doc naming); money is Coin
-scripts/core/            Pure logic, no nodes/UI (unit-testable)
-  craps_round.gd         CrapsRound - come-out/Point state machine (rejects totals outside 2-12)
-  roll_result.gd         RollResult - outcome enum + totals + message
-  dice_roller.gd         DiceRoller - rolls DieData with a seeded RNG (-1 = random)
-  bankroll.gd            Bankroll  - Coin with coin_changed signal; can't go negative
-  active_bet.gd          ActiveBet - a stake sitting on the felt
-  bet_payout.gd          BetPayout - WIN / LOSE / PUSH / STAYS + profit for one bet
-  bet_resolver.gd        BetResolver - stateless: RollResult + bets -> payouts
-  craps_table.gd         CrapsTable - betting session: place/clear bets, roll, pay
-  table_report.gd        TableReport - what one roll did
-scripts/ui/greybox.gd    Plain-button test screen (scenes/greybox.tscn)
-resources/dice/          standard_d6 + doc starter dice (ember, weighted_bone, mirror, lucky_knuckle)
-resources/bets/          pass, field, hard_8 + bet_catalog.tres
-resources/chips/         the 5 first-playable chips (data only)
-tests/                   test_*.gd run by run_tests.sh; tests/qa_/ is QA-only
-tools/generate_sample_resources.gd   Regenerates resources/ from the doc numbers
+project.godot              1920x1080 design size, stretch canvas_items, aspect expand
+scripts/data/              Resources: die_face, die_data, bet_type, bet_catalog, tuning_data, table_rule_data
+scripts/core/              Pure logic (unit-tested, no nodes)
+  craps_round / roll_result / dice_roller / bankroll / active_bet / bet_payout / bet_resolver
+  craps_table / table_report   betting session (Pass, Field, Any Craps, Odds, Hard-way logic)
+  poc_table / poc_roll_report  POC table: Soul, roll limit, target, end-of-table, "why" line
+  throw_gesture                drag -> release velocity, throw threshold, path planning
+  dealer_lines                 JSON lines, random without immediate repeats
+scripts/table/             The POC table scene (drawn in code, no textures)
+  table_scene.gd           director: input, roll sequence, moments, chips, HUD, end/debug screens
+  die_view / chip_view / puck_view / soul_meter / bankroll_stack / banner / dealer_view / dealer_bubble
+  table_painter (rim, point row, Pass Line arc) / rule_plaque / shake_camera / palette
+scripts/audio/             SfxSynth (procedural sounds) + SfxManager (pool; prefers audio/sfx/<event>.wav)
+shaders/                   felt (stains, burns, edge darkening, flash, scorch), backdrop, bulb_light, grade
+fonts/                     Alfa Slab One + Barlow Condensed (SIL OFL, licenses alongside)
+tests/                     test_*.gd (run_tests.sh); tests/qa_/ belongs to QA
+tools/                     generate_sample_resources, bake_sfx, capture_table, demo_table
 ```
 
 ## Doc names used in code
 
-| Design doc | Code |
+| Design doc / art spec | Code |
 |---|---|
-| Coin (money) | `Bankroll.coin` |
-| Chips (relics) | `ChipData`, `resources/chips/` |
-| Natural (Pass), 1:1 | `pass.tres`, `BetType.Rule.PASS` |
-| Field: 1:1, 2 pays 2:1, 12 pays 3:1 | `field.tres`, `Rule.ONE_ROLL` + overrides |
-| Hard 8, 9:1 | `hard_8.tres`, `Rule.HARD_WAY` |
-| Odds (true odds) | `Rule.ODDS` logic exists; data paused |
-| Min bet 5, table cap 25 | `CrapsTable.min_bet / max_bet` |
+| Coin | `Bankroll.coin` |
+| Pass ("Natural (Pass)" in data) / "PASS LINE" on the felt | `pass.tres`, `BetType.Rule.PASS` |
+| Field, Any Craps (doc stretch) | `field.tres`, `any_craps.tres`: logic and tests only, not on the POC felt |
+| Soul | `PocTable.soul`, `SoulMeter` |
+| Table rule "Hot Seven" | `TableRuleData` inside the tuning file (off for the POC) |
+| Croupier / Dealer | `DealerView`, `DealerLines` |
 
-## Architecture in one minute
-
-1. **Data** (`scripts/data`) is Resources only. A die is a list of `DieFace`
-   resources, so "modify a face mid-run" = edit one entry. Payouts are
-   whole-number ratios (`6:5` = numerator 6, denominator 5) and computed with
-   integer math (rounded down to whole Coin).
-2. **Logic** (`scripts/core`) is `RefCounted`, with no scene dependency.
-   `DiceRoller` -> die values -> `CrapsTable.roll()` -> `CrapsRound` decides the
-   outcome -> `BetResolver` settles each bet -> Coin goes back to the `Bankroll`.
-3. **UI** only displays results and forwards clicks. It never decides rules.
-
-### Rule precedence (for Dealers that rig rules)
-Documented at the top of `craps_round.gd` and tested: totals outside 2-12 are
-rejected first; on the come-out Natural beats Craps beats setting a Point; in
-the Point phase hitting the Point beats Seven-out.
-
-### Paused (per PM)
-Table Coin targets / roll limits, Soul, the shop, and the rest of the
-first-playable bets are parked on the local branch `wip/table-run-shop`.
+## Rule precedence
+This is documented in `craps_round.gd` and tested. Totals outside 2-12 are rejected. On the
+come-out, a Natural beats Craps, which beats setting a Point. In the Point phase, hitting the Point
+beats a Seven-out.

@@ -1,0 +1,13 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/table/table_scene.gd" id="1_table"]
+[ext_resource type="Script" path="res://scripts/data/die_data.gd" id="2_diedata"]
+[ext_resource type="Resource" path="res://resources/dice/standard_d6.tres" id="3_d6"]
+[ext_resource type="Resource" path="res://resources/bets/bet_catalog.tres" id="5_catalog"]
+[ext_resource type="Resource" path="res://resources/tuning/poc_tuning.tres" id="6_tuning"]
+
+[node name="Table" type="Node2D"]
+script = ExtResource("1_table")
+starting_dice = Array[ExtResource("2_diedata")]([ExtResource("3_d6"), ExtResource("3_d6")])
+bet_catalog = ExtResource("5_catalog")
+tuning = ExtResource("6_tuning")
