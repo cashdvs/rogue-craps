@@ -3,7 +3,10 @@
 ## nothing decorative over the felt or inside the rail centreline (x +-1.11 / z +-0.61, rounded at
 ## the corners) or above 0.25 m,
 ## the rail mesh keeps the collider's radius on its inner face, toon materials, and the
-## ~15k (PC) / ~8k (mobile) triangle budgets. Art only: the kit has no physics nodes.
+## ~15k (PC) / ~8k (mobile) triangle budgets. Art only: the kit has no physics nodes and no lights
+## (the table's Lamp3D lights it). The board is loop-agnostic: the Burn Line pieces (chip tray,
+## x2 / Soul zones, Burn Line strip, flame target plaque) are optional scenes, OFF by default; the
+## test also checks them switched on, placed the way game code would place them.
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_board_a_kit.gd
@@ -23,6 +26,10 @@ const RAIL_Y: float = 0.02
 const FELT_HALF := Vector2(1.02, 0.52)
 ## Meshes that draw fixed geometry (allowed at the felt edge); everything else is decoration.
 const FIXED: Array[String] = ["Floor", "Rails", "Backboard", "Body"]
+## Optional pieces that lie flat ON the felt (allowed over it, but no taller than this).
+const FLAT_ON_FELT: Array[String] = ["BurnLine", "Zones"]
+const FLAT_MAX_Y: float = 0.004
+const OPT: String = KIT + "optional/"
 const EPS: float = 0.0015
 
 var _passed: int = 0
@@ -31,18 +38,29 @@ var _failed: int = 0
 
 func _initialize() -> void:
 	print("=== Dice of the Damned: Board A kit tests ===")
-	_check_board(KIT + "board_a_infernal_pit.tscn", 15000)
-	_check_board(KIT + "board_a_infernal_pit_mobile.tscn", 8000)
+	_check_board(KIT + "board_a_infernal_pit.tscn", 15000, false)
+	_check_board(KIT + "board_a_infernal_pit_mobile.tscn", 8000, false)
+	_check_board(KIT + "board_a_infernal_pit.tscn", 15000, true)
+	_check_board(KIT + "board_a_infernal_pit_mobile.tscn", 8000, true)
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
 
-func _check_board(path: String, budget: int) -> void:
+func _check_board(path: String, budget: int, all_on: bool) -> void:
 	var scene := load(path) as PackedScene
 	_check(scene != null, "%s: loads" % path)
 	if scene == null:
 		return
 	var board := scene.instantiate() as Node3D
+	var tag := " [all optional ON]" if all_on else " [default]"
+	if not all_on:
+		var plate := board.get_node_or_null("Anchors/TargetPlate/Plate")
+		_check(plate != null and plate.scene_file_path.ends_with("goal_plaque.tscn"), path.get_file() + ": far rail has the generic goal plaque by default")
+		for slot: String in ["ChipTray", "BurnLine", "Zones"]:
+			_check(board.get_node("Anchors/" + slot).get_child_count() == 0, "%s: optional slot %s is empty by default" % [path.get_file(), slot])
+		_check(_count_lights(board) == 0, path.get_file() + ": no light nodes (Lamp3D owns the lights)")
+	else:
+		_switch_on(board)
 	for n: String in ANCHORS:
 		var a := board.get_node_or_null("Anchors/" + n) as Marker3D
 		_check(a != null and _xf(board, a).origin.is_equal_approx(ANCHORS[n]), "%s: anchor %s at %s" % [path.get_file(), n, ANCHORS[n]])
@@ -79,13 +97,17 @@ func _check_board(path: String, budget: int) -> void:
 				if w.y > 0.25 + EPS:
 					height_ok = false
 					bad = "%s %s" % [top, w]
-				if not FIXED.has(top) and w.y > EPS and _inside_rail_line(w):
+				if FLAT_ON_FELT.has(top):
+					if w.y > FLAT_MAX_Y:
+						keep_out_ok = false
+						bad = "%s %s (flat piece too tall)" % [top, w]
+				elif not FIXED.has(top) and w.y > EPS and _inside_rail_line(w):
 					keep_out_ok = false
 					bad = "%s %s" % [top, w]
-	_check(keep_out_ok, "%s: no decoration over the felt / inside the rail centrelines %s" % [path.get_file(), bad])
-	_check(height_ok, "%s: everything under 0.25 m" % path.get_file())
-	_check(toon_ok, "%s: every surface uses toon_noir" % path.get_file())
-	_check(tris <= budget, "%s: %d tris <= %d" % [path.get_file(), tris, budget])
+	_check(keep_out_ok, "%s: no decoration over the felt / inside the rail centrelines%s %s" % [path.get_file(), tag, bad])
+	_check(height_ok, "%s: everything under 0.25 m%s" % [path.get_file(), tag])
+	_check(toon_ok, "%s: every surface uses toon_noir%s" % [path.get_file(), tag])
+	_check(tris <= budget, "%s: %d tris <= %d%s" % [path.get_file(), tris, budget, tag])
 	_check_rails(path.get_file(), board, board.get_node("Visual/Rails"))
 	_check(_no_physics(board), "%s: no physics bodies, shapes or animations (colliders stay in code)" % path.get_file())
 	board.free()
@@ -114,6 +136,35 @@ func _check_rails(label: String, board: Node3D, rails: Node) -> void:
 				inner_on_radius = false
 	_check(inside_ok, "%s: rail mesh stays inside the 0.09 m tube" % label)
 	_check(inner_on_radius, "%s: rail inner face keeps the collider radius" % label)
+
+
+## Instances every optional slot the way game code would: the flame target plaque replaces the goal
+## plaque, the tray and strip go on their anchors, and two zones sit on the felt under Zones.
+func _switch_on(board: Node3D) -> void:
+	var tp := board.get_node("Anchors/TargetPlate")
+	var old := tp.get_node("Plate")
+	tp.remove_child(old)
+	old.free()
+	_add(tp, OPT + "burn_line_target_plaque.tscn", "Plate", Vector3.ZERO)
+	_add(board.get_node("Anchors/ChipTray"), OPT + "chip_tray.tscn", "Tray", Vector3.ZERO)
+	_add(board.get_node("Anchors/BurnLine"), OPT + "burn_line_strip.tscn", "Strip", Vector3.ZERO)
+	_add(board.get_node("Anchors/Zones"), OPT + "zone_x2.tscn", "ZoneX2", Vector3(-0.55, 0, 0.15))
+	_add(board.get_node("Anchors/Zones"), OPT + "zone_soul.tscn", "ZoneSoul", Vector3(0.55, 0, 0.15))
+
+
+func _add(parent: Node, scene_path: String, node_name: String, pos: Vector3) -> void:
+	var n := (load(scene_path) as PackedScene).instantiate() as Node3D
+	_check(n != null, "optional scene loads: " + scene_path.get_file())
+	n.name = node_name
+	n.position = pos
+	parent.add_child(n)
+
+
+func _count_lights(n: Node) -> int:
+	var c := 1 if n is Light3D or n is WorldEnvironment else 0
+	for k in n.get_children():
+		c += _count_lights(k)
+	return c
 
 
 ## True if p is inside the rail centreline (a rounded rectangle: half size 1.11 x 0.61, corner
