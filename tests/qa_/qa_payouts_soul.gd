@@ -76,9 +76,56 @@ func _init() -> void:
 	var SO := RollResult.Outcome.SEVEN_OUT
 	var CR := RollResult.Outcome.CRAPS_LOSS
 	var NO := RollResult.Outcome.NO_DECISION
-	var cases := [[SO,5,3],[SO,10,3],[SO,11,4],[SO,25,5],[SO,0,2],[CR,5,2],[CR,10,2],[CR,25,4],[CR,0,1],[NO,9,0],[NO,10,1],[NO,25,2]]
+	var cases := [[SO,5,3],[SO,10,3],[SO,11,4],[SO,25,5],[CR,5,2],[CR,10,2],[CR,25,4],[NO,9,0],[NO,10,1],[NO,25,2]]
 	for c in cases:
 		check(PocTable.soul_damage_for(c[0], c[1], tun, r) == c[2], "soul dmg %s lost %d = %d (got %d)" % [RollResult.outcome_name(c[0]), c[1], c[2], PocTable.soul_damage_for(c[0], c[1], tun, r)])
+	# Raw shared formula at 0 Coin lost (doc formula; roll() does NOT apply it when nothing lost)
+	check(PocTable.soul_damage_for(SO, 0, tun, r) == 2, "raw formula: seven-out with 0 lost = 2 (formula only)")
+	check(PocTable.soul_damage_for(CR, 0, tun, r) == 1, "raw formula: craps with 0 lost = 1 (formula only)")
+	# Actual roll path: nothing at stake -> 0 Soul
+	var e1 := PocTable.new(tun)
+	e1.place_bet(pass_t, 5); e1.roll([2, 2])  # point 4 with Pass 5
+	e1.table.active_bets.clear(); e1.bankroll.add(5)  # force an empty felt during a point (not reachable via normal input: Pass is locked)
+	var so0 := e1.roll([3, 4])
+	check(so0.table_report.roll.outcome == SO and so0.soul_damage == 0 and e1.soul == 40, "roll path: seven-out with empty felt = 0 Soul")
+	var e2 := PocTable.new(tun)
+	var cr0 := e2.roll([1, 1])
+	check(cr0.table_report.roll.outcome == CR and cr0.soul_damage == 0 and e2.soul == 40, "roll path: craps with no bet = 0 Soul")
+	var e3 := PocTable.new(tun)
+	e3.place_bet(pass_t, 5)
+	check(e3.roll([1, 2]).soul_damage == 2 and e3.soul == 38, "roll path: craps with Pass 5 = 2 Soul")
+	var e4 := PocTable.new(tun)
+	e4.bankroll.add(10); e4.place_bet(pass_t, 25); e4.roll([5, 5])
+	check(e4.roll([6, 1]).soul_damage == 5 and e4.soul == 35, "roll path: seven-out with Pass 25 = 5 Soul")
+	# Odds rules (eea7bc1)
+	var ob2 := Bankroll.new(200)
+	var ot := CrapsTable.new(ob2)
+	check(ot.odds_max_multiple == 2 and tun.odds_max_multiple == 2, "odds multiple default 2")
+	check(ot.place_bet(odds, 10) != "", "Odds refused with no Point")
+	ot.roll([2, 2])
+	check(ot.place_bet(odds, 10) != "", "Odds refused with no Pass underneath")
+	var ot2 := CrapsTable.new(Bankroll.new(200))
+	ot2.place_bet(pass_t, 10); ot2.roll([3, 3])
+	check(ot2.place_bet(odds, 21) != "", "Odds 21 on Pass 10 refused (>2x)")
+	check(ot2.place_bet(odds, 20) == "", "Odds exactly 2x (20) allowed")
+	check(ot2.place_bet(odds, 1) != "" and ot2.stake_on(&"odds") == 20, "can't raise Odds past 2x")
+	check(ot2.bankroll.coin == 170, "refusals spent nothing (coin %d)" % ot2.bankroll.coin)
+	check(ot2.place_bet(odds, 0) != "" and ot2.place_bet(odds, -5) != "", "0/negative Odds refused")
+	var ot3 := CrapsTable.new(Bankroll.new(200))
+	ot3.place_bet(pass_t, 5); ot3.roll([2, 2])
+	check(ot3.place_bet(odds, 1) == "", "Odds below table min allowed (doc: not bound by table limits)")
+	var ot4 := CrapsTable.new(Bankroll.new(200)); ot4.max_bet = 25
+	ot4.place_bet(pass_t, 25); ot4.roll([2, 2])
+	check(ot4.place_bet(odds, 50) == "", "Odds 50 on Pass 25 allowed above table cap")
+	var rp := ot4.roll([3, 4])
+	check(ot4.active_bets.is_empty() and ot4.bankroll.coin == 125, "seven-out takes Pass + Odds")
+	var ot5 := CrapsTable.new(Bankroll.new(200))
+	ot5.place_bet(pass_t, 10); ot5.roll([3, 2])
+	ot5.place_bet(odds, 20); ot5.roll([4, 1])
+	check(ot5.bankroll.coin == 200 + 10 + 30, "point 5 hit: Pass +10, Odds 20 at 3:2 = +30")
+	var ot6 := CrapsTable.new(Bankroll.new(200))
+	ot6.place_bet(pass_t, 10); ot6.roll([4, 4]); ot6.place_bet(odds, 20)
+	check(ot6.clear_bet(&"odds") == "" and ot6.bankroll.coin == 190, "Odds can be taken down during the Point (real-craps behavior)")
 	# Miss penalty: 3 + 1 per 25%% of gap, max 7
 	check(PocTable.miss_penalty_for(40, 40, tun) == 0, "no miss penalty at target")
 	check(PocTable.miss_penalty_for(40, 30, tun) == 4, "gap 25% -> 4")
