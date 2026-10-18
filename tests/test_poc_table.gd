@@ -80,13 +80,13 @@ func _test_soul_formulas() -> void:
 	var plain := TableRuleData.new()
 	var hot := _tuning.table_rule
 	var O := RollResult.Outcome
-	# Seven-out: 2 + ceil(lost / 10).
-	var cases := [[0, 2], [5, 3], [10, 3], [11, 4], [20, 4], [25, 5], [50, 7]]
+	# Seven-out: 2 + ceil(lost / 10); nothing lost = 0 (PM-approved).
+	var cases := [[0, 0], [5, 3], [10, 3], [11, 4], [20, 4], [25, 5], [50, 7]]
 	for c in cases:
 		_check_eq(PocTable.soul_damage_for(O.SEVEN_OUT, c[0], _tuning, plain), c[1], "soul: seven-out losing %d -> %d" % [c[0], c[1]])
 		_check_eq(PocTable.soul_damage_for(O.SEVEN_OUT, c[0], _tuning, hot), c[1] * 2, "soul: Hot Seven seven-out losing %d -> %d" % [c[0], c[1] * 2])
-	# Craps: 1 + ceil(lost / 10). Hot Seven does NOT touch Craps.
-	for c in [[0, 1], [5, 2], [10, 2], [15, 3], [25, 4]]:
+	# Craps: 1 + ceil(lost / 10); nothing lost = 0. Hot Seven does NOT touch Craps.
+	for c in [[0, 0], [5, 2], [10, 2], [15, 3], [25, 4]]:
 		_check_eq(PocTable.soul_damage_for(O.CRAPS_LOSS, c[0], _tuning, hot), c[1], "soul: craps losing %d -> %d" % [c[0], c[1]])
 	# Any other losing roll: floor(lost / 10).
 	for c in [[5, 0], [9, 0], [10, 1], [19, 1], [25, 2]]:

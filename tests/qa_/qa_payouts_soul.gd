@@ -79,9 +79,10 @@ func _init() -> void:
 	var cases := [[SO,5,3],[SO,10,3],[SO,11,4],[SO,25,5],[CR,5,2],[CR,10,2],[CR,25,4],[NO,9,0],[NO,10,1],[NO,25,2]]
 	for c in cases:
 		check(PocTable.soul_damage_for(c[0], c[1], tun, r) == c[2], "soul dmg %s lost %d = %d (got %d)" % [RollResult.outcome_name(c[0]), c[1], c[2], PocTable.soul_damage_for(c[0], c[1], tun, r)])
-	# Raw shared formula at 0 Coin lost (doc formula; roll() does NOT apply it when nothing lost)
-	check(PocTable.soul_damage_for(SO, 0, tun, r) == 2, "raw formula: seven-out with 0 lost = 2 (formula only)")
-	check(PocTable.soul_damage_for(CR, 0, tun, r) == 1, "raw formula: craps with 0 lost = 1 (formula only)")
+	# Raw shared formula at 0 Coin lost
+	# PM approved: nothing lost = 0 Soul in the formula too (was 2 / 1), so the formula matches play.
+	check(PocTable.soul_damage_for(SO, 0, tun, r) == 0, "raw formula: seven-out with 0 lost = 0")
+	check(PocTable.soul_damage_for(CR, 0, tun, r) == 0, "raw formula: craps with 0 lost = 0")
 	# Actual roll path: nothing at stake -> 0 Soul
 	var e1 := PocTable.new(tun)
 	e1.place_bet(pass_t, 5); e1.roll([2, 2])  # point 4 with Pass 5
