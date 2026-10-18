@@ -129,6 +129,9 @@ They are not applied by any file in this repo.
   - Require review from Code Owners: **off** for now. `@cashdvs` owns every path in CODEOWNERS
     and can't approve their own PRs, so turning this on would block team PRs opened from that account
   - Require conversation resolution before merging: on
+  - Note: while `@cashdvs` is the only account with write access, PRs opened from it can't get
+    an approval from anyone else. Either allow admins to bypass, or add a second reviewer
+    account first.
 - **Require status checks to pass before merging**: on
   - Required check: **`tests`** (job in workflow `CI`, `.github/workflows/ci.yml`; shown as
     "CI / tests")
