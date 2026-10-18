@@ -27,6 +27,7 @@ var pot_dice: Array[DieVisual] = []
 var _felt_pos: Array[Vector3] = []
 var _brng := RandomNumberGenerator.new()
 var _lights: Dictionary = {}
+var _hand_tweens: Array[Tween] = []
 
 
 func _ready() -> void:
@@ -182,6 +183,10 @@ func _pick_values() -> Array[int]:
 
 func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
 	last_values = values
+	# Throw from the hand ring even if the gather tween hasn't finished.
+	_kill_hand_tweens()
+	for i in dice.size():
+		dice[i].global_transform = Transform3D(dice[i].global_transform.basis, hand_spot(i))
 	throw_dice = dice.duplicate()
 	for d in throw_dice:
 		_set_lit(d, false)
@@ -263,6 +268,18 @@ func _process(delta: float) -> void:
 			d.body_material.set_shader_parameter("emission_energy", 0.55 + 0.2 * sin(_t * 7.0 + d.die_id * 1.7))
 
 
+## A handful in the hand: a tight ring around HAND (a 5-wide row would
+## start the outer dice in the rail).
+func hand_spot(i: int) -> Vector3:
+	var n := maxi(dice.size(), 1)
+	if n == 1:
+		return HAND + Vector3(0, tuning.die_size * 0.5, 0)
+	var r := tuning.die_size * 0.6 / sin(PI / float(n))
+	r = maxf(r, tuning.die_size * 0.65)
+	var a := TAU * float(i) / float(n) + 0.3
+	return HAND + Vector3(cos(a) * r, tuning.die_size * 0.5, sin(a) * r * 0.9)
+
+
 # --- Internals ----------------------------------------------------------------------
 
 func _bust() -> void:
@@ -308,10 +325,19 @@ func _reset_hand_dice() -> void:
 
 
 func _to_hand() -> void:
+	_kill_hand_tweens()
 	for i in dice.size():
 		var d := dice[i]
 		var tw := d.create_tween()
+		_hand_tweens.append(tw)
 		tw.tween_method(_arc_die.bind(d, d.global_position, hand_spot(i)), 0.0, 1.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+
+
+func _kill_hand_tweens() -> void:
+	for tw in _hand_tweens:
+		if tw.is_valid():
+			tw.kill()
+	_hand_tweens.clear()
 
 
 ## The dice the next throw uses (also resizes the per-die playback state).
