@@ -6,18 +6,19 @@ against **Dice of the Damned** by **Tiny Anvil Games**. Humans should also read
 
 ## 1. Project overview
 
-- **Dice of the Damned** (working title *The Gambler's Descent*) is a single-player,
+- **Dice of the Damned** (formerly *The Gambler's Descent*) is a single-player,
   craps-style dice roguelite made in **Godot 4.7.2** with **GDScript**. PC first (mouse and
   keyboard).
 - You roll your way out of an infernal casino: bet on the Pass Line, hit a Coin target within a
   roll limit, and protect your **Soul** (the game's HP), which burns on bad rolls.
 - **Current stage: proof of concept (POC).** One table, 2 plain dice, the Pass Line, Soul,
   a 12-roll limit, a Coin target and a taunting Dealer. **Odds** exist in the logic
-  (`CrapsTable`) but aren't on the 2D felt yet. Their rules: Odds can only be placed while a Point
+  (`CrapsTable`) but aren't on either felt yet. Their rules: Odds can only be placed while a Point
   is on, need a Pass Line bet underneath, are capped at 2× the Pass bet (`odds_max_multiple` in
-  `TuningData`), and ignore the 5–25 table limits. The goal is *feel*. The 2D table is on
-  `main` (`scenes/table.tscn`); a top-down 3D table is being built by the core team (see
-  [docs/MODULES.md](docs/MODULES.md)).
+  `TuningData`), and ignore the 5–25 table limits. The goal is *feel*. The main table is now
+  the **3D table** (`scenes/table_3d.tscn`: angled overhead camera, real-physics dice you grab
+  and flick; see §4a). It is still being built by the core team (see
+  [docs/MODULES.md](docs/MODULES.md)). The 2D table (`scenes/table.tscn`) stays as a reference.
 - Shop, map, bosses, dice rarities, face mods and sacrifice are **designed but not built**.
 
 **Read for context before coding:**
@@ -74,9 +75,11 @@ export GODOT=~/tools/godot/godot
 
 # 3) Run one test file
 "$GODOT" --headless --path . --script res://tests/test_poc_table.gd
+"$GODOT" --headless --path . --script res://tests/test_table_3d.gd   # 3D table + real physics
 
-# 4) Play (needs a display)
+# 4) Play (needs a display). Main scene = the 3D table; the 2D table is still runnable:
 "$GODOT" --path .
+"$GODOT" --path . res://scenes/table.tscn
 # Editor
 "$GODOT" --editor --path .
 ```
@@ -84,11 +87,20 @@ export GODOT=~/tools/godot/godot
 Screenshots or a short movie for your PR (works on a headless Linux box with `xvfb`):
 
 ```bash
+# 3D table (Forward+ needs Vulkan; lavapipe under xvfb works). Writes PNGs to --out=<folder>
+# (default user://captures_3d/). Add `idle` after `--` for just the idle shot.
+xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver vulkan \
+  --resolution 1920x1080 --script res://tools/capture_table_3d.gd -- --out=/tmp/captures_3d/
+
+# 2D table
 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . \
   --rendering-driver opengl3 --resolution 1920x1080 --script res://tools/capture_table.gd
+
+# 3D dice physics sweep: settle-time / landing stats, any TuningData number overridable
+"$GODOT" --headless --path . --script res://tools/stats_table_3d.gd -- die_linear_damp=1.0
 ```
 
-Known quirk: `tools/capture_table.gd` and `tools/demo_table.gd` currently write to a
+Known quirk: the 2D tools `tools/capture_table.gd` and `tools/demo_table.gd` currently write to a
 studio-machine folder (`OUT` at the top of `capture_table.gd`). Point it at a local folder in your
 working copy for captures, and don't commit that change.
 
@@ -98,15 +110,21 @@ rejected. Only the `N passed, M failed` summaries and the exit code matter.
 ## 4. Folder map (as of `main`)
 
 ```
-project.godot            Godot project (main scene: res://scenes/table.tscn, GL Compatibility)
+project.godot            Godot project "Dice of the Damned" (main scene: res://scenes/table_3d.tscn;
+                         Forward+ renderer, Mobile renderer on mobile; Jolt Physics at 120 Hz)
 run_tests.sh             Runs tests/test_*.gd and tests/qa_/qa_*.gd headless
-scenes/                  table.tscn (2D POC table), greybox.tscn (old debug screen)
+scenes/                  table_3d.tscn (3D POC table, main scene), table.tscn (2D POC table,
+                         reference), greybox.tscn (old debug screen)
 scripts/data/            Resource classes (data definitions): DieFace, DieData, BetType,
                          BetCatalog, TuningData, TableRuleData
 scripts/core/            Pure game logic, no nodes (RefCounted): DiceRoller, CrapsRound,
                          RollResult, Bankroll, ActiveBet, BetPayout, BetResolver, CrapsTable,
                          TableReport, PocTable, PocRollReport, ThrowGesture, DealerLines
-scripts/table/           2D table scene views: table_scene.gd (director), die_view, chip_view,
+scripts/table3d/         3D table (see §4a): table_3d.gd (director), dice_sim, throw_recording,
+                         die_visual, table_3d_builder, camera_rig, chip_3d, puck_3d, dealer_3d,
+                         lamp_3d, felt_print, fx_3d, toon
+scripts/table/           2D table scene views (some reused by the 3D table's HUD layer):
+                         table_scene.gd (director), die_view, chip_view,
                          puck_view, soul_meter, bankroll_stack, banner, dealer_view,
                          dealer_bubble, table_painter, rule_plaque, shake_camera, palette
 scripts/audio/           SfxSynth (procedural sounds) + SfxManager (prefers audio/sfx/<event>.wav)
@@ -117,15 +135,62 @@ resources/dice/          standard_d6.tres
 resources/dealer/        dealer_lines.json: Dealer taunt lines per event
 audio/sfx/               Baked .wav sound effects (from tools/bake_sfx.gd)
 fonts/                   Alfa Slab One, Barlow Condensed (SIL OFL; licenses alongside)
-shaders/                 felt, backdrop, bulb_light, grade
-tests/                   test_*.gd (headless SceneTree scripts); tests/qa_/ is owned by QA
-tools/                   generate_sample_resources, bake_sfx, capture_table, demo_table
+shaders/                 2D: felt, backdrop, bulb_light, grade
+shaders/3d/              toon_noir (stepped toon lighting, felt/chip modes), outline (inverted-hull
+                         ink), fx_unshaded, fx_particle (billboard particles)
+tests/                   test_*.gd (headless SceneTree scripts, incl. test_table_3d.gd); tests/qa_/ is
+                         owned by QA
+tools/                   generate_sample_resources, bake_sfx, capture_table, demo_table (2D);
+                         capture_table_3d, stats_table_3d (3D)
 docs/                    DESIGN.md (public design summary), MODULES.md (module map)
 .github/                 PR/issue templates and CI
 ```
 
-Planned (not on `main` yet): `scenes/table_3d.tscn`, `scripts/table3d/`, `shaders/3d/` for the 3D
-table. Check [docs/MODULES.md](docs/MODULES.md) for where new systems should go.
+Check [docs/MODULES.md](docs/MODULES.md) for where new systems should go.
+
+## 4a. The 3D table and its dice
+
+- **Scene:** `scenes/table_3d.tscn` with `scripts/table3d/table_3d.gd` as the director. It runs the
+  same one-Pass-Line loop as the 2D table. The rules stay in `PocTable` (pure logic), and the 2D-in-spec UI
+  (Soul meter, banners, sum, bankroll, why-line) is reused from `scripts/table/` on a CanvasLayer.
+  Units are meters, with the felt at y = 0. `Table3DBuilder` builds the greybox table (felt, padded
+  rails, backboard, room dressing) **and the colliders** the dice bounce off. `CameraRig` is the angled
+  perspective camera (reveal follow, shake, phone framing: portrait rotates the view, and the camera moves
+  closer if a die would render under `min_die_px`).
+- **Input:** click the Pass Line or the bankroll to stack chips (5–25 Coin; right-click takes one down).
+  Then grab the dice, drag and **flick**: release speed and direction shape the throw, and a weak flick drops the dice
+  back into your hand. Space = quick throw. Click during a roll = fast-forward. T = speed 1×/2×/Instant.
+  R = reduced motion. F1 = debug panel (force the next roll). The `forced_rolls` export queues faces for tests.
+- **Physics:** Jolt Physics at **120 ticks/s** (`project.godot [physics]`, bounce threshold
+  0.15 m/s so dice rebound off the backboard). Dice use heavier gravity (`die_gravity_scale`) and
+  damping so the median settle is ≤ `settle_target` (0.9 s).
+- **How the seeded result is hit with real physics** (`dice_sim.gd`, `die_visual.gd`):
+  1. At release the director asks the seeded `DiceRoller` for the faces. That's the result.
+  2. **Pre-simulate:** `DiceSim` throws two invisible `RigidBody3D` dice with the flick's velocity and
+     spin. The physics clock is sped up (`sim_warp`), so the whole throw is computed during the 0.12 s
+     wind-up, and every tick (transforms, contacts, rest and tumble-end times) goes into a `ThrowRecording`.
+     A die resting cocked against a rail gets a small recorded nudge to tip it flat.
+  3. **Invisible face remap:** the recording says which physical face ended on top. The visible
+     die's inner `faces` node is turned (`DieVisual.remap_basis`, one of the 24 cube orientations) so the
+     seeded face sits there. This is done before playback, so you see the true physical tumble landing on the right face.
+  4. **Playback** at normal speed. `DieVisual` copies the recorded transforms and emits its audio
+     signals in sync: `impact` (relative contact speed, surface, die-die once per pair, material;
+     silent under `impact_min_speed`), `tumble_ending`, `rest` and `settled`.
+  5. **Settle assist:** a die still moving at `assist_start` (1.2 s after release) is eased smoothly
+     flat (no snap), so the reveal always completes by `reveal_cap` (1.5 s).
+  Never replace this with a scripted path or a visible snap. Throw and bounce feel come first.
+- **Tuning:** every 3D number (throw shaping, die mass, bounce and damping, `sim_warp`, settle and assist
+  timings, camera, `min_die_px`, audio thresholds) is an `@export` in `TuningData`, set in
+  `resources/tuning/poc_tuning.tres`.
+- **Tests:** `tests/test_table_3d.gd` throws real dice headless. It checks:
+  - the face-remap math for all (physical, wanted) pairs;
+  - that many seeded flicks always settle flat, on the felt, showing the `DiceRoller` result;
+  - the settle median and reveal cap;
+  - that weak flicks don't roll, the speed toggle works, and the audio signals fire;
+  - that wins never restore Soul;
+  - that dice are ≥ 48 px on phone-sized viewports.
+- **Shaders:** every opaque prop uses `shaders/3d/toon_noir.gdshader` through the `Toon` material
+  factory (`toon.gd`), plus an optional `outline.gdshader` ink hull. Effects use `fx_unshaded` and `fx_particle`.
 
 ## 5. Coding conventions
 
@@ -148,7 +213,7 @@ table. Check [docs/MODULES.md](docs/MODULES.md) for where new systems should go.
   `RandomNumberGenerator`). Never call global `randi()`/`randf()` in game logic. The same seed
   must give the same rolls; tests and the F1 force-roll debug depend on it. Animations and physics
   may *look* random but must land on the result `DiceRoller` picked.
-- Keep files focused; prefer a new small class over growing `table_scene.gd`.
+- Keep files focused; prefer a new small class over growing `table_scene.gd` or `table_3d.gd`.
 
 ## 6. Data-driven Resources
 
