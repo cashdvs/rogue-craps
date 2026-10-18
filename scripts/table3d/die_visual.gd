@@ -215,7 +215,36 @@ static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, d: Vector3, c: float, 
 		st.add_vertex(r[0])
 
 
+## What each physical face slot (1..6, see FACE_AXES) shows. Default: its own
+## number. A Knucklebone uses [1, 1, 2, 2, 3, 3]: slot 4 shows 2 pips.
+var labels: Array[int] = [1, 2, 3, 4, 5, 6]
+var _pips_root: Node3D
+
+
+## Restyles the die: body colour, pip colour and the per-slot pip counts.
+func set_look(body: Color, pip: Color, slot_labels: Array[int]) -> void:
+	labels = slot_labels.duplicate() if slot_labels.size() == 6 else [1, 2, 3, 4, 5, 6]
+	body_material.set_shader_parameter("albedo", body)
+	body_material.set_shader_parameter("shadow_color", body.darkened(0.55))
+	body_material.set_shader_parameter("emission_color", body)
+	_pip_color = pip
+	_add_pips()
+
+
+## The number shown on top (the slot's label).
+func shown_value() -> int:
+	return labels[up_value() - 1]
+
+
+var _pip_color: Color = Palette.PIT_BLACK
+
+
 func _add_pips() -> void:
+	if _pips_root != null:
+		_pips_root.free()
+	_pips_root = Node3D.new()
+	_pips_root.name = "Pips"
+	faces.add_child(_pips_root)
 	var pip_mesh := CylinderMesh.new()
 	var pr := 0.09 * edge
 	pip_mesh.top_radius = pr
@@ -223,18 +252,19 @@ func _add_pips() -> void:
 	pip_mesh.height = 0.06 * edge
 	pip_mesh.radial_segments = 12
 	pip_mesh.rings = 1
-	var pip_mat := Toon.mat(Palette.PIT_BLACK, Color.BLACK, {"roughness": 0.8, "ambient_energy": 0.1})
+	var pip_mat := Toon.mat(_pip_color, Color.BLACK, {"roughness": 0.8, "ambient_energy": 0.1})
 	var h := edge * 0.5
 	for value: int in PIPS:
 		var n := FACE_AXES[value] as Vector3
+		var shown: int = labels[value - 1]
 		var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
 		u = (u - n * u.dot(n)).normalized()
 		var v := n.cross(u)
-		for spot: Vector2 in PIPS[value]:
+		for spot: Vector2 in PIPS[shown]:
 			var mi := MeshInstance3D.new()
 			mi.mesh = pip_mesh
 			mi.material_override = pip_mat
 			# Sunk into the face so only a dark "drilled" disc shows.
 			var pos := n * (h - 0.02 * edge) + u * spot.x * PIP_STEP * edge + v * spot.y * PIP_STEP * edge
 			mi.transform = Transform3D(Basis(u, n, u.cross(n)), pos)
-			faces.add_child(mi)
+			_pips_root.add_child(mi)

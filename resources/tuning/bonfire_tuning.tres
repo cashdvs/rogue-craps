@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="BonfireTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bonfire_tuning.gd" id="1_bt"]
+
+[resource]
+script = ExtResource("1_bt")
+starting_soul = 35
+hands = 8
+start_coin = 0
+coin_target = 300
+dice_count = 5
+bust_soul_loss = 2
+hot_hand_multiplier = 2
+single_one = 10
+single_five = 5
+triple_per_face = 10
+triple_ones = 100
+of_a_kind_multiplier = Array[int]([1, 2, 3, 4])
+run_low = 50
+run_high = 75
