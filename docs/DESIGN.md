@@ -1,99 +1,103 @@
-# Dice of the Damned: design summary
+# Dice of the Damned: design overview
 
-A short public summary of the game design, written for contributors. The full living design and
-art documents are maintained by the Tiny Anvil Games team; if an issue needs a number or detail that
-isn't here, it will quote it. All numbers are first-pass placeholders, and the numbers the game
-actually uses live in `resources/tuning/poc_tuning.tres`.
+A short overview of the game as it plays on `main` today, for contributors. The full rules,
+with a worked example, are in **`how_bonfire_plays.md`** (the team's plain-language guide). It
+lives in the team design folder (`design/`), not in this repo; issues quote anything you need
+from it. This page gives no tuning numbers of its own: each value is named by the data file that
+holds it, so the data always wins. Terms match the glossary in
+[ARCHITECTURE.md](ARCHITECTURE.md#glossary).
 
-> **Hook:** Roll your way out of an infernal casino. Rig your dice, unlock crooked bets, and beat
-> the Dealers who cheat right back.
+> **Pitch:** Farkle-style push-your-luck with Balatro-style scoring. Throw 5 dice, keep the
+> scoring ones, then bank or throw again. Win a table by claiming its bounties before your hands
+> run out.
 
-Single-player craps roguelite, PC first (mouse and keyboard), made in Godot 4.7.2.
+Single-player dice roguelite, PC first (mouse and keyboard), made in Godot 4.7.2.
 
-## Pillars
+## The run
 
-- **No relics.** Power comes only from **dice faces**, **new or better dice**, and **unlocked
-  bets**.
-- **Every table has a rule that disrupts play** (for example *Hot Seven*: a Seven-out deals
-  double Soul damage).
-- **Soul is your HP.** It burns during play and only comes back at specific places on the map.
-- **You win the run by beating the final Dealer.**
-- **Fair dice lose slowly.** With fair dice every bet has a small house edge, like a real casino.
-  Your edge comes only from your dice: you beat the house by cheating.
+- **Floors:** a run is the floors listed in `resources/map/bonfire_run.tres` (`RunData.floors`:
+  `floor_1.tres` to `floor_3.tres` in `resources/map/`).
+- **Map:** each floor is a branching map of **Table, Elite, Event, Shop, Rest** and **Boss**
+  nodes (`MapGenData`; floor 1's map is `resources/map/floor_1_map.tres`). You pick a path upward.
+  - **Table:** a normal Bonfire table.
+  - **Elite:** a harder table with one random **twist** from the floor's `elite_twists`. Clearing
+    one offers a pick of special dice and a bigger Seal pick.
+  - **Event:** a choice with costs and rewards (`resources/events/`). No event repeats until
+    you've seen them all.
+  - **Shop:** spend Embers (see below).
+  - **Rest:** pick one: heal Soul, carve a free face mod, or add Seal levels to a combo you own.
+  - **Boss:** the floor's boss, drawn from `boss_cheats` when you enter the floor, plays a table
+    with its **cheat**. On the last floor the boss also adds a twist (`boss_adds_twist`). Missing
+    the boss isn't the end straight away: you get a **re-sit** (`RunData.boss_resits`).
+- **Contract:** each boss beaten gives a contract piece, which raises max Soul and heals you to
+  full. After the last boss, you win the run if you hold enough pieces
+  (`contract_pieces_to_win`).
+- **Soul** is your HP for the whole run (`starting_soul` / `max_soul` in `bonfire_run.tres`).
+  At 0 the run is over.
+- Every random choice is seeded per run and node, so a run seed replays exactly.
 
-## Core loop
+## A table
 
-1. Enter a **table**: your stake moves from your purse into the table's **bankroll**.
-2. Before each come-out roll, **bet** from the bankroll (Floor 1: 5 to 25 Coin).
-3. **Throw** the dice. Resolve the bets, then collect or lose Coin. Bad rolls burn **Soul**.
-4. Reach the table's **Coin target** within the **roll limit**, or take a Soul penalty.
-5. Between tables (planned): a branching floor map with shops, events, rests and altars, where
-   you spend Coin on bets, dice and face mods. Each of the 3 floors ends with a Dealer boss, and
-   then comes the Final Table.
+1. **Throw** the dice in your handful (5 to start: `RunData.starting_dice`). A full 5-die throw
+   always has a scoring die, so it can't bust.
+2. **Lit vs cold:** dice that can form a combo (a lone 1 or 5, a pair, a run, ...) light up; the
+   rest are cold.
+3. **Pot** one combo per throw from the lit dice. It scores **(base + potted faces) × mult** into
+   the hand's unbanked **pot**. The combo list, with base and mult, is `combos` in
+   `resources/tuning/bonfire_tuning.tres`.
+4. **Bank or throw again:** bank to keep the pot and end the hand, or rethrow the remaining cold
+   dice. A rethrow that lights nothing is a **bust**: you lose the pot, the hand's pending bounty
+   ticks and some Soul (`bust_soul_loss`).
+5. **Hot Hand:** pot every die and all of them come back, with extra mult on every later pot that
+   hand (`hot_hand_mult_bonus`).
+6. **Bounties** are the table's goal (`TableGoal`). A bounty ticks when a pot contains its pattern
+   (e.g. a Full House contains a Triple). Ticks stay pending until you bank. The floor's `.tres`
+   sets how many bounties are required, the bonus bounties and the hands per table (`hands`,
+   `boss_hands`).
+7. **Cleared or failed:** bank every required bounty within the hands and the table is cleared.
+   Run out of hands with bounties missing and each one costs Soul (`timeout_soul_per_bounty`).
+8. **Embers** are the run's money. At table end, banked points convert at `points_per_ember`
+   (`bonfire_tuning.tres`), plus the floor's `clear_embers` on a clear and boss Embers
+   (`boss_embers`) for a boss.
+9. **Seals:** after a cleared Table, Elite or Boss you pick one free Seal (or skip it for Embers).
+   A Seal levels one combo, adding base and mult per level (`seal_base_step` / `seal_mult_step`).
+   Rare Seals (Transference, Black, Ashen) are used on the spot.
 
-## Craps rules (Pass Line)
+Leaving a cleared table early (Leave table) is arriving with Godot Dev's Leave table PR; it isn't
+on `main` yet.
 
-- **Come-out roll:** 7 or 11 is a **Natural** (win). 2, 3 or 12 is **Craps** (lose). Any other
-  total (4, 5, 6, 8, 9, 10) becomes the **Point**.
-- **Point phase:** roll the Point again to win (**Point hit**), or a 7 to lose (**Seven-out**).
-  The Pass bet is locked while a Point is on.
-- **Odds:** an add-on behind Pass, only while a Point is on, capped at 2× the Pass bet. Pays true
-  odds (2:1 on 4/10, 3:2 on 5/9, 6:5 on 6/8).
-- If the rolls run out with a Point still open, the Pass bet is **returned** (a push).
-- Pass wins about 49.3% of the time (1.41% house edge at 1:1).
+## The shop
 
-## Coin and Soul
+The shop sells special dice, face mods and Seals, plus paid rerolls of the stock. Its sizes and
+prices are the Shop group in `bonfire_run.tres` (`RunData`), and each die's or mod's price is in
+its own `.tres`. Each face mod costs more for every mod already on that die
+(`mod_price_step_percent`), each Seal bought on a visit raises the next one's price, and you can
+sell a die for part of its price (`die_sell_percent`).
 
-- **Coin** is money. The **purse** is what you carry between tables; the **bankroll** is what's on
-  the current table. At the end of a table the whole bankroll goes back to your purse.
-- **Soul** is health. The run ends when it hits 0. Damage during play:
-  - **Seven-out:** 2 Soul + 1 per 10 Coin lost on that roll, rounded up.
-  - **Craps on the come-out:** 1 Soul + 1 per 10 Coin lost, rounded up.
-  - **Any other losing roll:** 1 Soul per full 10 Coin lost.
-  - A roll where you lost nothing costs no Soul. Wins never restore Soul.
+## Dice bag and face mods
 
-## Table goal
+- **Your handful** starts at `starting_dice` dice and can grow to `max_dice`. Plain dice are
+  "Bone" d6s.
+- **Special dice** (`resources/dice/special/`, e.g. Coven, Twin Flame, Cracked, Last Breath, Blood
+  Pact, Bellows, Mirror) are whole dice with a power. The table scores them.
+- **Face mods** (`resources/mods/`, e.g. Wild, Twin, Blank, Gilded, Ember Pip, Heavy, Step,
+  Stair, Kindling, Hellfire, Blood) change one face of one die and are carved on that face.
+  Effects are listed in `FaceModData.Effect`.
+- One sentence each: a **Seal** upgrades a combo; a **face mod** changes one face; a **special
+  die** is a new die with a power.
 
-- **Floor 1 table:** stake 20 Coin, **target bankroll 40**, **12 rolls**.
-- **Hit the target:** +5 Coin clear bonus, plus 1 Coin per unused roll.
-- **Miss the target:** a final Soul penalty of 3 + 1 per 25% of the gap (max 7).
-- **Go bust** (bankroll 0): the table ends immediately with the max penalty of 7.
-- The target should feel reachable but usually just out of reach: betting 10 on Pass every
-  decision hits +20 in 12 rolls about 22% of the time.
+## Twists and cheats
 
-## Proof-of-concept scope (what's being built now)
+Both are table rules (`RunRuleData`, `resources/map/rules/`):
 
-Goal: prove that the roll and the table cycle **feel** good.
+- A **twist** is an Elite's rule: Cold Sixes, Cold Hands, First Throw, Greedy Pot, Heavy Burn
+  and Short Table.
+- A **cheat** is a boss's own rule, named after the boss: Madame Shuffle, The Pit Boss, The
+  Collector, The Bloodletter, Ashmouth and The Straight Man.
+- Each floor's `.tres` lists which twists and bosses it can draw. The table enforces the rules
+  (handlers in `scripts/core/rules/`).
 
-- One table with **2 plain fair dice**, **Pass Line** (plus Odds), Soul, a 12-roll limit and the
-  Coin target above. 40 Soul.
-- **Throw by mouse:** grab the dice, drag and flick. The seeded `DiceRoller` decides the result
-  at release, and the animation (2D now; a top-down 3D physics table is in progress) lands on it.
-- A **taunting Dealer** with short text-bubble lines on natural, craps, Point set, Point hit,
-  seven-out, big bets and low Soul.
-- Juice: tumble and impact, a suspenseful reveal, punchy payout and loss feedback, the Soul burn.
-  Click to fast-forward; a reduced-motion option.
-- A result screen, then **Next Table** (Soul carries over); 0 Soul shows a run-over screen.
-- Debug: a seed input and a "force the next roll" toggle (F1).
-- **Out of scope for the POC:** dice selection, rarities, abilities, drawbacks, face mods,
-  sacrifice, table rules (Hot Seven exists but ships off), the shop and the map.
+## Look and feel
 
-## Planned systems (designed, not built)
-
-- **Bets** unlocked in the shop: Field, Any Craps, Any Seven, Yo, Snake Eyes / Boxcars, Hard ways,
-  Don't Pass.
-- **Dice** in rarity tiers (Bone → Mischievous → Devilish → Satanic): every non-Bone die has a
-  clear upside and a clear drawback, both bigger at higher rarity. A **dice bag** holds 2 dice at
-  first, with more slots later.
-- **Face mods** (Pip Shift, Loaded, Gold, Glass, Warded, Wild, Cursed).
-- **Table rules** such as Cold Table, Crooked Dice, Short Stack, House Rake and Snake Pit.
-- **Floor map** with Tables, High-Stakes and Elite tables, Shop, Event, Rest and Altar nodes.
-  Stakes, targets and bet caps rise each row and each floor.
-- **Dealer bosses** that stack table rules plus a signature rule, and a Final Table.
-- **Embers** (light meta-progression) earned per run.
-
-## Visual style (short)
-
-Stylized, toonish, moody casino ("the Underhouse"): oxblood walls, teal-black felt, ember lamps,
-bone-ivory dice and brass UI. **Soul-Flame cyan `#4FE6E0` is reserved for Soul** (health and
-soul effects) so it always reads as "you"; don't use it for anything else.
+The setting is a toon-noir infernal casino. Dice show their state with glow only, never fire.
+Art direction is in [ARCHITECTURE.md](ARCHITECTURE.md#art-direction).

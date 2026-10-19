@@ -6,7 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Keep it to something one PR can deliver. Check docs/MODULES.md and existing issues first.
+        Keep it to something one PR can deliver (about 400 lines). Check docs/MODULES.md and existing issues first.
+        Rules or balance changes need PM's OK (CONTRIBUTING.md §5).
   - type: dropdown
     id: module
     attributes:
@@ -46,8 +47,8 @@ body:
     id: design_ref
     attributes:
       label: Design doc reference
-      description: Section of docs/DESIGN.md, if any.
-      placeholder: "e.g. DESIGN.md, Craps rules"
+      description: Design doc and section, if any (see docs/DESIGN_INDEX.md).
+      placeholder: "e.g. bonfire_map_events_juice.md §2"
   - type: textarea
     id: acceptance
     attributes:
