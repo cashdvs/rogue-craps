@@ -34,7 +34,9 @@ const SH := "res://art/models/boards/hearth/shaders/"
 ## (hearth_glow = the additive candle glow decal lying on the rail top.)
 ## (hearth_dust = the lamp dust sheet: checked against the game camera in test_hearth_dressing.gd.)
 const FX_SHADERS: Array[String] = [SH + "hearth_flame_card.gdshader", SH + "hearth_sparks.gdshader", SH + "hearth_glow.gdshader", SH + "hearth_dust.gdshader"]
-const PROP_SHADERS: Array[String] = [TOON, SH + "hearth_coals.gdshader", SH + "demon_eye.gdshader", SH + "hearth_toon_detail.gdshader"]
+## (hearth_pool = the corner light-pool decals: rail-hugging geometry, so it gets the full prop clearance rules.)
+const PROP_SHADERS: Array[String] = [TOON, SH + "hearth_coals.gdshader", SH + "demon_eye.gdshader", SH + "hearth_toon_detail.gdshader",
+	SH + "hearth_pool.gdshader"]
 ## The dark backdrop card behind Smiles (out-of-focus far tables): no height cap, must stay far behind him.
 const BACKDROP_SHADER := SH + "hearth_backdrop.gdshader"
 const BACKDROP_MAX_Z := -1.5

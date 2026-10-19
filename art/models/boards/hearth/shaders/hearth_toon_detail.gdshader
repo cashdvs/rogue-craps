@@ -1,8 +1,11 @@
 // Hearth detail-pass variant of shaders/3d/toon_noir.gdshader (art/concept/bonfire_table/hearth_detail_pass.md).
 // IDENTICAL toon-noir lighting (same uniforms, same bands; keep in sync if toon_noir changes) plus three
 // Hearth-only extras, all off by default, so any toon_noir material can switch to this shader unchanged:
-// - use_carve: the carved rail relief (textures/rail_carve.png: RGB tangent normal, A cavity), tiled along
-//   the rail UVs (Board A rails: 2 U per metre, V round the tube). Normal map + groove darkening only.
+// - use_carve: the carved rail relief (textures/rail_carve.png: RG tangent normal, B brass edge mask, A cavity),
+//   tiled along the rail UVs (Board A rails: 2 U per metre, V round the tube). Normal map, groove darkening and
+//   a brass edge highlight on the raised parts; faded out on the far rail (carve_skip_u: Smiles' side).
+// - rim_emit: a thin warm rim (unlit, fresnel step) that separates small props from the black backdrop;
+//   rim_emit_up biases it to upward-facing normals (a top-edge rim, e.g. the tail).
 // - use_scratches: claw scratches cut into the near-rail corners (procedural, in rail UV metres).
 // - drip_mode: the wax drips down the rails creep very slowly (vertex) and a wet sheen runs down them.
 // Includes hearth_instance.gdshaderinc first so the rail's instance uniforms keep their slots across its passes.
@@ -66,6 +69,14 @@ uniform sampler2D carve_tex : hint_default_white, filter_linear_mipmap_anisotrop
 uniform float carve_tile_u = 0.611409;   // 13.451 / 22: 22 tiles close round the Board A rails
 uniform float carve_normal = 1.0;
 uniform float carve_cavity = 0.35;
+uniform vec2 carve_skip_u = vec2(0.0, 4.07);   // rail U span with no carving (the far rail)
+uniform float carve_brass = 0.0;               // brass edge highlight on the raised relief (0 = off)
+uniform vec4 carve_brass_color : source_color = vec4(0.886, 0.706, 0.42, 1.0);
+uniform float carve_brass_emit = 0.0;          // a little unlit brass so the edges read in the lamp falloff
+uniform float rim_emit = 0.0;                  // 0 = off
+uniform vec4 rim_emit_color : source_color = vec4(0.91, 0.384, 0.165, 1.0);  // EMBER #E8622A
+uniform float rim_emit_width = 0.22;           // fresnel band (1 - N.V) that lights: thin
+uniform float rim_emit_up = 0.0;               // 0 = all round, 1 = upward-facing edges only
 uniform bool use_scratches = false;
 uniform vec2 scratch_u = vec2(6.80, 10.58);  // rail U where the two near-corner claw marks start
 uniform float scratch_amount = 0.6;
@@ -140,11 +151,15 @@ void fragment() {
 			col = ring_color.rgb;
 		}
 	}
+	vec3 carve_emit = vec3(0.0);
 	if (use_carve) {
 		vec4 c = texture(carve_tex, vec2(UV.x / carve_tile_u, UV.y));
-		NORMAL_MAP = c.rgb;
+		float on = 1.0 - smoothstep(carve_skip_u.x - 0.06, carve_skip_u.x + 0.06, UV.x) * (1.0 - smoothstep(carve_skip_u.y - 0.06, carve_skip_u.y + 0.06, UV.x));
+		NORMAL_MAP = mix(vec3(0.5, 0.5, 1.0), vec3(c.rg, 1.0), on);
 		NORMAL_MAP_DEPTH = carve_normal;
-		col *= 1.0 - carve_cavity * c.a;
+		col *= 1.0 - carve_cavity * c.a * on;
+		col = mix(col, carve_brass_color.rgb, carve_brass * c.b * on);
+		carve_emit = carve_brass_color.rgb * carve_brass_emit * c.b * on;
 	}
 	if (use_scratches) {
 		float w = (UV.y > 0.5 ? UV.y - 1.0 : UV.y) * 0.565487;  // arc metres from the tube top (+ = felt side)
@@ -169,7 +184,13 @@ void fragment() {
 	}
 	ALBEDO = col;
 	ROUGHNESS = roughness;
-	vec3 emit = emission_color.rgb * emission_energy;
+	vec3 emit = emission_color.rgb * emission_energy + carve_emit;
+	if (rim_emit > 0.0) {
+		float fres = 1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+		float ny = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).y;
+		float up = mix(1.0, smoothstep(0.05, 0.45, ny), rim_emit_up);
+		emit += rim_emit_color.rgb * rim_emit * smoothstep(1.0 - rim_emit_width - 0.04, 1.0 - rim_emit_width, fres) * up;
+	}
 	emit += flash_color.rgb * flash;
 	// Ambient: the shadow band at ambient strength (so unlit sides stay warm).
 	vec3 shade = mix(col, shadow_color.rgb, 0.7);

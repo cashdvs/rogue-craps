@@ -71,6 +71,11 @@ _subresources={
 "use_external/fallback_path": "res://art/models/boards/hearth/materials/dressing_paper.tres",
 "use_external/path": "res://art/models/boards/hearth/materials/dressing_paper.tres"
 },
+"dressing_pool": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/boards/hearth/materials/dressing_pool.tres",
+"use_external/path": "res://art/models/boards/hearth/materials/dressing_pool.tres"
+},
 "dressing_seal": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/boards/hearth/materials/dressing_seal.tres",

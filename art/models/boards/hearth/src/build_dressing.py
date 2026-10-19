@@ -7,11 +7,15 @@ and dice stay clean, so nothing here sits over the felt: every vertex is on or o
 centreline (|x| >= 1.11 or |z| >= 0.61) and under y = 0.25 m, or under the table / on the floor.
 All parts are authored in BOARD space (Godot axes, metres, +Y up, -Z = far rail); a part with a pivot
 (chain, bell, tail) is shifted so its origin is the pivot, and the board scene puts it back there.
-  dressing_corners   FL coin stack (+ cracked shot glass), FR knucklebones + finger bone + a card-sized
-                     contract with a wax seal, the half-melted stub on the near-right rail, wax drips down
-                     the outer rail under the four near candles, the chain end lying over the left rail.
-  dressing_trinkets  (PC only) horned skull ashtray (right rail, far end), leather dice cup (near-left rail).
-  dressing_bell      Smiles' brass service bell with an imp knob (far rail, beside him). Pivot = its base.
+  dressing_corners   one tight, tall cluster per corner (v2, AD Oct 19: "one readable silhouette each"):
+                     FL coin tower + short stack + cracked shot glass; FR contract with a wax seal +
+                     knucklebones + finger bone (+ the bell and, on PC, the skull beside them); NR the
+                     half-melted stub + a coin stack; wax drips down the outer rail under the four near
+                     candles; the chain end lying over the left rail. Plus a warm light-pool decal on the
+                     rail top under each cluster (slot dressing_pool: additive, hearth_pool.gdshader).
+  dressing_trinkets  (PC only) horned skull ashtray (FR cluster), leather dice cup + coins (NL cluster).
+  dressing_bell      Smiles' brass service bell (v2: dark base, brass dome, plunger + knob; FR cluster).
+                     Pivot = its base.
   dressing_chain     the hanging part of the chain loop + padlock (left rail, outer face). Pivot = where it
                      leaves the rail, so the sway hook rotates it.
   dressing_floor     dark floor (y -0.9, the game room's floor height), 4 turned legs on ball-and-claw feet,
@@ -35,7 +39,7 @@ bh.MATS.update({
     "dressing_paper": ("8A7650", 0.8), "dressing_seal": ("6E1A24", 0.4), "dressing_wax": ("E8D6B0", 0.5),
     "dressing_wax_drip": ("D8C49A", 0.5), "dressing_ink": ("0E1414", 0.9), "dressing_iron": ("34302E", 0.6),
     "dressing_brass": ("B08D3C", 0.35), "dressing_leather": ("3B1418", 0.7), "dressing_floor": ("0E0B0C", 0.9),
-    "dressing_wood": ("3A2418", 0.7), "dressing_tail": ("6E1A24", 0.5),
+    "dressing_wood": ("3A2418", 0.7), "dressing_tail": ("6E1A24", 0.5), "dressing_pool": ("E8A060", 0.9),
 })
 
 RAIL_R = 0.09
@@ -102,12 +106,12 @@ def K(k):
 
 
 COIN_K = 1.7      # coins 3.9 cm
-GLASS_K = 1.5
+GLASS_K = 2.0     # v2: taller (6.8 cm) so each corner has a tall element
 BONE_K = 1.6
-STUB_K = 1.3
+STUB_K = 1.7
 SKULL_K = 1.6
-CUP_K = 1.4
-BELL_K = 2.0      # service bell 7 cm across
+CUP_K = 1.8
+BELL_K = 2.0      # service bell 7.8 cm across, 6 cm tall
 LINK = (0.0168, 0.0099, 0.0034)          # chain link half-length, half-width, wire radius (PC)
 LINK_MOBILE = (0.0195, 0.0115, 0.0036)
 LOCK_K = 2.2
@@ -121,6 +125,31 @@ def finish(part, out_dir, smooth=40.0):
 def coin(part, slot, seg, r=0.0115, h=0.0022, bottom=True):
     prof = ([(0.0, 0.0)] if bottom else []) + [(r, 0.0), (r, h), (0.0, h)]
     part.lathe(prof, seg, (0, 0), slot)
+
+
+def coin_tower(part, slot, seg, n, rng, r=0.0115, h=0.0022):
+    """A cheap tall stack: one cylinder for the lower n - 1 coins (a waist line every coin is not worth the
+    tris at this size) + the top coin jittered off-axis, so it still reads as a stack (56 tris at seg 8)."""
+    body = (n - 1) * 0.0021
+    part.lathe([(0.0, 0.0), (r, 0.0), (r, body), (0.0, body)], seg, (0, 0), slot)
+    m = part.M
+    for k in range(1):
+        part.M = m @ Matrix.Translation((rng.uniform(-0.0022, 0.0022), body + k * 0.0021, rng.uniform(-0.0022, 0.0022))) \
+            @ Matrix.Rotation(rng.uniform(-0.06, 0.06), 4, "X")
+        coin(part, slot, seg, r, h, bottom=False)
+    part.M = m
+
+
+def pool(part, slot, rail, a0, a1, th0, th1, nu, nt):
+    """Light-pool decal patch hugging the rail top outboard of the centreline (2 mm off the leather);
+    hearth_pool.gdshader paints the warm falloff from its board-space position."""
+    rows = []
+    for j in range(nt + 1):
+        th = th0 + (th1 - th0) * j / nt
+        rows.append([part.v(rail_pt(rail, a0 + (a1 - a0) * i / nu, th, RAIL_R + 0.002)[0]) for i in range(nu + 1)])
+    for j in range(nt):
+        for i in range(nu):
+            part.f([rows[j][i], rows[j + 1][i], rows[j + 1][i + 1], rows[j][i + 1]], slot)
 
 
 def coin_stack(part, slot, seg, n, rng):
@@ -269,13 +298,19 @@ def padlock(part, iron, brass, c, seg):
     part.cone_path(pts, [0.0014] * len(pts), 3, iron)
 
 
-def bell(part, brass, seg, horns):
-    part.lathe([(0.0, 0.0), (0.0175, 0.0), (0.0175, 0.003), (0.0138, 0.0045), (0.0128, 0.012), (0.0072, 0.0175), (0.0, 0.019)], seg, (0, 0), brass)
-    useg = 5 if horns else 4
-    part.sphere((0.0, 0.0235, 0.0), (0.0052, 0.0050, 0.0050), useg, max(3, useg - 2), brass)
-    if horns:
-        for sx in (-1, 1):
-            part.cone_path([(0.0032 * sx, 0.0262, -0.0005), (0.0058 * sx, 0.0300, -0.0012), (0.0062 * sx, 0.0335, -0.0016)], [0.0016, 0.0010, 0.0], 3, brass)
+def bell(part, brass, base, seg, pc):
+    """A classic counter service bell (v2, AD: "a clear bell shape"): a dark round base plate, a brass dome
+    with a lip, the plunger stem and its round knob. Local origin = the bottom of the base."""
+    part.lathe([(0.0, 0.0), (0.0195, 0.0), (0.0195, 0.0032), (0.0172, 0.0040), (0.0, 0.0040)], seg, (0, 0), base)
+    dome = [(0.0168, 0.0036), (0.0170, 0.0052)]
+    for k in range(1, 5 if pc else 4):
+        a = (math.pi / 2) * k / (4 if pc else 3)
+        dome.append((0.0168 * math.cos(a), 0.0052 + 0.0128 * math.sin(a)))
+    dome[-1] = (0.0024, dome[-1][1])
+    part.lathe(dome + [(0.0, dome[-1][1])], seg, (0, 0), brass)
+    part.lathe([(0.0013, 0.0175), (0.0013, 0.0232)], 4, (0, 0), brass)   # plunger stem
+    kv = 4 if pc else 3
+    part.sphere((0.0, 0.0262, 0.0), (0.0042, 0.0036, 0.0042), kv + 2, kv, brass)
 
 
 def skull_ashtray(part, bone, ink, paper, seg, vseg):
@@ -379,39 +414,49 @@ def tail_tip(part, slot, seg):
 # ---------------------------------------------------------------- the parts
 CHAIN_Z = (-0.02, 0.105)  # left-rail span of the chain loop (between Candle3 z -0.24 and Candle5 z 0.24)
 CHAIN_PIVOT = Vector((-1.203, 0.028, 0.04))
-BELL_AT = ("far", -0.205, 0.043)       # rail, along, outboard offset: between Smiles' right hand and the brazier
+BELL_AT = ("far", 0.872, 0.043)        # rail, along, outboard offset: the FR cluster (v2; was x -0.205 beside Smiles,
+                                       # where it crowded the brazier read on screen: test_hearth_dealer_clear.gd)
+# light pools (rail, from, to along the rail): FL, FR, NR, NL; hearth_pool.gdshader POOLS must match
+POOLS = [("far", -1.0, -0.814), ("far", 0.705, 0.995), ("near", 0.835, 0.995), ("near", -0.995, -0.845)]
 TAIL_PIVOT = Vector((-1.19, -0.315, -0.6))  # make_hearth.gd TAIL_PIVOT (the tail meshes are authored at their own pivots)
 
 
 def build_corners(out_dir, name, mobile):
     rng = random.Random(5)
     slots = ["dressing_coin", "dressing_glass", "dressing_bone", "dressing_paper", "dressing_seal", "dressing_wax",
-             "dressing_wax_drip", "dressing_ink", "dressing_iron"]
+             "dressing_wax_drip", "dressing_ink", "dressing_iron", "dressing_pool"]
     S = {s: i for i, s in enumerate(slots)}
     p = DPart(name, slots)
-    # FL: the coin stack (and on PC the cracked shot glass), on the far rail by the left demon face
-    p.at(on_rail("far", -0.955, 0.025, level=0.35) @ K(COIN_K))
-    coin_stack(p, S["dressing_coin"], 6 if mobile else 8, 3 if mobile else 4, rng)
-    p.at(on_rail("far", -0.905, 0.028, level=0.3) @ Matrix.Rotation(0.5, 4, "Z") @ Matrix.Translation((0.0, 0.002, 0.0)) @ K(COIN_K))
-    coin(p, S["dressing_coin"], 6 if mobile else 8, bottom=False)   # one coin fallen flat beside the stack (tipped toward it)
+    seg = 6 if mobile else 8
+    # FL: a coin tower + a short stack + (PC) the cracked shot glass, shoulder to shoulder on the far rail
+    p.at(on_rail("far", -0.962, 0.025, level=0.35) @ K(COIN_K))
+    coin_tower(p, S["dressing_coin"], seg, 9 if mobile else 12, rng)
+    p.at(on_rail("far", -0.921, 0.026, level=0.3, yaw=0.7) @ K(COIN_K))
+    coin_tower(p, S["dressing_coin"], seg, 5, rng)
     if not mobile:
-        p.at(on_rail("far", -0.858, 0.03, level=0.85, yaw=2.2) @ K(GLASS_K))
+        p.at(on_rail("far", -0.866, 0.038, level=0.85, yaw=2.2) @ K(GLASS_K))
         shot_glass(p, S["dressing_glass"], S["dressing_ink"], 8)
-    # FR: knucklebones + a finger bone, and the contract
+    # FR: the contract draped over the shoulder with knucklebones + a finger bone on it (the bell and, on
+    # PC, the skull ashtray stand beside them: dressing_bell / dressing_trinkets)
     p.at(on_rail("far", 0.79, 0.034, level=0.4) @ K(BONE_K))
     kb = [((-0.012, 0.0055, 0.0), 0.0085, 0.4), ((0.004, 0.0055, 0.003), 0.008, 1.9)]
     if not mobile:
         kb.append(((-0.002, 0.0125, -0.0015), 0.0075, 2.8))
-    for (c, s, r) in kb:
-        knucklebone(p, S["dressing_bone"], c, s, r, 5 if mobile else 6, 3 if mobile else 4)
+    for (c, s_, r) in kb:
+        knucklebone(p, S["dressing_bone"], c, s_, r, 5 if mobile else 6, 3 if mobile else 4)
     finger_bone(p, S["dressing_bone"], (0.022, 0.0035, 0.002), 0.032, 0.35, 3 if mobile else 4)
     p.at(Matrix.Identity(4))
-    contract(p, S["dressing_paper"], S["dressing_seal"], 3 if mobile else 5, 5 if mobile else 6, "far", 0.9, rng)
-    # NR: half-melted stub on the near rail, with a wax drip of its own down the near rail
-    p.at(on_rail("near", 0.93, 0.036, level=0.7) @ K(STUB_K))
+    contract(p, S["dressing_paper"], S["dressing_seal"], 3 if mobile else 5, 5 if mobile else 6, "far", 0.765, rng)
+    # NR: the half-melted stub with a coin stack beside it, and a wax drip of its own down the near rail
+    p.at(on_rail("near", 0.935, 0.042, level=0.7) @ K(STUB_K))
     stub(p, S["dressing_wax"], S["dressing_ink"], 6 if mobile else 7, rng)
+    p.at(on_rail("near", 0.884, 0.026, level=0.4, yaw=0.3) @ K(COIN_K))
+    coin_tower(p, S["dressing_coin"], seg, 5 if mobile else 7, rng)
     p.at(Matrix.Identity(4))
-    drip(p, S["dressing_wax_drip"], "near", 0.928, math.radians(26), math.radians(78), 0.0026, 3)
+    drip(p, S["dressing_wax_drip"], "near", 0.933, math.radians(30), math.radians(80), 0.0026, 3)
+    # light pools under each cluster (NL only on PC: its cup + coins are PC trinkets)
+    for (rail, a0, a1) in POOLS[: 3 if mobile else 4]:
+        pool(p, S["dressing_pool"], rail, a0, a1, math.radians(3), math.radians(70), 1, 3)
     # wax drips down the outer rail face under the four near progress candles (x +-1.135, z 0.24 / 0.42)
     for side in ("left", "right"):
         for z in (0.24, 0.42):
@@ -449,21 +494,24 @@ def build_bell(out_dir, name, mobile):
     rail, along, out = BELL_AT
     m = on_rail(rail, along, out, level=0.6)
     piv = m.translation
-    p = DPart(name, ["dressing_brass"], pivot=piv)
+    p = DPart(name, ["dressing_brass", "dressing_iron"], pivot=piv)
     p.at(m @ K(BELL_K))
-    bell(p, 0, 6 if mobile else 8, not mobile)
+    bell(p, 0, 1, 7 if mobile else 8, not mobile)
     finish(p, out_dir, 50.0)
 
 
 def build_trinkets(out_dir, name):
-    slots = ["dressing_bone", "dressing_ink", "dressing_paper", "dressing_leather", "dressing_brass"]
+    slots = ["dressing_bone", "dressing_ink", "dressing_paper", "dressing_leather", "dressing_brass", "dressing_coin"]
     p = DPart(name, slots)
-    # horned skull ashtray on the right rail between Candle2 (z -0.42) and the right demon face
-    p.at(on_rail("right", -0.5, 0.04, level=0.85) @ Matrix.Rotation(math.radians(-90 - 25), 4, "Y") @ K(SKULL_K))
+    rng = random.Random(11)
+    # horned skull ashtray: the tall end of the FR cluster, beside the bell, grinning at the table
+    p.at(on_rail("far", 0.948, 0.04, level=0.85, yaw=math.radians(15)) @ K(SKULL_K))
     skull_ashtray(p, 0, 1, 2, 8, 6)
-    # leather dice cup on the near-left rail
-    p.at(on_rail("near", -0.93, 0.034, level=0.9) @ K(CUP_K))
+    # NL: the leather dice cup with a coin stack beside it
+    p.at(on_rail("near", -0.935, 0.042, level=0.9) @ K(CUP_K))
     dice_cup(p, 3, 4, 8)
+    p.at(on_rail("near", -0.885, 0.026, level=0.4, yaw=1.1) @ K(COIN_K))
+    coin_tower(p, 5, 8, 6, rng)
     finish(p, out_dir, 50.0)
 
 
@@ -478,7 +526,7 @@ def build_floor(out_dir, name, mobile):
     for sx in (-1, 1):
         for sz in (-1, 1):
             p.at(Matrix.Translation((sx * 1.12, FLOOR_Y, sz * 0.62)) @ Matrix.Rotation(math.atan2(sx, sz), 4, "Y"))
-            leg(p, 1, 4 if mobile else 5, 0 if (mobile or sz < 0) else 3, 4 if mobile else 5)
+            leg(p, 1, 4 if mobile else 5, 0 if (mobile or sz < 0) else 3, 4)
     p.at(Matrix.Identity(4))
     # a heavy chain from under the far-left of the table running off-screen left
     y = FLOOR_Y + 0.006
@@ -489,7 +537,7 @@ def build_floor(out_dir, name, mobile):
     if not mobile:
         # scattered coins and two dropped dice at the screen edges (the floor is in the table's shadow:
         # the materials carry a faint glint so they still catch the eye)
-        spots = [(-1.42, 0.12, 0.0), (-1.55, 0.38, 0.6), (1.38, 0.3, 0.2), (1.52, -0.05, 0.0), (1.47, 0.52, 0.9)]
+        spots = [(-1.55, 0.38, 0.6), (1.38, 0.3, 0.2)]
         for (x, z, tilt) in spots:
             p.at(Matrix.Translation((x, FLOOR_Y + 0.0002 + tilt * 0.008, z)) @ Matrix.Rotation(rng.uniform(0, 6.28), 4, "Y") @ Matrix.Rotation(tilt * 0.35, 4, "X"))
             coin(p, 3, 6, bottom=False)

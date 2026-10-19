@@ -51,6 +51,11 @@ _subresources={
 "use_external/fallback_path": "res://art/models/boards/hearth/materials/dressing_brass.tres",
 "use_external/path": "res://art/models/boards/hearth/materials/dressing_brass.tres"
 },
+"dressing_coin": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/boards/hearth/materials/dressing_coin.tres",
+"use_external/path": "res://art/models/boards/hearth/materials/dressing_coin.tres"
+},
 "dressing_ink": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/boards/hearth/materials/dressing_ink.tres",

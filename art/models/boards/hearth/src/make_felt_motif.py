@@ -11,8 +11,8 @@ never sit on a busy pattern. Run: python3 art/models/boards/hearth/src/make_felt
 Detail pass (Art Director, Oct 19): also writes textures/felt_ember_corners_worn.png = the same overlay
 with low-contrast wear under the motif (hearth_felt_worn.tres, the dressing-on felt): a faint scuffed
 arc round the far side of the landing area (the centre stays clean), 2 broad broken scorch rings in front of the
-backboard under the brazier, two cigarette-burn pocks near the corners and one old wax drip stain by
-the left rail. Felt-toned only (darker / lighter teal and burnt brown, never bone), no round pip-sized
+backboard under the brazier, two cigarette-burn pocks on the right half and one old wax drip stain by
+the right rail, all clear of the combo-table strips and the landing centre. Felt-toned only (darker / lighter teal and burnt brown, never bone), no round pip-sized
 dots, every mark within a 15 % value shift of the felt under it (printed and checked by the test).
 """
 import math
@@ -162,10 +162,11 @@ def wear_layer(np):
             d.arc([cx * S - R, cy * S - R * 0.9, cx * S + R, cy * S + R * 0.9], a0, a1, fill=255, width=int(0.009 * PX_PER_M * S))
     m = m.filter(ImageFilter.GaussianBlur(3.0 * S))
     layer = stamp(BURN, m, 0.15)
-    # 3. cigarette-burn pocks: elongated, ragged (never round dots), near the NL and FR corners
+    # 3. cigarette-burn pocks: elongated, ragged (never round dots), near-right and far-right, clear of the
+    #    combo-table strips (landscape: the near edge; portrait: the left edge; art/ui/readability/felt)
     m = Image.new("L", (W * S, H * S), 0)
     d = ImageDraw.Draw(m)
-    for (x, z, ang, ln) in ((-0.8, 0.33, 0.5, 0.022), (0.78, -0.3, -0.4, 0.019)):
+    for (x, z, ang, ln) in ((0.62, 0.27, 0.5, 0.022), (0.78, -0.3, -0.4, 0.019)):
         cx, cy = felt_px(x, z)
         pts = []
         for j in range(14):
@@ -176,17 +177,18 @@ def wear_layer(np):
         d.polygon(pts, fill=255)
     m = m.filter(ImageFilter.GaussianBlur(0.9 * S))
     layer = stamp(BURN, m, 0.18)
-    # 4. one old wax drip stain by the left rail under Candle5: a splash with a run, no satellite dots
+    # 4. one old wax drip stain by the right rail under the far-right near candle (z -0.24): a splash with a
+    #    run, no satellite dots (v2: moved off the left edge, where the portrait combo strip sits)
     m = Image.new("L", (W * S, H * S), 0)
     d = ImageDraw.Draw(m)
-    cx, cy = felt_px(-0.93, 0.2)
+    cx, cy = felt_px(0.93, -0.2)
     pts = []
     for j in range(18):
         t = 2 * math.pi * j / 18
         rr = 0.018 * (1.0 + 0.35 * math.sin(3 * t + 0.4) + 0.2 * math.sin(5 * t)) * PX_PER_M * S
         pts.append((cx * S + math.cos(t) * rr * 1.25, cy * S + math.sin(t) * rr))
     d.polygon(pts, fill=255)
-    tx, ty = felt_px(-0.86, 0.17)
+    tx, ty = felt_px(0.86, -0.17)
     d.line([(cx * S, cy * S), (tx * S, ty * S)], fill=255, width=int(0.008 * PX_PER_M * S))
     m = m.filter(ImageFilter.GaussianBlur(1.4 * S))
     layer = stamp(WAX, m, 0.28)

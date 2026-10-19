@@ -9,10 +9,14 @@ V runs round the tube cross-section, 0 = 1 = the tube top, V up = toward the fel
 on the inner lip), V down = the outer shoulder. The tile spans 13.451 / 22 = 0.6114 U (0.306 m), so 22
 tiles close seamlessly round the table, and the whole V range (0.565 m of tube).
 
-Pattern, per tile: one tiny grinning imp face (~2.4 cm) on the inner lip just above the seam, upright as
-seen from the felt (every ~0.3 m round the table); hooked flame-tongue scrollwork along the top and outer
-shoulder (a running stem with alternating hooked tongues, odd groups, tallest in the middle: fire_style.md);
-two incised border grooves. Relief only: the shader turns it into lighting + a cavity darkening.
+Pattern, per tile (v2, AD Oct 19: "put the carving where the camera looks"): hooked flame-tongue
+scrollwork along the TOP face (a running stem just outboard of the crest, alternating hooked tongues, odd
+groups, tallest in the middle: fire_style.md) whose down-tongues run between the brass studs; one grinning
+imp face (~3.2 cm) on the FRONT (outer) face below the stud row, upright as seen from outside the table,
+flanked by two small curls; two incised border grooves (felt side of the crest, outer equator). Deeper
+relief than v1, and B = a brass edge mask (a thin rim inside every raised form) that the shader turns into a
+brass highlight. The shader fades the carving out on the far rail (Smiles' side; carve_skip_u).
+RGBA = R,G tangent normal (Godot rebuilds Z), B brass edge mask, A cavity.
 Run: python3 art/models/boards/hearth/src/make_rail_carve.py
 """
 import math
@@ -28,13 +32,15 @@ SS = 4
 TILE_U = 13.451 / 22.0          # UV period along the rail
 TILE_M = TILE_U * 0.5           # 0.3057 m
 CIRC = 2 * math.pi * 0.09       # 0.5655 m of tube = V 0..1
-RELIEF = 0.0011                 # carving depth (m) for the normals
+RELIEF = 0.0024                 # carving depth (m) for the normals (v2: deeper)
 # band edges (metres of arc from the tube top; + = toward the felt / inner lip, - = outer shoulder)
 SEAM_LO = 0.125 * CIRC - 0.012 * CIRC   # the ember seam starts at w 0.064
-GROOVE_IN = 0.056
-GROOVE_OUT = -0.104
-FACE_W = 0.035                  # imp face centre (inner lip, above the seam)
-STEM_W = -0.042                 # scroll stem line (outer shoulder, just below the crest)
+GROOVE_IN = 0.032               # felt side of the crest (the ember seam starts at w 0.064)
+GROOVE_OUT = -0.132             # just above the outer equator (w -0.141)
+FACE_W = -0.097                 # imp face centre (front face, below the stud row at w -0.053)
+FACE_K = 1.35                   # imp face scale vs v1
+STEM_W = -0.012                 # scroll stem line (top face, just outboard of the crest)
+TONGUE_K = 0.78                 # tongue height scale (the down-tongues end between the studs)
 
 
 def px(u_m, w_m):
@@ -75,6 +81,7 @@ def draw_tile(d, du):
         up = 1 if g == 0 else -1
         base = STEM_W + 0.006 * math.sin(2 * math.pi * (cu - du) / (L / 2))
         for (dx, h, wd, lean, hook) in ((-0.026, 0.034, 0.0085, -0.3, -1.0), (0.0, 0.05, 0.011, 0.08, 1.0), (0.026, 0.036, 0.0085, 0.32, 1.0)):
+            h *= TONGUE_K
             d["tongue"].polygon(tongue(cu + dx, base, h, wd, lean, hook, up), fill=255)
             d["inner"].polygon(tongue(cu + dx, base + up * 0.004, h * 0.55, wd * 0.42, lean, hook, up), fill=255)
         # a small hooked curl (the scroll) between groups
@@ -83,33 +90,42 @@ def draw_tile(d, du):
         box = [px(cc - r, base - r * 1.05), px(cc + r, base + r * 1.05)]
         d["curl"].arc([box[0][0], box[0][1], box[1][0], box[1][1]], 30 if up > 0 else 210, 300 if up > 0 else 120, fill=255,
                       width=int(0.0036 * 837 * SS))
-    # the imp face at the tile centre, upright toward -w (seen from the felt)
+    # the imp face at the tile centre, on the front face, upright toward +w (the tube top, seen from outside)
     fu = L * 0.5 + du
     fw = FACE_W
-    rx, ry = 0.0118, 0.011
+    k = FACE_K
+    sg = -1.0   # v1 drew it upright toward -w; flip
+
+    def P(u, dw):
+        return px(fu + u * k, fw + sg * dw * k)
+
+    rx, ry = 0.0118 * k, 0.011 * k
     d["face"].ellipse([*px(fu - rx, fw - ry), *px(fu + rx, fw + ry)], fill=255)
-    # horns: hooked, pointing up (= -w) and out
-    for sx in (-1, 1):
-        horn = tongue(fu + sx * 0.0085, fw - 0.004, 0.0105, 0.0034, 0.55 * sx, sx * 1.0, -1)
+    for sx in (-1, 1):   # horns: hooked, pointing up and out
+        horn = tongue(fu + sx * 0.0085 * k, fw + sg * 0.004 * k, 0.0105 * k, 0.0034 * k, 0.55 * sx, sx * 1.0, -sg)
         d["face"].polygon(horn, fill=255)
-    # eyes (slanted slits), grin (a wide crescent with 3 teeth notches) and a nose dot are cut in
-    for sx in (-1, 1):
-        cx, cy = fu + sx * 0.0042, fw - 0.0022
-        poly = [px(cx - 0.0028, cy + sx * 0.0 - 0.0006 * sx), px(cx + 0.0028, cy - 0.0013), px(cx + 0.0026 * 0.2, cy + 0.0012)]
-        if sx < 0:
-            poly = [px(cx + 0.0028, cy - 0.0006 * sx * -1), px(cx - 0.0028, cy - 0.0013), px(cx - 0.0026 * 0.2, cy + 0.0012)]
+    for sx in (-1, 1):   # eyes: slanted slits
+        cx, cy = sx * 0.0042, -0.0022
+        poly = [P(cx - 0.0028 * sx, cy + 0.0006), P(cx + 0.0028 * sx, cy - 0.0013), P(cx + 0.0005 * sx, cy + 0.0012)]
         d["cut"].polygon(poly, fill=255)
     grin = []
-    for k in range(13):
-        a = math.pi * k / 12
-        grin.append(px(fu - 0.0068 * math.cos(a), fw + 0.0028 + 0.0036 * math.sin(a)))
-    for k in range(12, -1, -1):
-        a = math.pi * k / 12
-        grin.append(px(fu - 0.0055 * math.cos(a), fw + 0.0028 + 0.0012 * math.sin(a)))
+    for j in range(13):
+        a_ = math.pi * j / 12
+        grin.append(P(-0.0068 * math.cos(a_), 0.0028 + 0.0036 * math.sin(a_)))
+    for j in range(12, -1, -1):
+        a_ = math.pi * j / 12
+        grin.append(P(-0.0055 * math.cos(a_), 0.0028 + 0.0012 * math.sin(a_)))
     d["cut"].polygon(grin, fill=255)
     for sx in (-1, 0, 1):   # teeth: little raised wedges left in the grin
-        cx = fu + sx * 0.0026
-        d["teeth"].polygon([px(cx - 0.0008, fw + 0.0033), px(cx + 0.0008, fw + 0.0033), px(cx, fw + 0.0052)], fill=255)
+        cx = sx * 0.0026
+        d["teeth"].polygon([P(cx - 0.0008, 0.0033), P(cx + 0.0008, 0.0033), P(cx, 0.0052)], fill=255)
+    # two small curls flanking the face on the front face
+    for sx in (-1, 1):
+        cc = fu + sx * 0.075
+        r = 0.009
+        box = [px(cc - r, fw - r), px(cc + r, fw + r)]
+        d["curl"].arc([box[0][0], box[0][1], box[1][0], box[1][1]], 200 if sx < 0 else 340, 120 if sx < 0 else 260, fill=255,
+                      width=int(0.0036 * 837 * SS))
 
 
 def main():
@@ -153,8 +169,13 @@ def main():
     # cavity: where the surface sits below its neighbourhood (and the cut-in grooves / eyes / grin)
     blur = np.asarray(Image.fromarray(np.clip(h * 255, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(3)), dtype=np.float32) / 255.0
     cav = np.clip((blur - h) * 2.2, 0, 1)
-    cav = np.maximum(cav, np.maximum(groove_r * 0.8, cut_r * 0.7 * (np.roll(face, -H // 2, axis=0) > 0.3)))
-    rgba = np.dstack([(n + 1) * 0.5, cav]) * 255.0
+    cav = np.maximum(cav, np.maximum(groove_r * 0.85, cut_r * 0.8 * (np.roll(face, -H // 2, axis=0) > 0.3)))
+    # brass edge mask: a thin (~2 px) rim just inside every raised form (the edges that catch the lamp)
+    raised = Image.fromarray(((h > 0.42) * 255).astype(np.uint8))
+    inner_r = raised.filter(ImageFilter.MinFilter(5))
+    edge = (np.asarray(raised, dtype=np.float32) - np.asarray(inner_r, dtype=np.float32)) / 255.0
+    edge = np.asarray(Image.fromarray((edge * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.5)), dtype=np.float32) / 255.0
+    rgba = np.dstack([(n[..., 0] + 1) * 0.5, (n[..., 1] + 1) * 0.5, edge, cav]) * 255.0
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     Image.fromarray(np.clip(rgba + 0.5, 0, 255).astype(np.uint8), "RGBA").save(OUT)
     # preview (not shipped): height + cavity

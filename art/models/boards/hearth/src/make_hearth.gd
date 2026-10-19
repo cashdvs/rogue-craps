@@ -41,8 +41,12 @@ const CANDLE_Y := 0.105
 const FACE_OUT := 0.04                        # demon faces pushed out along the corner diagonal
 ## Set dressing (detail pass, Oct 19): build_dressing.py pivots (board space) and the ambient spots.
 const PROP_INK := 0.0025                      # prop outline = ~60 % of the dice ink (0.0042)
+const DETAIL := H + "shaders/hearth_toon_detail.gdshader"
+const PROP_RIM := 0.4                         # unlit rim strength (v2); glow + rim stay <= 60 % of the dice value
+const RIM_WIDTH := 0.2
+const TAIL_RIM := 0.32
 const CHAIN_PIVOT := Vector3(-1.203, 0.028, 0.04)
-const BELL_PIVOT := Vector3(-0.205, 0.0987, -0.6529)   # build_dressing.py PIVOTS
+const BELL_PIVOT := Vector3(0.872, 0.0987, -0.6529)   # build_dressing.py PIVOTS (v2: the FR cluster)
 const TAIL_PIVOT := Vector3(-1.26, -0.16, -0.70)      # behind the far-left corner, just outboard of the body
 const TAIL_SCALE := 1.3                               # drawn at the dice's scale, like the trinkets
 const TAIL_JOINT := Vector3(0.0, 0.16, 0.0)
@@ -169,6 +173,18 @@ func _materials() -> void:
 	_dressing_materials(M)
 
 
+## A dressing prop material: the toon_noir look on hearth_toon_detail (same uniforms) + the thin warm rim
+## (v2, AD Oct 19: a 1-2 px Ember / brass rim separates the props from the black backdrop), thin ink.
+func _prop(params: Dictionary, rim: Color = EMBER, k: float = PROP_RIM, up: float = 0.0) -> ShaderMaterial:
+	var m := _sm(DETAIL, params.merged(_rim(rim, k, up)))
+	m.next_pass = load(H + "materials/ink_prop.tres")
+	return m
+
+
+func _rim(c: Color, k: float = PROP_RIM, up: float = 0.0) -> Dictionary:
+	return {"rim_emit": k, "rim_emit_color": c, "rim_emit_width": RIM_WIDTH, "rim_emit_up": up}
+
+
 ## A toon_noir prop material with the thin prop ink (or none).
 func _toon(params: Dictionary, inked: bool = true) -> ShaderMaterial:
 	var m := _sm(TOON, params)
@@ -200,45 +216,47 @@ func _glow(c: Color, k: float) -> Dictionary:
 func _dressing_materials(M: String) -> void:
 	_save(_sm("res://shaders/3d/outline.gdshader", {"color": PIT_BLACK, "width": PROP_INK, "mode": 0}), M + "ink_prop.tres")
 	var ink := load(M + "ink_prop.tres")
-	_save(_toon({"albedo": Color("#8C6A2C"), "shadow_color": Color("#2E200C"), "mid_tint": 0.7, "spec_size": 0.92, "spec_strength": 0.55,
-		"spec_color": BRASS_HI, "rim_color": BRASS_HI, "rim_strength": 0.2, "emission_color": Color("#8C6A2C"), "emission_energy": 0.3}), M + "dressing_coin.tres")
-	_save(_toon(_glow(Color("#2A2220"), 0.35).merged({"albedo": Color("#2A2220"), "shadow_color": Color("#0E0B0A"), "mid_tint": 0.7, "spec_size": 0.9, "spec_strength": 0.9,
+	_save(_prop({"albedo": Color("#8C6A2C"), "shadow_color": Color("#2E200C"), "mid_tint": 0.7, "spec_size": 0.92, "spec_strength": 0.55,
+		"spec_color": BRASS_HI, "rim_color": BRASS_HI, "rim_strength": 0.2, "emission_color": Color("#8C6A2C"), "emission_energy": 0.3}, BRASS_HI), M + "dressing_coin.tres")
+	_save(_prop(_glow(Color("#2A2220"), 0.35).merged({"albedo": Color("#2A2220"), "shadow_color": Color("#0E0B0A"), "mid_tint": 0.7, "spec_size": 0.9, "spec_strength": 0.9,
 		"spec_color": BUTTER, "rim_color": BUTTER, "rim_strength": 0.45, "rim_power": 2.0, "roughness": 0.2})), M + "dressing_glass.tres")
 	# aged bone: darker and yellower than the dice bone (#E8DCC0), so a knucklebone never reads as a die
-	_save(_toon(_glow(Color("#C9B48A"), 0.14).merged({"albedo": Color("#C9B48A"), "shadow_color": Color("#4A3424"), "mid_tint": 0.7, "spec_size": 0.97, "spec_strength": 0.25,
+	_save(_prop(_glow(Color("#C9B48A"), 0.14).merged({"albedo": Color("#C9B48A"), "shadow_color": Color("#4A3424"), "mid_tint": 0.7, "spec_size": 0.97, "spec_strength": 0.25,
 		"wrap": 0.2})), M + "dressing_bone.tres")
-	_save(_toon(_glow(Color("#8A7650"), 0.14).merged({"albedo": Color("#8A7650"), "shadow_color": Color("#3A2A1C"), "mid_tint": 0.72, "wrap": 0.25})), M + "dressing_paper.tres")
-	_save(_toon(_glow(Color("#6E1A24"), 0.2).merged({"albedo": Color("#6E1A24"), "shadow_color": Color("#2A0A10"), "mid_tint": 0.68, "spec_size": 0.93, "spec_strength": 0.45,
-		"rim_color": EMBER, "rim_strength": 0.1})), M + "dressing_seal.tres")
-	var wax := _copy_toon(M + "candle_wax.tres", {})
+	_save(_prop(_glow(Color("#8A7650"), 0.14).merged({"albedo": Color("#8A7650"), "shadow_color": Color("#3A2A1C"), "mid_tint": 0.72, "wrap": 0.25})), M + "dressing_paper.tres")
+	_save(_prop(_glow(Color("#6E1A24"), 0.2).merged({"albedo": Color("#6E1A24"), "shadow_color": Color("#2A0A10"), "mid_tint": 0.68, "spec_size": 0.93, "spec_strength": 0.45,
+		"rim_color": EMBER, "rim_strength": 0.1}), EMBER), M + "dressing_seal.tres")
+	var wax := _copy_to(DETAIL, M + "candle_wax.tres", _rim(EMBER))
 	wax.next_pass = ink
 	_save(wax, M + "dressing_wax.tres")
 	_save(_copy_to(S + "hearth_toon_detail.gdshader", M + "candle_wax.tres", {"albedo": Color("#D8C49A"), "drip_mode": true}), M + "dressing_wax_drip.tres")
 	_save(_toon({"albedo": PIT_BLACK, "shadow_color": PIT_BLACK, "mid_tint": 1.0}, false), M + "dressing_ink.tres")
-	_save(_toon(_glow(Color("#34302E"), 0.45).merged({"albedo": Color("#34302E"), "shadow_color": Color("#0E0D10"), "mid_tint": 0.66, "spec_size": 0.95, "spec_strength": 0.2,
+	_save(_prop(_glow(Color("#34302E"), 0.45).merged({"albedo": Color("#34302E"), "shadow_color": Color("#0E0D10"), "mid_tint": 0.66, "spec_size": 0.95, "spec_strength": 0.2,
 		"rim_color": EMBER, "rim_strength": 0.12, "roughness": 0.6})), M + "dressing_iron.tres")
 	var bv: Variant = (load(A + "materials/brass.tres") as ShaderMaterial).get_shader_parameter("albedo")
 	var bc: Color = bv if bv != null else Color("#B08D3C")
-	var brass := _copy_toon(A + "materials/brass.tres", _glow(bc, 0.22))
+	var brass := _copy_to(DETAIL, A + "materials/brass.tres", _glow(bc, 0.22).merged(_rim(BRASS_HI)))
 	brass.next_pass = ink
 	_save(brass, M + "dressing_brass.tres")
 	var worn := _copy_toon(A + "materials/brass.tres", {"albedo": Color("#5E4A26"), "spec_strength": 0.12})
 	worn.next_pass = (load(A + "materials/brass.tres") as ShaderMaterial).next_pass
 	_save(worn, M + "dressing_brass_worn.tres")
-	_save(_toon(_glow(Color("#3B1418"), 0.35).merged({"albedo": Color("#3B1418"), "shadow_color": Color("#140608"), "mid_tint": 0.68, "rim_color": Color("#8A3A40"),
+	_save(_prop(_glow(Color("#3B1418"), 0.35).merged({"albedo": Color("#3B1418"), "shadow_color": Color("#140608"), "mid_tint": 0.68, "rim_color": Color("#8A3A40"),
 		"rim_strength": 0.12})), M + "dressing_leather.tres")
 	_save(_toon({"albedo": Color("#0E0B0C"), "shadow_color": Color.BLACK, "grime": 0.5, "grime_color": Color("#060404"), "roughness": 0.9}, false),
 		M + "dressing_floor.tres")
-	var wood := _copy_toon(A + "materials/body_wood.tres", {})
+	var wood := _copy_to(DETAIL, A + "materials/body_wood.tres", _rim(EMBER, 0.25))
 	wood.next_pass = ink
 	_save(wood, M + "dressing_wood.tres")
-	# the tail is the one ambient beat meant to be caught in the corner of the eye: a stronger glow
-	_save(_toon(_glow(Color("#6E1A24"), 0.55).merged({"albedo": Color("#6E1A24"), "shadow_color": Color("#2A0A10"), "mid_tint": 0.68, "spec_size": 0.95, "spec_strength": 0.2,
-		"rim_color": EMBER, "rim_strength": 0.55, "rim_power": 2.5})), M + "dressing_tail.tres")
+	# the tail is the one ambient beat (v2: + an Ember rim along its top edge, well clear of Danger red) meant to be caught in the corner of the eye: a stronger glow
+	_save(_prop(_glow(Color("#6E1A24"), 0.55).merged({"albedo": Color("#6E1A24"), "shadow_color": Color("#2A0A10"), "mid_tint": 0.68, "spec_size": 0.95, "spec_strength": 0.2,
+		"rim_color": EMBER, "rim_strength": 0.55, "rim_power": 2.5}), EMBER, TAIL_RIM, 1.0), M + "dressing_tail.tres")
 	# Board looks with the dressing on: worn felt overlay, carved + claw-scratched rail leather.
 	_save(_copy_toon(M + "hearth_felt.tres", {"overlay_tex": load(H + "textures/felt_ember_corners_worn.png")}), M + "hearth_felt_worn.tres")
 	var carved := _copy_to(S + "hearth_toon_detail.gdshader", M + "hearth_leather.tres", {"use_carve": true,
-		"carve_tex": load(H + "textures/rail_carve.png"), "carve_normal": 1.0, "carve_cavity": 0.35, "use_scratches": true})
+		"carve_tex": load(H + "textures/rail_carve.png"), "carve_normal": 1.6, "carve_cavity": 0.6, "use_scratches": true,
+		# v2: carving on the near + side rails only (the far rail is Smiles'), brass on the raised edges
+		"carve_skip_u": Vector2(0.06, 4.07), "carve_brass": 0.75, "carve_brass_color": BRASS_HI, "carve_brass_emit": 0.18})
 	carved.next_pass = load(M + "ember_seam.tres")
 	_save(carved, M + "hearth_leather_carved.tres")
 	# Ambient: slow ember motes (diamond sparks) over the brazier and the cauldron, the lamp dust, the backdrop.
@@ -247,6 +265,8 @@ func _dressing_materials(M: String) -> void:
 	_save(_sm(sp, {"rise": 0.3, "period": 4.6, "radius": 0.05, "turns": 0.1, "drift": 0.05, "size": 0.0075, "core_energy": 1.2}), M + "ember_motes_small.tres")
 	_save(_sm(S + "hearth_dust.gdshader", {"box": DUST_BOX}), M + "lamp_dust.tres")
 	_save(_sm(S + "hearth_backdrop.gdshader", {"card_size": BACKDROP_SIZE}), M + "backdrop.tres")
+	# corner light pools (v2): additive candlelight on the rail top under each cluster
+	_save(_sm(S + "hearth_pool.gdshader", {}), M + "dressing_pool.tres")
 
 
 # --- scene helpers ----------------------------------------------------------------------------
