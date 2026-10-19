@@ -307,6 +307,77 @@ static func formula(s: Dictionary) -> String:
 	return "%s  (%d + %d) x %d%s = %d" % [s["name"], s["base"], s["faces_sum"], s["mult"], ftxt, s["points"]]
 
 
+## The live pot preview (how_bonfire_plays.md section 4):
+## "TRIPS: (30+12) x3 = 126". The mult already includes Hot Hand and +mult
+## faces; a x factor (Hellfire, Coven...) is shown before the "=".
+static func preview(s: Dictionary) -> String:
+	if not s.get("valid", false):
+		return ""
+	var f := float(s.get("factor", 1.0))
+	var ftxt := "" if is_equal_approx(f, 1.0) else (" x%s" % str(snappedf(f, 0.01)))
+	return "%s: (%d+%d) x%d%s = %d" % [String(s["name"]).to_upper(), s["base"], s["faces_sum"], s["mult"], ftxt, s["points"]]
+
+
+## What changed the numbers in a preview, one short note each, e.g.
+## ["Hot Hand +1 mult", "Hellfire x1.5"]. dice = the potted dice (as for
+## score_selection), s = its result, mult_bonus = the Hot Hand bonus.
+static func factor_notes(dice: Array, s: Dictionary, t: BonfireTuning, mult_bonus: int = 0, ctx: Dictionary = {}) -> Array[String]:
+	var out: Array[String] = []
+	if not s.get("valid", false):
+		return out
+	if mult_bonus > 0:
+		out.append("Hot Hand +%d mult" % mult_bonus)
+	var no_mods: bool = ctx.get("no_mods", false)
+	var combo: BonfireCombo = null
+	for c: BonfireCombo in t.combos:
+		if c.id == StringName(s.get("combo", &"")):
+			combo = c
+	var is_run := combo != null and combo.kind == BonfireCombo.Kind.RUN
+	for x in dice:
+		var m: FaceModData = _die(x).get("mod")
+		if m == null or (no_mods and not m.is_curse):
+			continue
+		var nm := m.display_name if m.display_name != "" else String(m.id).capitalize()
+		match int(m.effect):
+			FaceModData.Effect.MULT_FACTOR:
+				out.append("%s x%s" % [nm, str(snappedf(m.mult_factor, 0.01))])
+			FaceModData.Effect.MULT_ADD:
+				if not (m.soul_cost > 0 and s.get("blood_refused", false)):
+					out.append("%s +%d mult" % [nm, m.amount])
+			FaceModData.Effect.STAIR:
+				if is_run:
+					out.append("%s +%d base per die" % [nm, m.amount])
+			FaceModData.Effect.EMBER:
+				out.append("%s +%d Embers" % [nm, m.amount])
+			FaceModData.Effect.TWIN:
+				out.append("%s counts twice" % nm)
+			FaceModData.Effect.KINDLING:
+				out.append("%s: next throw can't burn" % nm)
+	for sp: StringName in s.get("specials", []):
+		match sp:
+			&"twin_flame":
+				if combo != null and (_is_kind(combo, BonfireCombo.Kind.N_OF_A_KIND, 2) or combo.kind == BonfireCombo.Kind.TWO_PAIR):
+					out.append("Twin Flame +%d mult" % t.twin_flame_mult)
+			&"coven":
+				if combo != null and (_is_kind(combo, BonfireCombo.Kind.N_OF_A_KIND, 3) or combo.kind == BonfireCombo.Kind.FULL_HOUSE):
+					out.append("Coven x%s" % str(snappedf(t.coven_factor, 0.01)))
+			&"cracked":
+				out.append("Cracked x%s" % str(snappedf(t.cracked_factor, 0.01)))
+			&"blood_pact":
+				var missing := maxi(int(ctx.get("max_soul", 0)) - int(ctx.get("soul", 0)), 0)
+				var a := missing / maxi(t.blood_pact_soul_step, 1)
+				if a > 0:
+					out.append("Blood Pact +%d mult" % a)
+			&"last_breath":
+				var n := int(ctx.get("throw_size", 0))
+				if bool(ctx.get("is_rethrow", false)) and n >= 1 and n <= t.last_breath_max_dice:
+					out.append("Last Breath x%s" % str(snappedf(t.last_breath_factor, 0.01)))
+			&"wanderer":
+				if s.get("gapped", false):
+					out.append("Wanderer skips a value")
+	return out
+
+
 ## Every subset of the throw (as index arrays) that exactly forms a combo.
 static func matching_subsets(dice: Array, t: BonfireTuning, ctx: Dictionary = {}) -> Array:
 	var out: Array = []

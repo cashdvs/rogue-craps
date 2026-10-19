@@ -16,6 +16,10 @@ class_name Bonfire3D
 extends Table3D
 
 signal throw_resolved(faces: Array[int], lit: Array[int])
+## After each launch (debug overlay / tools): the flick speed in game
+## (canvas) px/s, the dice's launch speed in m/s and the curve fraction k
+## (0..1 strength after the launch curve).
+signal throw_measured(flick_px_s: float, launch_mps: float, curve_k: float)
 signal hand_result(result: Dictionary)
 ## Run mode: the table is done (end panel CONTINUE, or finish()). Emitted once.
 signal finished(outcome: TableOutcome)
@@ -53,6 +57,7 @@ var throw_dice: Array[DieVisual] = []
 var pot_dice: Array[DieVisual] = []
 var _felt_pos: Array[Vector3] = []
 var _brng := RandomNumberGenerator.new()
+## Dice showing the lit (scoring) look; keys only.
 var _lights: Dictionary = {}
 var _hand_tweens: Array[Tween] = []
 ## The last throw's launch (tests/tools): lin, spin, speed, k, flick.
@@ -67,22 +72,37 @@ var _die_of: Dictionary = {}
 var throw_slots: Array[int] = []
 var _soul_before: int = 0
 var _finished_sent: bool = false
+## events.table_cleared went out for this table (once per table).
+var _cleared_emitted: bool = false
 ## Text on the felt from the rules (e.g. "LOCKED  4").
 var felt_label: Label3D
+## The combo table on the felt (FeltComboTable).
+var felt_combos: FeltComboTable
 ## Scoring juice adapter (sounds / VFX; art + audio branches if present).
 var juice: BonfireJuice
 ## Tutorial: -1 = GameSettings decides (Table 1, not seen), 0 = never,
 ## 1 = always (tests). Set before add_child.
 var tutorial_override: int = -1
+## Hints + tutorial seeds for this table (made in _ready).
+var onboarding: BonfireOnboarding
 ## Dice of the pot being counted up, pip -> die index, its tier.
 var _juice_dice: Array[DieVisual] = []
 var _pip_die: Array[int] = []
 var _juice_tier: int = 0
+## The pot's face mod ids, per die (&"" = none): mod_triggered.
+var _pip_mods: Array[StringName] = []
+## mod_triggered ctx per die of the pot being counted (see _mod_ctx).
+var _pip_ctx: Array[Dictionary] = []
 ## What the lit dice of this throw could claim (no selection yet).
 var _throw_claims: Array = []
 
 
 func _ready() -> void:
+	# Hints and tutorial seeds live in their own node (BonfireOnboarding).
+	onboarding = BonfireOnboarding.new()
+	onboarding.name = "Onboarding"
+	onboarding.table = self
+	add_child(onboarding)
 	if setup != null and setup.tuning != null:
 		bonfire_tuning = setup.tuning
 	if bonfire_tuning == null:
@@ -100,6 +120,10 @@ func _ready() -> void:
 	total_dice_per_throw = clampi(setup.dice.size(), 1, MAX_HANDFUL)
 	_apply_camera_tuning()
 	super()
+	# The status line sits between x 520 and 1400, clear of the bottom-left
+	# THROW / BANK column (ends at x 494) and the hand at the bottom right.
+	why_label.position = Vector2(520, 990)
+	why_label.size = Vector2(880, 80)
 	total_hud.visible = false
 	stack.visible = false
 	info_box.visible = false
@@ -111,6 +135,7 @@ func _ready() -> void:
 		var td: TableDie = setup.dice[mini(i, setup.dice.size() - 1)]
 		td.normalize()  # a faces / mods / shape mismatch warns and is padded, never a SCRIPT ERROR
 		_die_of[all_dice[i]] = td
+		all_dice[i].set_meta(&"handful_id", i)
 		apply_die_look(all_dice[i], td)
 	bhud = BonfireHud.new()
 	hud.add_child(bhud)
@@ -120,6 +145,9 @@ func _ready() -> void:
 	bhud.continue_pressed.connect(func() -> void: finish())
 	bhud.leave_pressed.connect(func() -> void: leave())
 	bhud.set_run_mode(setup.run_mode)
+	# Portrait goal readout: follow the screen shape (taller than wide = on).
+	get_viewport().size_changed.connect(_update_portrait_hud)
+	_update_portrait_hud()
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
 	pause_menu.set_run_mode(setup.run_mode)
@@ -128,7 +156,15 @@ func _ready() -> void:
 	juice = BonfireJuice.new()
 	add_child(juice)
 	juice.setup(self)
-	bhud.set_combos(bonfire_tuning)
+	# The combo table printed on the felt (replaces the old side panel).
+	felt_combos = FeltComboTable.new()
+	add_child(felt_combos)
+	felt_combos.setup(table.felt_material as ShaderMaterial, bonfire_tuning)
+	bhud.cleared_banner.impact.connect(func() -> void:
+		if not reduced_motion:
+			_camera_shake(tuning.shake_craps_px * 0.25, 0.1))
+	_build_throw_debug()
+	_update_portrait_hud()
 	var cu := bhud.countup
 	cu.pip.connect(_on_count_pip)
 	cu.slam.connect(func(k: int) -> void:
@@ -188,6 +224,8 @@ func new_run(seed_value: int = -1) -> void:
 	juice.crowd_start()
 	_soul_before = run.soul
 	_finished_sent = false
+	_cleared_emitted = false
+	events.table_started.emit()
 	bhud.end_panel.visible = false
 	soul_meter.setup(run.soul, run.max_soul)
 	_soul_shown = run.soul
@@ -195,7 +233,7 @@ func new_run(seed_value: int = -1) -> void:
 	pause_menu.set_forfeit_enabled(true)
 	phase = Phase.BET
 	_set_why("Grab the %d dice and flick them. Scoring dice catch fire." % run.cold)
-	_maybe_start_tutorial()
+	onboarding.on_table_start()
 	_refresh_hud()
 
 
@@ -269,11 +307,13 @@ func leave() -> bool:
 		return false
 	if not run.leave():
 		return false
+	bhud.tutorial.on_action(&"leave")
 	_kill_hand_tweens()
 	pause_menu.set_forfeit_enabled(false)
 	phase = Phase.OVER
 	for d in all_dice:
 		_set_lit(d, false)
+	_emit_table_cleared()
 	_taunt(&"bonfire_clear")
 	_set_why("You left the table. Cleared!")
 	bhud.show_end(run)
@@ -413,6 +453,7 @@ func throw_again() -> bool:
 	if rt.is_empty():
 		_refuse(why if why != "" else "Pot at least one burning die first.")
 		return false
+	bhud.tutorial.on_action(&"rethrow")
 	pot_dice.append_array(potted_now)
 	# Back to the home framing (the reveal left the camera zoomed in on the
 	# dice): the count-up and its fire play on the pot row, and the next
@@ -422,7 +463,6 @@ func throw_again() -> bool:
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
 	_hold_display(hold)
 	juice.crowd_pot(run.pot)
-	_tutorial_hint(2)
 	if rt["hot"]:
 		_taunt(&"bonfire_hot")
 		# The lists change now; the dice ignite and fly back after the count-up.
@@ -431,7 +471,7 @@ func throw_again() -> bool:
 		_set_active(all_dice)
 		_hot_hand_moment()
 		_set_why("Hot Hand! All %d dice back, +%d mult on every pot this hand." % [run.cold, run.mult_bonus()])
-		_tutorial_hint(4)
+		onboarding.on_hot_hand()
 	else:
 		for d in cold_now:
 			_set_lit(d, false)
@@ -460,9 +500,119 @@ func _hot_hand_moment() -> void:
 	var fly := bonfire_tuning.juice_hot_hand_fly_time if not reduced_motion else 0.22
 	if speed_mode == 2:
 		fly = 0.05
+	var ids: Array = []
+	for d in list:
+		ids.append(event_id(d))
+	var count := run.hot_hands
+	events.hot_hand_fly.emit(ids, fly)
 	juice.fly_start(list, fly)
 	_to_hand(fly)
+	# The Hot Hand sound (scripts/fx/table_audio.gd) is the dice arriving.
+	get_tree().create_timer(fly, true, false, false).timeout.connect(func() -> void: events.hot_hand.emit(count))
 	get_tree().create_timer(fly + 0.05, true, false, false).timeout.connect(func() -> void: juice.fly_stop(list))
+
+
+## mod_triggered / triggers_resolved ctx for a face mod on die `d`.
+func _mod_ctx(fm: FaceModData, d: DieVisual) -> Dictionary:
+	if fm == null:
+		return {}
+	var dir := 1
+	match fm.effect:
+		FaceModData.Effect.BLANK:
+			dir = -1
+		FaceModData.Effect.WILD, FaceModData.Effect.HEAVY, FaceModData.Effect.KINDLING:
+			dir = 0
+	return {"flavor": StringName(String(FaceModData.Effect.keys()[fm.effect]).to_lower()),
+		"target_die": event_id(d) if d != null else -1,
+		"count": 2 if fm.effect == FaceModData.Effect.TWIN else 1, "direction": dir}
+
+
+## TableEvents.triggers_resolved entry.
+func _trigger(stage: StringName, row_id: StringName, die_id: int, anchor: StringName, ctx: Dictionary, start_s: float, tier: int = 0) -> Dictionary:
+	return {"stage": stage, "row_id": row_id, "tier": tier, "die_id": die_id,
+		"intensity": clampf(tier / 4.0, 0.0, 1.0), "anchor": anchor, "ctx": ctx, "start_s": start_s}
+
+
+const _STAGE_ORDER: Array[StringName] = [&"land", &"copies", &"boss", &"lit", &"scoring"]
+
+
+## The settle half of triggers_resolved for a landed throw (land, copies,
+## boss, lit check; see TableEvents). ok = land_throw's result.
+func landing_triggers(th: TableThrow, ok: bool) -> Array:
+	var out: Array = []
+	var by_stage: Dictionary = {&"land": [], &"copies": [], &"boss": [], &"lit": []}
+	for ch: Dictionary in th.changes:
+		var i := int(ch["index"])
+		var by := StringName(ch.get("by", &""))
+		var stage := &"land"
+		if by == &"mirror":
+			stage = &"copies"
+		else:
+			for r in run.rules:
+				if r.id == by and r.kind == TableRule.Kind.CHEAT:
+					stage = &"boss"
+		var d: DieVisual = throw_dice[i] if i < throw_dice.size() else null
+		var target := -1
+		if stage == &"copies" and th.positions.size() == th.size():
+			# The die it copied: the nearest non-Mirror die with that value.
+			var best := INF
+			for j in th.size():
+				if j != i and th.special(j) != &"mirror" and th.values[j] == int(ch["to"]) and th.positions[i].distance_to(th.positions[j]) < best:
+					best = th.positions[i].distance_to(th.positions[j])
+					target = event_id(throw_dice[j]) if j < throw_dice.size() else j
+		(by_stage[stage] as Array).append(_trigger(stage, by, event_id(d) if d != null else i, &"die",
+			{"flavor": stage, "target_die": target, "count": 1, "direction": signi(int(ch["to"]) - int(ch["from"])), "from": int(ch["from"]), "to": int(ch["to"])}, 0.0))
+	var lit_at := 0.0 if th.changes.is_empty() else FLIP_TIME + 0.08
+	if ok:
+		for i in run.throw_faces.size():
+			for r in run.rules:
+				if not r.can_light(run, run.throw_faces[i]):
+					var d: DieVisual = throw_dice[i] if i < throw_dice.size() else null
+					(by_stage[&"lit"] as Array).append(_trigger(&"lit", r.id, event_id(d) if d != null else i, &"die",
+						{"flavor": &"kept_dark", "target_die": event_id(d) if d != null else i, "count": 1, "direction": -1}, lit_at))
+					break
+	else:
+		var ids: Array = []
+		for d in throw_dice:
+			ids.append(event_id(d))
+		var what := &"kindling_saved" if run.kindling_saved else &"bust"
+		(by_stage[&"lit"] as Array).append(_trigger(&"lit", what, -1, &"table",
+			{"flavor": what, "target_die": -1, "count": ids.size(), "direction": 0 if run.kindling_saved else -1, "die_ids": ids}, lit_at))
+	for st: StringName in _STAGE_ORDER:
+		if by_stage.has(st):
+			out.append_array(by_stage[st])
+	return out
+
+
+## The scoring half of triggers_resolved for the pot about to be counted
+## (call after _pip_die / _pip_mods / _pip_ctx / _juice_dice are set): one
+## entry per mod face, in pip order. start_s = pip_s - PIP_LEAD (>= 0).
+func scoring_triggers(n_pips: int, n_extra_chips: int, tier: int) -> Array:
+	var plan := JuicePlan.timeline(n_pips, n_extra_chips, tier, speed_mode, bonfire_tuning)
+	var pips: Array = plan["pips"]
+	var clock := maxf(test_speed, 0.001)
+	var lift_clock := clock * (2.0 if speed_mode == 1 else 1.0) * (20.0 if speed_mode == 2 else 1.0)
+	var stagger := (0.14 if plan["big"] else 0.08) / lift_clock
+	var out: Array = []
+	for i in _pip_die.size():
+		var k: int = _pip_die[i]
+		if k < 0 or k >= _pip_mods.size() or _pip_mods[k] == &"" or (i > 0 and _pip_die[i - 1] == k) or k >= _juice_dice.size():
+			continue
+		var pip_s := float(pips[i]) / clock if i < pips.size() else 0.0
+		var e := _trigger(&"scoring", _pip_mods[k], event_id(_juice_dice[k]), &"pip", _pip_ctx[k] if k < _pip_ctx.size() else {},
+			maxf(pip_s - TableEvents.PIP_LEAD, 0.0), tier)
+		e["pip_s"] = pip_s
+		e["lift_s"] = k * stagger
+		out.append(e)
+	return out
+
+
+## events.table_cleared, once per table (a clear, then Leave, sends one).
+func _emit_table_cleared() -> void:
+	if _cleared_emitted:
+		return
+	_cleared_emitted = true
+	events.table_cleared.emit()
 
 
 ## HUD numbers before a pot is committed (shown until its count-up lands).
@@ -504,9 +654,28 @@ func _start_count_up(sel: Dictionary, dice_list: Array[DieVisual], faces: Array,
 		var n := 2 if m != null and m.effect == FaceModData.Effect.TWIN and not run.rule_ctx()["no_mods"] else 1
 		for j in n:
 			_pip_die.append(k)
-	var plan := JuicePlan.timeline(vals.size(), chips.size() - 1, tier, speed_mode, t)
 	_juice_dice = dice_list.duplicate()
 	_juice_tier = tier
+	_pip_mods.clear()
+	_pip_ctx.clear()
+	var wild := -1
+	for k in faces.size():
+		var fm: FaceModData = (faces[k] as Dictionary).get("mod")
+		_pip_mods.append(fm.id if fm != null and not run.rule_ctx()["no_mods"] else &"")
+		_pip_ctx.append(_mod_ctx(fm, dice_list[k] if k < dice_list.size() else null))
+		if wild < 0 and fm != null and fm.effect == FaceModData.Effect.WILD and not run.rule_ctx()["no_mods"]:
+			wild = k
+	# JIT4 points at the first Wild face (its index in the throw, -1 = none).
+	var wd := throw_dice.find(dice_list[wild]) if wild >= 0 and wild < dice_list.size() else -1
+	onboarding.on_pot(StringName(sel.get("combo", &"")), wd)
+	var ids: Array = []
+	for d in dice_list:
+		ids.append(event_id(d))
+	events.combo_potted.emit(StringName(sel.get("combo", &"")), ids, int(sel["points"]), int(sel.get("mult", 0)), tier)
+	# The scoring triggers with their start times, before the count-up is
+	# planned (TableEvents.triggers_resolved).
+	events.triggers_resolved.emit(scoring_triggers(vals.size(), chips.size() - 1, tier))
+	var plan := JuicePlan.timeline(vals.size(), chips.size() - 1, tier, speed_mode, t)
 	juice.lift(_juice_dice, plan["big"], test_speed * (2.0 if speed_mode == 1 else 1.0) * (20.0 if speed_mode == 2 else 1.0))
 	bhud.countup.play({"base": int(sel["base"]), "values": vals, "chips": chips, "points": int(sel["points"]),
 		"name": str(sel["name"]), "score_tier": tier, "banner_tier": JuicePlan.banner_tier(StringName(sel["combo"]), t)},
@@ -517,6 +686,8 @@ func _on_count_pip(i: int) -> void:
 	if speed_mode != 2:
 		juice.pip_sound(i)
 	var k: int = _pip_die[i] if i < _pip_die.size() else -1
+	if k >= 0 and k < _pip_mods.size() and _pip_mods[k] != &"" and (i == 0 or _pip_die[i - 1] != k) and k < _juice_dice.size():
+		events.mod_triggered.emit(_pip_mods[k], _juice_tier, event_id(_juice_dice[k]), clampf(_juice_tier / 4.0, 0.0, 1.0), Time.get_ticks_msec(), &"pip", _pip_ctx[k] if k < _pip_ctx.size() else {})
 	if k >= 0 and k < _juice_dice.size() and is_instance_valid(_juice_dice[k]):
 		var d := _juice_dice[k]
 		d.body_material.set_shader_parameter("emission_color", Palette.EMBER)
@@ -543,6 +714,7 @@ func bank() -> Dictionary:
 	if phase != Phase.BET or not run.can_continue():
 		_refuse("Pot at least one burning die to bank.")
 		return {}
+	bhud.tutorial.on_action(&"bank")
 	fast_forward_juice()
 	var sel := run.selection()
 	var hot_before := run.hot_hands
@@ -562,6 +734,7 @@ func bank() -> Dictionary:
 		await bhud.countup.finished
 	# Bank: embers flow to the pile, each claimed bounty gets its wax stamp.
 	bhud.flash("BANKED +%d" % int(r["gain"]), Palette.BRASS_HI)
+	events.banked.emit(int(r["gain"]))
 	juice.bank_sound()
 	juice.crowd_pot(0)
 	_taunt(&"bonfire_bank")
@@ -575,21 +748,23 @@ func bank() -> Dictionary:
 	bhud.flash_ticks(r["ticked"])
 	for id: StringName in r["ticked"]:
 		bhud.stamp_claimed(id, reduced_motion)
+		events.bounty_claimed.emit(id)
 		juice.stamp_sound()
 		if speed_mode != 2:
 			await _wait(bonfire_tuning.juice_stamp_gap / test_speed)
-	_tutorial_hint(3)
+	onboarding.on_bank(r)
 	juice.drop(all_pot)
 	bhud.countup.clear()
 	_set_why("Banked %d points.%s" % [int(r["gain"]), (" Bounty: " + ", ".join(names) + "!") if not names.is_empty() else ""])
 	if r.get("cleared_now", false):
 		# The clear moment: Embers locked in, the table stays open (unless
 		# that was the last hand, then it ends right after this).
-		bhud.show_cleared()
+		bhud.show_cleared(2.0 if speed_mode == 1 else 1.0, speed_mode == 2 or reduced_motion)
+		_emit_table_cleared()
 		_taunt(&"bonfire_clear")
-		_tutorial_hint(5)
 		if not run.is_over():
 			_set_why("Table cleared! Chase the bonus with your remaining hands, or Leave table.")
+	_refresh_hud()
 	hand_result.emit(r)
 	await _after_hand()
 	return r
@@ -601,21 +776,117 @@ func pick_die(i: int) -> bool:
 	if phase != Phase.BET or run.state != BonfireRun.State.PICK or i < 0 or i >= throw_dice.size():
 		return false
 	if not run.toggle(i):
-		sfx.play(&"chip_refuse")
+		# It bounces back where it was, with a "doesn't score" callout.
+		# Its sound (no_score) is played by scripts/fx/table_audio.gd.
+		events.no_score.emit()
+		refused.emit(i)
 		var d := throw_dice[i]
 		var tw := d.create_tween()
 		var p := d.position
-		tw.tween_property(d, "position", p + Vector3(0.012, 0, 0), 0.04)
-		tw.tween_property(d, "position", p - Vector3(0.012, 0, 0), 0.06)
-		tw.tween_property(d, "position", p, 0.04)
-		_set_why("That die can't join this combo (a pot is exactly ONE combo).")
+		var hop := tuning.die_size * 0.6
+		tw.tween_property(d, "position", p + Vector3(0, hop, 0), 0.08).set_ease(Tween.EASE_OUT)
+		tw.tween_property(d, "position", p, 0.14).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+		bhud.callout(camera.cam.unproject_position(d.global_position + Vector3(0, tuning.die_size, 0)), NO_SCORE_TEXT)
+		bhud.tutorial.on_action(&"refused")
+		# Just-in-time or never: it doesn't wait behind another hint.
+		onboarding.on_refused(i)
+		_set_why("That die doesn't score with this combo (a pot is exactly ONE combo).")
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	_layout_throw()
+	if not run.potted.is_empty():
+		bhud.tutorial.on_action(&"potted")
 	if run.can_continue():
-		_tutorial_hint(1)
+		bhud.tutorial.on_action(&"valid_selection")
+		onboarding.on_selection()
 	_refresh_hud()
 	return true
+
+
+## The refusal callout over a die that can't join the combo.
+const NO_SCORE_TEXT := "doesn't score"
+## A pick was refused (die index): tests / juice.
+signal refused(index: int)
+
+
+## How many dice the next throw would use (0 = none / not a rethrow).
+func next_throw_size() -> int:
+	if run == null or run.is_over():
+		return 0
+	if run.state == BonfireRun.State.PICK:
+		if not run.selection()["valid"]:
+			return 0
+		return run.dice_count if run.is_hot() else run.throw_faces.size() - run.potted.size()
+	if run.state == BonfireRun.State.AIM and run.throws_this_hand > 0:
+		return run.cold
+	return 0
+
+
+## The rethrow prompt with its exact bust risk ("Throw 2 cold dice: 1 in 3
+## burns", BustRisk). "" when there's no rethrow to talk about.
+func rethrow_prompt() -> String:
+	var n := next_throw_size()
+	if n <= 0:
+		return ""
+	var tds: Array = []
+	var kindling := false
+	var hot := false
+	if run.state == BonfireRun.State.PICK:
+		var sel := run.selection()
+		kindling = bool(sel.get("kindling", false))
+		hot = run.is_hot()
+		if hot:
+			for d in all_dice:
+				tds.append(_die_of.get(d))
+		else:
+			for i in throw_dice.size():
+				if not run.potted.has(i):
+					tds.append(_die_of.get(throw_dice[i]))
+	else:
+		kindling = run.kindling_armed
+		# Mid-rethrow the active dice can still be the whole handful (the cold
+		# ones go active right after): no prompt until they match.
+		if dice.size() != n:
+			return ""
+		for d in dice:
+			tds.append(_die_of.get(d))
+	var key := "%d|%s|%s|%d|%d|%d" % [n, str(tds.map(func(t: Variant) -> int: return t.get_instance_id() if t != null else 0)), kindling, run.soul, run.throws_this_hand, run.rules.size()]
+	if key != _risk_key:
+		_risk_key = key
+		_risk = run.next_throw_risk(tds, kindling)
+	return BustRisk.prompt(n, _risk, hot)
+
+
+var _risk_key: String = ""
+var _risk: Dictionary = {}
+
+
+## The bust chance behind the last rethrow_prompt() (0-1).
+func bust_chance() -> float:
+	return float(_risk.get("burn", 0.0))
+
+
+# --- Onboarding (BonfireOnboarding does the work) --------------------------------------
+
+## The Table 1 tutorial (TH hints + seeded throws) runs on this table.
+func tutorial_wanted() -> bool:
+	return onboarding.tutorial_wanted()
+
+
+## Any hints on this table (Settings: Tutorial hints On/Off).
+func hints_wanted() -> bool:
+	return onboarding.hints_wanted()
+
+
+## Does the run hold a Seal for this combo? (BonfireOnboarding.is_sealed)
+func is_sealed(combo_id: StringName) -> bool:
+	return onboarding.is_sealed(combo_id)
+
+
+## Per throw this table: true if it was seeded by the tutorial (tests).
+var seeded_throws: Array[bool]:
+	get:
+		return onboarding.seeded_throws
 
 
 ## Bounty cards the current selection could claim (or, with nothing
@@ -653,60 +924,6 @@ func _compute_throw_claims() -> void:
 		for id in _open_ticks(sc["bounty_values"]):
 			if not _throw_claims.has(id):
 				_throw_claims.append(id)
-
-
-# --- Tutorial -------------------------------------------------------------------------
-
-func _settings() -> Node:
-	return get_node_or_null("/root/GameSettings")
-
-
-func _is_table_one() -> bool:
-	return setup != null and setup.goal != null and (setup.goal == bonfire_tuning.table_goal or setup.goal.display_name == "Table 1")
-
-
-func tutorial_wanted() -> bool:
-	if tutorial_override >= 0:
-		return tutorial_override == 1
-	# Only the real game, never tests / tools: the table is the current
-	# scene (sandbox) or inside it (a run's RunScreen; QA M2).
-	var scene := get_tree().current_scene
-	if scene == null or not (scene == self or scene.is_ancestor_of(self)):
-		return false
-	var gs := _settings()
-	if gs == null or not _is_first_table():
-		return false
-	return bool(gs.get("tutorial_enabled")) and not bool(gs.get("tutorial_seen"))
-
-
-## The run's first table (setup.first_table; the sandbox counts as one), and
-## it's Table 1. In a run every goal passes _is_table_one(), so first_table
-## is what keeps the tutorial off the later tables.
-func _is_first_table() -> bool:
-	return setup != null and setup.first_table and _is_table_one()
-
-
-func _maybe_start_tutorial() -> void:
-	var tut := bhud.tutorial
-	tut.visible = false
-	tut.active = false
-	if not tutorial_wanted():
-		return
-	tut.start()
-	var gs := _settings()
-	if gs != null and gs.has_method("set_option"):
-		gs.set_option(&"tutorial_seen", true)
-	# The first throw lands a pair + a run of 3 (if the handful allows).
-	var want: Array[int] = bonfire_tuning.tutorial_first_throw.duplicate()
-	if setup.dice.size() >= want.size():
-		while want.size() < setup.dice.size():
-			want.append(3)
-		rig_faces(want)
-
-
-func _tutorial_hint(k: int) -> void:
-	if bhud != null and bhud.tutorial.active:
-		bhud.tutorial.hint(k)
 
 
 func die_at_screen(p: Vector2) -> int:
@@ -803,6 +1020,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		_end_sequence_after_forfeit()
 		return
 	_punch_dice()
+	events.dice_settled.emit()
 	sfx.play(&"dice_settle", 1.0, -3.0)
 	_felt_pos.clear()
 	for d in throw_dice:
@@ -815,6 +1033,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	th.positions = _felt_pos.duplicate()
 	var ok := run.land_throw(th)
 	_compute_throw_claims()
+	events.triggers_resolved.emit(landing_triggers(th, ok))
 	if not th.changes.is_empty():
 		await _show_face_changes(th)
 		if run.is_over():
@@ -839,13 +1058,16 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		_to_hand()
 		phase = Phase.BET
 	elif ok:
-		for i in lit:
-			_set_lit(throw_dice[i], true)
-			_embers(throw_dice[i].global_position, 8, 2)
+		for i in throw_dice.size():
+			if i in lit:
+				_set_lit(throw_dice[i], true)
+				_embers(throw_dice[i].global_position, 8, 2)
+			else:
+				_set_cold(throw_dice[i])
 		sfx.play(&"rim_hit", 0.8, -6.0)
 		_set_why("%d burning. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
-		_tutorial_hint(0)
+		onboarding.on_lit_settle()
 	else:
 		await _bust()
 	_skip = false
@@ -890,7 +1112,43 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 			spin[i] = flip * lerpf(bt.coin_flip_min_rad_s, bt.coin_flip_max_rad_s, k) * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter))
 			lin[i].y += lerpf(bt.coin_lift_min_mps, bt.coin_lift_max_mps, k)
 	last_launch = {"lin": lin, "spin": spin, "speed": speed, "k": k, "flick": velocity.length()}
+	_show_throw_debug(velocity.length(), speed, k)
+	throw_measured.emit(velocity.length(), speed, k)
 	return last_launch
+
+
+# --- Debug throw overlay (off by default) ------------------------------------------
+## After each flick: the flick speed (game px/s), the dice's launch speed
+## (m/s) and the curve fraction k; it stays until the next throw. Turn it
+## on with F3 (debug builds only), GameSettings.throw_debug, or the command line user arg
+## `-- --throw-debug`. Tools can also set `throw_debug = true` directly.
+var throw_debug: bool = false:
+	set(v):
+		throw_debug = v
+		if throw_debug_label != null:
+			throw_debug_label.visible = v and throw_debug_label.text != ""
+var throw_debug_label: Label
+
+
+func _build_throw_debug() -> void:
+	throw_debug_label = Label.new()
+	throw_debug_label.name = "ThrowDebug"
+	throw_debug_label.label_settings = Palette.label_settings(26, Palette.BRASS_HI, 6)
+	throw_debug_label.add_theme_stylebox_override("normal", Palette.ink_box(Color(Palette.PIT_BLACK, 0.85), 8, 2, Palette.BRASS))
+	throw_debug_label.position = Vector2(24, 1000)
+	throw_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	throw_debug_label.visible = false
+	bhud.add_child(throw_debug_label)
+	var gs := get_node_or_null("/root/GameSettings")
+	var on := gs != null and "throw_debug" in gs and bool(gs.get("throw_debug"))
+	throw_debug = on or OS.get_cmdline_user_args().has("--throw-debug")
+
+
+func _show_throw_debug(flick_px_s: float, launch_mps: float, k: float) -> void:
+	if throw_debug_label == null:
+		return
+	throw_debug_label.text = "THROW  flick %.0f px/s  ->  launch %.2f m/s   curve %.2f" % [flick_px_s, launch_mps, k]
+	throw_debug_label.visible = throw_debug
 
 
 ## 0..1 strength of a flick (after the curve).
@@ -903,7 +1161,15 @@ func launch_k(flick_speed: float) -> float:
 ## Options > Throw sensitivity multiplies the flick speed (keyboard quick
 ## throws stay a fixed medium throw).
 func throw(velocity: Vector2, release_pos: Vector2 = Vector2.INF, drag: float = -1.0) -> bool:
-	return super(velocity * (sensitivity() if _player_flick else 1.0), release_pos, drag)
+	# The tutorial may rig this throw's faces (never over a test's own rig).
+	var seeded := _rig.is_empty() and phase == Phase.BET and onboarding.seed_next_throw()
+	var ok := super(velocity * (sensitivity() if _player_flick else 1.0), release_pos, drag)
+	if ok:
+		seeded_throws.append(seeded)
+		bhud.tutorial.on_action(&"thrown")
+	elif seeded:
+		_rig.clear()
+	return ok
 
 
 func sensitivity() -> float:
@@ -911,11 +1177,59 @@ func sensitivity() -> float:
 	return float(gs.get("throw_sensitivity")) if gs != null else 1.0
 
 
+## Phone portrait (the screen is taller than wide) shows the goal readout at
+## the top; PC and phone landscape hide it (the plaque and cards are in view).
+func _update_portrait_hud() -> void:
+	if bhud == null:
+		return
+	var vs := get_viewport().get_visible_rect().size
+	var portrait := vs.y > vs.x
+	bhud.set_portrait(portrait)
+	var phone_land := not portrait and phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y
+	bhud.set_ui_scale(ui_pt_px(portrait), BonfireHud.PHONE_LANDSCAPE_CARDS if phone_land else 1.0)
+	if felt_combos != null:
+		felt_combos.set_portrait(portrait, portrait and portrait_felt_flipped())
+		if not portrait:
+			_fit_landscape_felt()
+
+
+## Portrait: the Art Director drew the portrait combo block for a camera
+## with the felt's +X end at the TOP of the screen (the near-rail end, -X,
+## at the bottom). True if this camera shows it the other way round, so the
+## print must turn 180 deg.
+func portrait_felt_flipped() -> bool:
+	if camera == null or camera.cam == null:
+		return false
+	var top := camera.cam.unproject_position(Vector3(0.9, 0, 0))
+	var bottom := camera.cam.unproject_position(Vector3(-0.9, 0, 0))
+	return top.y > bottom.y
+
+
+## The screen size in pt that fit_phone was last given (0 = PC / not a phone).
+var phone_screen := Vector2.ZERO
+
+
+## Design px per pt for the 2D art (bounty cards, banner): the Art
+## Director's UI scale 2.0 on PC; on a phone, whatever keeps a pt a pt
+## (390 pt wide portrait: 1920 / 390; 390 pt tall landscape: 1080 / 390).
+func ui_pt_px(portrait: bool) -> float:
+	if portrait:
+		return 1920.0 / (phone_screen.x if phone_screen.x > 0.0 and phone_screen.x < phone_screen.y else 390.0)
+	if phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y:
+		return maxf(2.0, 1080.0 / phone_screen.y)
+	return 2.0
+
+
 func _refresh_hud() -> void:
+	_update_portrait_hud()
 	if bhud != null:
 		bhud.leave_button.visible = can_leave_now()
 	if bhud != null and run != null:
+		bhud.rethrow_prompt = rethrow_prompt() if phase == Phase.BET else ""
 		bhud.refresh(run, phase == Phase.BET)
+		# The rethrow risk line and the table's status line share the bottom
+		# row: while the risk shows, the status line steps aside (QA #63).
+		why_label.visible = bhud.risk_label.text == ""
 		bhud.pulse_cards(claimable_bounties())
 	if felt_label != null and run != null:
 		var lines: Array[String] = []
@@ -940,6 +1254,7 @@ func _on_table_event(event: StringName, data: Dictionary) -> void:
 			_burn_soul(int(data.get("soul_cost", 0)))
 		&"hand_start":
 			_refresh_hud()
+			onboarding.on_hand_start()
 
 
 ## Rule face changes (Madame Shuffle's reroll, a Mirror's copy): each changed
@@ -972,6 +1287,16 @@ func _show_face_changes(th: TableThrow) -> void:
 			d.faces.position = base + Vector3(0, sin(k * PI) * d.edge * 0.7, 0)
 			d.body_material.set_shader_parameter("emission_energy", 0.9 * (1.0 - k * 0.6)), 0.0, 1.0, FLIP_TIME)
 		tw.tween_callback(func() -> void: d.faces.position = base)
+	var by_cheat: Dictionary = {}
+	for i: int in seen:
+		var by := StringName((seen[i] as Dictionary).get("by", &""))
+		for r in run.rules:
+			if r.id == by and r.kind == TableRule.Kind.CHEAT and i < throw_dice.size():
+				if not by_cheat.has(by):
+					by_cheat[by] = []
+				(by_cheat[by] as Array).append(event_id(throw_dice[i]))
+	for by: StringName in by_cheat:
+		events.boss_cheat.emit(by, by_cheat[by])
 	sfx.play(&"chip_place", 0.7, -2.0)
 	await _wait(FLIP_TIME + 0.08)
 	for i: int in seen:
@@ -1061,6 +1386,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_L:
 				bhud.press_leave()  # a second L within 2 s leaves
 				return
+			KEY_F3:
+				# Debug builds only (editor / debug export); a release
+				# build keeps F3 free. `-- --throw-debug` still works.
+				if OS.is_debug_build():
+					throw_debug = not throw_debug
+					get_viewport().set_input_as_handled()
+					return
 			KEY_SPACE, KEY_ENTER:
 				if phase == Phase.BET:
 					throw_again()
@@ -1080,11 +1412,6 @@ func _process(delta: float) -> void:
 	pause_menu.set_forfeit_enabled(can_forfeit_now())
 	if hand_label.text == "BET FIRST":
 		hand_label.text = ""  # no bets here
-	for d: DieVisual in _lights:
-		var l: OmniLight3D = _lights[d]
-		if l.visible:
-			l.light_energy = 0.9 + 0.35 * sin(_t * 9.0 + d.die_id)
-			d.body_material.set_shader_parameter("emission_energy", 0.55 + 0.2 * sin(_t * 7.0 + d.die_id * 1.7))
 
 
 ## A handful in the hand: a tight ring around HAND (a 5-wide row would
@@ -1127,15 +1454,24 @@ func _bust() -> void:
 	_burn_soul(int(r["soul_lost"]))
 	_camera_shake(tuning.shake_craps_px, 0.3)
 	# Flames snuff, dice ash over, the Soul flask cracks, pending stamps crumble.
+	var bust_ids: Array = []
+	for d in throw_dice:
+		bust_ids.append(event_id(d))
+	events.bust.emit(int(r["soul_lost"]), bust_ids)
 	juice.bust(throw_dice, reduced_motion)
+	var lost_cards: Array = bhud.pending_cards()
 	bhud.crumble_pending(reduced_motion)
 	bhud.flask_crack(soul_meter.get_global_rect(), reduced_motion)
 	juice.crowd_pot(0)
 	bhud.countup.clear()
-	_tutorial_hint(3)
+	# HB5 replaces TH9 when the bust lost a pending bounty (TH9 stays unseen).
+	onboarding.on_bust(int(r["soul_lost"]), lost_cards)
 	_embers(_dice_center(), 24, 10)
 	_taunt(&"bonfire_bust")
 	_set_why("Nothing caught fire. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
+	# HANDS LEFT etc. now, not after the beat (a final bust ends the table
+	# and the end screen shows over this HUD; QA full run pass 1).
+	_refresh_hud()
 	hand_result.emit(r)
 	await _wait(1.0)
 	await _after_hand()
@@ -1268,6 +1604,7 @@ func _apply_camera_tuning() -> void:
 
 
 func fit_phone(size: Vector2) -> float:
+	phone_screen = size
 	if size.x >= size.y:
 		return _fit_phone_landscape()
 	var px := super(size)
@@ -1300,7 +1637,74 @@ func fit_phone(size: Vector2) -> float:
 	camera.home_pivot = base + Vector3(0, 0, r[0])
 	camera.position = camera.home_pivot
 	camera._apply()
+	if felt_combos != null:
+		# The felt combo block, shrunk into this framing (8 pt margins).
+		var view := get_viewport().get_visible_rect().size
+		felt_combos.set_portrait(true, portrait_felt_flipped())
+		felt_combos.fit_portrait_view(camera.cam, view, 8.0 * view.x / maxf(size.x, 1.0))
 	return px
+
+
+## Landscape: keep the felt combo band clear of the Soul meter on the left
+## and the screen's right edge (8 pt margins) for this camera framing.
+func _fit_landscape_felt() -> void:
+	if felt_combos == null or camera == null:
+		return
+	var vs := get_viewport().get_visible_rect().size
+	# 16:9 and narrower keep the band exactly as the Art Director drew it.
+	if vs.x <= vs.y * 16.0 / 9.0 + 1.0:
+		felt_combos.set_land_fit(1.0, 0.0)
+		return
+	var margin := 8.0 * ui_pt_px(false)
+	var left := margin
+	if soul_meter != null and soul_meter.is_visible_in_tree():
+		left = soul_meter.get_global_rect().end.x + margin
+	# The band must fit every pose the camera takes in play: home, and the
+	# reveal glide (closer in, pivot slid up to cam_follow_clamp each way).
+	# Home must fit both edges; in the glide only the left end (under the
+	# Soul meter) counts, since the right end just runs off the screen.
+	var c := tuning.cam_follow_clamp
+	var close := minf(tuning.cam_reveal_distance, camera.home_distance)
+	var hp := camera.home_pivot
+	var poses: Array = [[hp, camera.home_distance]]
+	for px: float in [-c, 0.0, c]:
+		for pz: float in [-c, 0.0, c]:
+			poses.append([Vector3(px, 0.0, pz + hp.z), close])
+	# ok[i] is true while size/slide candidate i fits every pose so far.
+	# Candidates: size 100% down to 70%, slide -0.30..+0.30 m in 5 mm steps.
+	var ok: Array[bool] = []
+	ok.resize(31 * 121)
+	ok.fill(true)
+	var was_pos := camera.position
+	var was_dist := camera.distance
+	var was_tilt := camera.tilt_deg
+	for pose: Array in poses:
+		camera.position = pose[0]
+		camera.distance = pose[1]
+		camera.tilt_deg = 0.0
+		camera._apply()
+		for i in ok.size():
+			if ok[i]:
+				var right := vs.x - margin if pose == poses[0] else INF
+				ok[i] = felt_combos.land_fits(camera.cam, (100 - i / 121) / 100.0, (i % 121 - 60) * 0.005, left, right)
+	camera.position = was_pos
+	camera.distance = was_dist
+	camera.tilt_deg = was_tilt
+	camera._apply()
+	# Biggest size that fits; for that size, the smallest slide.
+	var k := 0.70
+	var sx := 0.0
+	var found := false
+	for ki in 31:
+		for si in 121:
+			var shift := (si - 60) * 0.005
+			if ok[ki * 121 + si] and (not found or absf(shift) < absf(sx)):
+				sx = shift
+				found = true
+		if found:
+			k = (100 - ki) / 100.0
+			break
+	felt_combos.set_land_fit(k, sx)
 
 
 ## Phone landscape: the home framing's pitch and tilt, closer in and
@@ -1325,6 +1729,7 @@ func _fit_phone_landscape() -> float:
 		camera.distance = camera.home_distance
 		camera._apply()
 	phone_dial_visible = true
+	_fit_landscape_felt()
 	return _smallest_die_px(CameraFraming.rest_spots(tuning.die_size))
 
 
@@ -1409,23 +1814,33 @@ func _clear_slot(at: Vector3, except: DieVisual) -> void:
 
 
 func _set_lit(d: DieVisual, on: bool) -> void:
-	var l: OmniLight3D = _lights.get(d)
-	if l == null and on:
-		l = OmniLight3D.new()
-		l.light_color = Palette.EMBER
-		l.omni_range = 0.22
-		l.position = Vector3(0, tuning.die_size * 0.9, 0)
-		l.shadow_enabled = false
-		d.add_child(l)
-		_lights[d] = l
-	if l != null:
-		l.visible = on
-	d.body_material.set_shader_parameter("emission_color", Palette.EMBER if on else Palette.BONE)
-	d.body_material.set_shader_parameter("emission_energy", 0.6 if on else 0.0)
+	# Material only (design section 4): a lit die glows ember, no lights or
+	# flames. Turning "off" returns it to the plain bone look.
+	var was := _lights.has(d)
+	if on:
+		_lights[d] = true
+	else:
+		_lights.erase(d)
+	d.set_glow_state(on, false)
+	if was != on and events != null:
+		events.die_lit_changed.emit(event_id(d), on)
+
+
+## A thrown die that did not score goes matte grey ("cold") once it settles.
+func _set_cold(d: DieVisual) -> void:
+	if _lights.has(d) and events != null:
+		events.die_lit_changed.emit(event_id(d), false)
+	_lights.erase(d)
+	d.set_glow_state(false, true)
 
 
 func is_lit(d: DieVisual) -> bool:
-	return _lights.has(d) and (_lights[d] as OmniLight3D).visible
+	return _lights.has(d)
+
+
+## True if this die is showing the cold (matte grey) look.
+func is_cold(d: DieVisual) -> bool:
+	return d.glow_cold > 0.0 and not _lights.has(d)
 
 
 func _refuse(why: String) -> void:

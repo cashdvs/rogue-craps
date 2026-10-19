@@ -166,9 +166,13 @@ var debug_speed: OptionButton
 ## The table's SfxManager. Typed Node so tests can swap in a plain stand-in
 ## (only play() / has_event(), or the play_throw / play_impact hooks).
 var sfx: Node
+## The event surface (TableEvents): plain signals for the VFX / audio side.
+var events: TableEvents
 
 
 func _ready() -> void:
+	events = TableEvents.new()
+	add_child(events)
 	if tuning == null:
 		tuning = TuningData.new()
 	if starting_dice.is_empty():
@@ -468,14 +472,10 @@ func _build_world() -> void:
 	sim.name = "DiceSim"
 	add_child(sim)
 	sim.setup(tuning)
-	# Throw sound. The Sound Designer's SfxManager.play_throw(flick_speed_px_s)
-	# once it lands on this branch; until then the fixed dice_shake. The speed
-	# is the raw flick in game (canvas) px/s, the same value launch_for() uses.
-	thrown.connect(func(speed: float) -> void:
-		if sfx.has_method("play_throw"):
-			sfx.call("play_throw", speed)
-		else:
-			sfx.play(&"dice_shake"))
+	# The throw sound is played by the feel layer (scripts/fx/table_audio.gd)
+	# from events.dice_thrown; the speed is the raw flick in game (canvas)
+	# px/s, the same value launch_for() uses.
+	thrown.connect(func(speed: float) -> void: events.dice_thrown.emit(speed))
 	_set_dice_count(2)
 
 
@@ -1227,6 +1227,7 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 		col = Palette.DANGER
 	sum_text.position = camera.cam.unproject_position(mid + Vector3(0, 0.16, -0.05))
 	sum_text.pop(str(r.total), col, reduced_motion)
+	events.dice_settled.emit()
 	sfx.play(&"dice_settle", 1.0, -3.0)
 	await _wait(maxf(0.6 - tuning.reveal_hold - tuning.sum_pop_delay, 0.05))
 	_set_why(report.explanation)
@@ -1342,6 +1343,7 @@ func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector
 	camera.follow(mid, tuning.cam_reveal_time)
 	await _wait(tuning.reveal_hold)
 	_punch_dice()
+	events.dice_settled.emit()
 	sfx.play(&"dice_settle", 1.0, -3.0)
 	for i in values.size():
 		var data := _die_data_for(i)
@@ -1431,26 +1433,40 @@ func _on_contact(c: Dictionary) -> void:
 		Fx3D.burst(fx_root, Vector3(at.x, 0.01, at.z), _n(6), [Color("#2E5A54", 0.4), Color("#2E5A54", 0.0)], Vector2(0.05, 0.2), 80.0, -0.5, Vector2(1.0, 2.0), 0.35, 1.0, false)
 
 
-## Impact sound. Uses the Sound Designer's SfxManager.play_impact(kind,
-## speed_mps, material, die_id) once it exists; until then the current SFX
-## events. Already filtered by _on_contact (impact_min_speed floor,
-## impact_min_interval per die).
+## A die hit something (already filtered by _on_contact: impact_min_speed
+## floor, impact_min_interval per die). Rails shake the camera; the impact
+## sound is played by the feel layer (scripts/fx/table_audio.gd) from
+## events.die_impact.
 func _on_die_impact(die_id: int, surface: String, speed_mps: float, _impulse: float, _other_id: int, material: String) -> void:
 	if surface == "rail" or surface == "backboard":
 		_camera_shake(3.0 * clampf(speed_mps / 2.5, 0.0, 1.0), 0.1)
-	if sfx.has_method("play_impact"):
-		sfx.call("play_impact", StringName(surface), speed_mps, StringName(material), die_id)
-		return
-	var strength := clampf(speed_mps / 2.5, 0.0, 1.0)
-	match surface:
-		"rail", "backboard":
-			sfx.play(&"rim_hit", 0.9 + strength * 0.2, -12.0 + strength * 10.0)
-		"die":
-			sfx.play(&"dice_hit", 1.25 + strength * 0.2, -12.0 + strength * 8.0)
-		"chip", "puck":
-			sfx.play(&"chip_place", 0.9 + strength * 0.2, -10.0 + strength * 8.0)
-		_:
-			sfx.play(&"dice_hit", 0.8 + strength * 0.4, -12.0 + strength * 9.0)
+	if events != null:
+		events.die_impact.emit(StringName(surface), speed_mps, StringName(material), event_id(dice[die_id]) if die_id >= 0 and die_id < dice.size() else die_id)
+
+
+## Read-only for listeners (scripts/fx/): the roll speed (0 = 1x, 1 = 2x,
+## 2 = Instant).
+func get_speed_mode() -> int:
+	return speed_mode
+
+
+## Read-only for listeners (scripts/fx/): the reduced-motion setting.
+func is_reduced_motion() -> bool:
+	return reduced_motion
+
+
+## A die's id on the event surface (TableEvents): its place in the starting
+## handful (stays put when the active dice change); else its die_id.
+func event_id(d: DieVisual) -> int:
+	return int(d.get_meta(&"handful_id", d.die_id)) if d != null else -1
+
+
+## The die with this event id (TableEvents), or null.
+func die_by_id(id: int) -> DieVisual:
+	for c in get_children():
+		if c is DieVisual and event_id(c) == id:
+			return c
+	return null
 
 
 func _on_die_settled(_die_id: int, _face: int) -> void:

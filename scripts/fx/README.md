@@ -137,3 +137,20 @@ xvfb-run -a godot --path . --rendering-driver vulkan --script res://tools/captur
 # final look (local 3D Artist assets, not in repo):
 xvfb-run -a godot --path . --rendering-driver vulkan --script res://tools/capture_twin_mask.gd -- --out=/workspace/dice/captures/twin_mask/ --final
 ```
+
+## DieGlow (`die_glow.gd`)
+
+Glow-only dice juice for BonfireJuice: **no fire on dice** (Cash, Oct 19). It replaces the old
+IGNITE / fire-trail scenes. Everything is the die's own emission + rim, one soft round halo card,
+and a few tiny spark dots that **fall** sideways (never rise above the die).
+
+| Call | Used by | Look |
+|---|---|---|
+| `apply(d, tier)` / `clear(d)` | score count-up | tier glow 0..3: amber → orange → gold → near-white (`TIER_COLORS`); pips stay ink |
+| `hot_hand_pulse(d, fx_root, reduced)` | `BonfireJuice.hot_hand` | 0.25 s full-ember pulse + 6 spark dots (glow only; sound is TableAudio's `hot_hand`) |
+| `ember_trail(d, fx_root, seconds)` | `fly_start` / `fly_stop` | short spark-dot trail (fades in ~0.3 s) behind dice flying back |
+| `sparks(parent, at, amount, life)` | tier glow | small falling dots |
+
+The lift / drop "lit" look is not DieGlow: it's `table._set_lit` (the `die_lit` shader). Never
+violet or Soul cyan. Tests: `tests/test_fx_no_fire_on_dice.gd` (shapes, colours, peak spark/trail
+height ≤ die top).
