@@ -135,8 +135,18 @@ func _init() -> void:
 var display_hold: Dictionary = {}
 
 
+## The run's Embers before this table (TableSetup.run_embers), so EMBERS
+## shows the player's balance; 0 for the sandbox or without the field.
+func _run_embers() -> int:
+	var n: Node = get_parent()
+	while n != null and not (n is Bonfire3D):
+		n = n.get_parent()
+	var st: TableSetup = (n as Bonfire3D).setup if n != null else null
+	return int(st.get("run_embers")) if st != null and "run_embers" in st else 0
+
+
 func refresh(run: BonfireRun, can_act: bool) -> void:
-	coin_label.text = "EMBERS %d" % int(display_hold.get("embers", run.embers))
+	coin_label.text = "EMBERS %d" % (_run_embers() + int(display_hold.get("embers", run.embers)))
 	points_label.text = "points %d  (1 Ember / %d)" % [int(display_hold.get("points", run.points)), run.tuning.points_per_ember]
 	hands_label.text = "HANDS LEFT %d" % run.hands_left
 	_refresh_checklist(run)

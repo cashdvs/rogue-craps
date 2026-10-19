@@ -27,6 +27,9 @@ var rules: Array = []
 ## Dice the player owns in the run bag (Cracked never shatters at <= 5).
 ## -1 = dice.size().
 var owned_dice_count: int = -1
+## Run mode: the run's Embers before this table. The HUD shows this plus the
+## table's payout; TableOutcome.embers stays the payout only.
+var run_embers: int = 0
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.
