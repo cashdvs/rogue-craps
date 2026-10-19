@@ -151,7 +151,7 @@ func _test_panels(scene: RunScreen) -> void:
 	scene._show_shop()
 	var greyed := false
 	for b in _buttons(scene):
-		if b.text.begins_with("Hellfire Face - from %d" % scene.run.cheapest_mod_price(0)):
+		if b.text.begins_with("Hellfire Face - %d" % scene.run.cheapest_mod_price(0)):
 			greyed = b.disabled
 	_check(greyed and scene.run.cheapest_mod_price(0) > hell.price, "shop: mod button greys out on the escalated price, and shows it")
 	for d in scene.run.progress.dice.size():

@@ -23,6 +23,7 @@ var table_note: String = ""
 var _time: float = 0.0
 
 
+## Draw map `m` with the boss name, its rule line and a note under reachable Tables.
 func show_map(m: RunMap, boss: String, rules: String = "", note: String = "") -> void:
 	map = m
 	boss_name = boss
@@ -31,6 +32,7 @@ func show_map(m: RunMap, boss: String, rules: String = "", note: String = "") ->
 	queue_redraw()
 
 
+## Screen position of node `n`.
 func node_pos(n: MapNode) -> Vector2:
 	var margin := Vector2(120, 80)
 	margin.y = clampf(size.y * 0.1, 50.0, 90.0)
@@ -42,6 +44,7 @@ func node_pos(n: MapNode) -> Vector2:
 	return Vector2(x, y)
 
 
+## Id of the node under point `p`, or -1.
 func node_at(p: Vector2) -> int:
 	if map == null:
 		return -1
