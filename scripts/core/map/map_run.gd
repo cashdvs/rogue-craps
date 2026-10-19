@@ -52,7 +52,10 @@ func choose_node(id: int) -> bool:
 			_set_screen(Screen.TABLE)
 		NT.EVENT:
 			event = _pick_event()
-			_set_screen(Screen.EVENT)
+			if event == null:
+				_open_event_fallback()
+			else:
+				_set_screen(Screen.EVENT)
 		NT.SHOP:
 			shop_seals_bought = 0
 			shop_rerolls = 0
@@ -116,17 +119,32 @@ func make_goal(t: NT) -> TableGoal:
 		if not picks.has(b):
 			picks.append(b)
 	g.required = picks
-	# The bonus never repeats a required bounty (same combo kind and size).
-	var bonus_pool: Array[BountyData] = []
-	for b in f.bonus_bounties:
-		var dup := false
-		for r in picks:
-			dup = dup or (r.kind == b.kind and r.n == b.n)
-		if not dup:
-			bonus_pool.append(b)
-	if not bonus_pool.is_empty():
-		g.bonus = [bonus_pool[rng.randi_range(0, bonus_pool.size() - 1)]] as Array[BountyData]
+	var bonus := pick_bonus(f.bonus_bounties, picks, rng)
+	if bonus != null:
+		g.bonus = [bonus] as Array[BountyData]
 	return g
+
+
+## The table's bonus bounty (Game Designer, #106): one drawn from `pool`; if
+## it repeats a required bounty (same kind and size), the pool's Full House
+## instead; if Full House is required too (or the pool has none), no bonus.
+static func pick_bonus(pool: Array[BountyData], required: Array[BountyData], rng: RandomNumberGenerator) -> BountyData:
+	if pool.is_empty():
+		return null
+	var b: BountyData = pool[rng.randi_range(0, pool.size() - 1)]
+	if not _repeats(b, required):
+		return b
+	for fh in pool:
+		if fh.kind == BountyData.Kind.FULL_HOUSE:
+			return null if _repeats(fh, required) else fh
+	return null
+
+
+static func _repeats(b: BountyData, required: Array[BountyData]) -> bool:
+	for r in required:
+		if r.kind == b.kind and r.n == b.n:
+			return true
+	return false
 
 
 ## What the table gets for this node (dice, mods, goal, Soul, seed, rules).
@@ -140,6 +158,7 @@ func table_setup() -> RunTableSetup:
 	s.start_soul = progress.soul
 	s.max_soul = progress.max_soul
 	s.seed_value = hash([run_seed, floor_index, map.current_id, &"table", boss_misses])
+	s.first_table = tables_played == 0
 	s.rules = rules.duplicate()
 	for r in rules:
 		if r.bust_soul_loss >= 0:
@@ -154,6 +173,7 @@ func table_setup() -> RunTableSetup:
 func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[StringName] = []) -> void:
 	if screen != Screen.TABLE:
 		return
+	tables_played += 1
 	progress.change_soul(soul_after - progress.soul)
 	progress.change_embers(embers)
 	progress.record_banks(banked)
@@ -244,24 +264,29 @@ func take_seal(i: int, params: Dictionary = {}) -> bool:
 	return true
 
 
+## A floor event worth offering here (EventPicker), or null.
 func _pick_event() -> EventData:
-	var pool: Array[EventData] = []
-	for e in data.events:
-		if not _events_seen.has(e.id):
-			pool.append(e)
-	if pool.is_empty():
-		_events_seen.clear()
-		pool = data.events.duplicate()
-	var e: EventData = pool[_rng(&"event").randi_range(0, pool.size() - 1)]
-	_events_seen.append(e.id)
-	return e
+	return EventPicker.pick(data.events, _events_seen, floor_index + 1, progress, table_ahead(), _rng(&"event"))
+
+
+## No event is worth offering: the node becomes a Rest (shown as one on the map).
+func _open_event_fallback() -> void:
+	map.current().type = NT.REST
+	var mods := data.face_mods
+	rest_mod = mods[_rng(&"rest").randi_range(0, mods.size() - 1)] if not mods.is_empty() else null
+	_set_screen(Screen.REST)
+
+
+## Is a regular Table still reachable (so unplayed) on this floor?
+func table_ahead() -> bool:
+	return EventPicker.table_ahead(map)
 
 
 ## Resolve event choice i. Returns the applier's log ([] if not allowed).
 func choose_event(i: int, picks: Array[Vector2i] = []) -> Array[String]:
 	if screen != Screen.EVENT or i < 0 or i >= event.choices.size():
 		return []
-	var lines := EventApplier.apply(event.choices[i], progress, _rng(&"event_fx", i), picks)
+	var lines := EventApplier.apply(event.choices[i], progress, _rng(&"event_fx", i), picks, table_ahead())
 	if not lines.is_empty() and lines[0].begins_with("refused"):
 		return lines
 	if progress.is_over():

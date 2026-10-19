@@ -13,6 +13,7 @@ var _failed: int = 0
 
 
 func _initialize() -> void:
+	var guard := ProfileGuard.begin("playtest_1_ui")
 	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
 	scene.run_seed = 4242
 	root.add_child(scene)
@@ -25,6 +26,7 @@ func _initialize() -> void:
 	scene.queue_free()
 	await process_frame
 	await _test_embers_hud()
+	_check(guard.end(), "profile: the real user://profile.cfg is untouched")
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -72,7 +74,7 @@ func _key(scene: RunScreen, code: Key) -> void:
 func _test_bar_and_key(scene: RunScreen) -> void:
 	_check(scene._bar.text.contains("Seed 4242") and scene._bar.text.contains("Seals 0") and not scene._bar.text.contains("Lv"),
 		"seed: shown on the run bar; Seals as a count (%s)" % scene._bar.text)
-	_check(scene.map_key.visible and scene.key_button.visible and scene.bag_button.visible, "key: open on Floor 1's map, with Key / Your dice buttons")
+	_check(scene.map_key.visible and scene.key_button.visible and scene.bag_button.visible, "key: open on a new profile's first map, with Key / Your dice buttons")
 	var lines := _texts(scene.map_key)
 	_check(lines.size() == 9 and lines[0] == "Map key" and MapKey.all_lines().size() == 8 and lines[1].ends_with(MapKey.LINES[NT.TABLE]),
 		"key: a row per node type + path and re-sit lines (strings_v1)")
@@ -158,7 +160,7 @@ func _test_end_screen(scene: RunScreen) -> void:
 	scene.run.quick_resolve(false)
 	scene.run.quick_resolve(false)
 	var t := _texts(scene._panel_box)
-	_check(scene.run.screen == S.RUN_OVER and t.has("The Dealer Wins") and not t.has("Your Soul Burns Out"), "end: boss re-sit lost -> 'The Dealer Wins'")
+	_check(scene.run.screen == S.RUN_OVER and t.has("The House Wins") and not t.has("Out of Soul"), "end: boss re-sit lost -> 'The House Wins'")
 	_check(t.has("Seed: 31337") and t.any(func(s: String) -> bool: return s.begins_with("Tables cleared:")), "end: summary with tables cleared and the seed")
 	var names: Array = []
 	for b in _buttons(scene._panel_box):

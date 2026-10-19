@@ -14,7 +14,7 @@ func _run() -> void:
 	data.max_dice = 7  # 5 Bones + Keg + Coin (the shipped bag cap is 6)
 	var run := MapRun.new(data, 7)
 	run.progress.add_die(&"powder_keg")
-	run.progress.add_die(&"coin")
+	run.progress.add_die(&"ferryman")
 	for n: MapNode in run.map.nodes.values():
 		if n.type == MapGenData.NodeType.TABLE:
 			run.map.current_id = n.prev[0] if not n.prev.is_empty() else -1

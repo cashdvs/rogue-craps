@@ -12,12 +12,29 @@ const T := EventEffectData.Target
 
 ## Greyed-out check: costs payable (Soul cost must leave you alive),
 ## required face mod owned, and somewhere to carve a new mod.
-static func can_choose(choice: EventChoiceData, p: RunProgress) -> bool:
-	return why_not(choice, p) == ""
+## table_ahead: a regular Table is still reachable on this floor
+## (EventPicker.table_ahead); without one a next-table twist is greyed out.
+static func can_choose(choice: EventChoiceData, p: RunProgress, table_ahead: bool = true) -> bool:
+	return why_not(choice, p, table_ahead) == ""
+
+
+## Should the event screen leave this choice out entirely (Game Designer)?
+## True when a GIVE_DIE effect gives a die shape with enabled = false; no
+## other die is substituted. Hidden choices can't be taken and don't count
+## toward an event being worth offering.
+static func is_hidden(choice: EventChoiceData, p: RunProgress) -> bool:
+	for e in choice.effects:
+		if e.kind == K.GIVE_DIE:
+			var sh := p.shape_data(e.die)
+			if sh != null and not sh.enabled:
+				return true
+	return false
 
 
 ## "" if the choice is allowed, else a short reason for the tooltip.
-static func why_not(choice: EventChoiceData, p: RunProgress) -> String:
+static func why_not(choice: EventChoiceData, p: RunProgress, table_ahead: bool = true) -> String:
+	if is_hidden(choice, p):
+		return "Not available yet."
 	var soul_cost: int = 0
 	var ember_cost: int = 0
 	for e in choice.effects:
@@ -33,6 +50,8 @@ static func why_not(choice: EventChoiceData, p: RunProgress) -> String:
 			return "Your bag is full (%d dice)." % p.data.max_dice
 		elif e.kind == K.SELL_DIE and not p.can_lose_die():
 			return "You have no die to spare."
+		elif e.kind == K.NEXT_TABLE_TWIST and not table_ahead:
+			return "No table left on this floor."
 	if _only_heals(choice) and p.soul >= p.max_soul:
 		return "Your Soul is already full."
 	if soul_cost > 0 and p.soul <= soul_cost:
@@ -66,8 +85,8 @@ static func pick_ok(e: EventEffectData, p: RunProgress, pick: Vector2i) -> bool:
 
 ## Apply the choice. Returns a log (one line per effect) or ["refused: ..."].
 static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGenerator,
-		picks: Array[Vector2i] = []) -> Array[String]:
-	var why: String = why_not(choice, p)
+		picks: Array[Vector2i] = [], table_ahead: bool = true) -> Array[String]:
+	var why: String = why_not(choice, p, table_ahead)
 	if why != "":
 		return ["refused: " + why]
 	# Check every pick up front so a bad pick changes nothing.
@@ -96,7 +115,7 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 			K.MAX_SOUL:
 				lines.append("Max Soul %+d (%d)" % [p.change_max_soul(e.amount), p.max_soul])
 			K.GIVE_DIE:
-				if p.add_die(e.die if e.die != &"" else &"d6"):
+				if p.add_die(e.die if e.die != &"" else DiceIds.DIE_BONE):
 					lines.append("gained %s" % p.die_name(p.dice.size() - 1))
 				else:
 					lines.append("bag full")

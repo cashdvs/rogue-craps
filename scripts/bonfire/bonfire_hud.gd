@@ -44,6 +44,9 @@ var _stamps: Dictionary = {}
 var _pending_stamps: Dictionary = {}
 var _pulse: Array = []
 var _t: float = 0.0
+## Top-left of the THROW / BANK column (1920x1080 design px). Kept clear of
+## the hand (bottom-right) at 16:9, phone landscape and phone portrait.
+const BUTTONS_POS := Vector2(184, 790)
 
 
 func _init() -> void:
@@ -64,12 +67,15 @@ func _init() -> void:
 	checklist.add_theme_constant_override("separation", 4)
 	panel.add_child(checklist)
 	pot_label = _label(64, Palette.BRASS_HI, Vector2(560, 870), Vector2(800, 80))
-	throw_label = _label(34, Palette.EMBER, Vector2(360, 950), Vector2(1200, 46))
+	# x 520-1400: clear of the BANK button (bottom-left, ends at x 494).
+	throw_label = _label(34, Palette.EMBER, Vector2(520, 950), Vector2(880, 46))
 	mult_label = _label(34, Color("#FF2E3E"), Vector2(1260, 880), Vector2(260, 60))
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
 	result_label.modulate.a = 0.0
 	var col := VBoxContainer.new()
-	col.position = Vector2(1580, 760)
+	# Bottom-left, beside the Soul meter: the hand of dice sits bottom-right,
+	# and buttons over it ate the grab (QA full run pass 1, M1).
+	col.position = BUTTONS_POS
 	col.add_theme_constant_override("separation", 14)
 	add_child(col)
 	throw_button = _button("THROW  (Space)", 32, Palette.BURGUNDY)
@@ -135,13 +141,21 @@ func _init() -> void:
 var display_hold: Dictionary = {}
 
 
-## The run's Embers before this table (TableSetup.run_embers), so EMBERS
-## shows the player's balance; 0 for the sandbox or without the field.
-func _run_embers() -> int:
+## The Bonfire3D above this HUD, found once in _ready (null standalone).
+var _table: Bonfire3D
+
+
+func _ready() -> void:
 	var n: Node = get_parent()
 	while n != null and not (n is Bonfire3D):
 		n = n.get_parent()
-	var st: TableSetup = (n as Bonfire3D).setup if n != null else null
+	_table = n as Bonfire3D
+
+
+## The run's Embers before this table (TableSetup.run_embers), so EMBERS
+## shows the player's balance; 0 for the sandbox or without the field.
+func _run_embers() -> int:
+	var st: TableSetup = _table.setup if _table != null else null
 	return int(st.get("run_embers")) if st != null and "run_embers" in st else 0
 
 
@@ -220,6 +234,8 @@ func _refresh_rules(run: BonfireRun) -> void:
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		line.custom_minimum_size = Vector2(290, 0)
 		row.add_child(line)
+		# Boss sign art (Systems Dev, BossSign): icon + tooltip; no art = this text row.
+		BossSign.decorate_hud_row(row, name_l, line, r.id, r.params)
 		rules_box.add_child(row)
 	rules_panel.reset_size()
 
@@ -531,6 +547,10 @@ func show_end(run: BonfireRun) -> void:
 			end_title.text = "TABLE LOST"
 			end_body.text = "Out of hands with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
 	end_panel.visible = true
+	# A table can end mid-tutorial: the hint panel must not cover the end
+	# panel (#103 N6). No more hints on this table.
+	tutorial.dismiss()
+	tutorial.active = false
 
 
 func _label(px: int, col: Color, pos: Vector2, sz: Vector2) -> Label:

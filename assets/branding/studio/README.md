@@ -14,18 +14,18 @@ Pivots are **in pixels from the top-left of that PNG** (also machine-readable in
 | `hammer.png` / `hammer.svg` | 524×202 | **grip (485.2, 120.4)**; head_face_center (72.4, 197.2); head_center (72.4, 120.4) | Head + handle are ONE layer. Neutral pose: handle horizontal, head left, striking face down. Cream with an orange grip band. |
 | `spark.png` / `spark.svg` | 83×81 | **center (41.6, 40.6)** | Hero four-point spark, Forge Orange. |
 | `spark_particle.png` / `.svg` | 64×64 | center (32, 32) | White, soft falloff, for GPUParticles2D (tint via color_ramp). Not trimmed: particles need a square texture. |
-| `wordmark_cream.png` / `.svg` | 1201×281 | **main_center (600.4, 84.4)**; games_center (600.4, 246.5); center (600.4, 140.3); baseline_left (0.4, 164.1) | TINY ANVIL (≈1200 px wide) + GAMES under it, Cream. |
-| `wordmark_charcoal.png` / `.svg` | 1201×281 | same as cream | Charcoal, for light backgrounds. |
-| `wordmark_main_{cream,charcoal}.png/.svg` | 1201×169 | center (600.4, 84.4) | Sub-layer: TINY ANVIL only (for the delayed GAMES reveal). |
-| `wordmark_games_{cream,charcoal}.png/.svg` | 466×68 | center (233.1, 34.1) | Sub-layer: GAMES only. Its center is (0, +162.1) px from the main center at 2x. |
+| `wordmark_cream.png` / `.svg` | 1201×301 | **main_center (600.4, 84.4)**; games_center (600.4, 256.6); center (600.4, 150.4); baseline_left (0.4, 164.1) | TINY ANVIL (≈1200 px wide) + GAMES under it, Cream. |
+| `wordmark_charcoal.png` / `.svg` | 1201×301 | same as cream | Charcoal, for light backgrounds. |
+| `wordmark_main_{cream,charcoal}.png/.svg` | 1201×169 | center (600.4, 84.4) | Sub-layer: TINY ANVIL only (for the delayed GAMES reveal). **Never ship it on its own**: always pair it with `wordmark_games_*`; the studio name is "Tiny Anvil Games". |
+| `wordmark_games_{cream,charcoal}.png/.svg` | 575×88 | center (287.4, 44.2) | Sub-layer: GAMES only. Its center is (0, +172.1) px from the main center at 2x. |
 
 Background = a ColorRect `#1E1B1A` (no texture).
 
 ## Logo files
 | File | Size | Use |
 |---|---|---|
-| `logo_lockup_stacked.png/.svg` (+ `_on_light`) | 1124×688 | Anvil + spark over TINY ANVIL / GAMES. Default = cream text for dark backgrounds, `_on_light` = charcoal text. |
-| `logo_lockup_horizontal.png/.svg` (+ `_on_light`) | 1517×283 | Anvil left, the two-line wordmark right. |
+| `logo_lockup_stacked.png/.svg` (+ `_on_light`) | 1124×707 | Anvil + spark over TINY ANVIL / GAMES. Default = cream text for dark backgrounds, `_on_light` = charcoal text. |
+| `logo_lockup_horizontal.png/.svg` (+ `_on_light`) | 1517×299 | Anvil left, the two-line wordmark right. |
 | `logo_lockup_stacked_small.png/.svg` (+ `_on_light`) | 450×287 | **Use at ≤ 240 px wide.** GAMES is enlarged to 62% cap height with tighter tracking so it stays legible at 120 px wide. |
 | `logo_lockup_horizontal_small.png/.svg` (+ `_on_light`) | 455×93 | Small-use horizontal. Min ~200 px wide (at 120 px use the stacked small version). |
 | `icon.png/.svg` | 1024×1024 | App icon: an orange anvil + spark on a rounded charcoal square. No wordmark, no GAMES. |
@@ -35,7 +35,7 @@ Background = a ColorRect `#1E1B1A` (no texture).
 ## Wordmark construction
 - Font: **Fredoka** (variable, Google Fonts / github.com/hafontia/Fredoka-One, v2.001), instanced at wght 700, wdth 100 → `src/Fredoka-Bold-instance.ttf`. Shaped with HarfBuzz (kerning on), then converted to paths with fontTools.
 - TINY ANVIL: tracking −12/1000 em, word space −30/1000 em (tight).
-- GAMES: cap height **40%** of the TINY ANVIL cap height, tracking +0.42 em (of its own size), centered under TINY ANVIL, with its cap top 0.30 × cap height below the TINY ANVIL baseline. The small lockups use 62% / +0.22 em / 0.26.
+- GAMES (v1.1, 2026-10-19): cap height **52%** of the TINY ANVIL cap height (was 40%), tracking +0.36 em (was +0.42), width ≈ 48% of TINY ANVIL (of its own size), centered under TINY ANVIL, with its cap top 0.30 × cap height below the TINY ANVIL baseline. The small lockups use 62% / +0.22 em / 0.26.
 - **License:** SIL Open Font License 1.1, see `src/OFL.txt` (Copyright 2016 The Fredoka Project Authors). No Reserved Font Name is declared. Outlined artwork is not a font redistribution. Keep `OFL.txt` next to the font file if the TTF is ever shipped.
 
 ## Other

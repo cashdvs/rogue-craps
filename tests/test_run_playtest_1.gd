@@ -18,6 +18,7 @@ func _initialize() -> void:
 	_test_m3_boss_resit()
 	_test_m3_soul_and_won()
 	_test_m5_bonus()
+	_test_bonus_fallback()
 	_test_short_table_text()
 	_test_boss_twist()
 	_test_altar()
@@ -55,8 +56,9 @@ func _test_m3_boss_resit() -> void:
 		run.quick_resolve(false)
 		_check(run.screen == S.RUN_OVER and run.end_reason == &"boss" and run.progress.soul > 0,
 			"M3 [%d]: second miss ends the run on the boss, Soul left (%d/%d)" % [seed_v, run.progress.soul, run.progress.max_soul])
-		_check(RunSummary.title(run) == "The Dealer Wins" and RunSummary.reason_line(run).contains("no re-sits left"),
-			"M3 [%d]: the end screen says the boss won, not 'Soul Burns Out'" % seed_v)
+		_check(RunSummary.title(run) == "The House Wins"
+			and RunSummary.reason_line(run) == "You lost to %s twice, so your run ends on %s." % [run.boss_name(), run.floor_data().display_name],
+			"M3 [%d]: the end screen says the boss won ('The House Wins', strings_v1)" % seed_v)
 		var lines := RunSummary.lines(run)
 		_check(lines.size() == 5 and lines[0].begins_with("Floor reached: 1 of 3") and lines[1] == "Tables cleared: 1"
 			and lines[2] == "Embers earned: %d" % run.progress.embers_earned and lines[3].begins_with("Final bag: Bone")
@@ -68,7 +70,10 @@ func _test_m3_soul_and_won() -> void:
 	_enter(run, NT.TABLE)
 	run.progress.soul = 2
 	run.quick_resolve(false)
-	_check(run.screen == S.RUN_OVER and run.end_reason == &"soul" and RunSummary.title(run) == "Your Soul Burns Out", "M3: Soul at 0 -> 'Your Soul Burns Out'")
+	_check(run.screen == S.RUN_OVER and run.end_reason == &"soul" and RunSummary.title(run) == "Out of Soul"
+		and RunSummary.reason_line(run) == "Your run ends on %s." % run.floor_data().display_name, "M3: Soul at 0 -> 'Out of Soul' / 'Your run ends on {floor}.'")
+	for t: String in RunSummary.TITLES.values():
+		_check(not t in ["The Contract Is Torn", "The Dealer Wins", "Your Soul Burns Out"], "end: old placeholder title '%s' is gone" % t)
 	var e0 := MapRun.new(_data, 1)
 	e0.progress.embers = 0
 	e0.progress.change_embers(10)
@@ -160,3 +165,45 @@ func _test_altar() -> void:
 		if not heals_only:
 			ok = ok and EventApplier.why_not(c, full) != "Your Soul is already full."
 	_check(ok, "Altar rule: choices that do more than heal aren't greyed by it")
+
+
+func _bounty(kind: int, n: int, id: StringName) -> BountyData:
+	var b := BountyData.new()
+	b.kind = kind
+	b.n = n
+	b.id = id
+	return b
+
+
+## Game Designer (#106): a bonus that repeats a required bounty falls back
+## to Full House; with Full House required too, there's no bonus.
+func _test_bonus_fallback() -> void:
+	var K := BountyData.Kind
+	var run4 := _bounty(K.RUN, 4, &"bonus_run4")
+	var fh := _bounty(K.FULL_HOUSE, 3, &"bonus_full_house")
+	var pool: Array[BountyData] = [run4, fh]
+	var req_run4: Array[BountyData] = [_bounty(K.RUN, 4, &"run4")]
+	var req_both: Array[BountyData] = [_bounty(K.RUN, 4, &"run4"), _bounty(K.FULL_HOUSE, 3, &"full_house")]
+	var req_none: Array[BountyData] = [_bounty(K.RUN, 3, &"run3")]
+	var only_run4: Array[BountyData] = [run4]
+	var ok_fb := true
+	var ok_none := true
+	var ok_free := true
+	var drew := {}
+	for s in 40:
+		var r := RandomNumberGenerator.new()
+		r.seed = s
+		ok_fb = ok_fb and MapRun.pick_bonus(pool, req_run4, r) == fh
+		r.seed = s
+		ok_none = ok_none and MapRun.pick_bonus(pool, req_both, r) == null
+		r.seed = s
+		var b := MapRun.pick_bonus(pool, req_none, r)
+		ok_free = ok_free and b != null
+		drew[b] = true
+	_check(ok_fb, "bonus: a Run of 4 bonus with Run of 4 required falls back to Full House")
+	_check(ok_none, "bonus: with Run of 4 and Full House required, no bonus")
+	_check(ok_free and drew.size() == 2, "bonus: with no clash both bonuses can be drawn")
+	var r2 := RandomNumberGenerator.new()
+	_check(MapRun.pick_bonus(only_run4, req_run4, r2) == null, "bonus: a clash with no Full House in the pool = no bonus")
+	var empty: Array[BountyData] = []
+	_check(MapRun.pick_bonus(empty, req_none, r2) == null, "bonus: an empty pool = no bonus")

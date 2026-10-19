@@ -1,6 +1,7 @@
 ## The map key (design/first_time_clarity_v1.md §1): one line per node type
-## plus the path and re-sit rules, docked on the map's right edge. Open by
-## default on Floor 1, collapsed after; the Key button or K toggles it.
+## plus the path and re-sit rules, docked on the map's right edge. Opens by
+## itself on a profile's first map (RunProfile), collapsed from Floor 2 on;
+## the Key button or K toggles it.
 class_name MapKey
 extends PanelContainer
 

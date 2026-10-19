@@ -23,6 +23,8 @@ var rules: Array[RunRuleData] = []
 var bust_soul_loss: int = -1
 ## Combo id -> base / mult the run's Seals add (x = base, y = mult).
 var seal_bonus: Dictionary[StringName, Vector2i] = {}
+## The run's first table (TableSetup.first_table: the tutorial seeds).
+var first_table: bool = false
 
 
 ## The rules' ids, in order.
@@ -51,6 +53,7 @@ func to_table_setup(base: BonfireTuning) -> TableSetup:
 	ts.owned_dice_count = owned_dice_count
 	if "run_embers" in ts:
 		ts.set("run_embers", run_embers)
+	ts.first_table = first_table
 	return ts
 
 

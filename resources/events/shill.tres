@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_choice"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_effect"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_event"]
+[ext_resource type="Resource" path="res://resources/map/rules/cold_sixes.tres" id="4_cold_sixes"]
+[ext_resource type="Resource" path="res://resources/map/rules/greedy_pot.tres" id="5_greedy_pot"]
+
+[sub_resource type="Resource" id="fx_shill_a1"]
+script = ExtResource("2_effect")
+amount = 6
+
+[sub_resource type="Resource" id="fx_shill_a2"]
+script = ExtResource("2_effect")
+kind = 9
+rule = ExtResource("4_cold_sixes")
+
+[sub_resource type="Resource" id="ch_shill_a"]
+script = ExtResource("1_choice")
+label = "+6 Soul; next Table: 6s never light, +1 hand."
+result_text = "He palms your sixes; they won't light at your next Table."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_shill_a1"), SubResource("fx_shill_a2")])
+
+[sub_resource type="Resource" id="fx_shill_b1"]
+script = ExtResource("2_effect")
+kind = 4
+amount = 1
+seal = &"run4"
+
+[sub_resource type="Resource" id="fx_shill_b2"]
+script = ExtResource("2_effect")
+kind = 9
+rule = ExtResource("5_greedy_pot")
+
+[sub_resource type="Resource" id="ch_shill_b"]
+script = ExtResource("1_choice")
+label = "Run of 4 Seal +1; next Table: pot 2+ dice, +1 hand."
+result_text = "A new Seal, and your next Table wants 2+ dice per pot."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_shill_b1"), SubResource("fx_shill_b2")])
+
+[sub_resource type="Resource" id="ch_shill_c"]
+script = ExtResource("1_choice")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_event")
+id = &"shill"
+title = "The Shill"
+body = "A shill pays you to play your next Table handicapped."
+art_note = "A man in a loud checked suit sliding a shaved die across the felt."
+floors = Array[int]([2, 3])
+choices = Array[ExtResource("1_choice")]([SubResource("ch_shill_a"), SubResource("ch_shill_b"), SubResource("ch_shill_c")])

@@ -10,6 +10,13 @@
 [ext_resource type="Resource" path="res://resources/events/ember_merchant.tres" id="5_dvrif"]
 [ext_resource type="Resource" path="res://resources/mods/step.tres" id="5_ln2yo"]
 [ext_resource type="Resource" path="res://resources/events/weeping_croupier.tres" id="6_0oyw3"]
+[ext_resource type="Resource" path="res://resources/events/toll_keeper.tres" id="ev_toll_keeper"]
+[ext_resource type="Resource" path="res://resources/events/gravedigger.tres" id="ev_gravedigger"]
+[ext_resource type="Resource" path="res://resources/events/fence.tres" id="ev_fence"]
+[ext_resource type="Resource" path="res://resources/events/shill.tres" id="ev_shill"]
+[ext_resource type="Resource" path="res://resources/events/tout.tres" id="ev_tout"]
+[ext_resource type="Resource" path="res://resources/events/bone_setter.tres" id="ev_bone_setter"]
+[ext_resource type="Resource" path="res://resources/events/back_room.tres" id="ev_back_room"]
 [ext_resource type="Resource" path="res://resources/mods/kindling.tres" id="6_eldjo"]
 [ext_resource type="Resource" path="res://resources/mods/blood.tres" id="7_qfvd1"]
 [ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="7_xs4v5"]
@@ -33,9 +40,9 @@
 [ext_resource type="Resource" path="res://resources/dice/special/coven.tres" id="21_8vtvu"]
 [ext_resource type="Resource" path="res://resources/dice/special/last_breath.tres" id="22_frdgj"]
 [ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="23_84bl2"]
-[ext_resource type="Resource" path="res://resources/dice/shapes/d6.tres" id="24_6p377"]
+[ext_resource type="Resource" path="res://resources/dice/shapes/bone.tres" id="24_6p377"]
 [ext_resource type="Resource" path="res://resources/dice/shapes/powder_keg.tres" id="25_6p377"]
-[ext_resource type="Resource" path="res://resources/dice/shapes/coin.tres" id="26_y772n"]
+[ext_resource type="Resource" path="res://resources/dice/shapes/ferryman.tres" id="26_y772n"]
 [ext_resource type="Resource" path="res://resources/dice/shapes/caltrop.tres" id="27_lhefe"]
 [ext_resource type="Resource" path="res://resources/dice/shapes/lantern.tres" id="28_lou2q"]
 [ext_resource type="Resource" path="res://resources/dice/shapes/tithe.tres" id="29_eg7w8"]
@@ -46,7 +53,7 @@
 [resource]
 script = ExtResource("15_w0480")
 floors = Array[ExtResource("13_o6wbp")]([ExtResource("14_w0480"), ExtResource("15_267f4"), ExtResource("16_74278")])
-events = Array[ExtResource("1_qfvd1")]([ExtResource("2_bkp6x"), ExtResource("3_0yela"), ExtResource("4_cxvay"), ExtResource("5_dvrif"), ExtResource("6_0oyw3")])
+events = Array[ExtResource("1_qfvd1")]([ExtResource("2_bkp6x"), ExtResource("3_0yela"), ExtResource("4_cxvay"), ExtResource("5_dvrif"), ExtResource("6_0oyw3"), ExtResource("ev_toll_keeper"), ExtResource("ev_gravedigger"), ExtResource("ev_fence"), ExtResource("ev_shill"), ExtResource("ev_tout"), ExtResource("ev_bone_setter"), ExtResource("ev_back_room")])
 special_dice = Array[ExtResource("13_w0480")]([ExtResource("14_267f4"), ExtResource("15_74278"), ExtResource("16_bkp6x"), ExtResource("17_0yela"), ExtResource("18_cxvay"), ExtResource("19_dvrif"), ExtResource("20_0oyw3"), ExtResource("21_8vtvu"), ExtResource("22_frdgj")])
 shapes = Array[ExtResource("23_84bl2")]([ExtResource("24_6p377"), ExtResource("25_6p377"), ExtResource("26_y772n"), ExtResource("27_lhefe"), ExtResource("28_lou2q"), ExtResource("29_eg7w8"), ExtResource("30_fhwbh"), ExtResource("31_k3ad0"), ExtResource("32_0ssle")])
 face_mods = Array[ExtResource("7_xs4v5")]([ExtResource("2_riil2"), ExtResource("3_vphwc"), ExtResource("4_txop1"), ExtResource("5_ln2yo"), ExtResource("6_eldjo"), ExtResource("7_qfvd1"), ExtResource("9_vphwc"), ExtResource("10_txop1"), ExtResource("10_o6wbp"), ExtResource("8_riil2")])

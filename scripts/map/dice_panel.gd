@@ -9,9 +9,9 @@ extends VBoxContainer
 
 signal picked(at: Vector2i)
 
-const BONE_LINE := "Bone die: plain faces 1 to 6."
-const NEXT_MOD := "Next mod on this die: %d Embers."
-const TAKEN := "This face already has a face mod."
+const BONE_LINE := DieCardInfo.BONE_LINE
+const NEXT_MOD := DieCard.NEXT_MOD
+const TAKEN := DieCard.TAKEN
 const NO_SEALS := "No Seals yet; win a table to pick one."
 
 
@@ -53,39 +53,17 @@ static func seal_lines(progress: RunProgress, combos: Array) -> Array[String]:
 	return out
 
 
+## Die d's card (DieCard). Header "Die n: name"; in pick mode the faces
+## `allowed` accepts are pickable and picks come out as picked(Vector2i(d, f)).
 func _card(progress: RunProgress, d: int, allowed: Callable, price: Callable) -> Control:
-	var box := VBoxContainer.new()
-	var def := progress.die_def(d)
-	var head := "Die %d: %s" % [d + 1, progress.die_name(d)]
-	box.add_child(RunTheme.label("%s  -  %s" % [head, def.description if def != null else BONE_LINE], 18))
+	var info := DieCardInfo.from_run(progress, d)
+	info.display_name = "Die %d: %s" % [d + 1, info.display_name]
 	if price.is_valid():
-		box.add_child(RunTheme.label(NEXT_MOD % int(price.call(d)), 18, RunTheme.GOLD))
-	var row := HBoxContainer.new()
-	var die := progress.dice[d]
-	for f in die.faces.size():
-		var mod: StringName = die.faces[f]
-		var value: int = def.faces[f] if def != null and f < def.faces.size() else f + 1
-		var mod_name := _mod_name(progress, mod)
-		var b := RunTheme.button(str(value) if mod == &"" else "%d %s" % [value, mod_name], 16)
-		b.custom_minimum_size = Vector2(92, 40)
-		b.tooltip_text = "Face %d: %s" % [value, mod_name if mod != &"" else "Plain face."]
-		var at := Vector2i(d, f)
-		if allowed.is_valid():
-			b.disabled = not bool(allowed.call(at))
-			if b.disabled and mod != &"" and mod != RunDie.BLANK:
-				b.tooltip_text += "\n" + TAKEN
-			b.pressed.connect(func() -> void: picked.emit(at))
-		else:
-			b.disabled = true
-		row.add_child(b)
-	box.add_child(row)
-	return box
-
-
-static func _mod_name(progress: RunProgress, mod: StringName) -> String:
-	if mod == RunDie.BLANK:
-		return "Blank"
-	for m in progress.data.face_mods:
-		if m.id == mod:
-			return m.display_name.trim_suffix(" Face")
-	return String(mod).capitalize()
+		info.next_mod_price = int(price.call(d))
+	var card := DieCard.new()
+	if allowed.is_valid():
+		card.set_die(info, false, func(f: int) -> bool: return bool(allowed.call(Vector2i(d, f))))
+		card.face_picked.connect(func(f: int) -> void: picked.emit(Vector2i(d, f)))
+	else:
+		card.set_die(info, true)
+	return card

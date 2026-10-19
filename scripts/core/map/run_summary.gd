@@ -4,8 +4,9 @@
 class_name RunSummary
 extends RefCounted
 
-const TITLES := {&"won": "Run Won", &"soul": "Your Soul Burns Out", &"boss": "The Dealer Wins",
-	&"contract": "The Contract Is Torn"}
+## strings_v1 run_screen rows (boss lost title, run over title); other
+## reasons use "Run Over".
+const TITLES := {&"won": "Run Won", &"soul": "Out of Soul", &"boss": "The House Wins"}
 
 
 ## The end screen's title for MapRun.end_reason.
@@ -18,15 +19,14 @@ static func reason_line(run: MapRun) -> String:
 	var floor_name := run.floor_data().display_name
 	match run.end_reason:
 		&"won":
-			return "The contract is whole: %d/%d pieces." % [run.progress.contract_pieces, run.data.contract_pieces_to_win]
+			return "The contract is whole, and you win the run."
 		&"soul":
-			return "Your Soul ran out on %s." % floor_name
+			return "Your run ends on %s." % floor_name
 		&"boss":
-			return "%s beat you twice on %s: no re-sits left (Soul %d/%d)." % [run.boss_name(), floor_name,
-				run.progress.soul, run.progress.max_soul]
+			return "You lost to %s twice, so your run ends on %s." % [run.boss_name(), floor_name]
 		&"contract":
 			return "The last boss fell, but the contract has only %d/%d pieces." % [run.progress.contract_pieces, run.data.contract_pieces_to_win]
-	return "The run is over on %s." % floor_name
+	return "Your run ends on %s." % floor_name
 
 
 ## Summary lines: floor reached, tables cleared, Embers earned, final bag, seed.

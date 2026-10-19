@@ -94,7 +94,7 @@ func _test_prices() -> void:
 		if d.price < MIN_DIE_PRICE:
 			cheap.append(String(d.id))
 	for s in _data.shapes:
-		if s.id != &"d6" and s.price < MIN_DIE_PRICE:
+		if s.id != DiceIds.DIE_BONE and s.price < MIN_DIE_PRICE:
 			cheap.append(String(s.id))
 	_check(cheap.is_empty(), "P6 rule: every die that adds to the bag costs >= %d (too cheap: %s)" % [MIN_DIE_PRICE, ", ".join(cheap)])
 	var wild: FaceModData = load("res://resources/mods/wild.tres")

@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_choice"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_effect"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_event"]
+
+[sub_resource type="Resource" id="fx_gravedigger_a1"]
+script = ExtResource("2_effect")
+amount = -9
+
+[sub_resource type="Resource" id="fx_gravedigger_a2"]
+script = ExtResource("2_effect")
+kind = 6
+
+[sub_resource type="Resource" id="ch_gravedigger_a"]
+script = ExtResource("1_choice")
+label = "Dig one up: -9 Soul for a Bone die."
+result_text = "The grave gives up a plain Bone die."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_gravedigger_a1"), SubResource("fx_gravedigger_a2")])
+
+[sub_resource type="Resource" id="fx_gravedigger_b1"]
+script = ExtResource("2_effect")
+kind = 1
+amount = -10
+
+[sub_resource type="Resource" id="fx_gravedigger_b2"]
+script = ExtResource("2_effect")
+kind = 6
+die = &"lantern"
+
+[sub_resource type="Resource" id="ch_gravedigger_b"]
+script = ExtResource("1_choice")
+label = "Buy his lantern: -10 Embers for a Lantern d8."
+result_text = "He hands over the Lantern d8, its 8 glowing faintly."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_gravedigger_b1"), SubResource("fx_gravedigger_b2")])
+
+[sub_resource type="Resource" id="ch_gravedigger_c"]
+script = ExtResource("1_choice")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_event")
+id = &"gravedigger"
+title = "The Gravedigger"
+body = "A gravedigger sells dice dug from a fresh grave."
+art_note = "A gravedigger leaning on a shovel by an open grave full of dice, lantern on a headstone."
+floors = Array[int]([2])
+choices = Array[ExtResource("1_choice")]([SubResource("ch_gravedigger_a"), SubResource("ch_gravedigger_b"), SubResource("ch_gravedigger_c")])
