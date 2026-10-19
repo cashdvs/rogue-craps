@@ -13,7 +13,8 @@
 ##              strips (landscape / portrait felt decal), never bone-coloured; prop outlines ~60 % of the dice
 ##              ink (0.0025); no Soul cyan / Danger red; dark, dim backdrop; the dressing's unlit light (self-glow
 ##              + warm rim) stays <= 60 % of the dice value and no more saturated than Ember; light pools at
-##              ~25-35 % value; the tail's top-edge rim is Ember, clear of Danger red's hue and brightness.
+##              ~25-35 % value; the tail's top-edge rim is Ember, clear of Danger red's hue and brightness; the
+##              near-rail carving brass stays under the brass total plate.
 ##   motion     clip lengths, peek interval 8-15 s, clips key only the pose params, the tail peeks on schedule
 ##              and whips back + stays in while scoring, rail_hit sways the chain, eyes 3 rattles the bell.
 ##
@@ -235,6 +236,27 @@ func _check_ceiling() -> void:
 	var skip: Variant = carved.get_shader_parameter("carve_skip_u")
 	_check(_param(carved, "carve_brass") > 0.0 and skip != null and (skip as Vector2).y > 4.0,
 		"materials: carving has a brass edge highlight and is off the far rail (U %s)" % str(skip))
+	# AD sign-off (Oct 19): the brass total plate stays the brightest brass on the near rail. The near-rail carving
+	# brass is a partial mix (carve_brass x carve_dim of the edge mask) of a darker brass + a little emission; its
+	# strongest possible value must stay under the plate ring's brass albedo (renders: plate p99 0.96 vs carving max 0.85).
+	var plate_v := 0.0
+	var dial := (load("res://art/models/boards/infernal_pit/scenes/total_dial.tscn") as PackedScene).instantiate()
+	var dial_meshes: Array[MeshInstance3D] = []
+	_collect(dial, dial_meshes)
+	for mi in dial_meshes:
+		for si in mi.mesh.get_surface_count():
+			var dm := mi.get_active_material(si) as ShaderMaterial
+			if dm != null and _param(dm, "spec_size") > 0.0 and dm.get_shader_parameter("albedo") != null:
+				var ac := dm.get_shader_parameter("albedo") as Color
+				if ac.g > ac.b + 0.1 and ac.r > ac.g:   # brass-coloured
+					plate_v = maxf(plate_v, ac.v)
+	dial.free()
+	var cb: Variant = carved.get_shader_parameter("carve_brass_color")
+	var dim := _param(carved, "carve_dim")
+	var cbv := (cb as Color).v if cb != null else 0.0
+	var near_brass := cbv * (_param(carved, "carve_brass") + _param(carved, "carve_brass_emit")) * dim
+	_check(plate_v > 0.0 and cbv < plate_v and near_brass < plate_v and dim <= 0.86 and _param(carved, "carve_rim_dim") > 0.0,
+		"materials: the total plate (brass %.2f) stays the brightest brass on the near rail (carving brass %.2f, x %.2f near-rail dim, at most %.2f)" % [plate_v, cbv, dim, near_brass])
 
 
 func _near(a: Color, b: Color, dist: float) -> bool:

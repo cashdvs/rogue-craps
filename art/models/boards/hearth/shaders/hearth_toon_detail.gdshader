@@ -73,6 +73,10 @@ uniform vec2 carve_skip_u = vec2(0.0, 4.07);   // rail U span with no carving (t
 uniform float carve_brass = 0.0;               // brass edge highlight on the raised relief (0 = off)
 uniform vec4 carve_brass_color : source_color = vec4(0.886, 0.706, 0.42, 1.0);
 uniform float carve_brass_emit = 0.0;          // a little unlit brass so the edges read in the lamp falloff
+uniform vec2 carve_dim_u = vec2(6.44, 11.09);  // rail U span of the near rail (with its two corner arcs)
+uniform float carve_dim = 1.0;                 // near-rail brass edge scale (the lamp-lit rail: keep under the total plate)
+uniform float carve_edge_dim = 0.0;            // and its relief edges darkened by this (albedo) ...
+uniform float carve_rim_dim = 0.0;             // ... and the fresnel rim glint the relief normals add on those edges cut by this
 uniform float rim_emit = 0.0;                  // 0 = off
 uniform vec4 rim_emit_color : source_color = vec4(0.91, 0.384, 0.165, 1.0);  // EMBER #E8622A
 uniform float rim_emit_width = 0.22;           // fresnel band (1 - N.V) that lights: thin
@@ -92,6 +96,7 @@ uniform float drip_sheen_amount = 0.16;
 varying vec3 obj_pos;
 varying vec3 obj_normal;
 varying vec3 world_pos;
+varying float v_edge;   // fragment -> light: near-rail carving edge mask (0 elsewhere)
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -152,14 +157,20 @@ void fragment() {
 		}
 	}
 	vec3 carve_emit = vec3(0.0);
+	v_edge = 0.0;
 	if (use_carve) {
 		vec4 c = texture(carve_tex, vec2(UV.x / carve_tile_u, UV.y));
 		float on = 1.0 - smoothstep(carve_skip_u.x - 0.06, carve_skip_u.x + 0.06, UV.x) * (1.0 - smoothstep(carve_skip_u.y - 0.06, carve_skip_u.y + 0.06, UV.x));
 		NORMAL_MAP = mix(vec3(0.5, 0.5, 1.0), vec3(c.rg, 1.0), on);
+		float near = step(carve_dim_u.x, UV.x) * step(UV.x, carve_dim_u.y);
 		NORMAL_MAP_DEPTH = carve_normal;
 		col *= 1.0 - carve_cavity * c.a * on;
-		col = mix(col, carve_brass_color.rgb, carve_brass * c.b * on);
-		carve_emit = carve_brass_color.rgb * carve_brass_emit * c.b * on;
+		float slope = length(c.rg * 2.0 - 1.0);
+		v_edge = near * on * smoothstep(0.012, 0.06, slope);
+		col *= 1.0 - carve_edge_dim * v_edge;
+		float near_k = mix(1.0, carve_dim, near);
+		col = mix(col, carve_brass_color.rgb, carve_brass * near_k * c.b * on);
+		carve_emit = carve_brass_color.rgb * carve_brass_emit * near_k * c.b * on;
 	}
 	if (use_scratches) {
 		float w = (UV.y > 0.5 ? UV.y - 1.0 : UV.y) * 0.565487;  // arc metres from the tube top (+ = felt side)
@@ -220,6 +231,6 @@ void light() {
 	}
 	if (rim_strength > 0.0) {
 		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
-		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc;
+		SPECULAR_LIGHT += rim_color.rgb * rim_strength * (1.0 - carve_rim_dim * v_edge) * step(0.5, rim) * step(0.05, l) * lc;
 	}
 }

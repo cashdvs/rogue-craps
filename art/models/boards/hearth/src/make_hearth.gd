@@ -45,6 +45,8 @@ const DETAIL := H + "shaders/hearth_toon_detail.gdshader"
 const PROP_RIM := 0.4                         # unlit rim strength (v2); glow + rim stay <= 60 % of the dice value
 const RIM_WIDTH := 0.1                        # fresnel band: only grazing edges (1-2 px)
 const TAIL_RIM := 0.32
+const CARVE_NEAR_EDGE := 0.15                 # near-rail relief edges 15 % darker (the lips that step into the lit toon band)
+const CARVE_NEAR_DIM := 0.85                 # near-rail carving brass vs the side rails
 const CHAIN_PIVOT := Vector3(-1.203, 0.028, 0.04)
 const BELL_PIVOT := Vector3(0.872, 0.0987, -0.6529)   # build_dressing.py PIVOTS (v2: the FR cluster)
 const TAIL_PIVOT := Vector3(-1.26, -0.16, -0.70)      # behind the far-left corner, just outboard of the body
@@ -256,7 +258,11 @@ func _dressing_materials(M: String) -> void:
 	var carved := _copy_to(S + "hearth_toon_detail.gdshader", M + "hearth_leather.tres", {"use_carve": true,
 		"carve_tex": load(H + "textures/rail_carve.png"), "carve_normal": 1.6, "carve_cavity": 0.6, "use_scratches": true,
 		# v2: carving on the near + side rails only (the far rail is Smiles'), brass on the raised edges
-		"carve_skip_u": Vector2(0.06, 4.07), "carve_brass": 0.5, "carve_brass_color": Color("#A07A34"), "carve_brass_emit": 0.12})
+		"carve_skip_u": Vector2(0.06, 4.07), "carve_brass": 0.5, "carve_brass_color": Color("#A07A34"), "carve_brass_emit": 0.12,
+		# AD sign-off (Oct 19): the near rail is lamp-lit, so its carving edge highlights are dimmer: brass and the relief
+		# edges 15 %, and no leather fresnel glint from the relief normals on those edges (the brightest 1 % of the
+		# dressing-added light); the side rails keep the v2 look
+		"carve_dim": CARVE_NEAR_DIM, "carve_edge_dim": CARVE_NEAR_EDGE, "carve_rim_dim": 1.0})
 	carved.next_pass = load(M + "ember_seam.tres")
 	_save(carved, M + "hearth_leather_carved.tres")
 	# Ambient: slow ember motes (diamond sparks) over the brazier and the cauldron, the lamp dust, the backdrop.
