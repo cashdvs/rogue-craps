@@ -116,6 +116,10 @@ func _ready() -> void:
 	total_dice_per_throw = clampi(setup.dice.size(), 1, MAX_HANDFUL)
 	_apply_camera_tuning()
 	super()
+	# The status line sits between x 520 and 1400, clear of the bottom-left
+	# THROW / BANK column (ends at x 494) and the hand at the bottom right.
+	why_label.position = Vector2(520, 990)
+	why_label.size = Vector2(880, 80)
 	total_hud.visible = false
 	stack.visible = false
 	info_box.visible = false
@@ -1076,6 +1080,9 @@ func _refresh_hud() -> void:
 	if bhud != null and run != null:
 		bhud.rethrow_prompt = rethrow_prompt() if phase == Phase.BET else ""
 		bhud.refresh(run, phase == Phase.BET)
+		# The rethrow risk line and the table's status line share the bottom
+		# row: while the risk shows, the status line steps aside (QA #63).
+		why_label.visible = bhud.risk_label.text == ""
 		bhud.pulse_cards(claimable_bounties())
 	if felt_label != null and run != null:
 		var lines: Array[String] = []

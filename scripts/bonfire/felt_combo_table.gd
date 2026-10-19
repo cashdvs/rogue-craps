@@ -38,6 +38,11 @@ const PORT_STRETCH := 1.10
 ## Overflow: squeeze scale.x down to 0.80 first, then "Lv" -> "L". The font
 ## size never shrinks.
 const MIN_SQUEEZE := 0.80
+## Landscape: the band is drawn at the near rail (z 0.38-0.49 m), right
+## under the bottom HUD (POT, count-up, prompts) in the throw view. It is
+## printed this far toward the middle of the felt instead (metres, -z =
+## away from the player), so no HUD text sits on it (QA #63 overlaps).
+const LAND_SHIFT_Z := -0.56
 
 var felt_material: ShaderMaterial
 var portrait: bool = false
@@ -108,6 +113,16 @@ func set_portrait(on: bool, flipped: bool = portrait_flipped) -> void:
 const PORT_OUTER_X := -0.99
 const PORT_INNER_X := -0.72
 const PORT_Z := Vector2(-0.47, 0.50)
+## Phone portrait: the block is drawn along the near rail, where the hand of
+## dice and GRAB & FLICK sit. It is printed this far toward the middle of
+## the felt instead (metres), so the hand doesn't cover its text.
+const PORT_SHIFT_X := 0.30
+
+
+## The portrait block's slide toward the middle (felt metres along x; the
+## sign follows the flip).
+func _port_shift_x() -> float:
+	return (-1.0 if portrait_flipped else 1.0) * PORT_SHIFT_X if portrait else 0.0
 
 
 ## Phone portrait: the Art Director's block spans nearly the felt's full
@@ -122,7 +137,7 @@ func fit_portrait_view(cam: Camera3D, view: Vector2, margin_px: float) -> void:
 		var sgn := -1.0 if portrait_flipped else 1.0
 		var lo := -INF
 		var hi := INF
-		for xu: float in [PORT_OUTER_X, PORT_INNER_X]:
+		for xu: float in [PORT_OUTER_X + PORT_SHIFT_X, PORT_INNER_X + PORT_SHIFT_X]:
 			var span := visible_z(cam, view, sgn * xu, margin_px)
 			lo = maxf(lo, span.x)
 			hi = minf(hi, span.y)
@@ -180,7 +195,14 @@ func _apply() -> void:
 		var pv := _port_pivot()
 		felt_material.set_shader_parameter("overlay_pivot", Vector2((pv.x + 1.02) / 2.04, (pv.y + 0.52) / 1.04) if fit else Vector2(0.5, 0.5))
 		felt_material.set_shader_parameter("overlay_scale", port_scale if fit else 1.0)
-		felt_material.set_shader_parameter("overlay_shift", Vector2(0.0, port_shift_z / 1.04) if fit else Vector2.ZERO)
+		# The felt is 1.04 m deep, so metres / 1.04 = UV units.
+		var shift := Vector2(0.0, port_shift_z / 1.04) if fit else Vector2.ZERO
+		if not portrait:
+			shift = Vector2(0.0, LAND_SHIFT_Z / 1.04)
+		else:
+			# The felt is 2.04 m wide: metres / 2.04 = UV units.
+			shift.x = _port_shift_x() / 2.04
+		felt_material.set_shader_parameter("overlay_shift", shift)
 	for id in labels:
 		(labels[id] as Node).queue_free()
 	labels.clear()
@@ -215,6 +237,9 @@ func _apply() -> void:
 			k = port_scale
 			x = pv.x + (x - pv.x) * k
 			z = pv.y + (z - pv.y) * k + port_shift_z
+			x += _port_shift_x()
+		else:
+			z += LAND_SHIFT_Z
 		l.position = Vector3(x, LIFT, z)
 		l.rotation_degrees = rot
 		var stretch := PORT_STRETCH if portrait else LAND_STRETCH
