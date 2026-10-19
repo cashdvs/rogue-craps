@@ -119,6 +119,9 @@ func _ready() -> void:
 	bhud.continue_pressed.connect(func() -> void: finish())
 	bhud.leave_pressed.connect(func() -> void: leave())
 	bhud.set_run_mode(setup.run_mode)
+	# Portrait goal readout: follow the screen shape (taller than wide = on).
+	get_viewport().size_changed.connect(_update_portrait_hud)
+	_update_portrait_hud()
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
 	pause_menu.set_run_mode(setup.run_mode)
@@ -878,7 +881,17 @@ func sensitivity() -> float:
 	return float(gs.get("throw_sensitivity")) if gs != null else 1.0
 
 
+## Phone portrait (the screen is taller than wide) shows the goal readout at
+## the top; PC and phone landscape hide it (the plaque and cards are in view).
+func _update_portrait_hud() -> void:
+	if bhud == null:
+		return
+	var vs := get_viewport().get_visible_rect().size
+	bhud.set_portrait(vs.y > vs.x)
+
+
 func _refresh_hud() -> void:
+	_update_portrait_hud()
 	if bhud != null:
 		bhud.leave_button.visible = can_leave_now()
 	if bhud != null and run != null:

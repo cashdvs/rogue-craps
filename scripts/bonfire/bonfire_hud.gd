@@ -47,6 +47,9 @@ var combo_grid: GridContainer
 var show_seal_column: bool = false
 ## Bounty id -> its card (PanelContainer with icons + the row label).
 var bounty_cards: Dictionary = {}
+## Phone portrait only: the goal + bounty readout near the top (see
+## portrait_goal_hud.gd). Hidden on PC and phone landscape.
+var portrait_goal: PortraitGoalHud
 var _stamps: Dictionary = {}
 var _pending_stamps: Dictionary = {}
 var _pulse: Array = []
@@ -112,6 +115,9 @@ func _init() -> void:
 	rules_box = VBoxContainer.new()
 	rules_box.add_theme_constant_override("separation", 6)
 	rules_panel.add_child(rules_box)
+	# Added before the end panel so the end screen draws over it.
+	portrait_goal = PortraitGoalHud.new()
+	add_child(portrait_goal)
 	end_panel = PanelContainer.new()
 	end_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.94)))
 	end_panel.position = Vector2(560, 300)
@@ -158,6 +164,8 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	points_label.text = "points %d  (1 Ember / %d)" % [int(display_hold.get("points", run.points)), run.tuning.points_per_ember]
 	hands_label.text = "HANDS LEFT %d" % run.hands_left
 	_refresh_checklist(run)
+	portrait_goal.refresh(run)
+	_place_result()
 	_refresh_rules(run)
 	var picking := run.state == BonfireRun.State.PICK
 	if display_hold.has("pot_from"):
@@ -233,7 +241,9 @@ func _refresh_rules(run: BonfireRun) -> void:
 
 
 func _place_rules() -> void:
-	rules_panel.position.y = checklist_panel.position.y + checklist_panel.size.y + 14
+	# Under the bounty cards; where they'd be when hidden (phone portrait).
+	var below := checklist_panel.size.y + 14 if checklist_panel.visible else 0.0
+	rules_panel.position.y = checklist_panel.position.y + below
 
 
 ## Names of the rules the HUD shows (tests).
@@ -352,6 +362,7 @@ func set_combos(t: BonfireTuning, seal_levels: Dictionary = {}) -> void:
 ## Pulses the bounty cards in `ids` (the ones the selection could claim).
 func pulse_cards(ids: Array) -> void:
 	_pulse = ids.duplicate()
+	portrait_goal.pulse(ids)
 	for id in bounty_cards:
 		if not _pulse.has(id):
 			(bounty_cards[id] as Control).modulate = Color.WHITE
@@ -407,6 +418,7 @@ func stamp_claimed(id: StringName, reduced: bool = false) -> void:
 	if _pending_stamps.has(id):
 		(_pending_stamps[id] as Control).queue_free()
 		_pending_stamps.erase(id)
+	portrait_goal.stamp(id, reduced)
 	if _stamps.has(id):
 		return
 	var l := _stamp_label(id, "CLAIMED", Color("#8E0F1C"), Palette.BRASS_HI, 1.0)
@@ -428,6 +440,7 @@ func has_pending_stamp(id: StringName) -> bool:
 
 ## Bust: the pending stamps crumble into falling shards.
 func crumble_pending(reduced: bool = false) -> int:
+	portrait_goal.lost(_pending_stamps.keys())
 	var n := 0
 	for id in _pending_stamps.keys():
 		var st: Control = _pending_stamps[id]
@@ -527,6 +540,34 @@ func flash(text: String, col: Color) -> void:
 	var tw := create_tween()
 	tw.tween_interval(1.0)
 	tw.tween_property(result_label, "modulate:a", 0.0, 0.4)
+
+
+## Phone portrait (the screen is taller than wide): the goal readout at the
+## top replaces the bounty cards, so there is one list; the bank / bust
+## banner moves down under the readout so both stay readable. PC and phone
+## landscape keep the cards and the banner where they were.
+func set_portrait(on: bool) -> void:
+	if on == portrait_goal.visible:
+		return
+	portrait_goal.visible = on
+	checklist_panel.visible = not on
+	_place_rules()
+	_place_result()
+
+
+## The bank / bust banner: under the readout in portrait (its height can
+## change when the goal's rows are built), else at RESULT_Y.
+func _place_result() -> void:
+	if portrait_goal.visible:
+		result_label.position.y = portrait_goal.position.y + portrait_goal.get_combined_minimum_size().y + RESULT_GAP
+	else:
+		result_label.position.y = RESULT_Y
+
+
+## Where the bank / bust banner sits (design px): its usual height, and in
+## portrait this far under the goal readout.
+const RESULT_Y := 380.0
+const RESULT_GAP := 40.0
 
 
 ## Run mode: CONTINUE instead of RESTART on the end panel.
