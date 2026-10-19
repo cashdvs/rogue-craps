@@ -189,5 +189,9 @@ func _run() -> void:
 	_check(guard.end(), "profile: the real user://profile.cfg is untouched")
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	scene.queue_free()
-	await process_frame
+	# Let deferred frees finish (the scene, its last table, and the run
+	# screen's DieCards and panels freed with queue_free) before quitting;
+	# one frame left 10-12 of them alive at exit, reported as leaks.
+	for i in 4:
+		await process_frame
 	quit(1 if _failed > 0 else 0)
