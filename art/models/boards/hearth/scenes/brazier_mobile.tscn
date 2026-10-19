@@ -1,0 +1,270 @@
+[gd_scene format=4]
+
+[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_brazier.gd" id="1_krgba"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/brazier_mobile.glb" id="2_i1wp7"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/fire_tongue_mobile.tres" id="3_rpb1t"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/fire_inferno_mobile.tres" id="4_3u2au"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/sparks_ember.tres" id="5_0bujr"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/fire_pillar_mobile.tres" id="6_ypv40"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/sparks_brass.tres" id="7_25603"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/smoke_cap.tres" id="8_4hamd"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/smoke_wisp.tres" id="9_vlmwe"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_uq3jl"]
+size = Vector2(0.0875, 0.0875)
+center_offset = Vector3(0, 0.04375, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_hrn0j"]
+size = Vector2(0.1, 0.1)
+center_offset = Vector3(0, 0.05, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_pt0mw"]
+size = Vector2(0.1375, 0.1375)
+center_offset = Vector3(0, 0.06875, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_gpth7"]
+size = Vector2(0.10625, 0.10625)
+center_offset = Vector3(0, 0.053125, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_1er1o"]
+size = Vector2(0.1125, 0.1125)
+center_offset = Vector3(0, 0.05625, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_y6emj"]
+size = Vector2(0.1625, 0.1625)
+center_offset = Vector3(0, 0.08125, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_r035u"]
+size = Vector2(0.2125, 0.2125)
+center_offset = Vector3(0, 0.10625, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_8bym8"]
+size = Vector2(0.16875, 0.16875)
+center_offset = Vector3(0, 0.084375, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_j6q2x"]
+size = Vector2(0.11875, 0.11875)
+center_offset = Vector3(0, 0.059375, 0)
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_sj2sj"]
+_surfaces = [{
+"aabb": AABB(-0.5, -0.5, 0, 1, 1, 1e-05),
+"attribute_data": PackedByteArray("0gAA/wAAAAAAAIA/0gAA/wAAgD8AAIA/0gAA/wAAgD8AAAAA0gAA/wAAAAAAAIA/0gAA/wAAgD8AAAAA0gAA/wAAAAAAAAAAaAAA/wAAAAAAAIA/aAAA/wAAgD8AAIA/aAAA/wAAgD8AAAAAaAAA/wAAAAAAAIA/aAAA/wAAgD8AAAAAaAAA/wAAAAAAAAAASwAA/wAAAAAAAIA/SwAA/wAAgD8AAIA/SwAA/wAAgD8AAAAASwAA/wAAAAAAAIA/SwAA/wAAgD8AAAAASwAA/wAAAAAAAAAABQAA/wAAAAAAAIA/BQAA/wAAgD8AAIA/BQAA/wAAgD8AAAAABQAA/wAAAAAAAIA/BQAA/wAAgD8AAAAABQAA/wAAAAAAAAAA"),
+"format": 34359738393,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("AAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAA")
+}]
+custom_aabb = AABB(-0.15, -0.05, -0.15, 0.3, 0.5, 0.3)
+
+[sub_resource type="QuadMesh" id="QuadMesh_eel0u"]
+size = Vector2(0.2, 0.2)
+center_offset = Vector3(0, 0.1, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_ww4ux"]
+size = Vector2(0.1875, 0.1875)
+center_offset = Vector3(0, 0.09375, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_myqw6"]
+size = Vector2(0.275, 0.275)
+center_offset = Vector3(0, 0.1375, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_i02hi"]
+size = Vector2(0.2125, 0.2125)
+center_offset = Vector3(0, 0.10625, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_wet2k"]
+size = Vector2(0.2, 0.2)
+center_offset = Vector3(0, 0.1, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_33uj3"]
+size = Vector2(0.1875, 0.1875)
+center_offset = Vector3(0, 0.09375, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_khc28"]
+size = Vector2(0.1125, 0.1125)
+center_offset = Vector3(0, 0.05625, 0)
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_gb1yc"]
+_surfaces = [{
+"aabb": AABB(-0.5, -0.5, 0, 1, 1, 1e-05),
+"attribute_data": PackedByteArray("cAAA/wAAAAAAAIA/cAAA/wAAgD8AAIA/cAAA/wAAgD8AAAAAcAAA/wAAAAAAAIA/cAAA/wAAgD8AAAAAcAAA/wAAAAAAAAAAFAAA/wAAAAAAAIA/FAAA/wAAgD8AAIA/FAAA/wAAgD8AAAAAFAAA/wAAAAAAAIA/FAAA/wAAgD8AAAAAFAAA/wAAAAAAAAAAqgAA/wAAAAAAAIA/qgAA/wAAgD8AAIA/qgAA/wAAgD8AAAAAqgAA/wAAAAAAAIA/qgAA/wAAgD8AAAAAqgAA/wAAAAAAAAAAmQAA/wAAAAAAAIA/mQAA/wAAgD8AAIA/mQAA/wAAgD8AAAAAmQAA/wAAAAAAAIA/mQAA/wAAgD8AAAAAmQAA/wAAAAAAAAAAtAAA/wAAAAAAAIA/tAAA/wAAgD8AAIA/tAAA/wAAgD8AAAAAtAAA/wAAAAAAAIA/tAAA/wAAgD8AAAAAtAAA/wAAAAAAAAAAnwAA/wAAAAAAAIA/nwAA/wAAgD8AAIA/nwAA/wAAgD8AAAAAnwAA/wAAAAAAAIA/nwAA/wAAgD8AAAAAnwAA/wAAAAAAAAAAOgAA/wAAAAAAAIA/OgAA/wAAgD8AAIA/OgAA/wAAgD8AAAAAOgAA/wAAAAAAAIA/OgAA/wAAgD8AAAAAOgAA/wAAAAAAAAAArAAA/wAAAAAAAIA/rAAA/wAAgD8AAIA/rAAA/wAAgD8AAAAArAAA/wAAAAAAAIA/rAAA/wAAgD8AAAAArAAA/wAAAAAAAAAA"),
+"format": 34359738393,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 48,
+"vertex_data": PackedByteArray("AAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAA")
+}]
+custom_aabb = AABB(-0.15, -0.05, -0.15, 0.3, 0.5, 0.3)
+
+[sub_resource type="QuadMesh" id="QuadMesh_k1uff"]
+size = Vector2(0.0625, 0.0625)
+center_offset = Vector3(0, 0.03125, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_um8cw"]
+size = Vector2(0.0875, 0.0875)
+center_offset = Vector3(0, 0.04375, 0)
+
+[node name="Brazier" type="Node3D" unique_id=885376868]
+script = ExtResource("1_krgba")
+
+[node name="Model" parent="." unique_id=734688288 instance=ExtResource("2_i1wp7")]
+
+[node name="NumberAnchor" type="Marker3D" parent="." unique_id=1188587869]
+transform = Transform3D(1, 0, 0, 0, 0.8660254, 0.5, 0, -0.5, 0.8660254, 0, 0.0624, -0.0178)
+
+[node name="Fire" type="Node3D" parent="." unique_id=304097572]
+
+[node name="Step1" type="Node3D" parent="Fire" unique_id=1997429006]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.086, -0.16)
+
+[node name="Tongue0" type="MeshInstance3D" parent="Fire/Step1" unique_id=1917086012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0138875, 0)
+material_override = ExtResource("3_rpb1t")
+cast_shadow = 0
+extra_cull_margin = 0.1875
+mesh = SubResource("QuadMesh_uq3jl")
+
+[node name="Step2" type="Node3D" parent="Fire" unique_id=164401843]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.086, -0.16)
+
+[node name="Tongue0" type="MeshInstance3D" parent="Fire/Step2" unique_id=1009725616]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.04, -0.0153, 0)
+material_override = ExtResource("3_rpb1t")
+cast_shadow = 0
+extra_cull_margin = 0.2
+mesh = SubResource("QuadMesh_hrn0j")
+
+[node name="Tongue1" type="MeshInstance3D" parent="Fire/Step2" unique_id=1934924043]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.019537501, 0.006)
+material_override = ExtResource("3_rpb1t")
+cast_shadow = 0
+extra_cull_margin = 0.2375
+mesh = SubResource("QuadMesh_pt0mw")
+
+[node name="Tongue2" type="MeshInstance3D" parent="Fire/Step2" unique_id=1063605715]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.04, -0.01600625, -0.006)
+material_override = ExtResource("3_rpb1t")
+cast_shadow = 0
+extra_cull_margin = 0.20625
+mesh = SubResource("QuadMesh_gpth7")
+
+[node name="Step3" type="Node3D" parent="Fire" unique_id=1280129838]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.086, -0.16)
+
+[node name="Tongue0" type="MeshInstance3D" parent="Fire/Step3" unique_id=1296441819]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07, -0.0167125, 0)
+material_override = ExtResource("4_3u2au")
+cast_shadow = 0
+extra_cull_margin = 0.2125
+mesh = SubResource("QuadMesh_1er1o")
+
+[node name="Tongue1" type="MeshInstance3D" parent="Fire/Step3" unique_id=1654679640]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.035, -0.0223625, 0.006)
+material_override = ExtResource("4_3u2au")
+cast_shadow = 0
+extra_cull_margin = 0.2625
+mesh = SubResource("QuadMesh_y6emj")
+
+[node name="Tongue2" type="MeshInstance3D" parent="Fire/Step3" unique_id=1556353963]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.028012501, -0.006)
+material_override = ExtResource("4_3u2au")
+cast_shadow = 0
+extra_cull_margin = 0.3125
+mesh = SubResource("QuadMesh_r035u")
+
+[node name="Tongue3" type="MeshInstance3D" parent="Fire/Step3" unique_id=1646188256]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.035, -0.02306875, 0.006)
+material_override = ExtResource("4_3u2au")
+cast_shadow = 0
+extra_cull_margin = 0.26875
+mesh = SubResource("QuadMesh_8bym8")
+
+[node name="Tongue4" type="MeshInstance3D" parent="Fire/Step3" unique_id=366245976]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, -0.01741875, -0.006)
+material_override = ExtResource("4_3u2au")
+cast_shadow = 0
+extra_cull_margin = 0.21875
+mesh = SubResource("QuadMesh_j6q2x")
+
+[node name="Sparks" type="MeshInstance3D" parent="Fire/Step3" unique_id=1187347944]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+material_override = ExtResource("5_0bujr")
+cast_shadow = 0
+mesh = SubResource("ArrayMesh_sj2sj")
+
+[node name="Step4" type="Node3D" parent="Fire" unique_id=829772706]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.086, -0.16)
+
+[node name="Twist" type="Node3D" parent="Fire/Step4" unique_id=431882162]
+
+[node name="Tongue0" type="MeshInstance3D" parent="Fire/Step4/Twist" unique_id=832990233]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, -0.026600001, 0.01)
+material_override = ExtResource("6_ypv40")
+cast_shadow = 0
+extra_cull_margin = 0.3
+mesh = SubResource("QuadMesh_eel0u")
+
+[node name="Tongue1" type="MeshInstance3D" parent="Fire/Step4/Twist" unique_id=424864425]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, -0.0251875, -0.01)
+material_override = ExtResource("6_ypv40")
+cast_shadow = 0
+extra_cull_margin = 0.2875
+mesh = SubResource("QuadMesh_ww4ux")
+
+[node name="Tongue2" type="MeshInstance3D" parent="Fire/Step4/Twist" unique_id=1269222989]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.035075, 0)
+material_override = ExtResource("6_ypv40")
+cast_shadow = 0
+extra_cull_margin = 0.375
+mesh = SubResource("QuadMesh_myqw6")
+
+[node name="Tongue3" type="MeshInstance3D" parent="Fire/Step4/Twist" unique_id=1047237813]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.028, 0.061987504, -0.012)
+material_override = ExtResource("6_ypv40")
+cast_shadow = 0
+extra_cull_margin = 0.3125
+mesh = SubResource("QuadMesh_i02hi")
+
+[node name="Tongue4" type="MeshInstance3D" parent="Fire/Step4/Twist" unique_id=1276115518]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.03, 0.0734, 0.012)
+material_override = ExtResource("6_ypv40")
+cast_shadow = 0
+extra_cull_margin = 0.3
+mesh = SubResource("QuadMesh_wet2k")
+
+[node name="Tongue5" type="MeshInstance3D" parent="Fire/Step4/Twist" unique_id=1816044310]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1448125, 0)
+material_override = ExtResource("6_ypv40")
+cast_shadow = 0
+extra_cull_margin = 0.2875
+mesh = SubResource("QuadMesh_33uj3")
+
+[node name="Tongue6" type="MeshInstance3D" parent="Fire/Step4/Twist" unique_id=1455938484]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.012, 0.23328751, 0)
+material_override = ExtResource("6_ypv40")
+cast_shadow = 0
+extra_cull_margin = 0.2125
+mesh = SubResource("QuadMesh_khc28")
+
+[node name="BrassSparks" type="MeshInstance3D" parent="Fire/Step4" unique_id=1534664299]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+material_override = ExtResource("7_25603")
+cast_shadow = 0
+mesh = SubResource("ArrayMesh_gb1yc")
+
+[node name="Curl" type="MeshInstance3D" parent="Fire/Step4" unique_id=485721424]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.01, 0.3279375, 0)
+material_override = ExtResource("8_4hamd")
+cast_shadow = 0
+extra_cull_margin = 0.1625
+mesh = SubResource("QuadMesh_k1uff")
+
+[node name="Wisp" type="MeshInstance3D" parent="." unique_id=70020849]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0861125, -0.16)
+visible = false
+material_override = ExtResource("9_vlmwe")
+cast_shadow = 0
+extra_cull_margin = 0.1875
+mesh = SubResource("QuadMesh_um8cw")

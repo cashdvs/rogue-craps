@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_candle.gd" id="1_t5c4d"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/candle_mobile.glb" id="2_6mva8"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/candle_flame_mobile.tres" id="3_4ns1x"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/smoke_wisp_small.tres" id="4_46xhb"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_duvlu"]
+size = Vector2(0.0275, 0.0275)
+center_offset = Vector3(0, 0.01375, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_iju1y"]
+size = Vector2(0.0325, 0.0325)
+center_offset = Vector3(0, 0.01625, 0)
+
+[node name="Candle" type="Node3D" unique_id=1125084902]
+script = ExtResource("1_t5c4d")
+
+[node name="Model" parent="." unique_id=2043266467 instance=ExtResource("2_6mva8")]
+
+[node name="Flame" type="MeshInstance3D" parent="." unique_id=106054536]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.061392497, 0)
+visible = false
+material_override = ExtResource("3_4ns1x")
+cast_shadow = 0
+extra_cull_margin = 0.1275
+mesh = SubResource("QuadMesh_duvlu")
+
+[node name="Wisp" type="MeshInstance3D" parent="." unique_id=820456832]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0643275, 0)
+visible = false
+material_override = ExtResource("4_46xhb")
+cast_shadow = 0
+extra_cull_margin = 0.1325
+mesh = SubResource("QuadMesh_iju1y")

@@ -1,0 +1,109 @@
+# Hearth board (locked direction, Oct 18, 2026)
+
+Spec: `art/concept/bonfire_table/README.md` "LOCKED DIRECTION" (refs `board_1_hearth.jpg`,
+`board_3_candle_shrine.jpg`), `art/concept/burnline_boards/board_kit.md` sections 1-8,
+`art/concept/fire/fire_style.md`.
+
+The Hearth **is Board A (infernal_pit)**: same felt, rails (collider-matched), studs, backboard,
+body, total dial, near corner caps, the same node tree and the same anchors. It only changes slot
+contents, overrides two materials and adds one `Hearth` subtree. Art only: no gameplay code, no
+colliders, no light nodes (everything glows with emissive; the table's Lamp3D lights it).
+
+| Scene | Use |
+|---|---|
+| `scenes/hearth_board.tscn` | PC board (12,926 tris incl. fire cards; budget 15k) |
+| `scenes/hearth_board_mobile.tscn` | mobile LOD (5,948 tris; budget 8k) |
+
+## What goes where
+
+| Node | Content |
+|---|---|
+| `Visual/Floor` (felt_floor.glb) | material `hearth_felt.tres`: Board A felt #123A36 + `textures/felt_ember_corners.png` overlay (ember flame crown, 2 diamond sparks and a quarter-arc rule in each corner; no rules text) |
+| `Visual/Rails` (rails.glb / rails_mobile.glb) | material `hearth_leather.tres`: Board A leather #5A1620, `next_pass` = `ember_seam.tres` (the seam) -> `ink_table` |
+| `Anchors/TargetPlate/Plate` | `goal_plaque_scene` = `brazier.tscn`: iron fire bowl set behind the far rail centreline, brass band + rivets, coal bed, iron goal plaque with `NumberAnchor` (30 deg, faces the game camera), 4-step toon fire |
+| `Anchors/Corner_FL/Cap`, `Corner_FR/Cap` | `corner_props` = `demon_face.tscn`: carved iron demon mask on a socle, yawed 45 deg to the felt; only the eyes glow |
+| `Anchors/Corner_NL/Cap`, `Corner_NR/Cap` | Board A brass corner caps (unchanged) |
+| `Anchors/ChipTray/Tray` | §8 optional chip tray slot, switched on: `cauldron.tscn` (iron pot on 3 legs outside the right rail, ember mound with brass coin flecks) |
+| `Anchors/BurnLine`, `Anchors/Zones` | empty (as Board A) |
+| `Hearth` | FX hub (`scripts/hearth_fx.gd`), `Candles/RailLeft/Candle1,3,5,7`, `Candles/RailRight/Candle2,4,6,8`, `AnimationPlayer`, `SeamPlayer` |
+
+Candles stand on the side rails at x = +-1.135, z = -0.42 / -0.24 / 0.24 / 0.42 (top < 0.19 m), lit in
+the order L far, R far, L, R ... R near. All 8 share `candle.tscn` (one mesh, `candle_wax.tres` +
+Board A brass); per-candle `height` 0.9-1.12 for variety.
+
+## Hooks for Godot Dev (all on the `Hearth` node; visual only)
+
+```gdscript
+var fx = board.get_node("Hearth")
+fx.pot_step = 0..4     # brazier fire: 0 coals, 1 tongue, 2 crown of 3, 3 five + ember sparks, 4 twisting column + brass spiral sparks + smoke curl cap
+fx.eyes = 0..3         # both demon faces: off / ember / hot / white-core (Hot Hand 0/1/2/3+)
+fx.eyes_left = -1..3   # optional per-face override (-1 = follow eyes); eyes_right likewise
+fx.fill = 0.0..1.0     # ember cauldron (bank)
+fx.lit_count = 0..8    # progress candles (12.5 % of the table goal each); reaching 8 plays "flare"
+fx.seam = 0.0..1.0     # idle glow of the ember seam (default 0.6)
+fx.pulse_seam()        # one 0.15 s seam pulse (per lit die); SeamPlayer "seam_pulse", overlaps other clips
+fx.bust()              # AnimationPlayer "snuff": everything out, charcoal smoke wisps, relights to the previous state
+```
+
+AnimationPlayer clips (`Hearth/AnimationPlayer`, root = `Hearth`), all drawn on twos (discrete keys, 12 fps):
+
+| Clip | Length | Keys |
+|---|---|---|
+| `snuff` | 0.75 s | `snuff` 0.4 / 0.7 / 1.0 (out by 0.17 s), hold, 0.6 / 0.3 / 0 (relit at 0.67 s); `wisp` 0.08-0.5 s. Out ~0.5 s |
+| `flare` | 0.6 s | `flare` 1.0 -> 0 in 6 drawings (candle tongues grow x1.9, cores boost) |
+| `RESET` | - | snuff / wisp / flare = 0 |
+| `SeamPlayer/seam_pulse` | 0.15 s | `pulse` 1.0 / 0.5 / 0 |
+
+The clips key only `snuff`, `wisp`, `flare` and `pulse`, never the state params, so a bust cannot
+lose progress (the test checks this). The lower-level per-prop params are also exported if needed:
+brazier `step / heat / wisp`, demon face `eyes / heat`, cauldron `fill / heat / wisp`, candle
+`lit / heat / flare / wisp / height`. `heat` = 1 - snuff.
+
+## Fire (fire_style.md)
+
+The toon tongue flipbook from the paused fire WIP (`art/toon-fire-vfx` fd42d78), **copied** here
+so the board does not depend on the dice fire (fire stays off the dice): `textures/flame_tongue_4x4*.png`,
+`smoke_curl.png`, `src/make_flame_atlas.py`, `shaders/hearth_flame_card.gdshader` (= toon_flame_card +
+flare grow + wisp rise). SDF bands: Butter #FFE6A8 core (the only band > 1.0, so the only bloom),
+Ember #E8622A, Hellfire #C8281E, Oxblood #3B0D14 outer outline; 12 fps on twos, random start frame +
+mirror per card, Y-locked billboards, alpha-cut. Sparks are 4-point diamonds (`hearth_sparks.gdshader`,
+self-animated in one mesh, no particle nodes). Candle flame = the tier-1 tongue at ~0.5 scale
+(0.022 m visible). Smoke wisp = `smoke_curl.png`, charcoal #1E1B1A with a Pit Black outline.
+
+## Other shaders (`shaders/`, all share `hearth_instance.gdshaderinc`: instance `heat`, `level`, `pulse`)
+
+- `ember_seam.gdshader`: the seam is drawn on the existing rail mesh (no new geometry): a next pass
+  pushed 0.7 mm out that keeps only a UV.y band (0.125 +- 0.012 = the inner top lip ~8 cm above the felt, clear of the backboard strip,
+  all the way round). Pit Black groove edges, Ember fill (`level`), Butter core on `pulse`.
+- `demon_eye.gdshader`: hard radial bands around the two eye centres; 0 charcoal, 1 ember + slit pupil, 2 butter core (blooms), 3 white core.
+- `hearth_coals.gdshader`: charcoal with stepped ember cracks / butter hot spots, flicker on twos; brighter with the pot step.
+
+## Triangles
+
+| Part | PC | Mobile |
+|---|---|---|
+| Board A base (felt, rails, studs, backboard, body, total dial, 2 near caps) | 8,510 | 3,530 |
+| brazier (bowl, band, coals, plaque) | 1,116 | 644 |
+| demon face x2 | 700 x2 | 328 x2 |
+| cauldron + fill | 694 + 60 | 376 + 24 |
+| candle x8 | 130 x8 | 78 x8 |
+| fire cards + sparks (all steps) | ~106 | ~94 |
+| **total** | **12,926** | **5,948** |
+
+## Rebuild
+
+`art/models/boards/hearth/src/rebuild_hearth.sh` (from the repo root): `build_hearth.py` (Blender 4.5,
+props .glb) -> `make_hearth.gd -- materials` -> `write_imports.py` (.glb.import slot -> .tres) ->
+`--import` -> `make_hearth.gd -- props` -> `make_hearth.gd -- board`. Textures: `make_flame_atlas.py`,
+`make_felt_motif.py`. Test: `tests/test_hearth_board.gd`.
+
+## Notes / spec gaps
+
+- Board A has no `RailLeft` / `RailRight` anchors; the candles live under `Hearth/Candles/RailLeft|RailRight` (new nodes, the Board A tree is untouched).
+- The goal plaque node keeps Board A's name `Plate` (board_kit.md §8 calls the slot `goal_plaque_scene`).
+- The demon faces take the `Cap` nodes of Corner_FL / FR (replacing the brass caps there).
+- The cauldron switches on the §8-optional `ChipTray` slot.
+- Fire steps 3-4 rise above 0.25 m (step 4 column top ~0.5 m world). Effects cards, not geometry; all geometry stays under 0.25 m.
+- The far-rail brazier stands where the dealer (Smiles) is planned "behind the far rail"; the step-4 column will overlap the dealer's lower body from the game camera.
+- The controller scripts (`scripts/*.gd`, `@tool`) are visual-only setters (instance uniforms + visibility); they are additions on top of the art-only Board A rule.
+- Phone portrait framing (CameraRig) crops the far rail as on Board A, so the brazier / goal plaque is off screen in portrait.

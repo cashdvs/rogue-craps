@@ -1,0 +1,23 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_flame_card.gdshader" id="1_dxnb2"]
+[ext_resource type="Texture2D" path="res://art/models/boards/hearth/textures/flame_tongue_4x4_mobile.png" id="2_77qeo"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_dxnb2")
+shader_parameter/atlas = ExtResource("2_77qeo")
+shader_parameter/mode = null
+shader_parameter/fps = null
+shader_parameter/core_color = null
+shader_parameter/mid_color = null
+shader_parameter/outer_color = null
+shader_parameter/outline_color = null
+shader_parameter/core_energy = 1.35
+shader_parameter/outline_px = 1.6
+shader_parameter/back_offset = 0.0
+shader_parameter/y_billboard = null
+shader_parameter/erode = null
+shader_parameter/min_size = null
+shader_parameter/flare_grow = 0.9
+shader_parameter/rise = null
