@@ -117,37 +117,74 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 	&"hellfire_face": {"tier": MAJOR, "frames": 6, "hit": 3, "anchor": &"PIP", "fx": &"needles", "ring": BONE,
 			"ring2": EMBER_MID, "spark": null, "icon": &"hellfire_face", "beat": &"jolt", "chip": "×1.5"},
 }
-## Table / die ids -> row ids. Die ids are Systems Dev's canonical ones
-## (DiceIds, #107, docs/DICE_IDS.md); pre-carved faces use its face keys
-## ("<die_id>_<value>"); the old spellings it lists as aliases, and the
-## Sound Designer's legacy cue ids, still resolve. Pre-carved faces reuse
-## the face-mod row (spec v0.2 reuse rule) with a flavour (FLAVOR_OF).
-## TODO(#107): build the die-id keys from DiceIds.DIE_* / DiceIds.canonical()
-## once this branch carries main (#107 merged after #105 branched off #72);
-## the ids below mirror DiceIds exactly.
-const ALIASES: Dictionary[StringName, StringName] = {
-	# Face mods (FaceModData.id, what #91 sends).
+## Table / die ids -> row ids. Built from DiceIds (#107) so die ids and face
+## keys are never hand-typed. Face-mod short names (#91) and a few legacy cue
+## ids (#98) that are not die aliases stay in _FACE_MOD_ALIASES / _CUE_ALIASES.
+## Pre-carved faces reuse the face-mod row (spec v0.2) with a flavour (FLAVOR_OF).
+static var ALIASES: Dictionary[StringName, StringName] = _build_aliases()
+## Ids that imply a flavour (the frame shape, and #98's ModTriggerSynth.FLAVORS layer).
+static var FLAVOR_OF: Dictionary[StringName, StringName] = _build_flavor_of()
+
+
+## FaceModData.id short names -> row (what #91 sends). Not die ids.
+const _FACE_MOD_ALIASES: Dictionary[StringName, StringName] = {
 	&"hellfire": &"hellfire_face", &"gilded": &"gilded_payout", &"wild": &"wild_face", &"twin": &"twin_face",
 	&"blood": &"blood_face", &"stair": &"stair_face", &"step": &"step_face", &"kindling": &"kindling_armed",
-	# Die ids (DiceIds.DIE_*).
-	&"mirror": &"mirror_copy", &"ferryman": &"coin_heads_copy", &"tithe": &"gilded_payout",
-	&"midnight": &"hellfire_face", &"lantern": &"wild_face", &"powder_keg": &"twin_face",
-	&"caltrop": &"caltrop_run", &"knucklebone": &"knucklebone_level",
-	# Face keys (DiceIds.face_key) and coin faces.
-	&"verdict_20": &"hellfire_face", &"verdict_1": &"blood_face", &"midnight_12": &"hellfire_face",
-	&"tithe_10": &"gilded_payout", &"lantern_8": &"wild_face", &"powder_keg_3": &"twin_face",
-	&"ferryman_heads": &"coin_heads_copy", &"ferryman_tails": &"coin_tails_copy",
-	# Old spellings (DiceIds.ALIASES) and legacy cue ids (#98 ModTriggerSynth.ALIASES).
-	&"ferrymans_coin": &"coin_heads_copy", &"ferryman_d2": &"coin_heads_copy", &"coin": &"coin_heads_copy",
-	&"coin_heads": &"coin_heads_copy", &"coin_tails": &"coin_tails_copy", &"coin_alone": &"coin_alone_heads",
+}
+## Legacy cue / coin-face ids that are not in DiceIds.ALIASES.
+const _CUE_ALIASES: Dictionary[StringName, StringName] = {
+	&"coin": &"coin_heads_copy", &"coin_heads": &"coin_heads_copy", &"coin_tails": &"coin_tails_copy",
+	&"coin_alone": &"coin_alone_heads", &"ferryman_heads": &"coin_heads_copy", &"ferryman_tails": &"coin_tails_copy",
 	&"midnight_xii": &"hellfire_face", &"keg_3": &"twin_face",
 }
-## Ids that imply a flavour (the frame shape, and #98's flavour layer).
-const FLAVOR_OF: Dictionary[StringName, StringName] = {
-	&"verdict_20": &"verdict", &"midnight": &"midnight", &"midnight_12": &"midnight", &"midnight_xii": &"midnight",
-	&"tithe": &"tithe", &"tithe_10": &"tithe", &"lantern": &"lantern", &"lantern_8": &"lantern",
-	&"powder_keg": &"keg", &"powder_keg_3": &"keg", &"keg_3": &"keg",
-}
+
+
+static func _build_aliases() -> Dictionary[StringName, StringName]:
+	var a: Dictionary[StringName, StringName] = {}
+	for k: StringName in _FACE_MOD_ALIASES:
+		a[k] = _FACE_MOD_ALIASES[k]
+	# Die ids from DiceIds.DIE_* (no hand-typed die id strings).
+	a[DiceIds.DIE_MIRROR] = &"mirror_copy"
+	a[DiceIds.DIE_FERRYMAN] = &"coin_heads_copy"
+	a[DiceIds.DIE_TITHE] = &"gilded_payout"
+	a[DiceIds.DIE_MIDNIGHT] = &"hellfire_face"
+	a[DiceIds.DIE_LANTERN] = &"wild_face"
+	a[DiceIds.DIE_POWDER_KEG] = &"twin_face"
+	a[DiceIds.DIE_CALTROP] = &"caltrop_run"
+	a[DiceIds.DIE_KNUCKLEBONE] = &"knucklebone_level"
+	# Face keys from DiceIds.face_key.
+	a[DiceIds.face_key(DiceIds.DIE_VERDICT, 20)] = &"hellfire_face"
+	a[DiceIds.face_key(DiceIds.DIE_VERDICT, 1)] = &"blood_face"
+	a[DiceIds.face_key(DiceIds.DIE_MIDNIGHT, 12)] = &"hellfire_face"
+	a[DiceIds.face_key(DiceIds.DIE_TITHE, 10)] = &"gilded_payout"
+	a[DiceIds.face_key(DiceIds.DIE_LANTERN, 8)] = &"wild_face"
+	a[DiceIds.face_key(DiceIds.DIE_POWDER_KEG, 3)] = &"twin_face"
+	# Old spellings that DiceIds already maps to a canonical die.
+	for old: Variant in DiceIds.ALIASES:
+		var can: StringName = DiceIds.ALIASES[old]
+		if a.has(can):
+			a[old as StringName] = a[can]
+	for k: StringName in _CUE_ALIASES:
+		a[k] = _CUE_ALIASES[k]
+	return a
+
+
+static func _build_flavor_of() -> Dictionary[StringName, StringName]:
+	# Keys match ModTriggerSynth.FLAVORS (&"powder_keg", not the short "keg").
+	var f: Dictionary[StringName, StringName] = {}
+	f[DiceIds.face_key(DiceIds.DIE_VERDICT, 20)] = &"verdict"
+	f[DiceIds.DIE_MIDNIGHT] = &"midnight"
+	f[DiceIds.face_key(DiceIds.DIE_MIDNIGHT, 12)] = &"midnight"
+	f[&"midnight_xii"] = &"midnight"
+	f[DiceIds.DIE_TITHE] = &"tithe"
+	f[DiceIds.face_key(DiceIds.DIE_TITHE, 10)] = &"tithe"
+	f[DiceIds.DIE_LANTERN] = &"lantern"
+	f[DiceIds.face_key(DiceIds.DIE_LANTERN, 8)] = &"lantern"
+	f[DiceIds.DIE_POWDER_KEG] = &"powder_keg"
+	f[DiceIds.face_key(DiceIds.DIE_POWDER_KEG, 3)] = &"powder_keg"
+	f[&"keg_3"] = &"powder_keg"
+	return f
+
 ## Any other id until its row is built: a plain minor bone ring pop.
 const GENERIC: Dictionary = {"tier": MINOR, "frames": 4, "hit": 2, "anchor": &"PIP", "fx": &"", "ring": BONE,
 		"spark": EMBER_CORE, "icon": &"generic", "beat": &"pop"}

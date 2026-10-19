@@ -85,6 +85,7 @@ Entry point: `trigger_fx(&"mirror_copy", die, ctx := {}) -> float` (seconds to t
 
 ```bash
 godot --headless --path . --script res://tests/test_fx_trigger.gd
+# also: test_fx_trigger_rows.gd, test_fx_trigger_safety.gd (same suite, split for size)
 # capture (needs a display + PR #102's batch-3 models checked out): tools/capture_trigger_fx.gd, see its header
 ```
 ## Twin Face glow mask (`twin_face_glow.gd`)
