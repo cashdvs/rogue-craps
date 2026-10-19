@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dyekmsyixg266"
-path="res://.godot/imported/powder_keg_d3.glb-707aac00cc4dc6e290ad75843dc4c664.scn"
+uid="uid://dv5aufy8i7dau"
+path="res://.godot/imported/powder_keg_d6_mobile.glb-aa43bd9f06b97c939cf3740f5ba6d2e3.scn"
 
 [deps]
 
-source_file="res://art/models/dice/powder_keg_d3.glb"
-dest_files=["res://.godot/imported/powder_keg_d3.glb-707aac00cc4dc6e290ad75843dc4c664.scn"]
+source_file="res://art/models/dice/powder_keg_d6_mobile.glb"
+dest_files=["res://.godot/imported/powder_keg_d6_mobile.glb-aa43bd9f06b97c939cf3740f5ba6d2e3.scn"]
 
 [params]
 

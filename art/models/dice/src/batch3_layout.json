@@ -192,7 +192,7 @@
   ],
   "px_per_m": 1521.8327902994813
  },
- "ferryman_d2": {
+ "ferryman_coin": {
   "cells": [
    {
     "cell": 0,
@@ -1182,7 +1182,7 @@
   ],
   "px_per_m": 3480.8569588022206
  },
- "powder_keg_d3": {
+ "powder_keg_d6": {
   "cells": [
    {
     "cell": 0,

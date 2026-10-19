@@ -540,7 +540,7 @@
 },
 "grid": 8
 },
-"ferryman_d2": {
+"ferryman_coin": {
 "faces": {
 "1": {
 "cell": 0,
@@ -4044,7 +4044,7 @@
 },
 "grid": 8
 },
-"powder_keg_d3": {
+"powder_keg_d6": {
 "faces": {
 "1": {
 "cell": 0,

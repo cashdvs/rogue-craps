@@ -2,7 +2,7 @@
 
 [ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="1"]
 [ext_resource type="Material" path="res://art/models/dice/materials/die_ink_outline.tres" id="2"]
-[ext_resource type="Texture2D" path="res://art/models/dice/textures/powder_keg_d3_faces.png" id="3"]
+[ext_resource type="Texture2D" path="res://art/models/dice/textures/powder_keg_d6_faces.png" id="3"]
 
 [resource]
 render_priority = 0

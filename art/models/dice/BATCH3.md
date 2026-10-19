@@ -1,6 +1,9 @@
 # Special dice, batch 3: the non-d6 polyhedrals
 
-Caltrop d4, Lantern d8, Tithe d10, Midnight d12, Verdict d20, Ferryman's Coin d2, Powder Keg d3, Knucklebone (talus).
+Caltrop d4, Lantern d8, Tithe d10, Midnight d12, Verdict d20, Ferryman's Coin (coin), Powder Keg d3 (a d6 body printed
+1-1-2-2-3-3), Knucklebone (talus). Asset keys follow `docs/DICE_IDS.md` (`<die_id>_<shape_id>`): `ferryman_coin`
+(was `ferryman_d2`) and `powder_keg_d6` (was `powder_keg_d3`); the legacy `knucklebone_d6` key in `src/build_dice.py`
+is a different, parked model and stays as it is.
 Brief: `art/concept/special_dice/batch3_polyhedral_brief.md` in the team art folder (not in this repo). A rough first pass by the 3D Artist,
 Oct 19 2026. These are visual assets only: no rules, tuning or gameplay code ship with them.
 Proprietary, same terms as the rest of the repo (see `LICENSE`).
@@ -19,7 +22,8 @@ Proprietary, same terms as the rest of the repo (see `LICENSE`).
   cell (written by `write_batch3.py`); the test uses it to check each face shows its own mark.
 - Source: `src/build_batch3.py` (Blender 4.5, geometry + UVs + `batch3_faces.json` + `src/batch3_layout.json`) and
   `src/write_batch3.py` (PIL, paints the atlases, writes materials and import mappings).
-- Test: `tests/test_batch3_dice.gd` (value_up-style; runs in `./run_tests.sh`).
+- Tests: `tests/test_batch3_dice.gd` (value_up-style table and per-mesh checks) and `tests/test_batch3_dice_shapes.gd`
+  (extent cap, mobile hulls, coin, keg, face prints); both run in `./run_tests.sh`.
 
 Rebuild:
 ```
@@ -27,6 +31,7 @@ blender -b --factory-startup --python art/models/dice/src/build_batch3.py
 python3 art/models/dice/src/write_batch3.py
 godot --headless --path . --import
 godot --headless --path . --script res://tests/test_batch3_dice.gd
+godot --headless --path . --script res://tests/test_batch3_dice_shapes.gd
 ```
 Follow-up (not done yet): `build_batch3.py` (~850 lines) and `write_batch3.py` (~450 lines) should be split into
 per-die modules with docstrings on the helpers.
@@ -86,11 +91,11 @@ uses the classical astragalus values 1 / 3 / 4 / 6 (opposites sum to 7), and nev
 | `tithe_d10` (Tithe) | top face | 1 → (0.2292, -0.6707, 0.7054); 2 → (-0.6001, -0.6707, 0.4360); 3 → (-0.6001, -0.6707, -0.4360); 4 → (0.2292, -0.6707, -0.7054); 5 → (0.7417, -0.6707, 0.0000); 6 → (-0.7417, 0.6707, 0.0000); 7 → (-0.2292, 0.6707, 0.7054); 8 → (0.6001, 0.6707, 0.4360); 9 → (0.6001, 0.6707, -0.4360); 10 → (-0.2292, 0.6707, -0.7054) |
 | `midnight_d12` (Midnight) | top face | 1 → (0.0000, -1.0000, 0.0000); 2 → (0.5257, -0.4472, 0.7236); 3 → (-0.5257, -0.4472, 0.7236); 4 → (-0.8507, -0.4472, -0.2764); 5 → (0.0000, -0.4472, -0.8944); 6 → (0.8507, -0.4472, -0.2764); 7 → (-0.8507, 0.4472, 0.2764); 8 → (0.0000, 0.4472, 0.8944); 9 → (0.8507, 0.4472, 0.2764); 10 → (0.5257, 0.4472, -0.7236); 11 → (-0.5257, 0.4472, -0.7236); 12 → (0.0000, 1.0000, 0.0000) |
 | `verdict_d20` (Verdict) | top face | 1 → (-0.0000, -1.0000, 0.0000); 2 → (0.0000, -0.7454, 0.6667); 3 → (-0.5774, -0.7454, -0.3333); 4 → (0.5774, -0.7454, -0.3333); 5 → (0.9342, -0.3333, 0.1273); 6 → (0.5774, -0.3333, 0.7454); 7 → (-0.5774, -0.3333, 0.7454); 8 → (-0.9342, -0.3333, 0.1273); 9 → (-0.3568, -0.3333, -0.8727); 10 → (0.3568, -0.3333, -0.8727); 11 → (-0.3568, 0.3333, 0.8727); 12 → (0.3568, 0.3333, 0.8727); 13 → (0.9342, 0.3333, -0.1273); 14 → (0.5774, 0.3333, -0.7454); 15 → (-0.5774, 0.3333, -0.7454); 16 → (-0.9342, 0.3333, -0.1273); 17 → (-0.5774, 0.7454, 0.3333); 18 → (0.5774, 0.7454, 0.3333); 19 → (0.0000, 0.7454, -0.6667); 20 → (-0.0000, 1.0000, 0.0000) |
-| `ferryman_d2` (Ferryman's Coin) | top face | heads → (0.0000, 1.0000, 0.0000); tails → (0.0000, -1.0000, 0.0000) |
-| `powder_keg_d3` (Powder Keg) | top face | 1 → (0.0000, 1.0000, 0.0000); 1 → (0.0000, -1.0000, 0.0000); 2 → (0.0000, 0.5000, 0.8660); 2 → (0.0000, -0.5000, -0.8660); 3 → (0.0000, -0.5000, 0.8660); 3 → (0.0000, 0.5000, -0.8660) |
+| `ferryman_coin` (Ferryman's Coin) | top face | heads → (0.0000, 1.0000, 0.0000); tails → (0.0000, -1.0000, 0.0000) |
+| `powder_keg_d6` (Powder Keg) | top face | 1 → (0.0000, 1.0000, 0.0000); 1 → (0.0000, -1.0000, 0.0000); 2 → (0.0000, 0.5000, 0.8660); 2 → (0.0000, -0.5000, -0.8660); 3 → (0.0000, -0.5000, 0.8660); 3 → (0.0000, 0.5000, -0.8660) |
 | `knucklebone_talus` (Knucklebone) | top face | 1 → (0.0000, 0.0000, 1.0000); 3 → (0.0000, 1.0000, 0.0000); 4 → (0.0000, -1.0000, 0.0000); 6 → (0.0000, 0.0000, -1.0000) |
 
-The same table is hard-coded in `tests/test_batch3_dice.gd`, which also checks: a real face (or the d4's tip) lies on
+The same table is hard-coded in `tests/test_batch3_dice.gd`; it and `tests/test_batch3_dice_shapes.gd` also check: a real face (or the d4's tip) lies on
 every direction and is UV-mapped to that value's atlas cell, which carries a printed mark; turning any value's
 direction to +Y reads that value back with no other direction within 10°; the d4 rests on the face opposite each tip;
 each face shows its *own* mark (its atlas cell matches that value's fingerprint in `batch3_face_prints.json` and no
@@ -99,24 +104,22 @@ other value's, so swapping two faces' artwork fails) and is labelled with its ow
 LOD hull match and symmetry.
 
 ## Colliders (set up by Godot Dev, in code; not in the assets)
-The art ships **no collider shapes**: the .glb files carry no physics. **Godot Dev sets up the gameplay colliders** in
-code on `feat/nonstd-dice` (PM, Oct 19: d6s keep the 0.08 m box; odd shapes get a convex-hull collider matching the
-mesh, the coin counting as a cylinder; he builds the hulls from the mobile meshes). For the coin he
-codes a convex hull himself: a mirror-symmetric barrelled profile of about 72 points following the 0.020 m edge arc out
-to r 0.050, with an edge-rest nudge, a 1000-toss test gated at 45–55% heads and 0 edge results, and a cross-check
-against `ferryman_d2_mobile.glb`. He reads the d4 from the vertex that points up. The notes below are what the art
-side measured. The showcase captures use a capture-only sandbox script kept outside the repo (`showcase_b3.gd` in
-the team's dice showcase tools) with a convex hull per die (`Mesh.create_convex_shape(true, false)`) and the game's
-die tuning.
+The art ships **no collider shapes**: the .glb files carry no physics. **Godot Dev owns the gameplay colliders** and
+sets them up in code on `feat/nonstd-dice`. PM's ruling (Oct 19): d6s keep the 0.08 m box; **every non-d6 die,
+the coin included, gets a convex hull built from its mobile mesh** (`<die>_mobile.glb`), so the mobile LODs are
+centred and match the PC extents (above). Any edge-rest nudge is only a safety net. He reads the d4 from the vertex that
+points up and the others from the face pointing up. The notes below are what the art side measured. The showcase
+captures use a capture-only sandbox script kept outside the repo (`showcase_b3.gd` in the team's dice showcase tools)
+with a convex hull per die (`Mesh.create_convex_shape(true, false)`) and the game's die tuning.
 
 **Ferryman's Coin (Oct 19, "it doesn't flip and keeps landing the same side"):** the mesh was checked and is
 symmetric; the cause was the showcase throw (a flat spin with the coin started heads-up), now a real flip.
-- Godot Dev's collider: **CylinderShape3D, radius 0.05 m, height 0.024 m, centred at the origin**, axis = local Y
-  (heads = +Y, tails = −Y), mass 0.5× the d6. It matches the mesh's radius, thickness and centre exactly.
-- Mesh facts (tested in `test_batch3_dice.gd`): the AABB and the solid centre of mass are on the origin; the heads and
-  tails faces sit at y = ±0.0120 m (thickness 0.0240 m); every vertex has a mirror twin at (x, −y, z) (542/542 PC,
-  182/182 mobile), so relief, rim and edge are identical on both sides (the skull and the moth are texture only); the
-  convex hull is mirror-symmetric heads/tails (126/126 PC points, 80/80 mobile) and in X and Z.
+- Collider: a **convex hull of `ferryman_coin_mobile.glb`, about 80 points** (80 today), mirror-symmetric heads/tails
+  and following the barrelled edge out to r 0.050 m; heads = +Y, tails = −Y, centred at the origin.
+- Mesh facts (tested in `test_batch3_dice_shapes.gd`): the AABB and the solid centre of mass are on the origin; the
+  heads and tails faces sit at y = ±0.0120 m (thickness 0.0240 m); every vertex has a mirror twin at (x, −y, z)
+  (542/542 PC, 182/182 mobile), so relief, rim and edge are identical on both sides (the skull and the moth are texture
+  only); the convex hull is mirror-symmetric heads/tails (126/126 PC points, 80/80 mobile) and in X and Z.
 - Profile per side (PC): the field is a flat disc r ≤ 0.0380 m sunk 1.1 mm below the rim; a 45° inner bevel,
   1.1 × 1.1 mm (r 0.0380 → 0.0391); a flat raised rim 7.4 mm wide (r 0.0391 → 0.0465) at y = ±0.0120; an outer
   bevel 0.58 mm radial × 1.6 mm (to r 0.0471 at y = ±0.0104); then a barrelled edge, an arc of radius 0.020 m to the
@@ -124,21 +127,18 @@ symmetric; the cause was the showcase throw (a flat spin with the coin started h
   (the field ramps straight up to the rim) and has 20 segments instead of 36 (even, so the reeding is symmetric).
 - The barrelled edge is new (Oct 19): with the original flat 21 mm edge band the coin stood on its edge in 2/40 hull
   throws; with the arc (radius < the coin radius, so the equator is a ridge) it was 0/40.
-- Sandbox results, real flip (random start side; 36–42 rad/s end over end about a horizontal axis plus 16–20 rad/s
-  about vertical, kept under Jolt's ~47 rad/s cap; median 3 half-flips in the air, then a spin and wobble to flat):
-  - convex hull of the mesh: 40 throws, **heads 20 / tails 20** (first 20: heads 9 / tails 11), 0 on edge, 19 landed
-    on the side opposite their start.
-  - Godot Dev's cylinder (r 0.05, h 0.024, mass 0.5×): first 20 throws **heads 13 / tails 7**, 0 on edge; over 60
-    throws heads 37 / tails 23 (p ≈ 0.09, not significant at this sample size) and **4/60 standing on the edge**
-    (the cylinder's flat side is a stable band; settles 3–4 s). If edge landings matter, a hull of the mesh (or a
-    rounded edge on the collider) avoids them; Godot Dev's call.
+- Art-side sandbox check (real flip: random start side, 36–42 rad/s end over end plus 16–20 rad/s about vertical): a
+  hull of the mesh gave heads 20 / tails 20 and 0 edge landings in 40 throws; a plain cylinder (r 0.05, h 0.024) gave
+  37 / 23 and 4/60 on the edge, which is why the coin is hulled.
 
-**Powder Keg:** the lid ends are domed. Every hex ring's corners sit farther from the centre than the ring before it,
+**Powder Keg (die id `powder_keg`, shape `d6`):** a hexagonal barrel, 6 staves printed 1, 2, 3, 1, 2, 3 (each value on
+two opposite staves, tested), read by the stave pointing up. It is hulled from its barrel mesh like the others; the
+hull has 6 flat staves (tested), it isn't 3-valued. The lid ends are domed. Every hex ring's corners sit farther from the centre than the ring before it,
 out to a small (≈4 mm) lid at the 0.049 m half-length, so a pose on the dome rolls back onto a stave. With flat lids it
 stood on an end in 1 of 10 random throws (0/12 with the showcase's barrel-roll throw); with the dome it was 0/40 random
 throws and 1/20 barrel-roll throws (plus one throw cocked against the back bumper). A flat chamfer and a spherical cap were tried first and made it worse
-(their corners got closer to the centre toward the tip and left stable tilted rests). A hull of the mesh (PC or the matching
-mobile LOD) keeps this; a capsule or cylinder would not (a cylinder's flat ends are stable).
+(their corners got closer to the centre toward the tip and left stable tilted rests). The hull of the mobile barrel keeps this
+(same extents as the PC mesh); a capsule or cylinder would not (a cylinder's flat ends are stable).
 
 **Caltrop d4:** always rests on a face and reads point-up: 12/12 sandbox throws with the top vertex exactly up (dot
 1.000).

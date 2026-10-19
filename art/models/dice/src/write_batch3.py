@@ -246,7 +246,7 @@ def ferryman(L):
             a = rng.uniform(0, math.pi)
             d.line([P((x, y)), P((x + math.cos(a) * 20, y + math.sin(a) * 20))], fill=hi, width=SS)
     fill_cell(d, 24, rgba("5E5A52"))
-    finish(img, "ferryman_d2")
+    finish(img, "ferryman_coin")
 
 
 def powder_keg(L):
@@ -270,7 +270,7 @@ def powder_keg(L):
             pip(d, c, r, rgba("141010"))
             d.rectangle([(c[0] - r - 1) * SS, (c[1] - 1.2) * SS, (c[0] + r + 1) * SS, (c[1] + 1.2) * SS], fill=(0, 0, 0, 0))  # stencil bridge
     fill_cell(d, 23, rgba("3A2418"))
-    finish(img, "powder_keg_d3")
+    finish(img, "powder_keg_d6")
 
 
 def knucklebone(L):
@@ -319,8 +319,8 @@ MATS = {
     "verdict_seal": ({"albedo": "#C9A23A", "shadow_color": "#4A3410", "mid_tint": 0.75, "wrap": 0.3, "roughness": 0.35, "light_gain": 0.5,
                       "spec_size": 0.985, "spec_color": "#FFE8A0", "spec_strength": 0.25}, None, "verdict_d20"),  # no hull: a push-from-centre hull floats over a flat disc
     "ferryman_body": ({"albedo": "#8A8478", "shadow_color": "#2E2A26", "mid_tint": 0.74, "wrap": 0.3, "roughness": 0.45, **lamp_comp("#8A8478", s=0.6),
-                       "spec_size": 0.99, "spec_color": "#F0ECE4", "spec_strength": 0.1}, INK, "ferryman_d2"),
-    "powder_keg_body": ({**lit("#C9A030", s=0.5), "shadow_color": "#4A3410", "mid_tint": 0.75, "wrap": 0.3, "roughness": 0.8}, INK, "powder_keg_d3"),
+                       "spec_size": 0.99, "spec_color": "#F0ECE4", "spec_strength": 0.1}, INK, "ferryman_coin"),
+    "powder_keg_body": ({**lit("#C9A030", s=0.5), "shadow_color": "#4A3410", "mid_tint": 0.75, "wrap": 0.3, "roughness": 0.8}, INK, "powder_keg_d6"),
     "powder_keg_hoop": ({"albedo": "#0E0C0C", "shadow_color": "#000000", "mid_tint": 0.6, "roughness": 0.5, "light_gain": 0.5,
                          "spec_size": 0.97, "spec_color": "#8A8480", "spec_strength": 0.3}, None, None),  # no hull: thin bands (see verdict_seal)
     "knucklebone_body": ({"albedo": "#D9C48A", "shadow_color": "#6E5A34", "mid_tint": 0.8, "wrap": 0.35, "roughness": 0.6, "light_gain": 0.42,
@@ -328,8 +328,8 @@ MATS = {
 }
 DICE = {
     "caltrop_d4": ["caltrop_body"], "lantern_d8": ["lantern_body", "lantern_frame"], "tithe_d10": ["tithe_body", "tithe_slot"],
-    "midnight_d12": ["midnight_body"], "verdict_d20": ["verdict_body", "verdict_seal"], "ferryman_d2": ["ferryman_body"],
-    "powder_keg_d3": ["powder_keg_body", "powder_keg_hoop"], "knucklebone_talus": ["knucklebone_body"],
+    "midnight_d12": ["midnight_body"], "verdict_d20": ["verdict_body", "verdict_seal"], "ferryman_coin": ["ferryman_body"],
+    "powder_keg_d6": ["powder_keg_body", "powder_keg_hoop"], "knucklebone_talus": ["knucklebone_body"],
 }
 
 
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     layout = json.load(open(os.path.join(SRC, "batch3_layout.json")))
     os.makedirs(os.path.join(ROOT, "textures"), exist_ok=True)
     for die, fn in (("caltrop_d4", caltrop), ("lantern_d8", lantern), ("tithe_d10", tithe), ("midnight_d12", midnight),
-                    ("verdict_d20", verdict), ("ferryman_d2", ferryman), ("powder_keg_d3", powder_keg), ("knucklebone_talus", knucklebone)):
+                    ("verdict_d20", verdict), ("ferryman_coin", ferryman), ("powder_keg_d6", powder_keg), ("knucklebone_talus", knucklebone)):
         fn(layout[die])
         print("painted", die)
     write_face_prints(layout)
