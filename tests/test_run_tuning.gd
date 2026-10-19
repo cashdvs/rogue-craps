@@ -168,6 +168,8 @@ func _test_tuning_addendum() -> void:
 	var ms: RunRuleData = load("res://resources/map/rules/madame_shuffle.tres")
 	_check(ms.id == &"pit_boss" and ms.display_name == "Madame Shuffle" and ms.kind == RunRuleData.Kind.CHEAT and str(ms.params) == str({"faces": [2, 4]}),
 		"addendum: Madame Shuffle is an interim pit_boss on faces 2 and 4")
+	_check(str(ms.get_meta("stopgap", "")).contains("pit_boss") and str(ms.get_meta("stopgap", "")).contains("madame_shuffle"),
+		"addendum: Madame Shuffle's .tres marks the pit_boss stopgap")
 	var fs: RunRuleData = load("res://resources/map/rules/first_throw.tres")
 	var sm: RunRuleData = load("res://resources/map/rules/straight_man.tres")
 	_check(str(fs.params) == str({"throws": 2}) and str(sm.params) == str({"min_run": 4}), "addendum: First Throw 2 throws, Straight Man min_run 4")
