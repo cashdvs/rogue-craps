@@ -20,9 +20,12 @@ signal hand_result(result: Dictionary)
 ## Run mode: the table is done (end panel CONTINUE, or finish()). Emitted once.
 signal finished(outcome: TableOutcome)
 
-## The pot: a row of set-aside dice on the far rail, between the chip props
-## and the rake (the near rail is too close to the camera).
-const POT_ORIGIN := Vector3(-0.19, 0.0, -0.61)
+## The pot: a row of set-aside dice on the felt just inside the far rail,
+## clear of the backboard (inner face z = -0.49). On the rail top they sat
+## at the screen edge at 720p and off-screen in phone portrait. Potted dice
+## are solid for the throw physics, so thrown dice bounce off them instead
+## of passing through.
+const POT_ORIGIN := Vector3(-0.19, 0.0, -0.44)
 const POT_GAP: float = 0.095
 const PICK_RADIUS_PX: float = 60.0
 ## Most dice one handful can hold (Table3D.MAX_DICE is the craps-era cap).
@@ -128,10 +131,13 @@ func _ready() -> void:
 		if speed_mode != 2:
 			juice.slam_sound(k))
 	cu.count_tick.connect(func(f: float) -> void:
+		bhud.hold_count(f)
 		if speed_mode != 2:
 			juice.count_sound(f))
 	cu.banner.connect(_on_count_banner)
-	cu.finished.connect(func() -> void: juice.drop(_juice_dice))
+	cu.finished.connect(func() -> void:
+		juice.drop(_juice_dice)
+		_release_display())
 	felt_label = Label3D.new()
 	felt_label.name = "RuleFeltText"
 	felt_label.font_size = 96
@@ -171,6 +177,7 @@ func new_run(seed_value: int = -1) -> void:
 	if bhud.countup.is_playing():
 		bhud.countup.fast_forward()
 	bhud.countup.clear(0.0)
+	bhud.display_hold = {}
 	bhud.pulse_cards([])
 	_throw_claims = []
 	juice.crowd_start()
@@ -360,12 +367,14 @@ func throw_again() -> bool:
 	var hot_before := run.hot_hands
 	var per_hot := run.mult_bonus() / maxi(hot_before, 1)
 	var faces_now := run.selection_faces()
+	var hold := _display_snapshot(sel)
 	var rt := run.rethrow()
 	if rt.is_empty():
 		_refuse(why if why != "" else "Pot at least one burning die first.")
 		return false
 	pot_dice.append_array(potted_now)
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
+	_hold_display(hold)
 	juice.crowd_pot(run.pot)
 	_tutorial_hint(2)
 	if rt["hot"]:
@@ -408,6 +417,28 @@ func _hot_hand_moment() -> void:
 	juice.fly_start(list, fly)
 	_to_hand(fly)
 	get_tree().create_timer(fly + 0.05, true, false, false).timeout.connect(func() -> void: juice.fly_stop(list))
+
+
+## HUD numbers before a pot is committed (shown until its count-up lands).
+func _display_snapshot(sel: Dictionary) -> Dictionary:
+	return {"embers": run.embers, "points": run.points, "pot_from": run.pot, "pot_add": int(sel.get("points", 0)), "f": 0.0}
+
+
+## Holds the HUD numbers while the count-up plays (not under Instant); the
+## count-up landing, a fast-forward or a new hand releases them.
+func _hold_display(hold: Dictionary) -> void:
+	if speed_mode == 2 or not bhud.countup.is_playing():
+		_release_display()
+		return
+	bhud.display_hold = hold
+	_refresh_hud()
+
+
+func _release_display() -> void:
+	if bhud.display_hold.is_empty():
+		return
+	bhud.display_hold = {}
+	_refresh_hud()
 
 
 ## Starts the count-up for a committed pot (sel = its score before commit).
@@ -476,9 +507,11 @@ func bank() -> Dictionary:
 		potted_now.append(throw_dice[i])
 	var all_pot: Array[DieVisual] = pot_dice.duplicate()
 	all_pot.append_array(potted_now)
+	var hold := _display_snapshot(sel)
 	var r := run.bank()
 	phase = Phase.RESOLVE
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
+	_hold_display(hold)
 	if bhud.countup.is_playing():
 		await bhud.countup.finished
 	# Bank: embers flow to the pile, each claimed bounty gets its wax stamp.
@@ -1031,11 +1064,22 @@ func _reset_hand_dice() -> void:
 
 func _to_hand(seconds: float = 0.22) -> void:
 	_kill_hand_tweens()
+	# A juice lift / settle tween must not pull a die back while it flies home.
+	if juice != null:
+		juice.drop(dice, true)
 	for i in dice.size():
 		var d := dice[i]
 		var tw := d.create_tween()
 		_hand_tweens.append(tw)
 		tw.tween_method(_arc_die.bind(d, d.global_position, hand_spot(i)), 0.0, 1.0, seconds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+
+
+## True while any die is still flying back to the hand.
+func hand_moving() -> bool:
+	for tw in _hand_tweens:
+		if tw != null and tw.is_valid() and tw.is_running():
+			return true
+	return false
 
 
 func _kill_hand_tweens() -> void:
@@ -1071,13 +1115,110 @@ func _layout_throw() -> void:
 		var to := _felt_pos[i]
 		if run.potted.has(i):
 			to = pot_slot(slot)
+			_clear_slot(to, d)
 			slot += 1
 		var tw := d.create_tween()
 		tw.tween_property(d, "global_position", to, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func pot_slot(k: int) -> Vector3:
-	return POT_ORIGIN + Vector3(k * POT_GAP, Table3DBuilder.RAIL_Y + Table3DBuilder.RAIL_RADIUS + tuning.die_size * 0.5, 0)
+	return POT_ORIGIN + Vector3(k * POT_GAP, tuning.die_size * 0.5, 0)
+
+
+## Board A's near-rail total dial (art kit anchor TotalPlate, top edge) and
+## the top of a tier-4 pillar over the pot: both must be on screen.
+const NEAR_DIAL_TOP := Vector3(0.0, 0.2, 0.68)
+const PILLAR_HEIGHT: float = 0.3
+
+
+## Phone framing: Table3D's fit (dice >= min_die_px, hand + landing zone in
+## view), then the view slides across the table so the pot row (both ends,
+## with its pillar) is in view. The near dial is kept in view too when both
+## fit; at portrait phone sizes they don't, and the pot row wins.
+## Returns the smallest die size (px) like Table3D.fit_phone.
+var phone_dial_visible: bool = true
+
+
+func fit_phone(size: Vector2) -> float:
+	var px := super(size)
+	var n := maxi(setup.dice.size() if setup != null else 5, 1)
+	var must: Array[Vector3] = [pot_slot(0) + Vector3(0, PILLAR_HEIGHT, 0), pot_slot(n - 1) + Vector3(0, tuning.die_size, 0),
+		pot_slot(0) + Vector3(0, tuning.die_size, 0), hand_spot(0), hand_spot(1)]
+	var with_dial := must.duplicate()
+	with_dial.append(NEAR_DIAL_TOP)
+	var base := camera.home_pivot
+	var r := _slide_for(base, with_dial)
+	phone_dial_visible = r[1] >= 0.0
+	if not phone_dial_visible:
+		r = _slide_for(base, must)
+	camera.home_pivot = base + Vector3(0, 0, r[0])
+	camera.position = camera.home_pivot
+	camera._apply()
+	return px
+
+
+## Best z offset of the pivot (within +-0.3 m) for the points: [offset, the
+## smallest distance (px) of any point inside the viewport edge].
+func _slide_for(base: Vector3, pts: Array[Vector3]) -> Array[float]:
+	# unproject_position works in the viewport's (stretched) coordinates.
+	var vs := get_viewport().get_visible_rect().size
+	var best := 0.0
+	var best_margin := -INF
+	for k in range(-30, 31):
+		var off := k * 0.01
+		camera.home_pivot = base + Vector3(0, 0, off)
+		camera.position = camera.home_pivot
+		camera._apply()
+		var margin := INF
+		for p in pts:
+			var sp := camera.cam.unproject_position(p)
+			margin = minf(margin, minf(minf(sp.x, vs.x - sp.x), minf(sp.y, vs.y - sp.y)))
+		if margin > best_margin + 0.5 or (absf(margin - best_margin) <= 0.5 and absf(off) < absf(best)):
+			best_margin = margin
+			best = off
+	return [best, best_margin]
+
+
+## Throw physics: one solid box per potted die (the dice on the pot row).
+var _pot_bodies: Array[StaticBody3D] = []
+
+
+func _sync_colliders() -> void:
+	super()
+	while _pot_bodies.size() < MAX_HANDFUL:
+		var b := StaticBody3D.new()
+		b.name = "PotDie%d" % _pot_bodies.size()
+		b.set_meta("surface", &"pot_die")
+		var mat := PhysicsMaterial.new()
+		mat.friction = 0.5
+		mat.bounce = 0.3
+		b.physics_material_override = mat
+		var cs := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3.ONE * tuning.die_size
+		cs.shape = box
+		b.add_child(cs)
+		add_child(b)
+		_pot_bodies.append(b)
+	for k in _pot_bodies.size():
+		var on := k < pot_dice.size() and is_instance_valid(pot_dice[k])
+		(_pot_bodies[k].get_child(0) as CollisionShape3D).disabled = not on
+		_pot_bodies[k].global_position = pot_slot(k) if on else Vector3(0, -5, 0)
+
+
+## Free pot slots can hold a cold die that came to rest there; when a die is
+## potted into that slot the cold die is nudged toward the middle.
+func _clear_slot(at: Vector3, except: DieVisual) -> void:
+	for j in throw_dice.size():
+		var o := throw_dice[j]
+		if o == except or run.potted.has(j):
+			continue
+		var p := _felt_pos[j] if j < _felt_pos.size() else o.global_position
+		if Vector2(p.x - at.x, p.z - at.z).length() < tuning.die_size * 1.15:
+			var to := Vector3(p.x, p.y, at.z + tuning.die_size * 1.3)
+			_felt_pos[j] = to
+			var tw := o.create_tween()
+			tw.tween_property(o, "global_position", to, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _set_lit(d: DieVisual, on: bool) -> void:

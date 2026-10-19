@@ -5,7 +5,10 @@
 ##   godot --headless --path . --script res://tests/test_bonfire_throw.gd
 extends SceneTree
 
-const SPEEDS: Array[float] = [800.0, 1500.0, 2300.0, 3200.0, 4200.0]
+## The lob is 720 px/s: just over min_throw_speed (700, the slowest flick
+## that throws at all), so the softest throw has clear margin from the
+## backboard (at 800 it sometimes grazed it once).
+const SPEEDS: Array[float] = [720.0, 1500.0, 2300.0, 3200.0, 4200.0]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -116,8 +119,15 @@ func _increasing(a: Array[float]) -> bool:
 
 ## Grab, move steadily at `speed` px/s for 0.3 s at `fps`, release.
 func _flick(s: Bonfire3D, fps: float, speed: float) -> bool:
-	while s.phase != Table3D.Phase.BET:
+	# Same start every time: the dice must be at rest in the hand (the hand
+	# tween runs on the frame clock, so a busy box would otherwise release
+	# them mid-flight from a different spot).
+	while s.phase != Table3D.Phase.BET or s.hand_moving():
 		await process_frame
+	# ...and in the same orientation (each die otherwise keeps the pose the
+	# previous throw's physics left it in, so one tiny difference cascades).
+	for i in s.dice.size():
+		s.dice[i].global_transform = Transform3D(Basis.IDENTITY, s.hand_spot(i))
 	s.set_process(false)
 	var hand := s.camera.cam.unproject_position(Table3D.HAND)
 	var dir := Vector2(-0.55, -0.83).normalized()

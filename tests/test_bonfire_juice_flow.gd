@@ -157,7 +157,24 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	j.calls.clear()
 	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "[%s] throw again stays synchronous" % tag)
 	check(s.bhud.countup.is_playing(), "[%s] committing the pot starts the count-up" % tag)
+	check(r.pot == 126 and s.bhud.pot_label.text == "POT 0", "[%s] HUD pot holds until the count-up lands; state is already 126 (%s)" % [tag, s.bhud.pot_label.text])
 	await s.bhud.countup.finished
+	check(s.bhud.pot_label.text == "POT 126" and s.bhud.display_hold.is_empty(), "[%s] the pot lands with the count-up (%s)" % [tag, s.bhud.pot_label.text])
+	# The pot row is on the felt, in view, and solid for the next throw.
+	var on_felt := true
+	for k in 12:
+		var p := s.pot_slot(k)
+		on_felt = on_felt and absf(p.z) < Table3DBuilder.FELT_HALF.y - s.tuning.die_size * 0.5 and absf(p.x) < Table3DBuilder.FELT_HALF.x - s.tuning.die_size * 0.5 and is_equal_approx(p.y, s.tuning.die_size * 0.5)
+	check(on_felt, "[%s] all 12 pot slots sit on the felt inside the rails" % tag)
+	var sp := s.camera.cam.unproject_position(s.pot_slot(0) + Vector3(0, 0.3, 0))
+	var vs := s.get_viewport().get_visible_rect().size
+	check(Rect2(Vector2.ZERO, vs).has_point(sp) and sp.y > 80.0, "[%s] the top of a pillar over the pot is on screen (%s)" % [tag, str(sp)])
+	s._sync_colliders()
+	var solid := 0
+	for b in s._pot_bodies:
+		if not (b.get_child(0) as CollisionShape3D).disabled:
+			solid += 1
+	check(solid == s.pot_dice.size() and solid == 3, "[%s] one solid collider per potted die (%d)" % [tag, solid])
 	check(s.bhud.countup.total_label.text == "126" and s.bhud.countup.banner_label.text == "TRIPS!", "[%s] count-up lands on 126 with the Trips banner" % tag)
 	check(has_prefix(j.calls, "fb:lift") or has_prefix(j.calls, "art:lift"), "[%s] dice lift (%s)" % [tag, str(j.calls)])
 	check(has_prefix(j.calls, "fb:fire") or has_prefix(j.calls, "art:fire"), "[%s] flames on the pot" % tag)
@@ -191,7 +208,14 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	await s.sequence_finished
 	s.pick_die(0); s.pick_die(1); s.pick_die(2)
 	j.calls.clear()
+	var pts_before := r.points
+	var bank_state: Array = []
+	s.bhud.countup.banner.connect(func(_a: int, _b: int) -> void:
+		bank_state.append([r.points, s.bhud.points_label.text, s.bhud.coin_label.text, r.embers]), CONNECT_ONE_SHOT)
 	var b: Dictionary = await s.bank()
+	check(bank_state.size() == 1 and int(bank_state[0][0]) > pts_before and str(bank_state[0][1]).begins_with("points %d " % pts_before),
+		"[%s] bank: points stay at %d on the HUD while the count-up plays (state already %s)" % [tag, pts_before, str(bank_state)])
+	check(s.bhud.points_label.text.begins_with("points %d " % r.points) and s.bhud.coin_label.text == "EMBERS %d" % r.embers, "[%s] bank: points + Embers land after the count-up" % tag)
 	check(b["kind"] == &"bank" and r.state == BonfireRun.State.CLEARED, "[%s] bank clears the table" % tag)
 	check(s.bhud.has_stamp(&"two_pairs") or s.bhud.has_stamp(&"run_three") or not (b["ticked"] as Array).is_empty() and s.bhud.has_stamp(b["ticked"][0]), "[%s] claimed bounty gets the CLAIMED stamp (%s)" % [tag, str(b["ticked"])])
 	check(j.calls.has("sfx:bank") or j.calls.has("sfx:chip_collect(fb)"), "[%s] bank sound (%s)" % [tag, str(j.calls)])
@@ -209,7 +233,18 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	click.position = Vector2(960, 540)
 	s._unhandled_input(click)
 	check(not s.bhud.countup.is_playing() and s.bhud.countup.fast_forwarded, "[%s] click fast-forwards the count-up" % tag)
+	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "POT %d" % s.run.pot, "[%s] fast-forward shows the final HUD numbers at once (%s)" % [tag, s.bhud.pot_label.text])
 	s.test_speed = 10.0
+	# Instant: no hold at all.
+	await create_timer(0.3).timeout
+	await throw_faces(s, [3, 3, 1] as Array[int])
+	await s.sequence_finished
+	s.set_speed_mode(2)
+	s.pick_die(0); s.pick_die(1)
+	var pot_now := s.run.pot
+	s.throw_again()
+	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "POT %d" % s.run.pot and s.run.pot > pot_now, "[%s] Instant: HUD numbers update immediately (%s)" % [tag, s.bhud.pot_label.text])
+	s.set_speed_mode(0)
 	s.queue_free()
 	await process_frame
 
