@@ -281,12 +281,12 @@ func ashen_seal(from: StringName, to: StringName) -> int:
 	return lv
 
 
-## Max Soul +/- delta, never below 1; Soul is cut to the new max (a raise
-## doesn't heal). Returns the real change.
+## Max Soul +/- delta, never below 1. A raise also heals delta (Game
+## Designer); a cut trims Soul to the new max. Returns the real change.
 func change_max_soul(delta: int) -> int:
 	var before := max_soul
 	max_soul = maxi(1, max_soul + delta)
-	soul = mini(soul, max_soul)
+	soul = mini(soul + maxi(max_soul - before, 0), max_soul)
 	changed.emit()
 	return max_soul - before
 

@@ -68,7 +68,10 @@ func _test_max_soul() -> void:
 	var max0 := p.max_soul
 	p.soul = 20
 	var lines := _apply(&"max_up", p)
-	_check(p.max_soul == max0 + 5 and p.soul == 20 and lines[0].begins_with("Max Soul +5"), "max soul: +5 raises the cap, doesn't heal")
+	_check(p.max_soul == max0 + 5 and p.soul == 25 and lines[0].begins_with("Max Soul +5"), "max soul: +5 raises the cap and heals 5")
+	var full := RunProgress.new(_run)
+	_apply(&"max_up", full)
+	_check(full.soul == full.max_soul and full.max_soul == max0 + 5, "max soul: at full Soul a raise keeps you full")
 	p.soul = p.max_soul
 	_apply(&"max_down", p)
 	_check(p.max_soul == max0 - 5 and p.soul == p.max_soul, "max soul: -10 cuts Soul down to the new cap")
@@ -186,26 +189,26 @@ func _test_twist() -> void:
 	var cold: RunRuleData = load("res://resources/map/rules/cold_hands.tres")
 	var run := MapRun.new(_run, 6)
 	_apply(&"twist", run.progress)
-	_check(run.progress.next_table_twist == cold, "twist: banked for the next table")
+	_check(run.progress.next_table_twist == cold, "twist: banked for the next Table")
+	_check(run.pending_twist_note().begins_with("Next Table: Cold Hands"), "twist: the map previews it on the next Table")
 	_enter(run, NT.SHOP)
 	_check(run.progress.next_table_twist == cold, "twist: a shop / event / rest doesn't use it up")
+	_enter(run, NT.ELITE)
+	_check(not run.rules.has(cold) and run.progress.next_table_twist == cold, "twist: an Elite neither gets it nor uses it up")
+	_enter(run, NT.BOSS)
+	_check(not run.rules.has(cold) and run.progress.next_table_twist == cold, "twist: the Boss neither gets it nor uses it up")
 	_enter(run, NT.TABLE)
 	var base_hands: int = run.floor_data().hands
 	_check(run.rules == ([cold] as Array[RunRuleData]) and run.goal.hands == base_hands + cold.hands_delta, "twist: the next Table gets it (with its hands_delta)")
 	var ids := run.table_setup().to_table_setup(load("res://resources/tuning/bonfire_tuning.tres")).rules
 	_check(ids.size() == 1 and ids[0]["id"] == &"cold_hands", "twist: the table setup sends it as a rule")
-	_check(run.progress.next_table_twist == null, "twist: cleared once that table starts")
+	_check(run.progress.next_table_twist == null and run.pending_twist_note() == "", "twist: cleared once that Table starts")
 	_enter(run, NT.TABLE)
-	_check(run.rules.is_empty(), "twist: the table after has no twist")
-	var el := MapRun.new(_run, 6)
-	el.progress.next_table_twist = cold
-	_enter(el, NT.ELITE)
-	var has_twice := el.rules.count(cold) > 1
-	_check(el.rules.has(cold) and not has_twice and el.progress.next_table_twist == null, "twist: on an Elite it adds to the Elite twist (never twice)")
-	var bo := MapRun.new(_run, 6)
-	bo.progress.next_table_twist = cold
-	_enter(bo, NT.BOSS)
-	_check(bo.rules.has(cold) and bo.rules.size() >= 2, "twist: a boss table gets it on top of the cheat")
+	_check(run.rules.is_empty(), "twist: the Table after has no twist")
+	var ex := MapRun.new(_run, 6)
+	ex.progress.next_table_twist = cold
+	ex._start_floor(1)
+	_check(ex.progress.next_table_twist == null, "twist: expires unplayed when the floor ends")
 	var rp := MapRun.new(_run, 6)
 	var first := EventChoiceData.new()
 	var e := EventEffectData.new()

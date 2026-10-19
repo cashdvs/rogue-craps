@@ -4,8 +4,8 @@ extends Resource
 
 enum Kind { SOUL, EMBERS, ADD_FACE_MOD, REMOVE_FACE_MOD, SEAL_LEVEL,
 	MAX_SOUL, GIVE_DIE, SELL_DIE, FREE_SHOP_REROLL, NEXT_TABLE_TWIST }
-## MAX_SOUL: max Soul +/- amount (never below 1; Soul is cut to the new max,
-##   a raise doesn't heal).
+## MAX_SOUL: max Soul +/- amount (never below 1). A raise heals the same
+##   amount; a cut trims Soul to the new max.
 ## GIVE_DIE: add `die` (a special-die or shape id; &"" = a plain Bone) to
 ##   the bag. Greyed out when the bag is full.
 ## SELL_DIE: give up one die (PICKED: the player picks any face of it;
@@ -13,8 +13,9 @@ enum Kind { SOUL, EMBERS, ADD_FACE_MOD, REMOVE_FACE_MOD, SEAL_LEVEL,
 ##   Greyed out when the bag is at the starting size.
 ## FREE_SHOP_REROLL: amount free shop rerolls, kept until used (they stack
 ##   and don't raise the reroll price).
-## NEXT_TABLE_TWIST: `rule` is added to the very next table (Table, Elite
-##   or Boss), then cleared. A newer one replaces an unplayed one.
+## NEXT_TABLE_TWIST: `rule` is added to the next regular Table (never an
+##   Elite or Boss), then cleared; it expires unplayed when the floor ends.
+##   A newer one replaces an unplayed one.
 ## Which face an ADD/REMOVE_FACE_MOD targets.
 ## PICKED: the player picks die and face (REMOVE: one of their mods).
 ## RANDOM_OTHER_SAME_DIE: a random other face of the die the previous

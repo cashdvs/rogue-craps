@@ -85,6 +85,7 @@ func _start_floor(i: int) -> void:
 	boss = _pick_rule(floor_data().boss_cheats, rng)
 	boss_twist = _pick_rule(floor_data().elite_twists, rng) if floor_data().boss_adds_twist else null
 	boss_misses = 0
+	progress.next_table_twist = null  # an unplayed event twist expires with the floor
 	_set_screen(Screen.MAP)
 
 
@@ -118,6 +119,13 @@ func choose_node(id: int) -> bool:
 	return true
 
 
+## Map preview for the next regular Table: "Next Table: <twist> (<text>)"
+## while an event twist is pending, else "".
+func pending_twist_note() -> String:
+	var r := progress.next_table_twist
+	return "Next Table: %s (%s)" % [r.display_name, r.description] if r != null else ""
+
+
 ## Build the table goal (and `rules`) for this node from the floor's pools.
 func make_goal(t: NT) -> TableGoal:
 	var f := floor_data()
@@ -141,8 +149,8 @@ func make_goal(t: NT) -> TableGoal:
 		var tw := _pick_rule(f.elite_twists, rng)
 		if tw != null:
 			rules.append(tw)
-	# An event twist rides on exactly the next table, then clears.
-	if progress.next_table_twist != null:
+	# An event twist rides on the next regular Table only, then clears.
+	if t == NT.TABLE and progress.next_table_twist != null:
 		if not rules.has(progress.next_table_twist):
 			rules.append(progress.next_table_twist)
 		progress.next_table_twist = null

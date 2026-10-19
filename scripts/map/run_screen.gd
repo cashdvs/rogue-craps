@@ -97,7 +97,7 @@ func refresh() -> void:
 	quit_button.visible = map_view.visible
 	match run.screen:
 		S.MAP:
-			map_view.show_map(run.map, run.boss_name(), _boss_rules())
+			map_view.show_map(run.map, run.boss_name(), _boss_rules(), run.pending_twist_note())
 		S.EVENT:
 			event_view.show_event(run.event, run.progress)
 		S.TABLE:
