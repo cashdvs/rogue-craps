@@ -76,7 +76,8 @@ func _fade_to(gains: PackedFloat32Array, seconds: float, then_stop: bool = false
 
 
 ## The baked loop if it exists (its .import sets loop_mode Forward), else the
-## synthesized one. Either way, make sure it loops.
+## synthesized one. Either way, make sure it loops (on a copy, so the shared
+## imported resource other players may use is never changed).
 func _load_loop(event: StringName) -> AudioStream:
 	var path := SFX_DIR + String(event) + ".wav"
 	var stream: AudioStream = null
@@ -86,6 +87,8 @@ func _load_loop(event: StringName) -> AudioStream:
 		stream = BonfireSynth.make(event)
 	var wav := stream as AudioStreamWAV
 	if wav != null and wav.loop_mode == AudioStreamWAV.LOOP_DISABLED:
+		wav = wav.duplicate() as AudioStreamWAV
+		stream = wav
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		wav.loop_begin = 0
 		wav.loop_end = int(wav.get_length() * wav.mix_rate)
