@@ -41,6 +41,8 @@ Embers, Dealer/taunts, UI, Shaders, Audio, Fonts, Art import, QA tests, Tools/CI
       readability, audio, difficulty.
 
 ## 4. Outcome
+- **Checks gate:** GitHub does not enforce required checks on this repo. QA never merges while any
+  test or CI check is red or pending; wait for every check to pass on the exact head being merged.
 - **Clean PR:** approve and merge. QA merges every PR, docs-only ones included.
   - **Julian's (@julian17874) and outside contributors' PRs: squash merge.** Review them to the
     same standard as the team's, with a welcoming tone.
