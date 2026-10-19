@@ -40,9 +40,9 @@ func _test_data() -> void:
 	var want := {&"powder_keg": ["Powder Keg", 18, [1, 1, 2, 2, 3, 3], {3: &"twin"}, &""],
 		&"coin": ["Ferryman's Coin", 18, [5, 0], {}, &"ferryman"],
 		&"caltrop": ["Caltrop", 18, [1, 2, 3, 4], {}, &"caltrop"],
-		&"lantern": ["Lantern", 12, [1, 2, 3, 4, 5, 6, 7, 8], {8: &"wild"}, &""],
-		&"tithe": ["Tithe", 12, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], {10: &"gilded"}, &""],
-		&"midnight": ["Midnight", 12, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], {12: &"hellfire"}, &""],
+		&"lantern": ["Lantern", 18, [1, 2, 3, 4, 5, 6, 7, 8], {8: &"wild"}, &""],
+		&"tithe": ["Tithe", 18, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], {10: &"gilded"}, &""],
+		&"midnight": ["Midnight", 18, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], {12: &"hellfire"}, &""],
 		&"verdict": ["Verdict", 18, range(1, 21), {20: &"hellfire", 1: &"blood"}, &""],
 		&"knucklebone": ["Knucklebone", 18, [1, 3, 4, 6], {}, &"knucklebone"]}
 	_check(by.size() == 9 and by.has(&"d6") and not by.has(&"d3") and not by.has(&"d20"), "data: d6 + the 8 named §10 dice; no plain Coin / d3 / dN")

@@ -127,7 +127,7 @@ func _test_panels(scene: RunScreen) -> void:
 	await process_frame
 	scene.run.progress.add_die(&"mirror")
 	scene._show_shop()
-	_check(_press(scene, "Sell your Mirror") and scene.run.progress.dice.size() == 5 and scene.run.progress.embers == 53, "shop: sell button (half of 12)")
+	_check(_press(scene, "Sell your Mirror") and scene.run.progress.dice.size() == 5 and scene.run.progress.embers == 56, "shop: sell button (half of 18)")
 	await process_frame
 	scene.run.progress.add_seal_levels(&"pair", 1)
 	scene.run.shop_seals[0] = &"ashen"

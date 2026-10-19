@@ -167,9 +167,9 @@ func _test_rest_and_shop() -> void:
 	run.progress.embers = 0
 	_check(not run.shop_reroll(), "shop: can't reroll broke")
 	run.progress.embers = 100
-	_check(run.reroll_price() == 3 and run.shop_reroll() and run.reroll_price() == 4 and run.progress.embers == 97, "shop: reroll 3, then 4")
+	_check(run.reroll_price() == 3 and run.shop_reroll() and run.reroll_price() == 5 and run.progress.embers == 97, "shop: reroll 3, then 5 (step 2)")
 	run.shop_seals = [&"pair", &"trips"] as Array[StringName]
-	_check(run.buy_seal(0) and run.progress.embers == 92 and run.seal_price(&"trips") == 6, "shop: Seal 5, next one 6")
+	_check(run.buy_seal(0) and run.progress.embers == 92 and run.seal_price(&"trips") == 7, "shop: Seal 5, next one 7 (step 2)")
 	run.shop_mods[1] = load("res://resources/mods/hellfire.tres")
 	_check(run.buy_mod(1, Vector2i(1, 1)) and run.progress.dice[1].faces[1] == &"hellfire" and not run.buy_mod(1, Vector2i(2, 2)), "shop: buy a face mod once")
 	run.leave()

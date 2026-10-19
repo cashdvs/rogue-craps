@@ -435,6 +435,7 @@ func _finish(r: Dictionary) -> Dictionary:
 
 func _end_table(st: State) -> void:
 	var converted := points / maxi(tuning.points_per_ember, 1)
+	converted = mini(converted, tuning.points_embers_cap) if tuning.points_embers_cap > 0 else converted
 	var clear := goal.clear_embers if st == State.CLEARED else 0
 	var soul_lost := 0
 	if st == State.FAILED:

@@ -11,3 +11,4 @@ id = &"midnight"
 display_name = "Midnight"
 description = "Faces 1-12; 7-12 light alone. The 12 is a carved Hellfire Face."
 faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+price = 18

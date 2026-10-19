@@ -168,7 +168,7 @@ func _run() -> void:
 		var o: TableOutcome = got[0]
 		check(not o.cleared and o.forfeited, "outcome: forfeited, not cleared")
 		check(o.soul_after == r.soul and o.soul_delta == r.soul - 20, "outcome Soul delta from the starting Soul")
-		check(o.points == r.points and o.embers == r.embers and o.embers == r.points / tuning.points_per_ember, "outcome points / Embers (no clear bonus)")
+		check(o.points == r.points and o.embers == r.embers and o.embers == mini(r.points / tuning.points_per_ember, tuning.points_embers_cap), "outcome points / Embers, capped (no clear bonus)")
 		check(o.hands_used == 3 - r.hands_left, "outcome hands used")
 		check(o.bounties_claimed == r.claimed_bounties(), "outcome bounties")
 	s.bhud.continue_pressed.emit()

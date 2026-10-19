@@ -120,7 +120,7 @@ func _test_sell_die() -> void:
 	_check(EventApplier.picks_needed(_ch(&"sell")) == 1, "sell die: a picked sell needs one pick")
 	_check(_apply(&"sell", p, [Vector2i(9, 0)])[0].begins_with("refused") and p.dice.size() == 6, "sell die: an invalid die pick changes nothing")
 	var lines := _apply(&"sell", p, [Vector2i(5, 3)])
-	_check(p.dice.size() == 5 and p.embers == e0 + 6 + 2 and lines[0].contains("Mirror Die"), "sell die: Mirror sells for half (6) + 2 bonus")
+	_check(p.dice.size() == 5 and p.embers == e0 + 9 + 2 and lines[0].contains("Mirror Die"), "sell die: Mirror (18) sells for half (9) + 2 bonus")
 	_check(EventApplier.why_not(_ch(&"sell"), p) != "", "sell die: the last spare die gone, the bag can't drop below 5")
 	var q := RunProgress.new(_run)
 	q.add_die(&"d6")

@@ -92,17 +92,17 @@ func _price(id: String) -> int:
 func _test_prices() -> void:
 	var ok: bool = true
 	for pair in [["ember_pip", 6], ["gilded", 6], ["heavy", 6], ["step", 6], ["kindling", 6], ["blood", 6],
-			["wild", 9], ["twin", 9], ["stair", 9], ["hellfire", 14]]:
+			["wild", 14], ["twin", 9], ["stair", 9], ["hellfire", 14]]:
 		ok = ok and _price(pair[0]) == pair[1]
-	_check(ok and _run.face_mods.size() == 10, "prices: 10 face mods at 6 / 9 / 14")
+	_check(ok and _run.face_mods.size() == 10, "prices: 10 face mods at 6 / 9 / 14 (Wild 14, economy v1)")
 	var dice_ok: bool = true
 	var prices: Dictionary = {}
 	for d in _run.special_dice:
 		prices[d.id] = d.price
-	for pair in [[&"extra", 12], [&"mirror", 12], [&"cracked", 12], [&"twin_flame", 18], [&"wanderer", 18],
+	for pair in [[&"extra", 18], [&"mirror", 18], [&"cracked", 18], [&"twin_flame", 18], [&"wanderer", 18],
 			[&"bellows", 18], [&"blood_pact", 18], [&"coven", 24], [&"last_breath", 24]]:
 		dice_ok = dice_ok and prices.get(pair[0], -1) == pair[1]
-	_check(dice_ok and _run.special_dice.size() == 9, "prices: 9 special dice at 12 / 18 / 24")
+	_check(dice_ok and _run.special_dice.size() == 9, "prices: 9 special dice at 18 / 24 (economy v1: Extra, Mirror, Cracked 18)")
 	var p := RunProgress.new(_run)
 	var hell: FaceModData = load("res://resources/mods/hellfire.tres")
 	_check(p.mod_price(hell, 0) == 14, "prices: Hellfire 14 on a fresh die")
