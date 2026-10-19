@@ -36,6 +36,19 @@ func _run() -> void:
 	quit(1 if _failed > 0 else 0)
 
 
+## The PCM bytes of a committed .wav file (its "data" chunk), read from the
+## source file, not the import (which re-encodes it).
+func _committed_pcm(path: String) -> PackedByteArray:
+	var bytes := FileAccess.get_file_as_bytes(path)
+	var at := 12
+	while at + 8 <= bytes.size():
+		var size := bytes.decode_u32(at + 4)
+		if bytes.slice(at, at + 4).get_string_from_ascii() == "data":
+			return bytes.slice(at + 8, at + 8 + size)
+		at += 8 + size + (size & 1)
+	return PackedByteArray()
+
+
 func _samples(wav: AudioStreamWAV) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	out.resize(wav.data.size() / 2)
@@ -167,6 +180,7 @@ func _test_cues() -> void:
 		_check(file != null and file.mix_rate == 22050 and not file.stereo, "file: trigger_%s.wav is 22,050 Hz mono" % row)
 		var wav := ModTriggerSynth.make(row)
 		_check(wav.data == ModTriggerSynth.make(row).data, "synth: %s is the same on every bake" % row)
+		_check(_committed_pcm("res://audio/sfx/trigger_%s.wav" % row) == wav.data, "drift: committed trigger_%s.wav == make() (re-bake if not)" % row)
 		_check(int(t[2]) <= int(t[1]) and int(t[0]) in [0, 1, 2], "timing: %s leads %d ms <= its hit %d ms" % [row, t[2], t[1]])
 		var s := _samples(wav)
 		var hit_s := float(t[2]) / 1000.0
@@ -181,6 +195,7 @@ func _test_cues() -> void:
 		var wav := ModTriggerSynth.make(StringName("flavor_" + fl))
 		var s := _samples(wav)
 		_check(load("res://audio/sfx/trigger_flavor_%s.wav" % fl) != null and wav.data == ModTriggerSynth.make(StringName("flavor_" + fl)).data, "flavour: %s is baked and stable" % fl)
+		_check(_committed_pcm("res://audio/sfx/trigger_flavor_%s.wav" % fl) == wav.data, "drift: committed trigger_flavor_%s.wav == make() (re-bake if not)" % fl)
 		_check(s.size() / SR <= 0.45 and _noisy_frames(s) <= 2, "flavour: %s is short (%.2f s) with no hiss" % [fl, s.size() / SR])
 	for id: StringName in ModTriggerSynth.FLAVOR_OF:
 		var fl: StringName = ModTriggerSynth.FLAVOR_OF[id]
@@ -220,3 +235,5 @@ func _test_mapping() -> void:
 	var layers := 0
 	layers = ModTriggerSynth.FLAVORS.size()
 	_check(files.size() == ModTriggerSynth.ROWS.size() + layers and files.has("trigger_generic.wav") and files.has("trigger_cluster.wav"), "bake: one file per row (+ flavour layers)")
+	var baked: Array = load("res://tools/bake_sfx.gd").call(&"synth_scripts")
+	_check(baked.has(ModTriggerSynth) and not baked.has(ModTriggerRecipes), "bake: tools/bake_sfx.gd bakes ModTriggerSynth (and not the recipes twice)")
