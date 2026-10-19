@@ -25,6 +25,9 @@ var throw_sensitivity: float = 1.0
 ## tutorial_seen so it plays once more).
 var tutorial_enabled: bool = true
 var tutorial_seen: bool = false
+## Onboarding hints shown (hint id -> times; BonfireTutorial). Reset with
+## the tutorial (turning Tutorial hints on again).
+var hints_seen: Dictionary = {}
 ## Debug throw overlay on the Bonfire table (flick px/s, launch m/s, curve).
 ## Session only, never saved. Also on with the user arg `-- --throw-debug`.
 var throw_debug: bool = false
@@ -38,12 +41,12 @@ func _ready() -> void:
 
 
 const KEYS: Array[StringName] = [&"master_volume", &"sfx_volume", &"music_volume", &"fullscreen", &"vsync", &"throw_sensitivity",
-	&"tutorial_enabled", &"tutorial_seen"]
+	&"tutorial_enabled", &"tutorial_seen", &"hints_seen"]
 
 
 func defaults() -> Dictionary:
 	return {&"master_volume": 1.0, &"sfx_volume": 1.0, &"music_volume": 0.8, &"fullscreen": false, &"vsync": true, &"throw_sensitivity": 1.0,
-		&"tutorial_enabled": true, &"tutorial_seen": false}
+		&"tutorial_enabled": true, &"tutorial_seen": false, &"hints_seen": {}}
 
 
 func reset_to_defaults() -> void:
@@ -63,6 +66,7 @@ func set_option(key: StringName, value: Variant) -> void:
 	set(key, value)
 	if key == &"tutorial_enabled" and bool(value):
 		tutorial_seen = false
+		hints_seen = {}
 	apply()
 	save_settings()
 	changed.emit(key)

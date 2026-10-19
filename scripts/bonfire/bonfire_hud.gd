@@ -372,6 +372,7 @@ func set_ui_scale(pt_px: float, cards: float = 1.0) -> void:
 	ui_pt_px = pt_px
 	card_mult = cards
 	_layout_cards()
+	tutorial.set_ui_scale(pt_px)
 
 
 ## Phone landscape: the cards at 0.72 of their PC pt size (9.4 pt title caps),

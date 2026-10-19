@@ -31,6 +31,8 @@ var table_type: NT = NT.TABLE
 ## Elite: its twist; Boss: cheat (+ twist). Passed to the table in the setup.
 var rules: Array[RunRuleData] = []
 var boss_misses: int = 0
+## Tables finished this run (the first one gets the tutorial seeds).
+var tables_played: int = 0
 
 ## Reward screen: Seal options (combo ids, or rare Seal ids) and Elite dice.
 var seal_options: Array[StringName] = []
@@ -168,6 +170,7 @@ func table_setup() -> RunTableSetup:
 	s.start_soul = progress.soul
 	s.max_soul = progress.max_soul
 	s.seed_value = hash([run_seed, floor_index, map.current_id, &"table", boss_misses])
+	s.first_table = tables_played == 0
 	s.rules = rules.duplicate()
 	for r in rules:
 		if r.bust_soul_loss >= 0:
@@ -182,6 +185,7 @@ func table_setup() -> RunTableSetup:
 func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[StringName] = []) -> void:
 	if screen != Screen.TABLE:
 		return
+	tables_played += 1
 	progress.change_soul(soul_after - progress.soul)
 	progress.change_embers(embers)
 	progress.record_banks(banked)

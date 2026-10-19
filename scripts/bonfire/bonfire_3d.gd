@@ -279,6 +279,7 @@ func leave() -> bool:
 		return false
 	if not run.leave():
 		return false
+	bhud.tutorial.on_action(&"leave")
 	_kill_hand_tweens()
 	pause_menu.set_forfeit_enabled(false)
 	phase = Phase.OVER
@@ -424,6 +425,7 @@ func throw_again() -> bool:
 	if rt.is_empty():
 		_refuse(why if why != "" else "Pot at least one burning die first.")
 		return false
+	bhud.tutorial.on_action(&"rethrow")
 	pot_dice.append_array(potted_now)
 	# Back to the home framing (the reveal left the camera zoomed in on the
 	# dice): the count-up and its fire play on the pot row, and the next
@@ -441,7 +443,9 @@ func throw_again() -> bool:
 		_set_active(all_dice)
 		_hot_hand_moment()
 		_set_why("Hot Hand! All %d dice back, +%d mult on every pot this hand." % [run.cold, run.mult_bonus()])
-		_tutorial_hint(4)
+		if _seed_hand == 1:
+			_seed_hot_h1 = true
+		_hint(&"th6_hot", {"all": run.cold, "mult": run.mult_bonus() / maxi(run.hot_hands, 1)})
 	else:
 		for d in cold_now:
 			_set_lit(d, false)
@@ -519,9 +523,16 @@ func _start_count_up(sel: Dictionary, dice_list: Array[DieVisual], faces: Array,
 	_juice_dice = dice_list.duplicate()
 	_juice_tier = tier
 	_pip_mods.clear()
+	var wild := -1
 	for k in faces.size():
 		var fm: FaceModData = (faces[k] as Dictionary).get("mod")
 		_pip_mods.append(fm.id if fm != null and not run.rule_ctx()["no_mods"] else &"")
+		if wild < 0 and fm != null and fm.effect == FaceModData.Effect.WILD and not run.rule_ctx()["no_mods"]:
+			wild = k
+	if wild >= 0:
+		# JIT4: the first pot with a Wild face (die = its index in the throw).
+		var wd := throw_dice.find(dice_list[wild]) if wild < dice_list.size() else -1
+		_hint(&"jit4_wild", {"die": wd})
 	var ids: Array = []
 	for d in dice_list:
 		ids.append(event_id(d))
@@ -564,6 +575,7 @@ func bank() -> Dictionary:
 	if phase != Phase.BET or not run.can_continue():
 		_refuse("Pot at least one burning die to bank.")
 		return {}
+	bhud.tutorial.on_action(&"bank")
 	fast_forward_juice()
 	var sel := run.selection()
 	var hot_before := run.hot_hands
@@ -601,7 +613,12 @@ func bank() -> Dictionary:
 		juice.stamp_sound()
 		if speed_mode != 2:
 			await _wait(bonfire_tuning.juice_stamp_gap / test_speed)
-	_tutorial_hint(3)
+	for b: BountyData in run.goal.required:
+		if (r["ticked"] as Array).has(b.id):
+			_hint(&"th7_claimed", {"card": b.id})
+			break
+	var tut := bhud.tutorial
+	_hint(&"th8_points", {}, func() -> bool: return int(tut.seen.get(&"th7_claimed", 0)) > 0)
 	juice.drop(all_pot)
 	bhud.countup.clear()
 	_set_why("Banked %d points.%s" % [int(r["gain"]), (" Bounty: " + ", ".join(names) + "!") if not names.is_empty() else ""])
@@ -611,7 +628,8 @@ func bank() -> Dictionary:
 		bhud.show_cleared(2.0 if speed_mode == 1 else 1.0, speed_mode == 2 or reduced_motion)
 		events.table_cleared.emit()
 		_taunt(&"bonfire_clear")
-		_tutorial_hint(5)
+		if not run.is_over() and run.hands_left > 0 and run.goal.bonus.any(func(b: BountyData) -> bool: return not run.is_ticked(b)):
+			_hint(&"th10_cleared", {"card": (run.goal.bonus[0] as BountyData).id})
 		if not run.is_over():
 			_set_why("Table cleared! Chase the bonus with your remaining hands, or Leave table.")
 	hand_result.emit(r)
@@ -636,13 +654,18 @@ func pick_die(i: int) -> bool:
 		tw.tween_property(d, "position", p + Vector3(0, hop, 0), 0.08).set_ease(Tween.EASE_OUT)
 		tw.tween_property(d, "position", p, 0.14).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 		bhud.callout(camera.cam.unproject_position(d.global_position + Vector3(0, tuning.die_size, 0)), NO_SCORE_TEXT)
+		bhud.tutorial.on_action(&"refused")
+		# Just-in-time or never: it doesn't wait behind another hint.
+		_hint(&"th2b_nofit", {"die": i}, func() -> bool: return false)
 		_set_why("That die doesn't score with this combo (a pot is exactly ONE combo).")
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	_layout_throw()
+	if not run.potted.is_empty():
+		bhud.tutorial.on_action(&"potted")
 	if run.can_continue():
-		_tutorial_hint(1)
-		_bust_hint_check()
+		bhud.tutorial.on_action(&"valid_selection")
+		_selection_hints()
 	_refresh_hud()
 	return true
 
@@ -653,15 +676,33 @@ const NO_SCORE_TEXT := "doesn't score"
 signal refused(index: int)
 
 
-## Section 4: show the bust hint BEFORE the first rethrow of 1-3 dice. True
-## when the next throw (as picked now) would be 1 to 3 cold dice.
-func _bust_hint_check() -> void:
-	# Never on top of another hint: it waits for the next refresh.
-	if bhud == null or bhud.tutorial.current != -1:
+## After a pick that leaves a valid pot (onboarding_hints_v1.md): TH3 if it
+## would claim a bounty, TH4 when Bank and Rethrow are both on offer, TH5
+## (with the exact odds) when the rethrow would be 1-3 dice. One at a time:
+## the later ones wait and show only if still true.
+func _selection_hints() -> void:
+	var claims := claimable_bounties()
+	if not claims.is_empty():
+		var id: StringName = (claims[0] as BountyData).id if claims[0] is BountyData else StringName(str(claims[0]))
+		_hint(&"th3_pending", {"card": id}, func() -> bool: return not claimable_bounties().is_empty())
+	var both := func() -> bool: return run.state == BonfireRun.State.PICK and run.can_continue() and next_throw_size() > 0
+	if both.call():
+		_hint(&"th4_choice", {}, both)
+	var small := func() -> bool:
+		var k := next_throw_size()
+		return run.state == BonfireRun.State.PICK and run.can_continue() and k >= 1 and k <= 3 and not run.is_hot()
+	if small.call():
+		rethrow_prompt()
+		var n := next_throw_size()
+		_hint(&"th5_risk", {"n": n, "odds": BustRisk.odds_text(float(_risk.get("burn", 0.0)))}, small)
+
+
+## JIT1: the last hand starts with required bounties unclaimed.
+func _last_hand_hint() -> void:
+	if run == null or run.hands_left != 1 or run.is_over():
 		return
-	var n := next_throw_size()
-	if n >= 1 and n <= 3 and not (run.state == BonfireRun.State.PICK and run.is_hot()):
-		_tutorial_hint(2)
+	if run.goal.required.any(func(b: BountyData) -> bool: return not run.is_ticked(b)):
+		_hint(&"jit1_last", {"soul": run.soul_cost(bonfire_tuning.table_goal.timeout_soul_per_bounty if bonfire_tuning.table_goal != null else 3, &"timeout")})
 
 
 ## How many dice the next throw would use (0 = none / not a rethrow).
@@ -763,39 +804,169 @@ func _is_table_one() -> bool:
 	return setup != null and setup.goal != null and (setup.goal == bonfire_tuning.table_goal or setup.goal.display_name == "Table 1")
 
 
+## The Table 1 tutorial (TH hints + seeded throws) runs on this table.
 func tutorial_wanted() -> bool:
 	if tutorial_override >= 0:
+		return tutorial_override == 1 and _is_first_table()
+	if not hints_wanted():
+		return false
+	var gs := _settings()
+	return _is_first_table() and not bool(gs.get("tutorial_seen"))
+
+
+## Any hints on this table (Settings: Tutorial hints On/Off). Only the real
+## game (the table is the current scene), never tests / tools, unless a
+## test sets tutorial_override = 1.
+func hints_wanted() -> bool:
+	if tutorial_override >= 0:
 		return tutorial_override == 1
-	# Only the real game (the table is the current scene), never tests / tools.
 	if get_tree().current_scene != self:
 		return false
 	var gs := _settings()
-	if gs == null or not _is_table_one():
-		return false
-	return bool(gs.get("tutorial_enabled")) and not bool(gs.get("tutorial_seen"))
+	return gs != null and bool(gs.get("tutorial_enabled"))
+
+
+## The run's first table, and it's Table 1 (seeding / TH hints only there).
+func _is_first_table() -> bool:
+	return setup != null and setup.first_table and _is_table_one()
 
 
 func _maybe_start_tutorial() -> void:
 	var tut := bhud.tutorial
 	tut.visible = false
 	tut.active = false
-	if not tutorial_wanted():
-		return
-	tut.start()
+	tut.current = &""
+	tut.enabled = hints_wanted()
 	var gs := _settings()
-	if gs != null and gs.has_method("set_option"):
-		gs.set_option(&"tutorial_seen", true)
-	# The first throw lands a pair + a run of 3 (if the handful allows).
-	var want: Array[int] = bonfire_tuning.tutorial_first_throw.duplicate()
-	if setup.dice.size() >= want.size():
-		while want.size() < setup.dice.size():
-			want.append(3)
-		rig_faces(want)
+	tut.touch = phone_screen != Vector2.ZERO or (gs != null and gs.has_method("is_mobile") and bool(gs.call("is_mobile")))
+	tut.anchor_provider = _hint_anchor
+	if gs != null and gs.get("hints_seen") is Dictionary and tutorial_override < 0:
+		tut.seen = (gs.get("hints_seen") as Dictionary).duplicate()
+	if not tut.seen_changed.is_connected(_save_hints_seen):
+		tut.seen_changed.connect(_save_hints_seen)
+		tut.skipped.connect(func() -> void: _seeding = false)
+	_seeding = false
+	_seed_hand = 1
+	_seed_hot_h1 = false
+	seeded_throws.clear()
+	if tutorial_wanted():
+		tut.start()
+		_seeding = true
+		if gs != null and gs.has_method("set_option") and tutorial_override < 0:
+			gs.set_option(&"tutorial_seen", true)
+		_hint(&"th0_throw")
+	# JIT5: an Elite / boss table (a twist or cheat rule) starts.
+	if run != null and run.rules.any(func(r: TableRule) -> bool: return r.kind == TableRule.Kind.TWIST or r.kind == TableRule.Kind.CHEAT):
+		_hint(&"jit5_twist")
 
 
-func _tutorial_hint(k: int) -> void:
-	if bhud != null and bhud.tutorial.active:
-		bhud.tutorial.hint(k)
+func _save_hints_seen(seen: Dictionary) -> void:
+	var gs := _settings()
+	if gs != null and gs.has_method("set_option") and tutorial_override < 0:
+		gs.set_option(&"hints_seen", seen.duplicate())
+
+
+## Asks the tutorial for hint id (BonfireTutorial.request).
+func _hint(id: StringName, ctx: Dictionary = {}, still: Callable = Callable()) -> bool:
+	return bhud != null and bhud.tutorial.request(id, ctx, still)
+
+
+# --- Tutorial seeds (onboarding_hints_v1.md: Table 1 only, tutorial on) -------------
+
+## Seeding is on (stops at the first unseeded throw, after hand 2, on Skip).
+var _seeding: bool = false
+## The hand of the table (1 = first) and whether hand 1 reached a Hot Hand.
+var _seed_hand: int = 1
+var _seed_hot_h1: bool = false
+## Per throw this table: true if it was seeded (tests).
+var seeded_throws: Array[bool] = []
+
+
+## The faces for the next throw from BonfireTuning.tutorial_first_throw /
+## tutorial_seeds, or [] (unseeded: seeding stops). Never a bust: a seed
+## that would light nothing is not used.
+func tutorial_seed() -> Array[int]:
+	var out: Array[int] = []
+	if not _seeding or run == null or _seed_hand > 2 or not _is_first_table():
+		return out
+	var hand := _seed_hand
+	var th := run.throws_this_hand + 1
+	var n := dice.size()
+	var t := bonfire_tuning
+	if hand == 1 and th == 1:
+		if t.tutorial_first_throw.size() == n:
+			out.assign(t.tutorial_first_throw)
+	elif not (hand == 2 and _seed_hot_h1):
+		for e: Dictionary in t.tutorial_seeds:
+			if int(e.get("hand", 0)) != hand or int(e.get("throw", 0)) != th or int(e.get("dice", n)) != n:
+				continue
+			if bool(e.get("no_hot_hand", false)) and _seed_hot_h1:
+				continue
+			if e.has("bounty"):
+				var bid := StringName(e["bounty"])
+				var b: BountyData = null
+				for rb: BountyData in run.goal.required:
+					if rb.id == bid:
+						b = rb
+				if b == null or run.is_ticked(b) or run.pending.has(bid):
+					continue
+			out.assign(e.get("faces", []))
+			break
+	if out.size() != n or BonfireScoring.lit_indices(out, t, run.rule_ctx()).is_empty():
+		out.clear()
+	return out
+
+
+## Screen rect (HUD space) for a hint anchor (BonfireTutorial.HINTS).
+func _hint_anchor(anchor: StringName, ctx: Dictionary) -> Rect2:
+	match anchor:
+		&"hand":
+			return _rect_of([hand_spot(0), hand_spot(1)])
+		&"lit_dice", &"tray":
+			var pts: Array[Vector3] = []
+			for d in throw_dice:
+				pts.append(d.global_position)
+			return _rect_of(pts)
+		&"refused_die", &"wild_die":
+			var i := int(ctx.get("die", -1))
+			if i >= 0 and i < throw_dice.size():
+				return _rect_of([throw_dice[i].global_position])
+		&"pulsing_card", &"stamped_card", &"unclaimed_cards", &"bonus_leave":
+			var id := StringName(ctx.get("card", &""))
+			if anchor == &"bonus_leave" and bhud.leave_button.visible:
+				return bhud.leave_button.get_global_rect()
+			if bhud.portrait_goal.visible:
+				return bhud.portrait_goal.get_global_rect()
+			if bhud.bounty_cards.has(id):
+				return (bhud.bounty_cards[id] as Control).get_global_rect()
+			return bhud.checklist_panel.get_global_rect()
+		&"buttons":
+			return bhud.bank_button.get_global_rect().merge(bhud.throw_button.get_global_rect())
+		&"risk":
+			# Beside the Throw button (the risk line under the pot says the same).
+			return bhud.throw_button.get_global_rect()
+		&"mult":
+			return bhud.mult_label.get_global_rect()
+		&"embers":
+			return bhud.points_label.get_global_rect()
+		&"soul":
+			return soul_meter.get_global_rect()
+		&"rules":
+			return bhud.rules_panel.get_global_rect()
+	return Rect2()
+
+
+func _rect_of(points: Array[Vector3]) -> Rect2:
+	var r := Rect2()
+	var first := true
+	for p in points:
+		var sp := camera.cam.unproject_position(p + Vector3(0, tuning.die_size * 0.5, 0))
+		if first:
+			r = Rect2(sp, Vector2.ZERO)
+			first = false
+		else:
+			r = r.expand(sp)
+	return r.grow(tuning.die_size * 200.0) if not first else Rect2()
 
 
 func die_at_screen(p: Vector2) -> int:
@@ -932,7 +1103,9 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		sfx.play(&"rim_hit", 0.8, -6.0)
 		_set_why("%d burning. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
-		_tutorial_hint(0)
+		if _seed_hand == 1 and run.throws_this_hand == 1:
+			_hint(&"th1_lit")
+			_hint(&"th2_pot", {}, func() -> bool: return run.state == BonfireRun.State.PICK and run.potted.is_empty())
 	else:
 		await _bust()
 	_skip = false
@@ -1019,7 +1192,21 @@ func launch_k(flick_speed: float) -> float:
 ## Options > Throw sensitivity multiplies the flick speed (keyboard quick
 ## throws stay a fixed medium throw).
 func throw(velocity: Vector2, release_pos: Vector2 = Vector2.INF, drag: float = -1.0) -> bool:
-	return super(velocity * (sensitivity() if _player_flick else 1.0), release_pos, drag)
+	var seeded := false
+	if _seeding and _rig.is_empty() and phase == Phase.BET and run != null and run.state == BonfireRun.State.AIM:
+		var f := tutorial_seed()
+		if f.is_empty():
+			_seeding = false
+		else:
+			rig_faces(f)
+			seeded = true
+	var ok := super(velocity * (sensitivity() if _player_flick else 1.0), release_pos, drag)
+	if ok:
+		seeded_throws.append(seeded)
+		bhud.tutorial.on_action(&"thrown")
+	elif seeded:
+		_rig.clear()
+	return ok
 
 
 func sensitivity() -> float:
@@ -1074,8 +1261,6 @@ func _refresh_hud() -> void:
 		bhud.leave_button.visible = can_leave_now()
 	if bhud != null and run != null:
 		bhud.rethrow_prompt = rethrow_prompt() if phase == Phase.BET else ""
-		if phase == Phase.BET and run.state == BonfireRun.State.AIM:
-			_bust_hint_check()
 		bhud.refresh(run, phase == Phase.BET)
 		bhud.pulse_cards(claimable_bounties())
 	if felt_label != null and run != null:
@@ -1100,7 +1285,11 @@ func _on_table_event(event: StringName, data: Dictionary) -> void:
 			# Blood faces pay Soul as the pot scores.
 			_burn_soul(int(data.get("soul_cost", 0)))
 		&"hand_start":
+			_seed_hand += 1
+			if _seed_hand > 2:
+				_seeding = false
 			_refresh_hud()
+			_last_hand_hint()
 
 
 ## Rule face changes (Madame Shuffle's reroll, a Mirror's copy): each changed
@@ -1274,7 +1463,7 @@ func _bust() -> void:
 	bhud.flask_crack(soul_meter.get_global_rect(), reduced_motion)
 	juice.crowd_pot(0)
 	bhud.countup.clear()
-	_tutorial_hint(3)
+	_hint(&"th9_bust", {"soul": int(r["soul_lost"])})
 	_embers(_dice_center(), 24, 10)
 	_taunt(&"bonfire_bust")
 	_set_why("Nothing caught fire. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])

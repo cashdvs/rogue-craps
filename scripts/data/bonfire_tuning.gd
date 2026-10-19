@@ -74,8 +74,24 @@ extends Resource
 @export var juice_flask_crack_delay: float = 0.35
 ## Unbanked pot that makes the crowd roar (CrowdLayers pot fraction 1).
 @export var juice_crowd_full_pot: int = 1500
-## Table 1 tutorial: the first throw lands a pair + a run of 3.
-@export var tutorial_first_throw: Array[int] = [2, 2, 4, 5, 6]
+## Table 1 tutorial seeds (design/onboarding_hints_v1.md). Hand 1, throw
+## 1: 2-3-4 and 4-4 glow, the 6 is cold, the Run of 3 card pulses.
+@export var tutorial_first_throw: Array[int] = [2, 3, 4, 4, 6]
+## The seeded throws after it, matched in order by hand, throw (1 = the
+## hand's first) and dice thrown. "bounty": only while that required bounty
+## is unclaimed and not pending (the first match wins). "no_hot_hand": only
+## if hand 1 never reached a Hot Hand (hand 2 is seeded only then). Seeding
+## stops at the first throw with no entry, after hand 2, on Skip, and on any
+## table but the run's first. No entry may bust (tests check).
+@export var tutorial_seeds: Array[Dictionary] = [
+	{"hand": 1, "throw": 2, "dice": 2, "faces": [1, 1]},  # after potting the run: Pair -> Hot Hand
+	{"hand": 1, "throw": 2, "dice": 3, "faces": [1, 1, 1]},  # after potting 4-4: Trips -> Hot Hand
+	{"hand": 1, "throw": 3, "dice": 5, "bounty": &"triple", "faces": [3, 3, 3, 2, 6]},
+	{"hand": 1, "throw": 3, "dice": 5, "bounty": &"two_pairs", "faces": [2, 2, 5, 5, 6]},
+	{"hand": 1, "throw": 3, "dice": 5, "bounty": &"run3", "faces": [4, 5, 6, 2, 2]},
+	{"hand": 2, "throw": 1, "dice": 5, "no_hot_hand": true, "faces": [1, 1, 3, 3, 5]},
+	{"hand": 2, "throw": 2, "dice": 1, "no_hot_hand": true, "faces": [5]},
+]
 
 @export_group("Game camera (home framing, applied over TuningData)")
 ## Bonfire's home framing (PM / Art Director, Oct 19): the spec pitch, a bit
