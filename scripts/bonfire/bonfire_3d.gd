@@ -943,15 +943,17 @@ func _take_down() -> String:
 	return ""
 
 
-## The dice in the hand come first (QA M1): a press on them is a grab even
-## where a HUD control overlaps them. _input runs before the GUI, so the
-## press, and the drag and release that follow it, go straight to the
-## table's normal input and no button ever sees them.
+## Dice come first (QA M1, #103 F1): a press on the dice in the hand is a
+## grab, and a press on a thrown die while picking is a pick, even where a
+## HUD button (THROW / BANK) overlaps them. _input runs before the GUI, so
+## the press (and a grab's drag and release) go straight to the table's
+## normal input and no button ever sees them.
 func _input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	var left := mb != null and mb.button_index == MOUSE_BUTTON_LEFT
 	var holding := phase == Phase.HELD and (event is InputEventMouseMotion or (left and not mb.pressed))
-	if holding or (left and mb.pressed and hand_grab_at(mb.position)):
+	var on_dice := left and mb.pressed and (hand_grab_at(mb.position) or die_pick_at(mb.position))
+	if holding or on_dice:
 		get_viewport().set_input_as_handled()
 		_unhandled_input(event)
 
@@ -959,6 +961,12 @@ func _input(event: InputEvent) -> void:
 ## True if a press at screen point p would grab the dice waiting in the hand.
 func hand_grab_at(p: Vector2) -> bool:
 	return phase == Phase.BET and can_throw() == "" and _hand_contains(p)
+
+
+## True if a press at screen point p lands on a thrown die while picking
+## (it pots the die, or shakes it if it can't score).
+func die_pick_at(p: Vector2) -> bool:
+	return phase == Phase.BET and run != null and run.state == BonfireRun.State.PICK and die_at_screen(p) >= 0
 
 
 func _unhandled_input(event: InputEvent) -> void:

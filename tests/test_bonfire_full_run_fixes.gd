@@ -12,6 +12,9 @@
 ##   Minor 9: volumetric fog (FogVolume + Environment) only on Forward+; the
 ##       Compatibility renderer gets the fallback cone instead (checked for
 ##       real under xvfb with --rendering-method gl_compatibility).
+##   #103 F1: while picking, a click on a thrown die under THROW / BANK pots
+##       the die (or shakes it if unlit) and presses no button.
+##   #103 N6: a table that ends mid-tutorial hides the hint panel.
 ##   godot --headless --path . --script res://tests/test_bonfire_full_run_fixes.gd
 extends SceneTree
 
@@ -38,6 +41,8 @@ func _run() -> void:
 	await _m2_tutorial()
 	await _m4_soul_meter()
 	await _fog_compat()
+	await _f1_pick_under_buttons()
+	await _n6_tutorial_hidden_at_end()
 	print("test_bonfire_full_run_fixes: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -258,7 +263,8 @@ func _m2_tutorial() -> void:
 
 # --- M4 -----------------------------------------------------------------------------
 
-func _one_hand_table(goal_required: int) -> Bonfire3D:
+## tutorial: Bonfire3D.tutorial_override (0 = off, 1 = on).
+func _one_hand_table(goal_required: int, tutorial: int = 0) -> Bonfire3D:
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var setup := TableSetup.sandbox(t, 5)
 	var goal := t.table_goal.duplicate() as TableGoal
@@ -268,7 +274,7 @@ func _one_hand_table(goal_required: int) -> Bonfire3D:
 	setup.goal = goal
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = setup
-	s.tutorial_override = 0
+	s.tutorial_override = tutorial
 	s.test_speed = 10.0
 	root.add_child(s)
 	return s
@@ -324,5 +330,94 @@ func _fog_compat() -> void:
 	var env_node := s.find_children("*", "WorldEnvironment", true, false)
 	var env: Environment = (env_node[0] as WorldEnvironment).environment if not env_node.is_empty() else null
 	check(env != null and env.volumetric_fog_enabled == fog, "Environment volumetric fog matches the renderer")
+	s.queue_free()
+	await process_frame
+
+
+# --- #103 F1 ------------------------------------------------------------------------
+
+## Lays the button column so `button`'s centre sits on screen point p.
+func _button_over(s: Bonfire3D, button: Button, p: Vector2) -> void:
+	var col := button.get_parent() as Control
+	col.position += p - button.get_global_rect().get_center()
+
+
+func _click(sv: SubViewport, p: Vector2) -> void:
+	sv.push_input(_click_event(p, true), true)
+	sv.push_input(_click_event(p, false), true)
+
+
+func _idle(s: Bonfire3D) -> void:
+	for k in 600:
+		if s.phase == Table3D.Phase.BET and not s.bhud.countup.is_playing():
+			break
+		await process_frame
+	for k in 12:
+		await process_frame
+
+
+func _f1_pick_under_buttons() -> void:
+	var made: Array = await _table_in(Vector2i(1920, 1080), Vector2(1920, 1080))
+	var sv: SubViewport = made[0]
+	var s: Bonfire3D = made[1]
+	var presses := [0]
+	s.bhud.throw_pressed.connect(func() -> void: presses[0] += 1)
+	s.bhud.bank_pressed.connect(func() -> void: presses[0] += 1)
+	await _wait_in_hand(s)
+	# Three 5s burn (trips), the 6 doesn't.
+	s.rig_faces([5, 5, 5, 2, 6] as Array[int])
+	s.quick_throw()
+	await s.sequence_finished
+	s.pick_die(0)
+	s.pick_die(1)
+	await _idle(s)
+	var hands: int = s.run.hands_left
+	check(s.run.state == BonfireRun.State.PICK and s.run.can_continue() and not s.bhud.bank_button.disabled and not s.bhud.throw_button.disabled,
+		"F1 setup: a pair of 5s potted, THROW and BANK live")
+	# A burning die under THROW: the click pots it (trips now).
+	var p := s.camera.cam.unproject_position(s.throw_dice[2].global_position)
+	_button_over(s, s.bhud.throw_button, p)
+	await process_frame
+	check(s.bhud.throw_button.get_global_rect().has_point(p), "F1: THROW laid over the third 5")
+	_click(sv, p)
+	await _idle(s)
+	check(s.run.potted.has(2) and s.run.potted.size() == 3, "F1: the click under THROW pots the die (potted %s)" % str(s.run.potted))
+	check(presses[0] == 0 and s.run.hands_left == hands and s.run.state == BonfireRun.State.PICK, "F1: ...and presses nothing (no rethrow, hands %d)" % s.run.hands_left)
+	# The unlit 6 under BANK: the click is refused (shake), nothing banks.
+	p = s.camera.cam.unproject_position(s.throw_dice[4].global_position)
+	check(not s.is_lit(s.throw_dice[4]), "F1: the 6 doesn't burn")
+	_button_over(s, s.bhud.bank_button, p)
+	await process_frame
+	check(s.bhud.bank_button.get_global_rect().has_point(p), "F1: BANK laid over the 6")
+	_click(sv, p)
+	await _idle(s)
+	check(not s.run.potted.has(4) and s.run.potted.size() == 3, "F1: the click under BANK on an unlit die is refused (potted %s)" % str(s.run.potted))
+	check(presses[0] == 0 and s.run.hands_left == hands and s.run.state == BonfireRun.State.PICK, "F1: ...and doesn't bank the hand (hands %d)" % s.run.hands_left)
+	sv.queue_free()
+	await process_frame
+
+
+# --- #103 N6 ------------------------------------------------------------------------
+
+func _n6_tutorial_hidden_at_end() -> void:
+	var s := _one_hand_table(3, 1)
+	await process_frame
+	s.quick_throw()
+	await s.sequence_finished
+	# Pot the first burning die that makes a legal pot on its own.
+	for i in s.throw_dice.size():
+		if s.is_lit(s.throw_dice[i]) and s.pick_die(i):
+			if s.run.can_continue():
+				break
+			s.pick_die(i)
+	if not s.run.can_continue():
+		# No single die scores alone: pot the pair the tutorial throw lands.
+		for i in s.throw_dice.size():
+			if s.is_lit(s.throw_dice[i]) and not s.run.can_continue():
+				s.pick_die(i)
+	check(s.bhud.tutorial.active and s.bhud.tutorial.visible, "N6 setup: a tutorial hint is showing mid-table")
+	await s.bank()
+	check(s.bhud.end_panel.visible and s.run.is_over(), "N6: the one-hand table ends (end panel up)")
+	check(not s.bhud.tutorial.visible and not s.bhud.tutorial.active, "N6: the hint panel is hidden under the end panel, no more hints")
 	s.queue_free()
 	await process_frame

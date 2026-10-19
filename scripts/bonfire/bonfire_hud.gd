@@ -526,6 +526,10 @@ func show_end(run: BonfireRun) -> void:
 			end_title.text = "TABLE LOST"
 			end_body.text = "Out of hands with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
 	end_panel.visible = true
+	# A table can end mid-tutorial: the hint panel must not cover the end
+	# panel (#103 N6). No more hints on this table.
+	tutorial.dismiss()
+	tutorial.active = false
 
 
 func _label(px: int, col: Color, pos: Vector2, sz: Vector2) -> Label:
