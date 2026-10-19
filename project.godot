@@ -14,6 +14,9 @@ config/name="Dice of the Damned"
 config/description="A single-player craps-style dice roguelite (3D table POC)."
 run/main_scene="res://scenes/studio_splash.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
+config/icon="res://assets/branding/studio/icon.png"
+boot_splash/bg_color=Color(0.118, 0.106, 0.102, 1)
+boot_splash/show_image=false
 
 [display]
 
