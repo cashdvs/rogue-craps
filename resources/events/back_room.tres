@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_choice"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_effect"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_event"]
+
+[sub_resource type="Resource" id="fx_back_room_a1"]
+script = ExtResource("2_effect")
+kind = 1
+amount = -20
+
+[sub_resource type="Resource" id="fx_back_room_a2"]
+script = ExtResource("2_effect")
+kind = 6
+die = &"coven"
+
+[sub_resource type="Resource" id="ch_back_room_a"]
+script = ExtResource("1_choice")
+label = "Buy in: -20 Embers for a Coven Die."
+result_text = "The Coven Die is yours, warm from the velvet."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_back_room_a1"), SubResource("fx_back_room_a2")])
+
+[sub_resource type="Resource" id="fx_back_room_b1"]
+script = ExtResource("2_effect")
+amount = -8
+
+[sub_resource type="Resource" id="fx_back_room_b2"]
+script = ExtResource("2_effect")
+kind = 4
+amount = 1
+seal = &"trips"
+
+[sub_resource type="Resource" id="fx_back_room_b3"]
+script = ExtResource("2_effect")
+kind = 4
+amount = 1
+seal = &"full_house"
+
+[sub_resource type="Resource" id="ch_back_room_b"]
+script = ExtResource("1_choice")
+label = "Learn the house game: -8 Soul, Trips and Full House Seals +1."
+result_text = "He teaches you to read three of a kind."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_back_room_b1"), SubResource("fx_back_room_b2"), SubResource("fx_back_room_b3")])
+
+[sub_resource type="Resource" id="ch_back_room_c"]
+script = ExtResource("1_choice")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_event")
+id = &"back_room"
+title = "The Back Room"
+body = "Behind a velvet rope, a gloved dealer offers members-only deals."
+art_note = "A velvet rope, a dealer in white gloves, one green-felt table under a single lamp."
+floors = Array[int]([3])
+choices = Array[ExtResource("1_choice")]([SubResource("ch_back_room_a"), SubResource("ch_back_room_b"), SubResource("ch_back_room_c")])

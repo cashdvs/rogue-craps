@@ -5,6 +5,14 @@
 ## hand = HOT HAND: all dice back, +1 mult on every later pot this hand.
 ## Table goal (TableGoal): bank every required bounty within the hands.
 ##
+## Clearing (how_bonfire_plays.md §2.8): once every required bounty is
+## banked the table is CLEARED (`cleared` = true, the clear Embers are paid
+## right then) but it stays open. The player can keep throwing the hands
+## that are left to chase the bonus bounty and more points, or leave()
+## between hands. A bust while chasing costs Soul as usual but never undoes
+## the clear or a banked bounty. When the hands run out a cleared table ends
+## as CLEARED (no timeout penalty); an uncleared one as FAILED.
+##
 ## Table rules (Elite twists, boss cheats, special-die abilities) are
 ## TableRule handlers (set_rules); every moment they hook is also emitted on
 ## `table_event` (hand_start, throw_landed, pot, bank, bust, die_shattered,
@@ -46,6 +54,9 @@ var ticks: Dictionary = {}
 var pending: Dictionary = {}
 var last_result: Dictionary = {}
 var forfeited: bool = false
+## True from the bank that claimed the last required bounty, for good (a later
+## bust, running out of hands or leaving never turns it back off).
+var cleared: bool = false
 ## Filled when the table ends: {"points_embers", "clear_embers", "soul_lost", ...}.
 var table_summary: Dictionary = {}
 ## Active rule handlers (TableRules.build); special-die handlers first.
@@ -464,12 +475,20 @@ func _bust() -> void:
 func _finish(r: Dictionary) -> Dictionary:
 	hands_left -= 1
 	pending.clear()
-	if r["kind"] == &"bank" and unticked_required() == 0:
-		_end_table(State.CLEARED)
-	elif soul <= 0:
+	# The bank that claims the last required bounty clears the table: the
+	# clear Embers are locked in now, and the table stays open.
+	r["cleared_now"] = false
+	if r["kind"] == &"bank" and not cleared and unticked_required() == 0:
+		cleared = true
+		embers += goal.clear_embers
+		r["cleared_now"] = true
+		table_event.emit(&"table_cleared", {})
+	if soul <= 0:
 		_end_table(State.RUN_OVER)
 	elif hands_left <= 0:
-		_end_table(State.FAILED)
+		# Out of hands: a cleared table simply ends (the "auto-leave"); an
+		# uncleared one has failed (timeout Soul in _end_table).
+		_end_table(State.CLEARED if cleared else State.FAILED)
 	else:
 		_start_hand()
 	r["state"] = state
@@ -482,32 +501,52 @@ func _finish(r: Dictionary) -> Dictionary:
 
 func _end_table(st: State) -> void:
 	var converted := points / maxi(tuning.points_per_ember, 1)
-	var clear := goal.clear_embers if st == State.CLEARED else 0
+	# The clear Embers were already paid at the clearing bank (see _finish).
+	var clear := goal.clear_embers if cleared else 0
 	var soul_lost := 0
 	if st == State.FAILED:
 		soul_lost = soul_cost(unticked_required() * goal.timeout_soul_per_bounty, &"timeout")
 		soul = maxi(soul - soul_lost, 0)
 		if soul <= 0:
 			st = State.RUN_OVER
-	embers += converted + clear
+	embers += converted
 	table_summary = {"points_embers": converted, "clear_embers": clear, "timeout_soul": soul_lost, "points": points}
 	state = st
 	table_event.emit(&"table_end", {"state": st})
 
 
+## Can the player leave now? Only a cleared table, only between hands (no
+## throw made yet this hand).
+func can_leave() -> bool:
+	return cleared and not is_over() and state == State.AIM and throws_this_hand == 0
+
+
+## Leave a cleared table between hands: it ends as CLEARED (points convert,
+## no timeout penalty). False if not allowed right now (see can_leave).
+func leave() -> bool:
+	if not can_leave():
+		return false
+	_end_table(State.CLEARED)
+	last_result = {"kind": &"leave", "state": state, "points": points, "soul": soul}
+	return true
+
+
 ## Give up the table (run mode): ends it like running out of hands
 ## (timeout Soul per unticked required bounty, points still convert to
 ## Embers, no clear bonus); the hand in progress is lost. False if over.
+## On a table that is already cleared it is a Leave instead: the hand in
+## progress is lost, but the clear and the banked bounties stand (not
+## counted as forfeited, so the run still sees a cleared table).
 func forfeit() -> bool:
 	if is_over():
 		return false
-	forfeited = true
+	forfeited = not cleared
 	pending.clear()
 	pot = 0
 	potted.clear()
 	throw_faces.clear()
 	throw_mods.clear()
-	_end_table(State.FAILED)
+	_end_table(State.CLEARED if cleared else State.FAILED)
 	last_result = {"kind": &"forfeit", "state": state, "points": points, "soul": soul}
 	return true
 

@@ -98,14 +98,16 @@ func _initialize() -> void:
 	var soul := r.soul
 	check(not r.set_throw([2] as Array[int]), "nothing lit = bust")
 	check(r.soul == soul - 1 and not r.is_ticked(t.table_goal.required[2]) and r.pending.is_empty() and r.last_result["lost_pot"] == 108, "bust: -1 Soul, pot and pending ticks lost")
-	# Clear the moment all required are banked (+10 Embers, points -> Embers).
+	# Clear the moment all required are banked: +10 Embers locked in, the
+	# table stays open (points turn into Embers when it ends).
 	r.set_throw([3, 3, 3, 5, 5] as Array[int])
 	for i in 5:
 		r.toggle(i)
 	b = r.bank()
-	check(r.state == BonfireRun.State.CLEARED and b["ticked"].has(&"two_pairs") and b["bonus_embers"] == 5, "Full House pot banks Two Pairs (clear) + bonus Full House")
+	check(r.cleared and not r.is_over() and b["cleared_now"] and b["ticked"].has(&"two_pairs") and b["bonus_embers"] == 5, "Full House pot banks Two Pairs (clear, table stays open) + bonus Full House")
 	var total_pts := 126 + 40 + 87 + (40 + 19) * 5
-	check(r.points == total_pts and r.embers == 5 + 10 + total_pts / 100, "Embers = bonus 5 + clear 10 + points/100 (%d)" % r.embers)
+	check(r.points == total_pts and r.embers == 5 + 10, "clear: bonus 5 + clear 10 locked in (%d)" % r.embers)
+	check(r.leave() and r.state == BonfireRun.State.CLEARED and r.embers == 5 + 10 + total_pts / 100, "Leave: Embers = bonus 5 + clear 10 + points/100 (%d)" % r.embers)
 	# Timeout: -3 Soul per unticked required.
 	var f := BonfireRun.new(t)
 	for i in 5:

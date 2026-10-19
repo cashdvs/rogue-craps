@@ -5,50 +5,9 @@
 ##
 ## Seeds: every random choice uses an RNG seeded from hash([run seed, floor,
 ## node id, purpose]), so a run replays identically and nothing is shared.
+## State: MapRunState; Shop / Rest: MapRunShop.
 class_name MapRun
-extends RefCounted
-
-enum Screen { MAP, TABLE, EVENT, SHOP, REST, REWARD, RUN_WON, RUN_OVER }
-const NT := MapGenData.NodeType
-
-signal screen_changed(screen: Screen)
-
-var data: RunData
-var progress: RunProgress
-var run_seed: int = 0
-var floor_index: int = 0
-var map: RunMap
-var screen: Screen = Screen.MAP
-
-## This floor's boss (its cheat), drawn on entering the floor and shown on the map.
-var boss: RunRuleData
-## Floor 3: the boss's extra Elite twist (else null).
-var boss_twist: RunRuleData
-
-## Table / Elite / Boss being played.
-var goal: TableGoal
-var table_type: NT = NT.TABLE
-## Elite: its twist; Boss: cheat (+ twist). Passed to the table in the setup.
-var rules: Array[RunRuleData] = []
-var boss_misses: int = 0
-## Tables finished this run (the first one gets the tutorial seeds).
-var tables_played: int = 0
-
-## Reward screen: Seal options (combo ids, or rare Seal ids) and Elite dice.
-var seal_options: Array[StringName] = []
-var dice_options: Array[SpecialDieData] = []
-
-var event: EventData
-var _events_seen: Array[StringName] = []
-
-## Shop offers (bought ones become null / &"").
-var shop_dice: Array[SpecialDieData] = []
-var shop_mods: Array[FaceModData] = []
-var shop_seals: Array[StringName] = []
-var shop_seals_bought: int = 0
-var shop_rerolls: int = 0
-## Rest: the face mod the free carve offers.
-var rest_mod: FaceModData
+extends MapRunShop
 
 
 func _init(run_data: RunData, seed_value: int) -> void:
@@ -56,25 +15,6 @@ func _init(run_data: RunData, seed_value: int) -> void:
 	run_seed = seed_value
 	progress = RunProgress.new(data)
 	_start_floor(0)
-
-
-func floor_data() -> FloorData:
-	return data.floors[floor_index]
-
-
-func _rng(purpose: StringName, extra: int = 0) -> RandomNumberGenerator:
-	var r := RandomNumberGenerator.new()
-	r.seed = hash([run_seed, floor_index, map.current_id if map != null else -1, purpose, extra])
-	return r
-
-
-func _set_screen(s: Screen) -> void:
-	screen = s
-	screen_changed.emit(s)
-
-
-static func _pick_rule(pool: Array[RunRuleData], rng: RandomNumberGenerator) -> RunRuleData:
-	return pool[rng.randi_range(0, pool.size() - 1)] if not pool.is_empty() else null
 
 
 func _start_floor(i: int) -> void:
@@ -85,9 +25,11 @@ func _start_floor(i: int) -> void:
 	boss = _pick_rule(floor_data().boss_cheats, rng)
 	boss_twist = _pick_rule(floor_data().elite_twists, rng) if floor_data().boss_adds_twist else null
 	boss_misses = 0
+	progress.next_table_twist = null  # an unplayed event twist expires with the floor
 	_set_screen(Screen.MAP)
 
 
+## The floor boss's name (its cheat), or "Boss".
 func boss_name() -> String:
 	return boss.display_name if boss != null else "Boss"
 
@@ -104,10 +46,14 @@ func choose_node(id: int) -> bool:
 			_set_screen(Screen.TABLE)
 		NT.EVENT:
 			event = _pick_event()
-			_set_screen(Screen.EVENT)
+			if event == null:
+				_open_event_fallback()
+			else:
+				_set_screen(Screen.EVENT)
 		NT.SHOP:
 			shop_seals_bought = 0
 			shop_rerolls = 0
+			shop_free_rerolls = 0
 			_roll_shop()
 			_set_screen(Screen.SHOP)
 		NT.REST:
@@ -115,6 +61,13 @@ func choose_node(id: int) -> bool:
 			rest_mod = mods[_rng(&"rest").randi_range(0, mods.size() - 1)] if not mods.is_empty() else null
 			_set_screen(Screen.REST)
 	return true
+
+
+## Map preview for the next regular Table: "Next Table: <twist> (<text>)"
+## while an event twist is pending, else "".
+func pending_twist_note() -> String:
+	var r := progress.next_table_twist
+	return "Next Table: %s (%s)" % [r.display_name, r.description] if r != null else ""
 
 
 ## Build the table goal (and `rules`) for this node from the floor's pools.
@@ -140,6 +93,11 @@ func make_goal(t: NT) -> TableGoal:
 		var tw := _pick_rule(f.elite_twists, rng)
 		if tw != null:
 			rules.append(tw)
+	# An event twist rides on the next regular Table only, then clears.
+	if t == NT.TABLE and progress.next_table_twist != null:
+		if not rules.has(progress.next_table_twist):
+			rules.append(progress.next_table_twist)
+		progress.next_table_twist = null
 	for r in rules:
 		g.hands += r.hands_delta
 	g.hands = maxi(g.hands, 1)
@@ -245,53 +203,6 @@ func _roll_rewards() -> void:
 		dice_options = _dice_offers(rng, data.elite_dice_options)
 
 
-func _seal_offers(rng: RandomNumberGenerator, n: int) -> Array[StringName]:
-	var out: Array[StringName] = []
-	var pool: Array[StringName] = data.seal_combos.duplicate()
-	while out.size() < n and not pool.is_empty():
-		if not data.rare_seals.is_empty() and rng.randf() < data.rare_seal_chance:
-			var r: StringName = data.rare_seals[rng.randi_range(0, data.rare_seals.size() - 1)]
-			if not out.has(r):
-				out.append(r)
-				continue
-		out.append(pool.pop_at(rng.randi_range(0, pool.size() - 1)))
-	return out
-
-
-func is_rare_seal(id: StringName) -> bool:
-	return data.rare_seals.has(id)
-
-
-## Can Seal `id` be used right now with these choices? Rare Seals take
-## params: Transference {"from", "to"}, Ashen {"from", "to"}; Black none.
-func seal_usable(id: StringName, params: Dictionary = {}) -> bool:
-	match id:
-		&"black":
-			return progress.most_banked() != &""
-		&"transference":
-			var f: StringName = params.get("from", &"")
-			return progress.seal_bonus(f).y > 0 and data.seal_combos.has(params.get("to", &"")) and params.get("to") != f
-		&"ashen":
-			var f: StringName = params.get("from", &"")
-			var i: int = data.seal_combos.find(f)
-			var j: int = data.seal_combos.find(params.get("to", &""))
-			return progress.seal_level(f) > 0 and i >= 0 and j > i
-	return data.seal_combos.has(id)
-
-
-func _grant_seal(id: StringName, params: Dictionary) -> bool:
-	if not seal_usable(id, params):
-		return false
-	match id:
-		&"black":
-			progress.black_seal()
-		&"transference":
-			progress.transference(params["from"], params["to"], data.transference_max_mult)
-		&"ashen":
-			progress.ashen_seal(params["from"], params["to"])
-		_:
-			progress.add_seal_levels(id, 1)
-	return true
 
 
 ## Elite reward: take special die i (one only; then the Seal pick).
@@ -322,183 +233,32 @@ func take_seal(i: int, params: Dictionary = {}) -> bool:
 	return true
 
 
+## A floor event worth offering here (EventPicker), or null.
 func _pick_event() -> EventData:
-	var pool: Array[EventData] = []
-	for e in data.events:
-		if not _events_seen.has(e.id):
-			pool.append(e)
-	if pool.is_empty():
-		_events_seen.clear()
-		pool = data.events.duplicate()
-	var e: EventData = pool[_rng(&"event").randi_range(0, pool.size() - 1)]
-	_events_seen.append(e.id)
-	return e
+	return EventPicker.pick(data.events, _events_seen, floor_index + 1, progress, table_ahead(), _rng(&"event"))
+
+
+## No event is worth offering: the node becomes a Rest (shown as one on the map).
+func _open_event_fallback() -> void:
+	map.current().type = NT.REST
+	var mods := data.face_mods
+	rest_mod = mods[_rng(&"rest").randi_range(0, mods.size() - 1)] if not mods.is_empty() else null
+	_set_screen(Screen.REST)
+
+
+## Is a regular Table still reachable (so unplayed) on this floor?
+func table_ahead() -> bool:
+	return EventPicker.table_ahead(map)
 
 
 ## Resolve event choice i. Returns the applier's log ([] if not allowed).
 func choose_event(i: int, picks: Array[Vector2i] = []) -> Array[String]:
 	if screen != Screen.EVENT or i < 0 or i >= event.choices.size():
 		return []
-	var lines := EventApplier.apply(event.choices[i], progress, _rng(&"event_fx", i), picks)
+	var lines := EventApplier.apply(event.choices[i], progress, _rng(&"event_fx", i), picks, table_ahead())
 	if not lines.is_empty() and lines[0].begins_with("refused"):
 		return lines
 	_set_screen(Screen.RUN_OVER if progress.is_over() else Screen.MAP)
 	return lines
 
 
-# --- Rest (spec 1: pick one) ---
-
-func rest_heal() -> bool:
-	if screen != Screen.REST:
-		return false
-	progress.change_soul(data.rest_heal)
-	_set_screen(Screen.MAP)
-	return true
-
-
-func rest_carve(pick: Vector2i) -> bool:
-	if screen != Screen.REST or rest_mod == null or not free_face(pick):
-		return false
-	progress.set_face(pick.x, pick.y, rest_mod.id)
-	_set_screen(Screen.MAP)
-	return true
-
-
-## A face a new mod can go on: unmodded, or Blank (carving over a curse).
-func free_face(pick: Vector2i) -> bool:
-	return pick.x >= 0 and pick.x < progress.dice.size() and pick.y >= 0 and pick.y < progress.dice[pick.x].faces.size() \
-		and progress.dice[pick.x].faces[pick.y] in [&"", RunDie.BLANK]
-
-
-func owned_seals() -> Array[StringName]:
-	var out: Array[StringName] = []
-	for c in data.seal_combos:
-		if progress.seal_level(c) > 0:
-			out.append(c)
-	return out
-
-
-func rest_seal(combo: StringName) -> bool:
-	if screen != Screen.REST or not owned_seals().has(combo):
-		return false
-	progress.add_seal_levels(combo, data.rest_seal_levels)
-	_set_screen(Screen.MAP)
-	return true
-
-
-# --- Shop (spec 1, Game Designer prices) ---
-
-## n dice offers (shop slots / Elite reward): each is a shaped die with
-## RunData.shape_offer_chance (enabled shapes, equal weight), else a special
-## die; no offer repeats.
-func _dice_offers(rng: RandomNumberGenerator, n: int) -> Array[SpecialDieData]:
-	var specials: Array[SpecialDieData] = data.special_dice.duplicate()
-	var shapes: Array[SpecialDieData] = []
-	for s in data.shapes:
-		if s.enabled:
-			shapes.append(s)
-	var out: Array[SpecialDieData] = []
-	while out.size() < n and not (specials.is_empty() and shapes.is_empty()):
-		var use_shape := not shapes.is_empty() and (specials.is_empty() or rng.randf() < data.shape_offer_chance)
-		var pool := shapes if use_shape else specials
-		out.append(pool.pop_at(rng.randi_range(0, pool.size() - 1)))
-	return out
-
-
-func _roll_shop() -> void:
-	var rng := _rng(&"shop", shop_rerolls)
-	shop_dice.clear()
-	shop_dice = _dice_offers(rng, data.shop_dice)
-	shop_mods.clear()
-	var mpool: Array[FaceModData] = data.face_mods.duplicate()
-	while shop_mods.size() < data.shop_mods and not mpool.is_empty():
-		shop_mods.append(mpool.pop_at(rng.randi_range(0, mpool.size() - 1)))
-	shop_seals = _seal_offers(rng, data.shop_seals)
-
-
-func seal_price(id: StringName) -> int:
-	if is_rare_seal(id):
-		return data.shop_rare_seal_price
-	return data.shop_seal_price + data.shop_seal_step * shop_seals_bought
-
-
-func reroll_price() -> int:
-	return data.reroll_base + data.reroll_step * shop_rerolls
-
-
-func _pay(cost: int) -> bool:
-	if screen != Screen.SHOP or cost < 0 or progress.embers < cost:
-		return false
-	progress.change_embers(-cost)
-	return true
-
-
-func shop_reroll() -> bool:
-	if not _pay(reroll_price()):
-		return false
-	shop_rerolls += 1
-	_roll_shop()
-	return true
-
-
-func buy_die(i: int) -> bool:
-	if i < 0 or i >= shop_dice.size() or shop_dice[i] == null or not progress.can_add_die() or not _pay(shop_dice[i].price):
-		return false
-	progress.add_die(shop_dice[i].id)
-	shop_dice[i] = null
-	return true
-
-
-## Can mod offer i go on face `at` right now (free face, and its die's
-## escalated price is affordable)?
-func can_buy_mod_at(i: int, at: Vector2i) -> bool:
-	return i >= 0 and i < shop_mods.size() and shop_mods[i] != null and free_face(at) \
-		and progress.mod_price(shop_mods[i], at.x) <= progress.embers
-
-
-## The lowest escalated price of mod offer i over dice with a free face; -1
-## if no die has one.
-func cheapest_mod_price(i: int) -> int:
-	if i < 0 or i >= shop_mods.size() or shop_mods[i] == null:
-		return -1
-	var best := -1
-	for d in progress.dice.size():
-		if progress.dice[d].free_faces().is_empty() and not progress.dice[d].faces.has(RunDie.BLANK):
-			continue
-		var price := progress.mod_price(shop_mods[i], d)
-		if best < 0 or price < best:
-			best = price
-	return best
-
-
-## Buy mod offer i onto a picked face; the price escalates per mod on that die.
-func buy_mod(i: int, pick: Vector2i) -> bool:
-	if i < 0 or i >= shop_mods.size() or shop_mods[i] == null or not free_face(pick) \
-			or not _pay(progress.mod_price(shop_mods[i], pick.x)):
-		return false
-	progress.set_face(pick.x, pick.y, shop_mods[i].id)
-	shop_mods[i] = null
-	return true
-
-
-func buy_seal(i: int, params: Dictionary = {}) -> bool:
-	if i < 0 or i >= shop_seals.size() or shop_seals[i] == &"" or screen != Screen.SHOP \
-			or progress.embers < seal_price(shop_seals[i]) or not seal_usable(shop_seals[i], params):
-		return false
-	_pay(seal_price(shop_seals[i]))
-	if not is_rare_seal(shop_seals[i]):
-		shop_seals_bought += 1
-	_grant_seal(shop_seals[i], params)
-	shop_seals[i] = &""
-	return true
-
-
-## Sell a special die from the handful for half its price (floor; a 0-Ember
-## sale still sells). True whenever the die left the handful.
-func sell_die(die_i: int) -> bool:
-	return screen == Screen.SHOP and progress.sell_die(die_i) >= 0
-
-
-func leave() -> void:
-	if screen == Screen.SHOP or screen == Screen.REST:
-		_set_screen(Screen.MAP)

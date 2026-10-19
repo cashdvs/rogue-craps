@@ -18,6 +18,10 @@
 ##   - the face read matches the seeded face every time: the landed pose
 ##     remapped to the seeded slot (PolyDie.remap_basis) reads that slot back
 ##     (the d4 by its top vertex), and the sim's up value matches the pose.
+##     Checked independently of DieHullData too: the shown pose is read
+##     against the 3D Artist's labelled directions in
+##     art/models/dice/batch3_faces.json and must print the seeded slot's
+##     value (the d6 data for the keg, TableDie.default_values otherwise).
 ## Prints one table row per die (ODD TABLE ...).
 ##   godot --headless --path . --script res://tests/test_odd_dice_settle.gd
 ## Env: ODD_THROWS (per strength), ODD_SHAPES (comma list), ODD_SEED.
@@ -28,7 +32,14 @@ const TARGET_MEDIAN := {"soft": 0.9, "medium": 0.9, "hard": 1.3}
 const TARGET_P95_HARD: float = 1.8
 const STUCK_DEG: float = 15.0
 
+## Shape -> its entry in art/models/dice/batch3_faces.json (the mesh's own
+## labelled face / vertex directions; DieHullData is generated from them, so
+## this is the independent reference).
+const ART_KEY := {&"d4": "caltrop_d4", &"d8": "lantern_d8", &"d10": "tithe_d10", &"d12": "midnight_d12",
+	&"d20": "verdict_d20", &"talus": "knucklebone_talus", &"keg": "powder_keg_d6"}
+
 var _passed: int = 0
+var _art: Dictionary = {}
 var _failed: int = 0
 
 
@@ -44,6 +55,28 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 
+## The value printed on the face (or vertex) pointing up in pose b, read from
+## batch3_faces.json, not from DieHullData.
+func art_read(shape: StringName, b: Basis) -> int:
+	var up := b.orthonormalized().inverse() * Vector3.UP
+	var best := -2.0
+	var val := -1
+	for e: Array in (_art[ART_KEY[shape]] as Dictionary)["dirs"]:
+		var d := Vector3(e[1][0], e[1][1], e[1][2]).normalized()
+		if d.dot(up) > best:
+			best = d.dot(up)
+			val = int(e[0])
+	return val
+
+
+## What slot k (1-based) of the shape is printed with: the Powder Keg's d6
+## data, else the shape's default faces.
+func printed(shape: StringName, k: int) -> int:
+	if shape == &"keg":
+		return [1, 1, 2, 2, 3, 3][k - 1]
+	return TableDie.default_values(shape)[k - 1]
+
+
 func pct(a: Array, p: float) -> float:
 	if a.is_empty():
 		return 0.0
@@ -53,6 +86,7 @@ func pct(a: Array, p: float) -> float:
 
 
 func _run() -> void:
+	_art = JSON.parse_string(FileAccess.get_file_as_string("res://art/models/dice/batch3_faces.json"))
 	var shapes: Array = [&"coin", &"d4", &"d8", &"d10", &"d12", &"d20", &"talus", &"keg"]
 	if OS.get_environment("ODD_SHAPES") != "":
 		shapes.clear()
@@ -143,7 +177,11 @@ func _run() -> void:
 					ok = ok and CoinPhysics.face_slot(shown) == want
 				else:
 					ok = rec.up_values[0] == PolyDie.up_slot(shape, fin.basis) and PolyDie.tilt_deg(shape, fin.basis) < 0.5
-					ok = ok and PolyDie.up_slot(shape, PolyDie.remap_basis(shape, fin.basis, want)) == want
+					var shown := PolyDie.remap_basis(shape, fin.basis, want)
+					ok = ok and PolyDie.up_slot(shape, shown) == want
+					# Independent: the art's labelled directions say the shown
+					# pose prints the seeded slot's value.
+					ok = ok and art_read(shape, shown) == printed(shape, want)
 				if not ok:
 					read_bad += 1
 		var row := "ODD TABLE | %s | %d | %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %d | %d | %d | %d | %d/%d | %.3f/%.2f" % [shape, total,

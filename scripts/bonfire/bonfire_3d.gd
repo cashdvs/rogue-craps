@@ -118,11 +118,13 @@ func _ready() -> void:
 	bhud.throw_pressed.connect(func() -> void: throw_again())
 	bhud.restart_pressed.connect(func() -> void: new_run(-1 if bonfire_seed < 0 else bonfire_seed + 1))
 	bhud.continue_pressed.connect(func() -> void: finish())
+	bhud.leave_pressed.connect(func() -> void: leave())
 	bhud.set_run_mode(setup.run_mode)
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
 	pause_menu.set_run_mode(setup.run_mode)
 	pause_menu.forfeit_confirmed.connect(func() -> void: forfeit())
+	pause_menu.can_forfeit = can_forfeit_now
 	juice = BonfireJuice.new()
 	add_child(juice)
 	juice.setup(self)
@@ -227,7 +229,7 @@ func outcome() -> TableOutcome:
 ## like a timeout (see BonfireRun.forfeit) and shows the end panel; CONTINUE
 ## then emits finished. Returns false if the table was already over.
 func forfeit() -> bool:
-	if run == null or run.is_over():
+	if not can_forfeit_now():
 		return false
 	if not run.forfeit():
 		return false
@@ -237,6 +239,42 @@ func forfeit() -> bool:
 	for d in all_dice:
 		_set_lit(d, false)
 	_set_why("Table forfeited.")
+	bhud.show_end(run)
+	_refresh_hud()
+	hand_result.emit(run.last_result)
+	return true
+
+
+## Can the table be forfeited right now? Not while a throw is in flight
+## (rolling, landed, resolving): its faces are already decided, so a forfeit
+## then could dodge a bust you can see (QA #60 blocker). FORFEIT comes back
+## once the throw has resolved (bust or score applied) and phase is BET.
+func can_forfeit_now() -> bool:
+	return run != null and not run.is_over() and (phase == Phase.BET or phase == Phase.HELD)
+
+
+## Is the Leave table button live right now? A cleared table, between
+## hands (no throw yet this hand), not during the count-up or a throw.
+func can_leave_now() -> bool:
+	return run != null and run.can_leave() and phase == Phase.BET and not bhud.countup.is_playing()
+
+
+## Leave a cleared table (the Leave table button or L, between hands). The
+## table ends as CLEARED (no timeout penalty; points convert to Embers) and
+## shows the end panel; in run mode its CONTINUE then emits finished once.
+## Returns false if leaving isn't allowed right now.
+func leave() -> bool:
+	if not can_leave_now():
+		return false
+	if not run.leave():
+		return false
+	_kill_hand_tweens()
+	pause_menu.set_forfeit_enabled(false)
+	phase = Phase.OVER
+	for d in all_dice:
+		_set_lit(d, false)
+	_taunt(&"bonfire_clear")
+	_set_why("You left the table. Cleared!")
 	bhud.show_end(run)
 	_refresh_hud()
 	hand_result.emit(run.last_result)
@@ -543,6 +581,14 @@ func bank() -> Dictionary:
 	juice.drop(all_pot)
 	bhud.countup.clear()
 	_set_why("Banked %d points.%s" % [int(r["gain"]), (" Bounty: " + ", ".join(names) + "!") if not names.is_empty() else ""])
+	if r.get("cleared_now", false):
+		# The clear moment: Embers locked in, the table stays open (unless
+		# that was the last hand, then it ends right after this).
+		bhud.show_cleared()
+		_taunt(&"bonfire_clear")
+		_tutorial_hint(5)
+		if not run.is_over():
+			_set_why("Table cleared! Chase the bonus with your remaining hands, or Leave table.")
 	hand_result.emit(r)
 	await _after_hand()
 	return r
@@ -865,6 +911,8 @@ func sensitivity() -> float:
 
 
 func _refresh_hud() -> void:
+	if bhud != null:
+		bhud.leave_button.visible = can_leave_now()
 	if bhud != null and run != null:
 		bhud.refresh(run, phase == Phase.BET)
 		bhud.pulse_cards(claimable_bounties())
@@ -1009,6 +1057,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_B:
 				bank()
 				return
+			KEY_L:
+				bhud.press_leave()  # a second L within 2 s leaves
+				return
 			KEY_SPACE, KEY_ENTER:
 				if phase == Phase.BET:
 					throw_again()
@@ -1023,6 +1074,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	# The pause menu's FORFEIT follows can_forfeit_now() every frame, so it
+	# is already greyed out when Esc pauses the tree mid-throw.
+	pause_menu.set_forfeit_enabled(can_forfeit_now())
 	if hand_label.text == "BET FIRST":
 		hand_label.text = ""  # no bets here
 	for d: DieVisual in _lights:
