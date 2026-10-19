@@ -815,12 +815,14 @@ func tutorial_wanted() -> bool:
 
 
 ## Any hints on this table (Settings: Tutorial hints On/Off). Only the real
-## game (the table is the current scene), never tests / tools, unless a
-## test sets tutorial_override = 1.
+## game, never tests / tools (unless a test sets tutorial_override = 1): the
+## table is the current scene (sandbox) or inside it (a run's RunScreen;
+## same check as fix/full-run-pass-1, QA M2).
 func hints_wanted() -> bool:
 	if tutorial_override >= 0:
 		return tutorial_override == 1
-	if get_tree().current_scene != self:
+	var scene := get_tree().current_scene
+	if scene == null or not (scene == self or scene.is_ancestor_of(self)):
 		return false
 	var gs := _settings()
 	return gs != null and bool(gs.get("tutorial_enabled"))
