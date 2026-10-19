@@ -256,7 +256,7 @@ func _dressing_materials(M: String) -> void:
 	var carved := _copy_to(S + "hearth_toon_detail.gdshader", M + "hearth_leather.tres", {"use_carve": true,
 		"carve_tex": load(H + "textures/rail_carve.png"), "carve_normal": 1.6, "carve_cavity": 0.6, "use_scratches": true,
 		# v2: carving on the near + side rails only (the far rail is Smiles'), brass on the raised edges
-		"carve_skip_u": Vector2(0.06, 4.07), "carve_brass": 0.75, "carve_brass_color": BRASS_HI, "carve_brass_emit": 0.18})
+		"carve_skip_u": Vector2(0.06, 4.07), "carve_brass": 0.5, "carve_brass_color": Color("#A07A34"), "carve_brass_emit": 0.12})
 	carved.next_pass = load(M + "ember_seam.tres")
 	_save(carved, M + "hearth_leather_carved.tres")
 	# Ambient: slow ember motes (diamond sparks) over the brazier and the cauldron, the lamp dust, the backdrop.

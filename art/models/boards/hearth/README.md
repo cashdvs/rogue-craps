@@ -15,7 +15,7 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 
 | Scene | Use |
 |---|---|
-| `scenes/hearth_board.tscn` | PC board (14,800 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
+| `scenes/hearth_board.tscn` | PC board (14,910 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
 | `scenes/hearth_board_mobile.tscn` | mobile LOD (6,845 drawn, dressing on, tail out; 5,856 off; budget 8k) |
 
 ## What goes where
@@ -123,22 +123,25 @@ rest and over every clip frame).
 
 | Node / look | Content |
 |---|---|
-| `Corners` (dressing_corners*.glb) | FL coin stack + fallen coin + cracked shot glass (PC); FR knucklebones + finger bone (aged bone #C9B48A, never the dice bone) and a contract with a wax seal draped over the far rail; NR half-melted stub; wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
-| `Trinkets` (PC only) | horned skull ashtray on the right rail, leather dice cup on the near-left rail |
-| `Bell` | Smiles' brass service bell (imp knob, horns on PC) on the far rail between his right hand and the brazier |
+| `Corners` (dressing_corners*.glb) | one tight, tall cluster per corner (v2): FL coin tower + short stack + cracked shot glass (PC); FR a contract with a wax seal draped over the far rail with knucklebones + a finger bone on it (aged bone #C9B48A, never the dice bone); NR half-melted stub + coin stack; a warm light-pool decal on the rail top under each cluster (`dressing_pool`, `shaders/hearth_pool.gdshader`, additive, ~25-35 % value); wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
+| `Trinkets` (PC only) | horned skull ashtray (the tall end of the FR cluster), leather dice cup + coin stack (the NL cluster) |
+| `Bell` | Smiles' brass service bell in the FR cluster (v2: dark base plate, brass dome, plunger + round knob). Moved from beside Smiles (x -0.205): it never clashed with his clips, but it sat on the brazier read on screen (`tests/test_hearth_dealer_clear.gd`) |
 | `Chain` | chain + padlock hanging down the left rail's outer face (sways on a rail hit) |
 | `Tail` (Root / Joint / Tip) | a burgundy devil tail with a spade, behind the far-left corner; hidden unless peeking |
-| `Under` | the room floor (y -0.9), 4 turned legs on ball-and-claw feet (claws on the near legs), a heavy chain on the floor; PC adds 5 dropped coins + 2 dice at the screen edges |
+| `Under` | the room floor (y -0.9), 4 turned legs on ball-and-claw feet (claws on the near legs), a heavy chain on the floor; PC adds 2 dropped coins + 2 dice at the screen edges |
 | `Studs` | Board A's stud ring with 12 tarnished / 4 missing (mobile 5 / 2), never on the near rail; Board A's `Visual/Trim` is hidden while it shows |
 | `Ambient` | ember motes over the brazier (7 / 5) and the cauldron (3 / 2), lamp dust (16 / 8) high in the far half of the cone |
 | `Backdrop` | an unshaded card at z -2.3: out-of-focus far casino tables and lamp cones, max ~1 % linear value |
-| felt | `hearth_felt_worn.tres` (`textures/felt_ember_corners_worn.png`): scuff arc, two broad broken scorch rings, two pocks, an old wax stain; <= 12 % value shift, landing centre untouched, nothing pip-shaped or bone-coloured |
-| rails | `hearth_leather_carved.tres` (`shaders/hearth_toon_detail.gdshader` + `textures/rail_carve.png`, `src/make_rail_carve.py`): imp faces and flame-tongue scrollwork as a 1.1 mm normal map + cavity, 22 tiles round the rails, plus two claw marks at the near corners |
+| felt | `hearth_felt_worn.tres` (`textures/felt_ember_corners_worn.png`): scuff arc, two broad broken scorch rings, two pocks (right half), an old wax stain (right rail); <= 12 % value shift, landing centre and both combo-table strips (landscape near edge, portrait left edge) untouched, nothing pip-shaped or bone-coloured |
+| rails | `hearth_leather_carved.tres` (`shaders/hearth_toon_detail.gdshader` + `textures/rail_carve.png`, `src/make_rail_carve.py`): v2 puts it where the camera looks: flame-tongue scrollwork on the top face running between the studs, an imp face on the front face below the stud row, 2.4 mm normal map + deeper cavity + a brass edge highlight on the raised parts (B channel), 22 tiles on the near and side rails (off on the far rail), plus two claw marks at the near corners |
 
 Props are drawn at the dice's scale (the 0.08 m dice on a 2 m felt), use the prop ink `ink_prop.tres`
 (0.0025 = 60 % of the dice outline) and carry a faint self-glow of their own albedo: the dressing sits
-outside the lamp cone, where the toon ramp is black, and reads by "candlelight". No fire on dice,
-no occult symbols, no Soul cyan / Danger red.
+outside the lamp cone, where the toon ramp is black, and reads by "candlelight". v2: the prop materials are
+`hearth_toon_detail` with a thin unlit warm rim (`rim_emit`, Ember or brass, grazing edges only) to cut them
+off the black backdrop; the tail's rim is Ember on its top edge only (`rim_emit_up`), 22 deg of hue and well
+under the brightness of Danger red. Ceiling: glow + rim <= 60 % of the dice value, nothing more saturated
+than Ember (checked per material by the test). No fire on dice, no occult symbols, no Soul cyan / Danger red.
 
 ### Hooks (on the `Hearth` hub; forwarded to `Hearth/Dressing`)
 
@@ -167,19 +170,22 @@ The clips key only the pose params (`tail_out / tail_sway / tail_curl / chain_sw
 
 | Part | PC | Mobile |
 |---|---|---|
-| corners | 726 | 418 |
-| trinkets | 192 | - |
+| corners (incl. 4 / 3 light pools, 6 tris each) | 790 | 484 |
+| trinkets | 248 | - |
 | chain + padlock | 217 | 163 |
-| bell | 120 | 76 |
-| floor, legs, floor chain (+ coins, dice on PC) | 634 | 242 |
+| bell | 180 | 133 |
+| floor, legs, floor chain (+ coins, dice on PC) | 564 | 242 |
 | tail (root + tip) | 78 | 64 |
 | worn studs (replace Board A trim) | = Board A studs minus 4 / 2 missing | |
 | motes / dust / backdrop | 52 + 2 | 30 + 2 |
-| **board drawn, dressing on, tail out** | **14,800** | **6,845** |
+| **board drawn, dressing on, tail out** | **14,910** | **6,968** |
 
-Renders: `/workspace/dice/art/renders/hearth/detail_pass/` (tool outside the repo:
+Renders: `/workspace/dice/art/renders/hearth/detail_pass/` (v1) and `detail_pass/v2/` (tool outside the repo:
 `art/source/hearth_tools/render_detail.gd`). Tests: `tests/test_hearth_dressing.gd` (budget, clearance,
-toggle, looks, clips) and `tests/test_hearth_board.gd`.
+toggle, looks, clips, unlit ceiling, combo strips, tail rim), `tests/test_hearth_dealer_clear.gd` (the near-dealer
+dressing vs every Smiles clip at the dealer spot: no intersection, the bell >= 85 % visible from the PC and phone
+game cameras, never over the brazier read on screen; Smiles is CPU-skinned so it runs headless) and
+`tests/test_hearth_board.gd`.
 
 ## Rebuild
 
@@ -187,7 +193,7 @@ toggle, looks, clips) and `tests/test_hearth_board.gd`.
 props .glb) -> `make_hearth.gd -- materials` -> `write_imports.py` (.glb.import slot -> .tres) ->
 `--import` -> `make_hearth.gd -- props` -> `make_hearth.gd -- board`; the detail pass adds `build_dressing.py`
 (Blender, imports `build_hearth.py`) before the imports. Textures: `make_flame_atlas.py`, `make_felt_motif.py`
-(also the worn overlay), `make_rail_carve.py`. Tests: `tests/test_hearth_board.gd`, `tests/test_hearth_dressing.gd`.
+(also the worn overlay), `make_rail_carve.py`. Tests: `tests/test_hearth_board.gd`, `tests/test_hearth_dressing.gd`, `tests/test_hearth_dealer_clear.gd`.
 
 ## Notes / spec gaps
 
