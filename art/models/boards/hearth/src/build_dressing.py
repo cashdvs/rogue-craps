@@ -456,7 +456,7 @@ def build_corners(out_dir, name, mobile):
     drip(p, S["dressing_wax_drip"], "near", 0.933, math.radians(30), math.radians(80), 0.0026, 3)
     # light pools under each cluster (NL only on PC: its cup + coins are PC trinkets)
     for (rail, a0, a1) in POOLS[: 3 if mobile else 4]:
-        pool(p, S["dressing_pool"], rail, a0, a1, math.radians(3), math.radians(70), 1, 3)
+        pool(p, S["dressing_pool"], rail, a0, a1, math.radians(3), math.radians(56), 1, 3)
     # wax drips down the outer rail face under the four near progress candles (x +-1.135, z 0.24 / 0.42)
     for side in ("left", "right"):
         for z in (0.24, 0.42):

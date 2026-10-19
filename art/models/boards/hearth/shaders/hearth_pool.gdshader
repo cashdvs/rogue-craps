@@ -6,10 +6,10 @@
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
 
-uniform vec4 pool_color : source_color = vec4(0.91, 0.627, 0.376, 1.0);   // #E8A060 candle brass
-uniform vec4 core_color : source_color = vec4(1.0, 0.82, 0.55, 1.0);
-uniform float energy = 0.16;
-uniform float core_energy = 0.07;
+uniform vec4 pool_color : source_color = vec4(0.85, 0.47, 0.23, 1.0);    // #D9783B warm candlelight
+uniform vec4 core_color : source_color = vec4(0.886, 0.706, 0.42, 1.0);   // brass
+uniform float energy = 0.13;
+uniform float core_energy = 0.035;
 uniform float core_at = 0.55;
 // x, z centre and x, z half-extent per pool (FL, FR, NR, NL: build_dressing.py POOLS)
 const vec4 POOLS[4] = vec4[4](vec4(-0.907, -0.645, 0.093, 0.055), vec4(0.85, -0.645, 0.145, 0.055),

@@ -43,7 +43,7 @@ const FACE_OUT := 0.04                        # demon faces pushed out along the
 const PROP_INK := 0.0025                      # prop outline = ~60 % of the dice ink (0.0042)
 const DETAIL := H + "shaders/hearth_toon_detail.gdshader"
 const PROP_RIM := 0.4                         # unlit rim strength (v2); glow + rim stay <= 60 % of the dice value
-const RIM_WIDTH := 0.2
+const RIM_WIDTH := 0.1                        # fresnel band: only grazing edges (1-2 px)
 const TAIL_RIM := 0.32
 const CHAIN_PIVOT := Vector3(-1.203, 0.028, 0.04)
 const BELL_PIVOT := Vector3(0.872, 0.0987, -0.6529)   # build_dressing.py PIVOTS (v2: the FR cluster)
