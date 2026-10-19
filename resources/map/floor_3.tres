@@ -5,8 +5,6 @@
 [ext_resource type="Resource" path="res://resources/map/rules/mister_wick.tres" id="3_w6hk3"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_sixes.tres" id="9_n4w0n"]
 [ext_resource type="Resource" path="res://resources/map/rules/first_throw.tres" id="10_lh6d3"]
-[ext_resource type="Resource" path="res://resources/map/rules/short_table.tres" id="11_pq5b7"]
-[ext_resource type="Resource" path="res://resources/map/rules/heavy_burn.tres" id="12_sgrhs"]
 [ext_resource type="Resource" path="res://resources/map/rules/greedy_pot.tres" id="13_cbcbs"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_hands.tres" id="14_r55qv"]
 [ext_resource type="Resource" path="res://resources/map/floor_1_map.tres" id="15_rs5l7"]
@@ -68,6 +66,6 @@ common_bounties = Array[ExtResource("1_5apsi")]([SubResource("b_triple"), SubRes
 featured_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_1ruv5")])
 bonus_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_xqojo"), SubResource("Resource_h33il")])
 clear_embers = 14
-elite_twists = Array[ExtResource("2_ckbe5")]([ExtResource("9_n4w0n"), ExtResource("10_lh6d3"), ExtResource("11_pq5b7"), ExtResource("12_sgrhs"), ExtResource("13_cbcbs"), ExtResource("14_r55qv")])
+elite_twists = Array[ExtResource("2_ckbe5")]([ExtResource("9_n4w0n"), ExtResource("10_lh6d3"), ExtResource("13_cbcbs"), ExtResource("14_r55qv")])
 boss_cheats = Array[ExtResource("2_ckbe5")]([ExtResource("3_w6hk3")])
 boss_max_bounties = 4

@@ -7,8 +7,6 @@
 [ext_resource type="Resource" path="res://resources/map/rules/bloodletter.tres" id="5_xfmm3"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_sixes.tres" id="6_clgi4"]
 [ext_resource type="Resource" path="res://resources/map/rules/first_throw.tres" id="7_oxovy"]
-[ext_resource type="Resource" path="res://resources/map/rules/short_table.tres" id="8_bu3lb"]
-[ext_resource type="Resource" path="res://resources/map/rules/heavy_burn.tres" id="9_hpjuf"]
 [ext_resource type="Resource" path="res://resources/map/rules/greedy_pot.tres" id="10_fiotg"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_hands.tres" id="11_ryafq"]
 [ext_resource type="Resource" path="res://resources/map/floor_1_map.tres" id="12_rew8i"]
@@ -31,20 +29,14 @@ description = "Bonus: pot four of a kind."
 n = 4
 bonus_embers = 6
 
-[sub_resource type="Resource" id="Resource_ut1xe"]
+[sub_resource type="Resource" id="Resource_q4spx"]
 script = ExtResource("1_ypktt")
-id = &"quads"
-display_name = "Quads"
-description = "Pot four of a kind."
-n = 4
-
-[sub_resource type="Resource" id="Resource_oo81c"]
-script = ExtResource("1_ypktt")
-id = &"run5"
-display_name = "Run of 5"
-description = "Pot five in a row."
-kind = 4
-n = 5
+id = &"two_pairs_x2"
+display_name = "Two Pair x2"
+description = "Pot two different pairs, in two separate pots."
+kind = 2
+n = 2
+count_needed = 2
 
 [sub_resource type="Resource" id="b_triple"]
 script = ExtResource("1_ypktt")
@@ -83,6 +75,7 @@ common_bounties = Array[ExtResource("1_ypktt")]([SubResource("b_triple"), SubRes
 featured_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_1ruv5")])
 bonus_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_mhwom"), SubResource("Resource_h33il")])
 clear_embers = 12
-elite_twists = Array[ExtResource("2_seg2v")]([ExtResource("6_clgi4"), ExtResource("7_oxovy"), ExtResource("8_bu3lb"), ExtResource("9_hpjuf"), ExtResource("10_fiotg"), ExtResource("11_ryafq")])
+elite_twists = Array[ExtResource("2_seg2v")]([ExtResource("6_clgi4"), ExtResource("7_oxovy"), ExtResource("10_fiotg"), ExtResource("11_ryafq")])
 boss_cheats = Array[ExtResource("2_seg2v")]([ExtResource("3_8hmiw"), ExtResource("4_2mc8b"), ExtResource("5_xfmm3")])
-boss_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_ut1xe"), SubResource("Resource_oo81c")])
+boss_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_q4spx")])
+boss_min_bounties = 5

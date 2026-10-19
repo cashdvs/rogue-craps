@@ -6,5 +6,6 @@
 script = ExtResource("1_7fhfr")
 id = &"ashmouth"
 display_name = "Ashmouth"
-description = "No Hot Hand."
+description = "No Hot Hand. 5 hands."
 kind = 1
+hands_delta = -1
