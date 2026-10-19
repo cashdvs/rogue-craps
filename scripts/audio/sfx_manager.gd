@@ -144,7 +144,7 @@ func has_event(event: StringName) -> bool:
 
 
 ## A face mod or special die fired (its trigger FX starts now). id: a spec row
-## (&"coin_heads_copy"), a mod / die id (&"mirror") or a short form; unknown
+## (&"ferryman_heads_copy"), a mod / die id (&"mirror") or a short form; unknown
 ## ids play trigger_generic, Heavy / Extra play nothing.
 ## tier -1 = the row's (ModTriggerSynth.Tier); intensity 0..1 trims -9..0 dB;
 ## hit_ms -1 = the row's hit frame. The cue's transient lands on the hit.
@@ -155,7 +155,7 @@ func has_event(event: StringName) -> bool:
 ## The hook also owns the voice cap, the shared cluster, the speed modes and
 ## the crowd nudge.
 ## flavor: a pre-carved batch-3 face's layer (ctx.flavor: &"verdict", &"midnight",
-## &"tithe", &"keg", &"lantern"); &"" = the one its id implies, if any.
+## &"tithe", &"powder_keg", &"lantern"); &"" = the one its id implies, if any.
 func play_mod_trigger(id: StringName, tier: int = -1, intensity: float = 1.0, hit_ms: float = -1.0, flavor: StringName = &"") -> float:
 	var row := ModTriggerSynth.row_for(id)
 	var t := ModTriggerSynth.timing(row)

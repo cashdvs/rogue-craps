@@ -218,7 +218,7 @@ func _test_mapping() -> void:
 	var cases := {
 		&"hellfire": &"hellfire_face", &"mirror": &"mirror_copy", &"gilded_payout": &"gilded_payout",
 		&"blank": &"no_score", &"heavy": &"", &"extra": &"", &"not_a_mod": &"generic",
-		&"ferrymans_coin": &"coin_heads_copy", &"coin_tails": &"coin_tails_copy", &"coin_edge": &"", &"coin_alone_tails": &"",
+		&"ferryman": &"ferryman_heads_copy", &"ferryman_tails": &"ferryman_tails_copy", &"ferryman_edge": &"", &"ferryman_alone_tails": &"",
 		&"verdict_20": &"hellfire_face", &"verdict_1": &"blood_face", &"midnight": &"hellfire_face", &"powder_keg": &"twin_face",
 	}
 	for id: StringName in cases:

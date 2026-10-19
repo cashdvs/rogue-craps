@@ -39,8 +39,8 @@ const ROWS: Dictionary[StringName, Array] = {
 	&"cracked_shatter": [Tier.SIGNATURE, 250, 0],
 	# Batch 3 own rows (spec v0.2 §2c; final rules, nonstandard_dice.md §10). Pre-carved
 	# faces reuse a face-mod row plus a flavour layer (FLAVORS).
-	&"caltrop_run": [Tier.MINOR, 167, 0], &"coin_heads_copy": [Tier.MAJOR, 333, 333],
-	&"coin_tails_copy": [Tier.MAJOR, 333, 333], &"coin_alone_heads": [Tier.MINOR, 250, 200],
+	&"caltrop_run": [Tier.MINOR, 167, 0], &"ferryman_heads_copy": [Tier.MAJOR, 333, 333],
+	&"ferryman_tails_copy": [Tier.MAJOR, 333, 333], &"ferryman_alone_heads": [Tier.MINOR, 250, 200],
 	&"knucklebone_level": [Tier.MAJOR, 250, 0],
 	# Optional variant kept at the Art Director's request: the v0.1 Verdict 20 cue. No alias
 	# points here, so it plays only when called by this id (the default is hellfire_face).
@@ -59,18 +59,18 @@ const ALIASES: Dictionary[StringName, StringName] = {
 	&"twin_flame": &"twin_flame_pair", &"coven": &"coven_set", &"mirror": &"mirror_copy", &"wanderer": &"wanderer_gap",
 	&"bellows": &"bellows_hot", &"cracked": &"cracked_mult",
 	&"blank": &"no_score",
-	&"caltrop": &"caltrop_run", &"ferrymans_coin": &"coin_heads_copy", &"coin": &"coin_heads_copy",
-	&"coin_heads": &"coin_heads_copy", &"coin_tails": &"coin_tails_copy", &"coin_alone": &"coin_alone_heads",
+	&"caltrop": &"caltrop_run", &"ferryman": &"ferryman_heads_copy",
+	&"ferryman_heads": &"ferryman_heads_copy", &"ferryman_tails": &"ferryman_tails_copy", &"ferryman_alone": &"ferryman_alone_heads",
 	&"knucklebone": &"knucklebone_level",
 	# Pre-carved batch-3 faces reuse the face-mod row (spec v0.2 reuse rule).
 	&"lantern": &"wild_face", &"lantern_8": &"wild_face", &"tithe": &"gilded_payout", &"tithe_10": &"gilded_payout",
-	&"midnight": &"hellfire_face", &"midnight_xii": &"hellfire_face", &"verdict_20": &"hellfire_face",
-	&"verdict_1": &"blood_face", &"powder_keg": &"twin_face", &"keg_3": &"twin_face",
+	&"midnight": &"hellfire_face", &"midnight_12": &"hellfire_face", &"verdict_20": &"hellfire_face",
+	&"verdict_1": &"blood_face", &"powder_keg": &"twin_face", &"powder_keg_3": &"twin_face",
 }
 ## No cue: passive, confirmed no FX (spec §2a / §2b).
 const SILENT: Array[StringName] = [
 	&"heavy", &"extra",
-	&"coin_alone_tails", &"coin_edge",  # a Blank face / a physics re-settle (spec v0.2 §2c)
+	&"ferryman_alone_tails", &"ferryman_edge",  # a Blank face / a physics re-settle (spec v0.2 §2c)
 ]
 ## Flavour layers for the pre-carved batch-3 faces: flavour -> [the row it
 ## layers on, lead_ms]. One small layer played with that row's cue, its
@@ -78,12 +78,12 @@ const SILENT: Array[StringName] = [
 ## a new beat). Other rows ignore the flavour (Verdict 1's Blood has none).
 const FLAVORS: Dictionary[StringName, Array] = {
 	&"verdict": [&"hellfire_face", 0], &"midnight": [&"hellfire_face", 0], &"tithe": [&"gilded_payout", 60],
-	&"keg": [&"twin_face", 0], &"lantern": [&"wild_face", 0],
+	&"powder_keg": [&"twin_face", 0], &"lantern": [&"wild_face", 0],
 }
 ## Ids that imply a flavour when the game passes none.
 const FLAVOR_OF: Dictionary[StringName, StringName] = {
 	&"lantern": &"lantern", &"lantern_8": &"lantern", &"tithe": &"tithe", &"tithe_10": &"tithe",
-	&"midnight": &"midnight", &"midnight_xii": &"midnight", &"verdict_20": &"verdict", &"powder_keg": &"keg", &"keg_3": &"keg",
+	&"midnight": &"midnight", &"midnight_12": &"midnight", &"verdict_20": &"verdict", &"powder_keg": &"powder_keg", &"powder_keg_3": &"powder_keg",
 }
 ## A flavour layer plays this far under its row's cue.
 const FLAVOR_DB: float = -6.0
