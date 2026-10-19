@@ -97,6 +97,23 @@ for trig in fired:
 | `blood_pact` (major, 250) | a wax-seal thud + the Soul motif drawn up + three soft ticks |
 | `cracked_mult` (major, 167) | a ceramic stress creak, a stone tick and ring (A♭6), discrete grit pings (no crackle) |
 | `cracked_shatter` (signature, 250) | ceramic shards + a low thud + a dry trickle of tiny ticks |
+| `caltrop_run` (minor, 167) | a quick run of three iron tinks |
+| `coin_heads_copy` / `coin_tails_copy` (major, 333) | a flick ping, a spin whirr speeding up, the landing ring (heads C7, tails a fourth lower, G6) |
+| `coin_alone_heads` (minor, 250) | a flick ping, a short one-turn spin, a bright lucky landing ring (E♭7) + a glint |
+| `knucklebone_level` (major, 250) | a dry bone clack + a two-note brass "level up" blip (G5–C6) |
+
+**Batch 3** follows the final rules (`design/nonstandard_dice.md` §10, Game Designer, Oct 19; spec v0.2). Pre-carved faces reuse the face-mod row, so pass the face-mod id plus `ctx.flavor` (`play_mod_trigger(&"hellfire_face", -1, 1.0, -1.0, &"verdict")`), or the die's own id, which implies both (`ALIASES`, `FLAVOR_OF`). The flavour adds one small layer (`trigger_flavor_<flavour>.wav`) on the same hit, 6 dB under the cue, and never a new beat:
+
+| Face (id) | Row | Flavour layer |
+|---|---|---|
+| Lantern 8 (`lantern_8`) | `wild_face` | `lantern`: a faint glass chime (A♭6) |
+| Tithe 10 (`tithe_10`) | `gilded_payout` | `tithe`: a soft wooden slot-clunk 60 ms before the clink |
+| Midnight XII (`midnight_xii`) | `hellfire_face` | `midnight`: one soft clock tick just after the bell |
+| Verdict 20 (`verdict_20`) | `hellfire_face` | `verdict`: a small dry wood gavel tap on the hit |
+| Verdict 1 (`verdict_1`) | `blood_face` | none (Blood as-is) |
+| Powder Keg 3 (`keg_3`) | `twin_face` | `keg`: a hollow barrel thump on each tick |
+
+Coin alone on tails (a Blank face) and a coin on its edge (a physics re-settle) play nothing.
 | `generic` | any other id: a plain two-note ding (C6–G6) |
 | `cluster` | the shared pop for the 5th+ trigger and Instant: four quick chimes fanned up over a soft pop |
 
