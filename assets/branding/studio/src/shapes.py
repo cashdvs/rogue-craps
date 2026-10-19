@@ -1,4 +1,4 @@
-# Hand-written SVG geometry for the Tiny Anvil logo. Units: anvil-local, base line y=150.
+# Hand-written SVG geometry for the Tiny Anvil Games logo. Units: anvil-local, base line y=150.
 ORANGE="#F26A1B"; CHAR="#1E1B1A"; CREAM="#F4EDE4"
 
 def spark_path(cx,cy,R,pinch=0.0):

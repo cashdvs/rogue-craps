@@ -32,11 +32,22 @@ so changing back to the title/main scene never replays it.
 The splash never touches the audio buses or SfxManager. At each cue it emits
 `cue(event: StringName)` and plays a stream if one exists:
 1. one from the root node's `cue_streams` dictionary (Inspector), else
-2. `res://audio/sfx/<event>.wav` if that file exists, else it stays silent.
+2. `<sfx_dir>/<event>.wav` if that file exists (`sfx_dir` export, default `res://audio/sfx/`), else it stays silent.
+
+**Per-cue sounds and the single sting never play together.** When the splash starts it picks one mode
+(`cue_mode()`), separately for the full and the reduced-motion variant:
+- **per-cue** (default): the `splash_<id>` cues of the variant that is playing fire at their times.
+  This mode is used whenever at least one of those events has a stream. It is also used when no
+  sound exists at all; the cues are then silent but still signalled.
+- **single**: used only when none of that variant's `splash_<id>` events has a stream and
+  `studio_splash` does. Then `studio_splash` fires once at 0.00 and no `splash_<id>` cue fires.
+
+So you can ship either the 7 per-cue files or one pre-mixed `studio_splash.wav`. If both are present,
+the per-cue files win and the sting stays silent.
 
 | event | t (s) | reduced motion |
 |---|---|---|
-| `studio_splash` | 0.00 | 0.00 (one pre-mixed sting, if you'd rather ship a single file) |
+| `studio_splash` | 0.00, fallback only (see above) | 0.00, fallback only |
 | `splash_anvil_thud` | 0.40 | none |
 | `splash_hammer_swish` | 0.52 | none |
 | `splash_clang` | 0.60 (impact frame) | 0.45 at -6 dB |
@@ -57,5 +68,5 @@ players fade to -60 dB over the 0.2 s skip fade.
 
 ## Tests and captures
 - `tests/test_studio_splash.gd`: loads the scene, advances to `boot/next_scene` after 2.5 s,
-  fires the cues, never replays, ignores early input, skips on a key or click (not motion), and plays the reduced-motion variant.
+  fires the cues (per-cue or the studio_splash fallback, never both, full and reduced motion), never replays, ignores early input, skips on a key or click (not motion), and plays the reduced-motion variant.
 - `tools/capture_splash.sh [out_dir]` renders mp4, gif and key frames (needs xvfb-run and ffmpeg).

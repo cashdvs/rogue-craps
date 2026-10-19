@@ -1,0 +1,21 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/demon_eye.gdshader" id="1_2x8yc"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_2x8yc")
+shader_parameter/eye_left = Vector3(-0.0166, 0.0616, 0.0181)
+shader_parameter/eye_right = Vector3(0.0166, 0.0616, 0.0181)
+shader_parameter/eye_size = Vector2(0.0163, 0.0096)
+shader_parameter/off_color = null
+shader_parameter/ember_color = null
+shader_parameter/hell_color = null
+shader_parameter/core_color = null
+shader_parameter/white_color = null
+shader_parameter/pupil_color = null
+shader_parameter/ember_energy = null
+shader_parameter/hot_energy = null
+shader_parameter/white_energy = null
+shader_parameter/idle_color = null
+shader_parameter/idle_energy = null

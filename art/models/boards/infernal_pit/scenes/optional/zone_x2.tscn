@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/zone_x2.glb" id="1_u1isp"]
+
+[node name="ZoneX2" type="Node3D" unique_id=2039550898]
+
+[node name="Model" type="Node3D" parent="." unique_id=1881120506 instance=ExtResource("1_u1isp")]
