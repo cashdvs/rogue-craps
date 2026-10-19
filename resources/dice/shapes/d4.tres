@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_oshw5")
 id = &"d4"
-display_name = "d4"
-description = "Faces 1-4: dense low values."
+display_name = "Caltrop"
+description = "Faces 1-4. A run containing it gets +2 mult."
+price = 18
 faces = Array[int]([1, 2, 3, 4])

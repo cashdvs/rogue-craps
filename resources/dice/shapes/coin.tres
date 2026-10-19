@@ -5,7 +5,11 @@
 [resource]
 script = ExtResource("1_v8uye")
 enabled = true
+preset_mods = {
+1: &"blank"
+}
 id = &"coin"
-display_name = "Coin Die"
-description = "Two faces: 1 and 5. Always lights, always low."
-faces = Array[int]([1, 5])
+display_name = "Ferryman's Coin"
+description = "Heads copies the highest die in the tray, Tails the lowest. Thrown alone: Heads = 5, Tails = Blank."
+price = 18
+faces = Array[int]([5, 1])

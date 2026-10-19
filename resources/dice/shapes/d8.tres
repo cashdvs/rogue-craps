@@ -4,7 +4,10 @@
 
 [resource]
 script = ExtResource("1_pd1tg")
+preset_mods = {
+8: &"wild"
+}
 id = &"d8"
-display_name = "d8"
-description = "Faces 1-8: extends runs; 7 and 8 light alone."
+display_name = "Lantern"
+description = "Faces 1-8. The 8 is a carved Wild Face; 7 lights alone."
 faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8])

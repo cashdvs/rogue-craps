@@ -4,8 +4,10 @@
 
 [resource]
 script = ExtResource("1_6dpjw")
+preset_mods = {
+10: &"gilded"
+}
 id = &"d10"
-display_name = "d10"
-description = "Faces 1-10: high-run reach, big single pots."
-price = 18
+display_name = "Tithe"
+description = "Faces 1-10; 7-10 light alone. The 10 is a carved Gilded Face."
 faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])

@@ -5,7 +5,11 @@
 [resource]
 script = ExtResource("1_a7d5e")
 enabled = true
+preset_mods = {
+3: &"twin"
+}
 id = &"d3"
-display_name = "d3"
-description = "A d6 printed 1-1-2-2-3-3: a set-maker."
+display_name = "Powder Keg"
+description = "A d3 printed 1-1-2-2-3-3. Both 3s are carved Twin Faces (each counts as two 3s)."
+price = 18
 faces = Array[int]([1, 2, 3])

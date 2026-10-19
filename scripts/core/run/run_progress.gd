@@ -124,7 +124,13 @@ func add_die(special: StringName) -> bool:
 	if not can_add_die():
 		return false
 	var sh := shape_data(special)
-	dice.append(_new_die(&"", sh.id, sh.face_count()) if sh != null and special != &"d6" else _new_die(special if special != &"d6" else &""))
+	if sh != null and special != &"d6":
+		var d := _new_die(&"", sh.id, sh.face_count())
+		for i in sh.faces.size():
+			d.faces[i] = StringName(sh.preset_mods.get(sh.faces[i], &""))
+		dice.append(d)
+	else:
+		dice.append(_new_die(special if special != &"d6" else &""))
 	changed.emit()
 	return true
 

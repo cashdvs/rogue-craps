@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_hdtqe"]
+
+[resource]
+script = ExtResource("1_hdtqe")
+id = &"knucklebone"
+display_name = "Knucklebone"
+description = "Four faces: 1, 3, 4, 6. Sets with this die score one level higher."
+price = 18
+faces = Array[int]([1, 3, 4, 6])
