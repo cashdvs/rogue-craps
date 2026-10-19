@@ -41,6 +41,9 @@ const ROWS: Dictionary[StringName, Array] = {
 	&"caltrop_run": [Tier.MINOR, 167, 0], &"coin_heads_copy": [Tier.MAJOR, 333, 333],
 	&"coin_tails_copy": [Tier.MAJOR, 333, 333], &"coin_alone_heads": [Tier.MINOR, 250, 200],
 	&"knucklebone_level": [Tier.MAJOR, 250, 0],
+	# Optional variant kept at the Art Director's request: the v0.1 Verdict 20 cue. No alias
+	# points here, so it plays only when called by this id (the default is hellfire_face).
+	&"verdict_20_alt": [Tier.SIGNATURE, 250, 120],
 	# Not spec rows: any unknown id, and the shared pop (5+ triggers, Instant).
 	&"generic": [Tier.MINOR, 167, 0], &"cluster": [Tier.MAJOR, 167, 0],
 }
@@ -293,6 +296,18 @@ static func make(row: StringName) -> AudioStreamWAV:
 			var land := 2093.0 if row == &"coin_heads_copy" else 1567.98  # tails lands a fourth lower
 			_click(b, h, 0.6, 0.7)
 			_ring(b, h, land, [[1.0, 0.7, 1.0], [2.31, 0.4, 1.2], [4.1, 0.2, 1.6]], 6.0)
+		&"verdict_20_alt":  # the gavel lifts (a short wooden creak), then a wood crack + deep brass hit, a crowd gasp
+			_rng.seed = hash(&"verdict_20")  # the v0.1 verdict_20 seed, so the variant is that exact sound
+			b = _buf(0.56)
+			_ring(b, 0.03, 523.25, [[1.0, 0.12, 1.0], [3.0, 0.08, 1.0]], 4.0, 0.85, 0.09, 0.0, 0.0, 0.08)
+			_click(b, h, 1.0, 0.8, 500.0)
+			_ring(b, h, 783.99, [[1.0, 0.6, 1.0], [1.73, 0.9, 1.2], [2.9, 0.8, 1.5]], 35.0)
+			_brass(b, h, 0.36, 98.0, 0.01, 40, 0.25, 0.005, 0.35)
+			_thump(b, h, 55.0, 9.0, 0.2)
+			BonfireSynth._rng.seed = hash(&"verdict_20")
+			var gasp := BonfireSynth._crowd(0.34, 14, 700.0, 2200.0, 0.1)
+			for i in gasp.size():
+				b[int((h + 0.08) * MIX_RATE) + i] += gasp[i] * 0.25
 		&"knucklebone_level":  # a dry bone clack + an ascending two-note brass "level up" blip
 			b = _buf(0.4)
 			for k in 2:
