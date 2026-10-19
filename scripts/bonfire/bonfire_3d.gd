@@ -971,7 +971,7 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 # --- Debug throw overlay (off by default) ------------------------------------------
 ## After each flick: the flick speed (game px/s), the dice's launch speed
 ## (m/s) and the curve fraction k; it stays until the next throw. Turn it
-## on with F3, GameSettings.throw_debug, or the command line user arg
+## on with F3 (debug builds only), GameSettings.throw_debug, or the command line user arg
 ## `-- --throw-debug`. Tools can also set `throw_debug = true` directly.
 var throw_debug: bool = false:
 	set(v):
@@ -1233,9 +1233,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				leave()
 				return
 			KEY_F3:
-				throw_debug = not throw_debug
-				get_viewport().set_input_as_handled()
-				return
+				# Debug builds only (editor / debug export); a release
+				# build keeps F3 free. `-- --throw-debug` still works.
+				if OS.is_debug_build():
+					throw_debug = not throw_debug
+					get_viewport().set_input_as_handled()
+					return
 			KEY_SPACE, KEY_ENTER:
 				if phase == Phase.BET:
 					throw_again()

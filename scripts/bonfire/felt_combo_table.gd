@@ -90,6 +90,8 @@ func set_combos(t: BonfireTuning, seal_levels: Dictionary = {}) -> void:
 	_apply()
 
 
+## Switches the felt print between the landscape band and the portrait
+## block (flipped: turned to face a portrait camera from the far side).
 func set_portrait(on: bool, flipped: bool = portrait_flipped) -> void:
 	if on == portrait and flipped == portrait_flipped and not labels.is_empty():
 		return

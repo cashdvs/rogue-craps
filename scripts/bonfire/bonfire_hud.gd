@@ -547,6 +547,8 @@ func crumble_pending(reduced: bool = false) -> int:
 var callout_label: Label
 
 
+## Pops a short callout ("doesn't score") just above screen point `at`,
+## then fades it out.
 func callout(at: Vector2, text: String = "doesn't score") -> void:
 	callout_label.text = text
 	callout_label.position = at - Vector2(callout_label.size.x * 0.5, callout_label.size.y + 30.0)

@@ -111,6 +111,7 @@ func skip() -> void:
 		_apply()
 
 
+## True while the banner animation is running.
 func is_playing() -> bool:
 	return t >= 0.0
 

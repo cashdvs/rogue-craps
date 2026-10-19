@@ -183,7 +183,13 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - For anything that changes how the table looks, attach a capture from `tools/capture_bonfire.gd` or `tools/capture_readability.gd`.
   - For throw feel, use `tools/measure_throw_momentum.gd`.
 
-> Not on `main` yet (as of fad5622), arriving with Godot Dev's Leave table and readability PRs: `leave()` / `can_leave_now()`, the `throw_measured` and `refused` signals, `tests/test_leave_table.gd`, `tools/capture_readability.gd` and `table_events.gd`. Until then the same moments are on `BonfireRun.table_event` (see Key signals).
+- **Readability and onboarding (#63, with #60's Leave table):**
+  - `leave()` / `can_leave_now()` and the `throw_measured` and `refused` signals on `Bonfire3D`; tests in `tests/test_leave_table.gd`.
+  - `scripts/bonfire/table_events.gd` (`table.events`): the plain signals FX and audio listen to (see the FX section).
+  - `scripts/core/bust_risk.gd` (`BustRisk`): the exact chance the next rethrow lights nothing, for the rethrow prompt. Static and display-only: it never touches the run's RNG or state.
+  - `scripts/bonfire/bonfire_onboarding.gd` (`BonfireOnboarding`, `table.onboarding`): when the Table 1 tutorial runs, which hint to ask for at each table moment, and the seeded tutorial throws. The hint panel itself is `bonfire_tutorial.gd`.
+  - `GameSettings`: `hints_seen` (saved: how often each hint has shown) and `throw_debug` (this session only). `-- --throw-debug` on the command line, or F3 in debug builds, shows the throw overlay.
+  - Captures: `tools/capture_readability.gd` and `tools/capture_onboarding.gd`.
 
 <!-- SECTION: VFX Dev — FX (owner text; replace freely) -->
 ## FX and juice (owner: VFX Dev)
