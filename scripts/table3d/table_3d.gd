@@ -187,6 +187,7 @@ func _ready() -> void:
 	# Whichever PR adds `events` must also remove the table's direct sfx calls
 	# for throw, impact, hot_hand, no_score, and table_cleared (one-owner rule).
 	add_child(TableAudio.new())
+	add_child(TriggerFx.new())
 	_build_world()
 	_build_hud()
 	_build_end_screen()
