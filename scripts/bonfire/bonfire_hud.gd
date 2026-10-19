@@ -40,6 +40,9 @@ var combo_grid: GridContainer
 var show_seal_column: bool = false
 ## Bounty id -> its card (PanelContainer with icons + the row label).
 var bounty_cards: Dictionary = {}
+## Phone portrait only: the goal + bounty readout near the top (see
+## portrait_goal_hud.gd). Hidden on PC and phone landscape.
+var portrait_goal: PortraitGoalHud
 var _stamps: Dictionary = {}
 var _pending_stamps: Dictionary = {}
 var _pulse: Array = []
@@ -94,6 +97,9 @@ func _init() -> void:
 	rules_box = VBoxContainer.new()
 	rules_box.add_theme_constant_override("separation", 6)
 	rules_panel.add_child(rules_box)
+	# Added before the end panel so the end screen draws over it.
+	portrait_goal = PortraitGoalHud.new()
+	add_child(portrait_goal)
 	end_panel = PanelContainer.new()
 	end_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.94)))
 	end_panel.position = Vector2(560, 300)
@@ -140,6 +146,7 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	points_label.text = "points %d  (1 Ember / %d)" % [int(display_hold.get("points", run.points)), run.tuning.points_per_ember]
 	hands_label.text = "HANDS LEFT %d" % run.hands_left
 	_refresh_checklist(run)
+	portrait_goal.refresh(run)
 	_refresh_rules(run)
 	var picking := run.state == BonfireRun.State.PICK
 	if display_hold.has("pot_from"):
@@ -498,6 +505,11 @@ func flash(text: String, col: Color) -> void:
 
 
 ## Run mode: CONTINUE instead of RESTART on the end panel.
+## Shows the portrait goal readout only when the screen is taller than wide.
+func set_portrait(on: bool) -> void:
+	portrait_goal.visible = on
+
+
 func set_run_mode(on: bool) -> void:
 	restart_button.visible = not on
 	continue_button.visible = on
