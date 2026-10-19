@@ -154,7 +154,9 @@ func has_event(event: StringName) -> bool:
 ## 2x; the return value includes it), so callers add no timers of their own.
 ## The hook also owns the voice cap, the shared cluster, the speed modes and
 ## the crowd nudge.
-func play_mod_trigger(id: StringName, tier: int = -1, intensity: float = 1.0, hit_ms: float = -1.0) -> float:
+## flavor: a pre-carved batch-3 face's layer (ctx.flavor: &"verdict", &"midnight",
+## &"tithe", &"keg", &"lantern"); &"" = the one its id implies, if any.
+func play_mod_trigger(id: StringName, tier: int = -1, intensity: float = 1.0, hit_ms: float = -1.0, flavor: StringName = &"") -> float:
 	var row := ModTriggerSynth.row_for(id)
 	var t := ModTriggerSynth.timing(row)
 	var tier_i := int(t[0]) if tier < 0 else tier
@@ -197,6 +199,10 @@ func play_mod_trigger(id: StringName, tier: int = -1, intensity: float = 1.0, hi
 	_trigger_ends.append(now + start + _trigger_stream(row).get_length() / pitch)
 	_once_until[row] = _trigger_ends.back()
 	_schedule_trigger(row, start, pitch, vol + (-2.0 if fast else 0.0))
+	var fl: StringName = flavor if flavor != &"" else ModTriggerSynth.FLAVOR_OF.get(id, &"")
+	if ModTriggerSynth.FLAVORS.has(fl) and ModTriggerSynth.FLAVORS[fl][0] == row:  # the face's layer, on the same hit
+		var layer := StringName("flavor_" + fl)
+		_schedule_trigger(layer, hit_s - float(ModTriggerSynth.FLAVORS[fl][1]) / 1000.0 / pitch, pitch, vol + ModTriggerSynth.FLAVOR_DB + (-2.0 if fast else 0.0))
 	return hit_s
 
 
