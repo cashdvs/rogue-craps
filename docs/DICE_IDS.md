@@ -81,7 +81,7 @@ Art keys on `main` that no gameplay die uses. `DiceIds.ASSET_ONLY_KEYS` lists th
 | Asset key | Where | Status |
 |---|---|---|
 | `knucklebone_d6` | parked Burn Line d6 spec in `art/models/dice/src/build_dice.py` (`--all` only; no `.glb` on `main`) | **Legacy, retired** (Systems Dev ruling, 2026-10-19). Keeps its key; not renamed, because `knucklebone_talus` is #102's different, real Knucklebone model. Was an alias of `knucklebone` in #107; removed. |
-| `gilded_d6` | `art/models/dice/gilded_d6.glb` + `materials/gilded_*.tres` | Model of the **Gilded Face** face mod (`resources/mods/gilded.tres`, id `gilded`), not a die: no `resources/dice` entry and not in the special-dice list (see `art/models/dice/SPECIAL_DICE.md`, "Open questions"). **Pending Game Designer:** retire it or reuse its materials as a per-face look. |
-| `hellfire_d6` | `art/models/dice/hellfire_d6.glb` + `materials/hellfire_*.tres` | Same for the **Hellfire Face** face mod (`resources/mods/hellfire.tres`, id `hellfire`). **Pending Game Designer.** |
+| `gilded_d6` | `art/models/dice/gilded_d6.glb` + `materials/gilded_*.tres` | Model of the **Gilded Face** face mod (`resources/mods/gilded.tres`, id `gilded`), not a die: no `resources/dice` entry and not in the special-dice list (see `art/models/dice/SPECIAL_DICE.md`, "Open questions"). **Deprecated** (Game Designer, Oct 19): retired as a die; kept only as material reference for the Gilded face look. Art Director decides any reuse. |
+| `hellfire_d6` | `art/models/dice/hellfire_d6.glb` + `materials/hellfire_*.tres` | Same for the **Hellfire Face** face mod (`resources/mods/hellfire.tres`, id `hellfire`). **Deprecated**, same ruling. |
 
 If Gilded or Hellfire ever become real dice, they can't take the die ids `gilded` / `hellfire`: those are face-mod ids, and die ids and face-mod ids share one namespace (`SfxManager.play_mod_trigger`). The test checks this.

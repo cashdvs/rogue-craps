@@ -123,10 +123,10 @@ const ASSET_ONLY_KEYS: Dictionary = {
 	# Legacy, retired: parked Burn Line d6 spec (art/models/dice/src/build_dice.py), never exported.
 	# Not the Knucklebone die, whose model is #102's knucklebone_talus.
 	&"knucklebone_d6": "legacy (retired)",
-	# Models of the Gilded / Hellfire *face mods* (resources/mods/); not dice. Pending Game Designer:
-	# retire them or reuse their materials as per-face looks.
-	&"gilded_d6": "face-mod showcase (pending Game Designer)",
-	&"hellfire_d6": "face-mod showcase (pending Game Designer)",
+	# DEPRECATED (Game Designer, Oct 19): retired as dice; kept only as material reference for the
+	# Gilded / Hellfire face-mod looks. Art Director decides any reuse.
+	&"gilded_d6": "deprecated: face-mod material reference only",
+	&"hellfire_d6": "deprecated: face-mod material reference only",
 }
 
 
