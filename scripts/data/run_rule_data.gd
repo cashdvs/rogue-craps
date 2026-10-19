@@ -32,3 +32,6 @@ enum Kind { TWIST, CHEAT }
 @export var tooltip_text: String = ""
 ## Everything printed on the sign, for screen readers / accessible text.
 @export var sign_alt_text: String = ""
+## HUD: keep the rule's text line visible under the name even with an icon
+## (BossSign also does this for any rule that states a Soul / Ember cost).
+@export var hud_always_show_line: bool = false

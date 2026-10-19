@@ -190,8 +190,12 @@ func _show_table() -> void:
 	if run.table_type == NT.BOSS:
 		boss_sign = BossSign.make_sign(run.boss, _px_height(), _layout_width())
 		if boss_sign != null:
+			# The sign is the header: it replaces the boss-name title.
+			var title := _panel_box.get_child(0)
+			_panel_box.remove_child(title)
+			title.queue_free()
 			_panel_box.add_child(boss_sign)
-			_panel_box.move_child(boss_sign, 1)
+			_panel_box.move_child(boss_sign, 0)
 
 
 ## Window height in pixels (for @1x / @2x sign art).

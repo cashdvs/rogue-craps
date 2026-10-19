@@ -5,8 +5,9 @@
 ##  - Boss intro (RunScreen's table panel) and the table's pause menu: the
 ##    full sign, centred, ~1/3 of the layout width, never under 600x210
 ##    layout units; @2x when the window is 1080 px tall or more.
-##  - Table HUD: the name plus the 128 px rule icon at ICON_PX, the full
-##    rule text as a tooltip (mouse) or shown on focus / tap (pad, touch).
+##  - Table HUD: the name plus the 128 px rule icon at ICON_PX, the rule's
+##    description in a BossRuleTip (hover / focus / tap); a rule that states
+##    a cost keeps its line visible instead (states_cost).
 ## Linear filtering with mipmaps everywhere (never nearest).
 class_name BossSign
 extends RefCounted
@@ -59,7 +60,6 @@ static func make_sign(r: RunRuleData, px_height: int, layout_width: float = 1920
 	t.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	t.texture_filter = FILTER
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	t.tooltip_text = r.sign_alt_text
 	_set_accessible(t, r.sign_alt_text)
 	return t
 
@@ -102,12 +102,17 @@ static func _params_match(want: Dictionary, have: Dictionary) -> bool:
 	return true
 
 
-## HUD hook: for an art-carrying rule, put the icon before the name, show
-## the boss's name, hide the one-line text and move it (with the sign's
-## wording) into a tooltip, shown on focus / tap too. Returns false and
+## HUD hook: for an art-carrying rule, put the icon before the name and
+## show the boss's name. The rule line then moves into a BossRuleTip
+## (hover / focus / tap; hidden while paused), unless the rule states a
+## cost (states_cost), which keeps the line visible. Returns false and
 ## changes nothing otherwise (the row keeps today's text).
 static func decorate_hud_row(row: Control, name_l: Label, line: Label, id: StringName, params: Dictionary) -> bool:
-	var r := for_table_rule(id, params)
+	return decorate_with(row, name_l, line, for_table_rule(id, params))
+
+
+## decorate_hud_row() for a known rule resource `r` (null = no change).
+static func decorate_with(row: Control, name_l: Label, line: Label, r: RunRuleData) -> bool:
 	if r == null or r.rule_icon == null or row == null or name_l == null or name_l.get_parent() != row:
 		return false
 	var head := HBoxContainer.new()
@@ -130,30 +135,34 @@ static func decorate_hud_row(row: Control, name_l: Label, line: Label, id: Strin
 	name_l.text = r.display_name.to_upper()
 	row.add_child(head)
 	row.move_child(head, at)
-	var tip := hud_tooltip(r)
-	row.tooltip_text = tip
-	row.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.focus_mode = Control.FOCUS_ALL
-	_set_accessible(row, tip)
+	_set_accessible(row, "%s. %s" % [r.display_name, r.description])
 	if line != null:
 		line.text = r.description
-		line.visible = false
-		row.focus_entered.connect(func() -> void: line.visible = true)
-		row.focus_exited.connect(func() -> void: line.visible = false)
-	row.gui_input.connect(func(e: InputEvent) -> void:
-		if (e is InputEventScreenTouch and e.pressed) or (e is InputEventMouseButton and e.pressed):
-			row.grab_focus())
+		line.visible = states_cost(r)
+	if line == null or not line.visible:
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.focus_mode = Control.FOCUS_ALL
+		BossRuleTip.new(r.description).attach(row)
+		row.gui_input.connect(func(e: InputEvent) -> void:
+			if (e is InputEventScreenTouch and e.pressed) or (e is InputEventMouseButton and e.pressed):
+				row.grab_focus())
 	return true
 
 
-## The HUD tooltip: name, the sign's rule line, then the full rule text.
-static func hud_tooltip(r: RunRuleData) -> String:
-	var parts: Array[String] = [r.display_name]
-	if r.tooltip_text != "":
-		parts.append(r.tooltip_text)
-	if r.description != "":
-		parts.append(r.description)
-	return "\n".join(parts)
+## Does `r` state a cost the player must always see (HUD line stays up)?
+## hud_always_show_line, a bust cost (bust_soul_loss), a soul / ember /
+## cost param, or "soul", "ember" or "cost" in its description.
+static func states_cost(r: RunRuleData) -> bool:
+	if r == null:
+		return false
+	if r.hud_always_show_line or r.bust_soul_loss >= 0:
+		return true
+	for k in r.params:
+		var key := String(k).to_lower()
+		if key.contains("soul") or key.contains("ember") or key.contains("cost"):
+			return true
+	var re := RegEx.create_from_string("\\b(soul|souls|ember|embers|cost|costs)\\b")
+	return re.search(r.description.to_lower()) != null
 
 
 static func _set_accessible(c: Control, text: String) -> void:

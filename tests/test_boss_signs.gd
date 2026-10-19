@@ -1,9 +1,11 @@
 ## Floor 3 boss signs (BossSign + RunRuleData sign fields): Baron Vig and
 ## Odds Bodkin carry their sign / icon textures and they load; the boss
-## intro shows the sign (@2x at 1080 px, @1x below, >= 600x210 units,
-## centred) and so does the table's pause menu; the table HUD shows the
-## icon + tooltip for both, and a boss without art (Mister Wick) or the
-## Elite Greedy Pot twist keeps today's text row.
+## intro shows the sign as its header (@2x at 1080 px, @1x below, >=
+## 600x210 units, centred) and so does the table's pause menu; the table
+## HUD shows the icon + a bounty-card tooltip with the rule line (hover /
+## focus, hidden while paused) for both; a rule that states a cost keeps
+## its line visible; a boss without art (Mister Wick) or the Elite Greedy
+## Pot twist keeps today's text row.
 ##   godot --headless --path . --script res://tests/test_boss_signs.gd
 extends SceneTree
 
@@ -88,7 +90,14 @@ func _test_intro() -> void:
 		_boss_table(scene, n)
 		var r := scene.run.boss
 		var s := scene.boss_sign
-		_check(s != null and s.get_parent() == scene._panel_box and s.get_index() == 1, "%s intro: sign under the boss name" % n)
+		_check(s != null and s.get_parent() == scene._panel_box and s.get_index() == 0, "%s intro: the sign is the header" % n)
+		var names := 0
+		var cheat := false
+		for c in scene._panel_box.get_children():
+			if c is Label and not c.is_queued_for_deletion():
+				names += 1 if (c as Label).text == r.display_name else 0
+				cheat = cheat or (c as Label).text.begins_with("Cheat: %s" % r.display_name)
+		_check(names == 0 and cheat, "%s intro: no orange name title; Cheat: line kept" % n)
 		_check(s.texture == r.sign_texture_2x, "%s intro: @2x at 1080p" % n)
 		_check(s.custom_minimum_size.x >= 600.0 and s.custom_minimum_size.y >= 210.0, "%s intro: >= 600x210 units" % n)
 		_check(s.size_flags_horizontal == Control.SIZE_SHRINK_CENTER and s.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS, "%s intro: centred, linear + mipmaps" % n)
@@ -138,15 +147,74 @@ func _test_hud() -> void:
 		_check(icon.custom_minimum_size.y >= 48 and icon.custom_minimum_size.y <= 64, "%s HUD: icon at 48-64 px" % n)
 		var name_l := icon.get_parent().get_child(1) as Label
 		_check(name_l.text == r.display_name.to_upper(), "%s HUD: shows the boss name" % n)
-		_check(row.tooltip_text.contains(r.tooltip_text) and row.tooltip_text.contains(r.description), "%s HUD: tooltip has the sign line + full rule" % n)
-		_check(row.focus_mode == Control.FOCUS_ALL and row.mouse_filter != Control.MOUSE_FILTER_IGNORE, "%s HUD: hover / focus / tap reachable" % n)
+		_check(not BossSign.states_cost(r), "%s: states no cost" % n)
 		var line := row.get_child(1) as Label
-		_check(not line.visible and line.text == r.description, "%s HUD: rule line hidden until focus" % n)
-		row.focus_entered.emit()
-		_check(line.visible, "%s HUD: focus shows the full rule" % n)
+		_check(not line.visible and line.text == r.description, "%s HUD: rule line hidden (tooltip only)" % n)
+		var tip := row.find_child("RuleTip", true, false) as BossRuleTip
+		_check(tip != null and tip.label.text == r.description and row.tooltip_text == "", "%s HUD: tooltip is only the full rule line" % n)
+		_check(tip.top_level and tip.label.label_settings.font_color == Palette.BONE, "%s HUD: tooltip top-level, cream text" % n)
+		var sb := tip.get_theme_stylebox("panel") as StyleBoxFlat
+		_check(sb != null and sb.bg_color == Color(Palette.FELT_DARK, 0.9) and sb.border_color == Palette.BRASS and sb.border_width_left == 2,
+			"%s HUD: tooltip uses the bounty card box (FELT_DARK, 2 px BRASS)" % n)
+		_check(row.focus_mode == Control.FOCUS_ALL and row.mouse_filter != Control.MOUSE_FILTER_IGNORE, "%s HUD: hover / focus / tap reachable" % n)
+		_check(not tip.wanted(), "%s HUD: tooltip hidden until hover" % n)
+		tip._on_enter()
+		tip._process(0.1)
+		_check(not tip.visible, "%s HUD: tooltip waits for the hover delay" % n)
+		tip._process(BossRuleTip.DELAY)
+		_check(tip.visible, "%s HUD: hover shows the tooltip" % n)
+		paused = true
+		tip._process(0.1)
+		_check(not tip.visible, "%s HUD: tooltip hidden while paused" % n)
+		paused = false
+		tip._on_exit()
+		tip._process(0.1)
+		_check(not tip.visible, "%s HUD: tooltip hides on mouse exit" % n)
+		row.grab_focus()
+		tip._process(0.0)
+		_check(tip.visible, "%s HUD: focus (pad / tap) shows the tooltip" % n)
+		row.release_focus()
 		_check(row.find_child("BossSign", true, false) == null, "%s HUD: never the whole sign" % n)
 		row.get_parent().get_parent().get_parent().queue_free()
 	for e in [{"id": &"cold_sixes", "params": {"face": 6}}, {"id": &"greedy_pot", "params": {"min_pot": 2}}]:
 		var row := _hud_row([e])
-		_check(row.find_child("RuleIcon", true, false) == null and row.get_child(0) is Label and row.tooltip_text == ""
+		_check(row.find_child("RuleIcon", true, false) == null and row.get_child(0) is Label and row.find_child("RuleTip", true, false) == null
 			and (row.get_child(1) as Label).visible, "fallback HUD (%s): today's text row" % e["id"])
+		row.get_parent().get_parent().get_parent().queue_free()
+	_test_cost_line()
+
+
+## A rule that states a cost keeps its line under the name (Godot Dev).
+func _test_cost_line() -> void:
+	var vig := load(RULES + "baron_vig.tres") as RunRuleData
+	for f in ["mister_wick", "bloodletter"]:
+		_check(BossSign.states_cost(load(RULES + f + ".tres")), "%s: states a cost (bust / Soul)" % f)
+	var cases := {}
+	var a := vig.duplicate() as RunRuleData
+	a.bust_soul_loss = 2
+	cases["bust_soul_loss"] = a
+	var b := vig.duplicate() as RunRuleData
+	b.description = "A bust costs 2 Soul."
+	cases["Soul in description"] = b
+	var c := vig.duplicate() as RunRuleData
+	c.params = {"min_pot": 3, "ember_cost": 5}
+	cases["ember param"] = c
+	var d := vig.duplicate() as RunRuleData
+	d.hud_always_show_line = true
+	cases["hud_always_show_line"] = d
+	for k in cases:
+		var r: RunRuleData = cases[k]
+		var row := VBoxContainer.new()
+		var name_l := Label.new()
+		var line := Label.new()
+		row.add_child(name_l)
+		row.add_child(line)
+		root.add_child(row)
+		_check(BossSign.decorate_with(row, name_l, line, r) and row.find_child("RuleIcon", true, false) != null, "cost (%s): icon row" % k)
+		_check(line.visible and line.text == r.description and row.find_child("RuleTip", true, false) == null, "cost (%s): line stays visible, no tooltip" % k)
+		row.queue_free()
+	var row2 := VBoxContainer.new()
+	var nl := Label.new()
+	row2.add_child(nl)
+	_check(not BossSign.decorate_with(row2, nl, null, load(RULES + "mister_wick.tres")) and row2.get_child(0) == nl, "no icon: row untouched")
+	row2.free()
