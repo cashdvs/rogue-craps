@@ -9,6 +9,8 @@
 extends SceneTree
 
 const SR: float = 22050.0
+## Noise allowed on purpose, and not on the die: verdict_20_alt's crowd gasp.
+const NOISE_OK: Dictionary = {&"verdict_20_alt": 10}
 
 var _passed: int = 0
 var _failed: int = 0
@@ -173,7 +175,7 @@ func _test_cues() -> void:
 		var band := _band_share(s)
 		_check(band >= 0.35, "band: %s has %.0f%% of its energy in 1-5 kHz (>= 35%%)" % [row, band * 100.0])
 		var noisy := _noisy_frames(s)
-		_check(noisy <= 2, "no fire: %s has %d hiss/crackle frames (<= 2)" % [row, noisy])
+		_check(noisy <= NOISE_OK.get(row, 2), "no fire: %s has %d hiss/crackle frames (<= %d)" % [row, noisy, NOISE_OK.get(row, 2)])
 		feats[row] = [_rms_hz(s), _envelope(s, hit_s)]
 	for fl: StringName in ModTriggerSynth.FLAVORS:
 		var wav := ModTriggerSynth.make(StringName("flavor_" + fl))
@@ -209,6 +211,7 @@ func _test_mapping() -> void:
 	for id: StringName in ModTriggerSynth.ALIASES:
 		var row := ModTriggerSynth.row_for(id)
 		_check(row != &"generic" and (ModTriggerSynth.ROWS.has(row) or row == &"no_score"), "map: alias %s -> a real row" % id)
+	_check(ModTriggerSynth.row_for(&"verdict_20_alt") == &"verdict_20_alt" and not ModTriggerSynth.ALIASES.values().has(&"verdict_20_alt"), "map: verdict_20_alt plays only when called by name")
 	_check(ModTriggerSynth.event(&"mirror_copy") == &"trigger_mirror_copy" and ModTriggerSynth.event(&"no_score") == &"no_score", "event: row -> trigger_<row>")
 	_check(is_zero_approx(ModTriggerSynth.stagger(0)) and is_equal_approx(ModTriggerSynth.stagger(2), 0.16), "stagger: 0.08 s apart at 1x")
 	_check(is_equal_approx(ModTriggerSynth.stagger(2, 1), 0.08) and is_zero_approx(ModTriggerSynth.stagger(2, 2)), "stagger: halved at 2x, 0 at Instant")
