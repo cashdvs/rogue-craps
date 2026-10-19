@@ -13,10 +13,15 @@
 class_name CoinPhysics
 extends RefCounted
 
-## Size from the 3D Artist's mesh: 0.100 m across, 0.024 m thick (bevel
-## ignored for the collider).
+## Size from the 3D Artist's mesh: 0.100 m across, 0.024 m thick, with a
+## rounded ("barrel") edge: in side view the rim is an arc of radius
+## EDGE_ARC_R whose widest point (r = RADIUS) is at the middle, y = 0.
 const RADIUS: float = 0.05
 const THICKNESS: float = 0.024
+const EDGE_ARC_R: float = 0.020
+## Collider resolution: HULL_SEGMENTS points around x 3 rings (top face edge,
+## the widest middle, bottom face edge) = 72 points, mirror-symmetric in Y.
+const HULL_SEGMENTS: int = 24
 ## Mass relative to a d6 (TuningData.die_mass 0.02 kg -> 0.01 kg). The coin
 ## is symmetric with its centre of mass at the origin (Godot's default).
 const MASS_FACTOR: float = 0.5
@@ -36,12 +41,36 @@ const AXIS_ID_HEADS: int = 1
 const AXIS_ID_TAILS: int = 6
 
 
-## The physics collider: a thin CylinderShape3D on local Y.
-static func make_shape() -> CylinderShape3D:
-	var c := CylinderShape3D.new()
-	c.radius = RADIUS
-	c.height = THICKNESS
+## The physics collider: a convex hull of the barrelled coin (3D Artist's
+## ruling: a CylinderShape3D's flat rim band let the coin stand on its edge
+## in 4 of 60 throws and split 37/23; the hull gave 0 edge landings, 20/20).
+## Points are generated here (not read from the art file) so the collider
+## never depends on the art branch.
+static func make_shape() -> ConvexPolygonShape3D:
+	var c := ConvexPolygonShape3D.new()
+	c.points = hull_points()
 	return c
+
+
+## Radius of the barrelled rim at height y (|y| <= THICKNESS / 2): the arc
+## of radius EDGE_ARC_R centred EDGE_ARC_R inside the widest point.
+static func rim_radius(y: float) -> float:
+	var centre := RADIUS - EDGE_ARC_R
+	return centre + sqrt(maxf(EDGE_ARC_R * EDGE_ARC_R - y * y, 0.0))
+
+
+## The hull's points: rings at y = +h (face edge, r ~0.046), 0 (r 0.050) and
+## -h, each HULL_SEGMENTS points; the rings at +h and -h are mirror images,
+## so heads and tails are exactly alike to the physics.
+static func hull_points() -> PackedVector3Array:
+	var pts := PackedVector3Array()
+	var h := THICKNESS * 0.5
+	for y in [h, 0.0, -h]:
+		var r := rim_radius(y)
+		for k in HULL_SEGMENTS:
+			var a := TAU * float(k) / float(HULL_SEGMENTS)
+			pts.append(Vector3(cos(a) * r, y, sin(a) * r))
+	return pts
 
 
 ## Heads (1) or tails (2) for a coin with basis b: whichever face normal

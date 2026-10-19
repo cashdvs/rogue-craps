@@ -1,7 +1,7 @@
 ## Ferryman's Coin physics (Cash's bug: the coin slid and kept landing the
 ## same face). Checks the coin math (CoinPhysics), then throws the coin
 ## through the REAL throw path (Bonfire3D.launch_for -> random flip phase ->
-## DiceSim with the thin CylinderShape3D) many times at mixed flick speeds:
+## DiceSim with the barrelled convex-hull collider) many times at mixed flick speeds:
 ##   - heads lands 45-55% (physically, read by the face normal: +Y = heads),
 ##   - no throw ends with the coin on its edge,
 ##   - the longest same-face streak is one chance would allow,
@@ -40,6 +40,22 @@ func _math() -> void:
 	check(CoinPhysics.face_slot(Basis.IDENTITY) == 1, "+Y up = heads (slot 1)")
 	check(CoinPhysics.face_slot(Basis(Vector3.RIGHT, PI)) == 2, "-Y up = tails (slot 2)")
 	check(is_equal_approx(CoinPhysics.tilt_deg(Basis(Vector3.RIGHT, PI * 0.5)), 90.0), "on edge = 90 deg tilt")
+	# The hull: 72 points, barrelled profile, mirror-symmetric across Y.
+	var pts := CoinPhysics.hull_points()
+	var max_r := 0.0
+	var max_y := 0.0
+	var mirrored := true
+	for p in pts:
+		max_r = maxf(max_r, Vector2(p.x, p.z).length())
+		max_y = maxf(max_y, absf(p.y))
+		var found := false
+		for q in pts:
+			found = found or q.is_equal_approx(Vector3(p.x, -p.y, p.z))
+		mirrored = mirrored and found
+	check(pts.size() == 72 and mirrored, "hull: 72 points, mirror-symmetric across Y")
+	check(is_equal_approx(max_r, 0.05) and is_equal_approx(max_y, 0.012), "hull: 0.100 m across at the middle, 0.024 m thick")
+	check(absf(CoinPhysics.rim_radius(0.012) - 0.046) < 0.0002 and absf(CoinPhysics.rim_radius(0.0104) - 0.0471) < 0.0002, "rim arc (r 0.020) matches the art's ring radii (0.0466 face edge / 0.0471)")
+	check(CoinPhysics.make_shape() is ConvexPolygonShape3D, "make_shape -> ConvexPolygonShape3D")
 	check(CoinPhysics.is_on_edge(Basis(Vector3.RIGHT, deg_to_rad(80))) and not CoinPhysics.is_on_edge(Basis(Vector3.RIGHT, deg_to_rad(60))), "edge band = within 15 deg of vertical")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
@@ -114,8 +130,8 @@ func _run() -> void:
 		if k == 0:
 			var body := s.sim.bodies[0]
 			var cs := body.get_node("Shape") as CollisionShape3D
-			sim_body_ok = cs.shape is CylinderShape3D and is_equal_approx((cs.shape as CylinderShape3D).radius, 0.05) \
-				and is_equal_approx((cs.shape as CylinderShape3D).height, 0.024) and is_equal_approx(body.mass, s.tuning.die_mass * 0.5)
+			sim_body_ok = cs.shape is ConvexPolygonShape3D and (cs.shape as ConvexPolygonShape3D).points.size() == 72 \
+				and is_equal_approx(body.mass, s.tuning.die_mass * 0.5)
 		var slot := CoinPhysics.slot_for_axis_id(rec.up_values[0])
 		var fin := rec.final_transform(0)
 		if CoinPhysics.tilt_deg(fin.basis) > 0.5 or CoinPhysics.face_slot(fin.basis) != slot:
@@ -158,7 +174,7 @@ func _run() -> void:
 	print("COIN STATS: %d tosses, heads %d (%.1f%%), longest streak %d (allowed %d), edge rests %d, edge tips (nudges) %d, eased flat from its rim by the assist %d, min half-turns %.1f, mean %.1f, %d ms" % [n, heads, frac * 100.0, longest, allowed, edge_rests, edge_nudges, edge_eased, min_turns, sum_turns / float(n), ms])
 	for sp in per_speed:
 		print("  %.0f px/s: heads %d / %d" % [sp, per_speed[sp][0], per_speed[sp][1]])
-	check(sim_body_ok, "coin collider = CylinderShape3D r 0.05 h 0.024, mass 0.5x d6")
+	check(sim_body_ok, "coin collider = 72-point ConvexPolygonShape3D, mass 0.5x d6")
 	check(frac >= 0.45 and frac <= 0.55, "heads %.1f%% within 45-55%%" % (frac * 100.0))
 	check(edge_rests == 0, "no edge rests (%d)" % edge_rests)
 	check(edge_eased <= n / 20, "rarely still on its rim at the settle assist (%d of %d)" % [edge_eased, n])
@@ -177,12 +193,16 @@ func _run() -> void:
 	s.sim.set_body_shapes([&"coin"])
 	var prng := RandomNumberGenerator.new()
 	prng.seed = 9
+	# Line a hull vertex up with the flip axis (a turn about local Y), so a
+	# half flip maps the 24-sided hull exactly onto itself.
+	var ax := spin[0].normalized()
+	var align := Basis(Vector3.UP, atan2(-ax.z, ax.x))
 	var swapped := 0
 	for p in 12:
 		var phi := prng.randf_range(0.0, PI)
 		var got: Array[int] = []
 		for add in [0.0, PI]:
-			var starts: Array[Transform3D] = [Transform3D(Basis(spin[0].normalized(), phi + add), s.hand_spot(0) + Vector3(0, 0.02, 0))]
+			var starts: Array[Transform3D] = [Transform3D(Basis(ax, phi + add) * align, s.hand_spot(0) + Vector3(0, 0.02, 0))]
 			var r: ThrowRecording = await s.sim.simulate(starts, lin, spin, 77)
 			got.append(CoinPhysics.slot_for_axis_id(r.up_values[0]))
 		swapped += 1 if got[0] != got[1] else 0

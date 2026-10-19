@@ -43,7 +43,7 @@ var _rng := RandomNumberGenerator.new()
 var _mat: PhysicsMaterial
 ## Dice in the current throw (bodies past this stay parked and frozen).
 var active: int = 0
-## Shape per body (&"d6" box or &"coin" thin cylinder, see CoinPhysics); set
+## Shape per body (&"d6" box or &"coin" barrelled convex hull, see CoinPhysics); set
 ## with set_body_shapes() before simulate().
 var shapes: Array[StringName] = []
 ## Coin edge rule (_coin_on_felt): how long a slow coin may stand on its rim
@@ -106,7 +106,7 @@ func _box_shape() -> BoxShape3D:
 
 
 ## Gives body i the collider and mass of its die's shape: a coin is a thin
-## CylinderShape3D (CoinPhysics.RADIUS x THICKNESS) at half a d6's mass; any
+## ConvexPolygonShape3D (CoinPhysics.hull_points, 72 points) at half a d6's mass; any
 ## other shape is the d6 box (the table has no other meshes yet). Bodies
 ## past the list keep their shape.
 func set_body_shapes(list: Array) -> void:
@@ -366,10 +366,11 @@ func _nudge_coin(i: int) -> bool:
 	var axis := Vector3.UP.cross(lean.normalized()) if lean.length() > 0.001 else Vector3.RIGHT
 	var to_center := Vector3(-b.global_position.x, 0.0, -b.global_position.z).normalized()
 	var on_felt := CoinPhysics.is_on_edge(basis) and b.global_position.y <= CoinPhysics.RADIUS + 0.01
-	# Which way to tip: on its rim, a coin flip (so the nudge never picks
-	# the face); leaning on something, the way it is already falling.
+	# Which way to tip: toward the NEARER face (the way it already leans,
+	# 3D Artist's ruling); a coin flip only when it stands dead upright
+	# (within half a degree), so the nudge never picks the face itself.
 	var sgn := 1.0 if _rng.randf() < 0.5 else -1.0
-	if not CoinPhysics.is_on_edge(basis):
+	if absf(n.y) > sin(deg_to_rad(0.5)):
 		var ahead := n + axis.cross(n) * 0.01
 		sgn = 1.0 if absf(ahead.dot(Vector3.UP)) > absf(n.dot(Vector3.UP)) else -1.0
 	var w := axis * sgn * _rng.randf_range(9.0, 12.0)
