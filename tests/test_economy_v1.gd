@@ -67,6 +67,14 @@ func _test_points_cap() -> void:
 	_check(_points_embers(_tuning, 900) == 5, "P1: 900 points pay 5 Embers (capped)")
 	_check(_points_embers(_tuning, 300) == 3, "P1: 300 points pay 3 Embers (under the cap)")
 	_check(_points_embers(_tuning, 60000) == 5, "P1: a 60k Floor 3 score still pays 5")
+	var same := true
+	for pts in [300, 500, 501, 750, 60000]:
+		var r := BonfireRun.new(_tuning, _tuning.table_goal, 30, 5)
+		var e0 := r.embers
+		r.points = pts
+		r.forfeit()
+		same = same and BonfireRun.points_to_embers(_tuning, pts) == int(r.table_summary["points_embers"]) and r.embers - e0 == int(r.table_summary["points_embers"])
+	_check(same and BonfireRun.points_to_embers(_tuning, 750) == 5, "P1: over 500 points the shared preview (points_to_embers) matches what's paid")
 	var bare := BonfireTuning.new()
 	bare.table_goal = _tuning.table_goal
 	_check(bare.points_embers_cap == 0 and _points_embers(bare, 900) == 9, "P1: no cap set (field absent) = uncapped, 900 pays 9")

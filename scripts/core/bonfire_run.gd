@@ -433,9 +433,19 @@ func _finish(r: Dictionary) -> Dictionary:
 	return r
 
 
+## Embers that `pts` table points pay under tuning `t`: 1 per points_per_ember,
+## capped at points_embers_cap per table (0 = no cap). The one conversion:
+## the payout and every preview use it.
+static func points_to_embers(t: BonfireTuning, pts: int) -> int:
+	var converted := pts / maxi(t.points_per_ember, 1)
+	# P1 (economy v1): points pay at most points_embers_cap Embers per table.
+	if t.points_embers_cap > 0:
+		converted = mini(converted, t.points_embers_cap)
+	return converted
+
+
 func _end_table(st: State) -> void:
-	var converted := points / maxi(tuning.points_per_ember, 1)
-	converted = mini(converted, tuning.points_embers_cap) if tuning.points_embers_cap > 0 else converted
+	var converted := points_to_embers(tuning, points)
 	var clear := goal.clear_embers if st == State.CLEARED else 0
 	var soul_lost := 0
 	if st == State.FAILED:
