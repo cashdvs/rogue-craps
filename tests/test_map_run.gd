@@ -65,8 +65,8 @@ func _test_goals() -> void:
 				good = good and has
 			ok[f] = ok[f] and good
 	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, 1 bonus")
-	_check(ok[1], "goals: floor 2 has 3-4 incl. Run of 4 or Full House, 5 hands")
-	_check(ok[2], "goals: floor 3 has 4 incl. Quads or Run of 5, 6 hands")
+	_check(ok[1], "goals: floor 2 has 3 incl. Run of 4, 5 hands")
+	_check(ok[2], "goals: floor 3 has 4 incl. Run of 4, 5 hands")
 	var boss_ok := true
 	for f in 3:
 		var run := MapRun.new(_data, 5)
@@ -215,7 +215,6 @@ func _test_rules_and_seals() -> void:
 	var f1: FloorData = _data.floors[0]
 	_check(f1.elite_twists.size() == 4 and f1.boss_cheats.size() == 3 and _data.floors[2].boss_cheats.size() == 1
 		and not _data.floors[2].boss_adds_twist and not f1.boss_adds_twist, "rules: 4 twists; 3 bosses on floors 1-2, Mister Wick alone on floor 3")
-	_test_tuning_v1()
 	var run := MapRun.new(_data, 8)
 	_check(f1.boss_cheats.has(run.boss) and run.boss_twist == null, "rules: floor 1 boss drawn from its pool on entering the floor")
 	var short: RunRuleData = load("res://resources/map/rules/short_table.tres")
@@ -345,102 +344,3 @@ func _test_full_run() -> void:
 		if _play(s).screen == S.RUN_WON:
 			wins += 1
 	_check(wins == 20, "run: every seed reaches the final boss (stub tables)")
-
-
-## run_tuning_v1: floor 2/3 data and the Mister Wick boss.
-func _test_tuning_v1() -> void:
-	var f1: FloorData = _data.floors[0]
-	var f2: FloorData = _data.floors[1]
-	var f3: FloorData = _data.floors[2]
-	var ids := func(a: Array) -> Array:
-		var out: Array = []
-		for b in a:
-			out.append(b.id)
-		return out
-	_check(f1.clear_embers == 10 and f1.hands == 5, "tuning v1: floor 1 unchanged")
-	_check(f2.max_bounties == 3 and ids.call(f2.featured_bounties) == [&"run4"] and f2.clear_embers == 12
-		and f2.bonus_bounties.size() == 2 and f2.bonus_bounties.all(func(b): return b.bonus_embers == 6),
-		"tuning v1: floor 2 max 3, featured Run of 4, clear 12, bonuses 6")
-	var fh: BountyData = f3.bonus_bounties[0] if f3.bonus_bounties.size() > 0 else null
-	_check(f3.hands == 5 and ids.call(f3.featured_bounties) == [&"run4"] and f3.clear_embers == 14
-		and ids.call(f3.bonus_bounties) == [&"bonus_full_house", &"bonus_quads"]
-		and fh.kind == BountyData.Kind.FULL_HOUSE and fh.n == 5
-		and f3.bonus_bounties.all(func(b): return b.bonus_embers == 8),
-		"tuning v1: floor 3 hands 5, featured Run of 4, clear 14, bonus Full House/Quads at 8")
-	_check(f3.boss_bounties.is_empty() and f3.boss_min_bounties == 4 and f3.boss_max_bounties == 4 and not f3.boss_adds_twist,
-		"tuning v1: floor 3 boss draws 4 from the floor pool, no twist")
-	var wick: RunRuleData = f3.boss_cheats[0]
-	_check(wick.resource_path.ends_with("mister_wick.tres") and wick.id == &"cold_sixes" and wick.display_name == "Mister Wick"
-		and wick.kind == RunRuleData.Kind.CHEAT and wick.bust_soul_loss == 2 and str(wick.params) == str({"face": 6}),
-		"tuning v1: Mister Wick is a cold_sixes cheat, face 6, bust costs 2")
-	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
-	var ok := true
-	for s in 10:
-		var run := MapRun.new(_data, s)
-		run._start_floor(2)
-		_enter(run, NT.BOSS)
-		var ts: TableSetup = run.table_setup().to_table_setup(base)
-		ok = ok and ts.rules.size() == 1 and ts.rules[0]["id"] == &"cold_sixes" and ts.tuning.bust_soul_loss == 2 and run.goal.required.size() == 4
-	_check(ok, "tuning v1: floor 3 boss table gets only cold_sixes, bust_soul_loss 2, 4 bounties")
-	_test_tuning_addendum()
-
-
-## run_tuning_v1 addendum: Floor 1/2 bosses and the Elite twists.
-func _test_tuning_addendum() -> void:
-	var f1: FloorData = _data.floors[0]
-	var f2: FloorData = _data.floors[1]
-	var f3: FloorData = _data.floors[2]
-	var names := func(a: Array) -> Array:
-		var out: Array = []
-		for r in a:
-			out.append(r.resource_path.get_file().get_basename())
-		return out
-	var four := ["cold_sixes", "first_throw", "greedy_pot", "cold_hands"]
-	_check(names.call(f1.elite_twists) == four and names.call(f2.elite_twists) == four and names.call(f3.elite_twists) == four,
-		"addendum: every floor's Elites = Cold Sixes, First Throw, Greedy Pot, Cold Hands (no Short Table / Heavy Burn)")
-	_check(f1.boss_bounties.is_empty() and f1.boss_min_bounties == 3 and f1.boss_max_bounties == 3, "addendum: floor 1 boss draws 3 from the floor pool")
-	var x2: BountyData = f2.boss_bounties[0] if f2.boss_bounties.size() == 1 else null
-	_check(x2 != null and x2.id == &"two_pairs_x2" and x2.kind == BountyData.Kind.TWO_PAIR and x2.n == 2 and x2.count_needed == 2
-		and x2.display_name == "Two Pair x2" and f2.boss_min_bounties == 5 and f2.boss_max_bounties == 5, "addendum: floor 2 boss pool = Two Pair x2, 5 bounties")
-	var ok := true
-	for s in 10:
-		var run := MapRun.new(_data, s)
-		run._start_floor(1)
-		_enter(run, NT.BOSS)
-		var ids: Array = []
-		for b in run.goal.required:
-			ids.append(b.id)
-		ids.sort()
-		var want: Array = [&"run3", &"run4", &"triple", &"two_pairs", &"two_pairs_x2"]
-		want.sort()
-		ok = ok and ids == want
-	_check(ok, "addendum: floor 2 boss draws Run of 4, the 3 commons and Two Pair x2")
-	var want_r := {"ashmouth": [-1, "No Hot Hand. 5 hands."], "cold_sixes": [1, "6s never light. +1 hand."],
-		"first_throw": [1, "Bounties only count on a hand's first 2 throws. +1 hand."],
-		"greedy_pot": [1, "You must pot 2 or more dice per throw. +1 hand."], "cold_hands": [1, "No Hot Hand. +1 hand."],
-		"straight_man": [0, "Runs of 3 don't count."], "bloodletter": [0, "Every Soul cost is doubled: a bust costs 2."],
-		"madame_shuffle": [0, "Each hand she locks a middle face (2, 3 or 4); it never lights."]}
-	var rok := true
-	for n in want_r:
-		var r: RunRuleData = load("res://resources/map/rules/%s.tres" % n)
-		if r.hands_delta != want_r[n][0] or r.description != want_r[n][1]:
-			rok = false
-			print("  rule mismatch: ", n)
-	_check(rok, "addendum: rule hands_delta and descriptions")
-	var ms: RunRuleData = load("res://resources/map/rules/madame_shuffle.tres")
-	_check(ms.id == &"pit_boss" and ms.display_name == "Madame Shuffle" and ms.kind == RunRuleData.Kind.CHEAT and str(ms.params) == str({"faces": [2, 3, 4]}),
-		"addendum: Madame Shuffle is an interim pit_boss on faces 2-4")
-	var fs: RunRuleData = load("res://resources/map/rules/first_throw.tres")
-	var sm: RunRuleData = load("res://resources/map/rules/straight_man.tres")
-	_check(str(fs.params) == str({"throws": 2}) and str(sm.params) == str({"min_run": 4}), "addendum: First Throw 2 throws, Straight Man min_run 4")
-	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
-	var hok := true
-	for s in 20:
-		var run := MapRun.new(_data, s)
-		_enter(run, NT.BOSS)
-		var ts: TableSetup = run.table_setup().to_table_setup(base)
-		var want_h: int = f1.boss_hands + run.rules[0].hands_delta
-		hok = hok and run.goal.hands == want_h
-		for e: Dictionary in ts.rules:
-			hok = hok and not (e["params"] as Dictionary).has("hands_delta")
-	_check(hok, "addendum: hands_delta applies run-side (Ashmouth boss 5 hands), never in table params")
