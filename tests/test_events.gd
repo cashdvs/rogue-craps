@@ -63,7 +63,7 @@ func _test_content() -> void:
 		var e: EventData = _events[id]
 		ok = ok and e != null and e.title != "" and e.body.length() > 40 and e.art_note != "" and e.choices.size() == 3
 	_check(ok, "content: 5 events, each with title, text, art note and 3 choices")
-	_check(_run != null and _run.floors.size() == 3 and _run.events.size() == 5, "content: run data has 3 floors and the 5 events")
+	_check(_run != null and _run.floors.size() == 3 and _run.events.size() >= 5 and IDS.all(func(id): return _run.events.any(func(e): return e.id == id)), "content: run data has 3 floors and the 5 Floor 1 events")
 
 
 func _test_greying() -> void:

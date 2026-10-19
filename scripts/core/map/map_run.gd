@@ -52,7 +52,10 @@ func choose_node(id: int) -> bool:
 			_set_screen(Screen.TABLE)
 		NT.EVENT:
 			event = _pick_event()
-			_set_screen(Screen.EVENT)
+			if event == null:
+				_open_event_fallback()
+			else:
+				_set_screen(Screen.EVENT)
 		NT.SHOP:
 			shop_seals_bought = 0
 			shop_rerolls = 0
@@ -244,24 +247,29 @@ func take_seal(i: int, params: Dictionary = {}) -> bool:
 	return true
 
 
+## A floor event worth offering here (EventPicker), or null.
 func _pick_event() -> EventData:
-	var pool: Array[EventData] = []
-	for e in data.events:
-		if not _events_seen.has(e.id):
-			pool.append(e)
-	if pool.is_empty():
-		_events_seen.clear()
-		pool = data.events.duplicate()
-	var e: EventData = pool[_rng(&"event").randi_range(0, pool.size() - 1)]
-	_events_seen.append(e.id)
-	return e
+	return EventPicker.pick(data.events, _events_seen, floor_index + 1, progress, table_ahead(), _rng(&"event"))
+
+
+## No event is worth offering: the node becomes a Rest (shown as one on the map).
+func _open_event_fallback() -> void:
+	map.current().type = NT.REST
+	var mods := data.face_mods
+	rest_mod = mods[_rng(&"rest").randi_range(0, mods.size() - 1)] if not mods.is_empty() else null
+	_set_screen(Screen.REST)
+
+
+## Is a regular Table still reachable (so unplayed) on this floor?
+func table_ahead() -> bool:
+	return EventPicker.table_ahead(map)
 
 
 ## Resolve event choice i. Returns the applier's log ([] if not allowed).
 func choose_event(i: int, picks: Array[Vector2i] = []) -> Array[String]:
 	if screen != Screen.EVENT or i < 0 or i >= event.choices.size():
 		return []
-	var lines := EventApplier.apply(event.choices[i], progress, _rng(&"event_fx", i), picks)
+	var lines := EventApplier.apply(event.choices[i], progress, _rng(&"event_fx", i), picks, table_ahead())
 	if not lines.is_empty() and lines[0].begins_with("refused"):
 		return lines
 	if progress.is_over():
