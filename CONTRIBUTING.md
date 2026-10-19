@@ -45,6 +45,9 @@ how the code fits together is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A
   `SCRIPT ERROR`.
 - Commit the `*.uid` files Godot makes next to new scripts and the `*.import` files next to new
   assets. Never commit `.godot/`, builds or editor settings.
+- **AI-generated assets:** Every PR that adds or replaces an AI-generated asset must add a row to
+  docs/AI_CONTENT_LOG.md (asset path, tool, what it was used for, date). Steam's content survey
+  requires this disclosure. (The log file itself lands with the Steam-readiness PR.)
 
 ## 3. Open the PR, pass CI
 

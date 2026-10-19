@@ -179,7 +179,7 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
   - For anything that changes how the table looks, attach a capture from `tools/capture_bonfire.gd` or `tools/capture_readability.gd`.
   - For throw feel, use `tools/measure_throw_momentum.gd`.
 
-> Not on `main` yet (as of e1cf25b), arriving with Godot Dev's Leave table and readability PRs: `leave()` / `can_leave_now()`, the `throw_measured` and `refused` signals, `tests/test_leave_table.gd`, `tools/capture_readability.gd` and `table_events.gd`. Until then the same moments are on `BonfireRun.table_event` (see Key signals).
+> Not on `main` yet (as of fad5622), arriving with Godot Dev's Leave table and readability PRs: `leave()` / `can_leave_now()`, the `throw_measured` and `refused` signals, `tests/test_leave_table.gd`, `tools/capture_readability.gd` and `table_events.gd`. Until then the same moments are on `BonfireRun.table_event` (see Key signals).
 
 <!-- SECTION: VFX Dev — FX (owner text; replace freely) -->
 ## FX and juice (owner: VFX Dev)
@@ -192,7 +192,7 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
 
 <!-- Note from VFX Dev: the first FX PRs aren't merged yet, so folder and file names may change slightly; a correction will follow. -->
 
-> FX PRs in flight: `scripts/fx/` and `scripts/bonfire/table_events.gd` aren't on `main` yet (as of e1cf25b). Today's table effects live in `scripts/bonfire/bonfire_juice.gd` (Godot Dev's adapter) and `scripts/table3d/fx_3d.gd`.
+> FX PRs in flight: `scripts/fx/` and `scripts/bonfire/table_events.gd` aren't on `main` yet (as of fad5622). Today's table effects live in `scripts/bonfire/bonfire_juice.gd` (Godot Dev's adapter) and `scripts/table3d/fx_3d.gd`.
 
 <!-- SECTION: Sound Designer — audio (owner text; replace freely) -->
 ## Audio
