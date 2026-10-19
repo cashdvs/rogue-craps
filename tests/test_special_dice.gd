@@ -1,7 +1,8 @@
 ## Headless test: the Blender-built special dice (art/models/dice/, build_special_dice.py) match
 ## the face convention the 3D table reads (DieVisual.FACE_AXES + DieVisual.PIPS), are centred and
 ## die-sized, stay on budget, use the toon materials + ink hull, and keep their silhouettes
-## distinct (chips, spikes, beads or chamfer). See art/models/dice/SPECIAL_DICE.md.
+## distinct (chips, spikes, beads, chamfer; batch 2: waist, fins, steps, seals, coves, collar). See
+## art/models/dice/SPECIAL_DICE.md.
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_special_dice.gd
@@ -18,6 +19,13 @@ const DICE: Dictionary = {
 	"cracked_d6": [["cracked_body", "cracked_pip", "cracked_crack"], 0.08, 0.08, "chips"],
 	"hellfire_d6": [["hellfire_body", "hellfire_pip", "hellfire_seam"], 0.088, 0.096, "spikes"],
 	"gilded_d6": [["gilded_body", "gilded_pip", "gilded_panel"], 0.084, 0.09, "beads"],
+	# batch 2
+	"twin_flame_d6": [["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft"], 0.08, 0.08, "waist"],
+	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin"], 0.088, 0.096, "fins"],
+	"bellows_d6": [["bellows_body", "bellows_pip", "bellows_pleat"], 0.08, 0.08, "steps"],
+	"blood_pact_d6": [["blood_pact_body", "blood_pact_pip", "blood_pact_seal"], 0.088, 0.098, "seals"],
+	"coven_d6": [["coven_body", "coven_pip", "coven_cove"], 0.08, 0.08, "coves"],
+	"last_breath_d6": [["last_breath_body", "last_breath_pip", "last_breath_collar"], 0.08, 0.092, "collar"],
 }
 
 var _passed: int = 0
@@ -51,7 +59,7 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 	_check(mi.transform.is_equal_approx(Transform3D.IDENTITY), "%s: mesh at the origin, scale 1" % die)
 	var mesh := mi.mesh
 	var aabb := mesh.get_aabb()
-	_check(aabb.get_center().length() < 0.0015, "%s: centred on the origin (%s)" % [die, aabb.get_center()])
+	_check(aabb.get_center().length() < 0.0015 or (spec[3] == "collar" and absf(aabb.get_center().x) < 0.0005 and absf(aabb.get_center().z) < 0.0005), "%s: centred on the origin (%s)" % [die, aabb.get_center()])
 	var lo := float(spec[1])
 	var hi := float(spec[2])
 	var sized := true
@@ -72,8 +80,8 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 		var arrays := mesh.surface_get_arrays(s)
 		tris += (arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
 		all_verts.append_array(arrays[Mesh.ARRAY_VERTEX])
-		if sname.ends_with("_pip"):
-			pip_verts = arrays[Mesh.ARRAY_VERTEX]
+		if sname.ends_with("_pip") or sname.ends_with("_pip_light"):
+			pip_verts.append_array(arrays[Mesh.ARRAY_VERTEX])  # Twin Flame: dark + light pips
 		elif not sname.ends_with("_body"):
 			accent_verts = arrays[Mesh.ARRAY_VERTEX]
 	_check(names == Array(spec[0] as Array, TYPE_STRING, "", null), "%s: material slots %s" % [die, names])
@@ -156,7 +164,90 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 				if not hit:
 					return false
 			return accent.size() > 0
+		"waist":
+			# The 4 edges crossing the x = 0 seam are notched (no geometry near their midpoints), the corners are
+			# whole, and the second half is its own surface.
+			for m in [Vector3(0, h, h), Vector3(0, h, -h), Vector3(0, -h, h), Vector3(0, -h, -h)]:
+				if _nearest(verts, m) < 0.009:
+					return false
+			return _nearest(verts, Vector3(h, h, h)) < 0.012 and accent.size() > 0
+		"fins":
+			# A compass point past the bevel at the middle of all 12 edges.
+			for m in _edge_mids(h):
+				var hit := false
+				for v in verts:
+					if v.normalized().dot(m.normalized()) > 0.995 and v.length() > m.length() * 1.06:
+						hit = true
+						break
+				if not hit:
+					return false
+			return accent.size() > 0
+		"steps":
+			# Every edge is folded into a staircase: its midpoint is carved away, and the 3 step risers exist.
+			for m in _edge_mids(h):
+				if _nearest(verts, m) < 0.006:
+					return false
+			for depth in [0.003, 0.0062, 0.0095]:
+				var hit := false
+				for v in accent:
+					if absf(absf(v.x) - (h - depth)) < 0.0004 and absf(v.y) > h - 0.011:
+						hit = true
+						break
+				if not hit:
+					return false
+			return true
+		"seals":
+			# Seals stand proud on the (+,+,+) and (-,-,-) corners only.
+			var proud := 0
+			for c in _corners(h):
+				var far := 0.0
+				for v in verts:
+					if v.normalized().dot(c.normalized()) > 0.99:
+						far = maxf(far, v.length())
+				if far > h * sqrt(3.0) * 0.98:
+					proud += 1 if signf(c.x) == signf(c.y) and signf(c.y) == signf(c.z) else 100
+			return proud == 2 and accent.size() > 0
+		"coves":
+			# All 12 edges scooped concave: midpoints carved away, and the face plane runs out to >= 0.03 m
+			# while the cove surface dips in (accent verts inside the cube's edge region).
+			for m in _edge_mids(h):
+				if _nearest(verts, m) < 0.007:
+					return false
+			var concave := false
+			for v in accent:
+				var a := absf(v.x)
+				var b := absf(v.y)
+				if a > h - 0.006 and b > h - 0.006 and a < h - 0.001 and b < h - 0.001:
+					concave = true  # a cove point sits inside the corner square, not on a convex bevel
+					break
+			return concave
+		"collar":
+			# A hoop stands proud of the 4 side faces near the +Y end only.
+			var ring := 0
+			for v in verts:
+				if maxf(absf(v.x), absf(v.z)) > h + 0.002:
+					if v.y < 0.025 or v.y > 0.036:
+						return false
+					ring += 1
+			return ring >= 16 and accent.size() > 0
 	return false
+
+
+func _nearest(verts: PackedVector3Array, p: Vector3) -> float:
+	var best := INF
+	for v in verts:
+		best = minf(best, v.distance_to(p))
+	return best
+
+
+func _edge_mids(h: float) -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	for a in [-1, 1]:
+		for b in [-1, 1]:
+			out.append(Vector3(0, a, b) * h)
+			out.append(Vector3(a, 0, b) * h)
+			out.append(Vector3(a, b, 0) * h)
+	return out
 
 
 func _corners(h: float) -> Array[Vector3]:

@@ -24,7 +24,11 @@ One 3x2 atlas (author at 3:2, e.g. 768x512). Slot s sits in column (s-1)%3, row 
 (1 2 3 / 4 5 6). U follows the face's pip u axis. Each tile has 2% padding. No textures are used yet;
 the layout is ready for edge wear, grime or a pip atlas.
 
-## Special dice (later)
+## Special dice
+Ten special dice live next to this one (batch 1: Mirror, Cracked, Hellfire, Gilded; batch 2: Twin Flame, Wanderer,
+Bellows, Blood Pact, Coven, Last Breath). See `SPECIAL_DICE.md`. Source: `src/build_special_dice.py` and `src/write_batch2.py`.
+
+## Special dice (history)
 Special dice will get their own silhouettes and materials rather than reusing this cube; an astragalus
 (knucklebone) shape is a candidate. The generator still has a parked Knucklebone spec (`--all`), but it is
 not exported or shipped while the core loop is reworked.
