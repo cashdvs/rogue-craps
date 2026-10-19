@@ -263,17 +263,27 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 					return false
 			return _nearest(verts, Vector3(h, h, h)) < 0.012 and accent.size() > 0
 		"fins":
-			# A compass point on all 8 corners (fin read v2: 8 corner blades, not 12 edge fins).
-			# Each blade's point is the brass tip (accent = the last surface, wanderer_fin_tip), reaching past the cube
-			# corner along its diagonal.
-			for c in _corners(h):
+			# Fin read v3: six blades at the middles of the six edges that skip the (+,+,+) / (-,-,-) corners (Hellfire
+			# owns the corners), each ending in a brass tip (accent = wanderer_fin_tip) past the sharp-cube edge; the
+			# other six edge middles and all 8 corners stay bare.
+			for m in _edge_mids(h):
+				var blade := absf(m.x + m.y + m.z) < h * 0.5
 				var hit := false
 				for v in accent:
-					if v.normalized().dot(c.normalized()) > 0.995 and v.length() > h * sqrt(3.0) * 1.03:
+					if v.normalized().dot(m.normalized()) > 0.97 and v.length() > m.length() * 1.04:
 						hit = true
 						break
-				if not hit:
+				var bare := true
+				for v in verts:
+					if v.normalized().dot(m.normalized()) > 0.995 and v.length() > m.length() * 1.01:
+						bare = false
+						break
+				if blade != hit or (not blade and not bare):
 					return false
+			for c in _corners(h):
+				for v in verts:
+					if v.normalized().dot(c.normalized()) > 0.995 and v.length() > h * sqrt(3.0) * 0.97:
+						return false
 			return true
 		"steps":
 			# Every edge is folded into a staircase: its midpoint is carved away, and the 3 step risers exist.

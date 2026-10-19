@@ -555,61 +555,77 @@ def build_twin_flame():
     return ob, 30.0
 
 
-# Wanderer corner fins: (fraction of the length, half-width in the blade plane, half-thickness) from the root (inside
-# the bevel) to the point. Every ring stays inside the face planes (<= 0.042 m) except the last, 4.6 mm from the tip.
-FIN_PROFILE = [(0.0, 0.0110, 0.0080), (0.45, 0.0075, 0.0058), (0.8, 0.0030, 0.0026), (1.0, 0.0, 0.0)]
-FIN_TIP_FROM = 0.8  # the segment past this fraction is the bright brass tip (the glint)
+# Wanderer edge blades (fin read v3, AD Oct 19: Hellfire owns the corners, Wanderer the edge midpoints). Six fat
+# blades on the six edges that skip the (+,+,+) and (-,-,-) corners: they ring the die like a propeller round that
+# diagonal (3-fold), every face gets two. Each blade is swept along its edge the same rotational way, so the outline
+# reads as fins turning, not spikes. Levels, root to point: (fraction of the rise past the bevel, half-length along
+# the edge as a fraction of FIN_L, thickness as a fraction of FIN_T); the root sits 4 mm inside the bevel.
+FIN_L, FIN_T, FIN_T_TIP = 0.046, 0.007, 0.0006
+FIN_LEVELS = [(None, 0.5, 1.0), (0.35, 0.36, 1.0), (0.62, 0.22, 0.62), (0.78, 0.08, 0.24), (0.92, 0.04, 0.16)]  # thickness stays inside 0.042 m below the brass point
+FIN_TIP_FROM = 0.78  # levels from here to the point are the bright brass tip (the glint)
+FIN_SWEEP = 0.016  # how far the point rakes along the edge (m), linear in the rise: a swept shark-fin leading edge
+DIAG = Vector((1, 1, 1)).normalized()
 
 
-def blade(bm, base, d, e, length, profile, tip_from):
-    """A flat diamond-section blade from `base` along unit `d`, wide along unit `e` (Godot), closed at both ends.
-    Faces past `tip_from` of the length get material index 1 (the tip), the rest 0."""
-    d = Vector(d).normalized()
-    e = Vector(e).normalized()
-    n = d.cross(e)
-    rings = []
-    fr = []
-    tip = None
-    for f, w, t in profile:
-        p = base + d * length * f
-        if w <= 0.0:
-            tip = bm.verts.new(g2b(p))
+def wanderer_edges():
+    """The 6 edges not touching the (+,+,+) / (-,-,-) corners, with the sweep sign (the turning direction round DIAG)."""
+    out = []
+    for axis, outv in EDGES:
+        if abs(outv.dot(Vector((1, 1, 1)))) > 0.5:  # this edge touches (+,+,+) or (-,-,-)
             continue
-        rings.append([bm.verts.new(g2b(p + q)) for q in (e * w, n * t, -e * w, -n * t)])
-        fr.append(f)
+        s = 1.0 if DIAG.cross(outv).dot(axis) > 0 else -1.0
+        out.append((axis, outv, s))
+    return out
+
+
+def edge_blade(bm, axis, outv, sweep_sign, c, radius, rt):
+    """One fat swept blade at the middle of an edge (Godot): built as stacked 4-vert rings so each level can take
+    its own material (0 iron, 1 brass tip)."""
+    o = outv.normalized()
+    side = outv.cross(axis).normalized()
+    e = outv * c
+    rise = rt - radius
+    rings = []
+    mats = []
+    for f, w, t in FIN_LEVELS:
+        r = radius - 0.004 if f is None else radius + rise * f
+        sh = sweep_sign * FIN_SWEEP * max(f or 0.0, 0.0)
+        hl, ht = FIN_L * w, FIN_T * t * 0.5
+        ctr = e + o * r + axis * sh
+        rings.append([bm.verts.new(g2b(ctr + axis * ua + side * ts)) for ua, ts in ((-hl, -ht), (-hl, ht), (hl, ht), (hl, -ht))])
+        mats.append(1 if (f or 0.0) >= FIN_TIP_FROM else 0)
+    ctr = e + o * rt + axis * sweep_sign * FIN_SWEEP
+    tip = [bm.verts.new(g2b(ctr - side * FIN_T_TIP * 0.5)), bm.verts.new(g2b(ctr + side * FIN_T_TIP * 0.5))]
     fs = [bm.faces.new(rings[0][::-1])]
-    for i, (r0, r1) in enumerate(zip(rings, rings[1:])):
+    for i in range(len(rings) - 1):
         for k in range(4):
             j = (k + 1) % 4
-            fs.append(bm.faces.new((r0[k], r0[j], r1[j], r1[k])))
-            fs[-1].material_index = 1 if fr[i] >= tip_from - 1e-6 else 0
-    for k in range(4):
-        fs.append(bm.faces.new((rings[-1][k], rings[-1][(k + 1) % 4], tip)))
-        fs[-1].material_index = 1 if fr[-1] >= tip_from - 1e-6 else 0
+            fs.append(bm.faces.new((rings[i][k], rings[i][j], rings[i + 1][j], rings[i + 1][k])))
+            fs[-1].material_index = mats[i + 1]
+    l0, l1, r1, r0 = rings[-1]  # (-hl,-t) (-hl,+t) (+hl,+t) (+hl,-t)
+    for f in ((l0, l1, tip[1], tip[0]), (l1, r1, tip[1]), (r1, r0, tip[0], tip[1]), (r0, l0, tip[0])):
+        fs.append(bm.faces.new(f))
+        fs[-1].material_index = 1
     bmesh.ops.recalc_face_normals(bm, faces=fs)
 
 
 def build_wanderer():
-    """Wanderer Die: a mid steel-blue block with a compass point on each of the 8 corners: a flat dark-iron blade
-    (diamond section, wide in the plane of the corner diagonal and the die's Y axis) tapering to a small bright
-    brass tip that glints. Cream pips. (Fin read v2, AD Oct 19: dark fins on the mid body, bright tips.)"""
+    """Wanderer Die: a mid steel-blue block with six fat dark-iron blades on alternating edges, swept one way round
+    the die like a propeller / compass rose, each ending in a small bright brass tip that glints. Cream pips.
+    (Fin read v3, AD Oct 19: the edges are Wanderer's, the corners Hellfire's.)"""
     body_m = make_material("wanderer_body", "5C7894", 0.6)
     pip_m = make_material("wanderer_pip", "F2E6C8", 0.6)
     fin_m = make_material("wanderer_fin", "34302E", 0.45, 1.0)
     tip_m = make_material("wanderer_fin_tip", "E2C06A", 0.25, 1.0)
-    radius = 0.16 * EDGE  # a rounder edge leaves the fins more room inside the 0.08 m box
+    radius = 0.16 * EDGE  # a rounder edge leaves the blades more room inside the 0.08 m box
     bm = rounded_cube_bmesh(radius, 2)
     ob = new_obj("WandererD6", bm, [body_m, pip_m, fin_m, tip_m])
     c = H - radius
+    # the point (incl. half its thickness) stops 0.2 mm inside BOX_HALF on both outward axes
+    rt = (BOX_HALF - 0.0002 - c - FIN_T_TIP * 0.5 / math.sqrt(2.0)) * math.sqrt(2.0)
     fb = bmesh.new()
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            for sz in (-1, 1):
-                dvec = Vector((sx, sy, sz)).normalized()
-                base = Vector((sx, sy, sz)) * c + dvec * radius * 0.35
-                tip_len = (BOX_HALF - 0.0002 - base.x * sx) * math.sqrt(3.0)  # tip per axis = BOX_HALF - 0.2 mm
-                e = Vector((0, 1, 0)) - dvec * dvec.y  # blade plane = the diagonal + the die's Y axis
-                blade(fb, base, dvec, e, tip_len, FIN_PROFILE, FIN_TIP_FROM)
+    for axis, outv, sgn in wanderer_edges():
+        edge_blade(fb, axis, outv, sgn, c, radius, rt)
     boolean(ob, new_obj("fins", fb, [fin_m, tip_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
