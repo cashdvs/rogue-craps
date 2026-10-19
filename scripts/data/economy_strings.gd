@@ -20,3 +20,9 @@ static func table_points_embers(t: BonfireTuning) -> String:
 ## strings_v1 shop_soul_button (P3): "Soul Draught: +4 max Soul, heals 4. 12 Embers".
 static func shop_soul_button(amount: int, price: int) -> String:
 	return "Soul Draught: +%d max Soul, heals %d. %d Embers" % [amount, amount, price]
+
+
+## strings_v1 shop_premium_seal_button (P4), "Rare Seal: 12 Embers", plus
+## which rare Seal it is, e.g. "Rare Seal: 12 Embers (Transference)".
+static func shop_premium_seal_button(price: int, seal_name: String) -> String:
+	return "Rare Seal: %d Embers (%s)" % [price, seal_name]

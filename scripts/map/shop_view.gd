@@ -12,7 +12,8 @@ static func lines(screen: RunScreen) -> Array:
 		"Your dice: " + screen.bag_text()]
 
 
-## Every shop button, in order: dice, mods, Seals, Soul Draught, sells, reroll, leave.
+## Every shop button, in order: dice, mods, Seals, the rare Seal slot, Soul
+## Draught, sells, reroll, leave.
 static func buttons(screen: RunScreen) -> Array:
 	var run := screen.run
 	var e: int = run.progress.embers
@@ -39,6 +40,13 @@ static func buttons(screen: RunScreen) -> Array:
 					var ok := run.buy_seal(i, params)
 					screen._show_shop()
 					return ok), e < run.seal_price(id) or not screen._seal_possible(id)])
+	if run.shop_premium_seal != &"":
+		var id := run.shop_premium_seal
+		out.append([EconomyStrings.shop_premium_seal_button(run.premium_seal_price(), String(id).capitalize()),
+			func() -> void: screen._seal_with_params(id, func(params: Dictionary) -> bool:
+				var ok := run.buy_premium_seal(params)
+				screen._show_shop()
+				return ok), e < run.premium_seal_price() or not screen._seal_possible(id)])
 	if run.data.shop_soul_amount > 0:
 		out.append([EconomyStrings.shop_soul_button(run.data.shop_soul_amount, run.soul_price()),
 			func() -> void: run.buy_soul(); screen._show_shop(), e < run.soul_price()])

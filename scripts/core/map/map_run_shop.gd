@@ -60,6 +60,39 @@ func _roll_shop() -> void:
 	while shop_mods.size() < data.shop_mods and not mpool.is_empty():
 		shop_mods.append(mpool.pop_at(rng.randi_range(0, mpool.size() - 1)))
 	shop_seals = _seal_offers(rng, data.shop_seals)
+	shop_premium_seal = _premium_offer(rng)
+
+
+## The guaranteed rare Seal (P4): one of RunData.rare_seals, preferring one the
+## normal slots don't already offer; &"" when the slot is off. Drawn last so
+## the other offers keep their seeds.
+func _premium_offer(rng: RandomNumberGenerator) -> StringName:
+	if data.shop_premium_rare_price <= 0 or data.rare_seals.is_empty():
+		return &""
+	var pool: Array[StringName] = []
+	for r in data.rare_seals:
+		if not shop_seals.has(r):
+			pool.append(r)
+	if pool.is_empty():
+		pool = data.rare_seals.duplicate()
+	return pool[rng.randi_range(0, pool.size() - 1)]
+
+
+## Price of the guaranteed rare Seal (P4).
+func premium_seal_price() -> int:
+	return data.shop_premium_rare_price
+
+
+## Buy the guaranteed rare Seal (params as seal_usable: Transference / Ashen
+## need {"from", "to"}). It doesn't raise the combo Seal step.
+func buy_premium_seal(params: Dictionary = {}) -> bool:
+	var id := shop_premium_seal
+	if id == &"" or screen != Screen.SHOP or progress.embers < premium_seal_price() or not seal_usable(id, params):
+		return false
+	_pay(premium_seal_price())
+	_grant_seal(id, params)
+	shop_premium_seal = &""
+	return true
 
 
 ## Shop price of Seal `id` (rare: flat; combo: rises per Seal bought this visit).

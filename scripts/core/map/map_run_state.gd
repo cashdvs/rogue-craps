@@ -46,6 +46,8 @@ var shop_dice: Array[SpecialDieData] = []
 var shop_mods: Array[FaceModData] = []
 var shop_seals: Array[StringName] = []
 var shop_seals_bought: int = 0
+## The guaranteed rare Seal offer (P4); &"" once bought or when off.
+var shop_premium_seal: StringName = &""
 var shop_rerolls: int = 0
 ## Free (event) rerolls spent this shop visit; only seeds the new stock.
 var shop_free_rerolls: int = 0

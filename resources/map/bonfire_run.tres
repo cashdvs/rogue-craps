@@ -56,3 +56,4 @@ reroll_step = 2
 shop_soul_amount = 4
 shop_soul_price = 12
 shop_soul_step = 4
+shop_premium_rare_price = 12

@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_test_prices()
 	_test_bag_cap()
 	_test_soul_draught()
+	_test_premium_seal()
 	await _test_shop_ui()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_data = null
@@ -169,6 +170,27 @@ func _test_soul_draught() -> void:
 	_check(not run.buy_soul() and run.progress.embers == 100, "P3: only in the shop")
 
 
+# --- P4: guaranteed rare Seal slot ---
+
+func _test_premium_seal() -> void:
+	_check(_data.shop_premium_rare_price == 12 and _data.shop_rare_seal_price == 10, "P4 data: rare slot 12; the 10% rare roll stays 10")
+	var every := true
+	for seed_v in 20:
+		var r := MapRun.new(_data, seed_v)
+		every = every and _enter(r, NT.SHOP) and _data.rare_seals.has(r.shop_premium_seal)
+	_check(every, "P4: every shop has a rare Seal in its guaranteed slot (20 seeds)")
+	var run := MapRun.new(_data, 6)
+	_enter(run, NT.SHOP)
+	run.progress.embers = 100
+	run.shop_premium_seal = &"black"
+	_check(not run.buy_premium_seal() and run.progress.embers == 100, "P4: Black Seal refused with nothing banked yet")
+	run.progress.record_banks([&"pair"])
+	_check(run.premium_seal_price() == 12 and run.buy_premium_seal() and run.progress.embers == 88 and run.progress.seal_level(&"pair") == 1,
+		"P4: buy the rare Seal for 12; it's used at once (Black: +1 most-banked)")
+	_check(run.shop_premium_seal == &"" and not run.buy_premium_seal() and run.shop_seals_bought == 0, "P4: one per stock; doesn't raise the Seal step")
+	_check(run.shop_reroll() and _data.rare_seals.has(run.shop_premium_seal), "P4: a reroll restocks the rare slot")
+
+
 # --- Shop UI: final prices on the buttons ---
 
 func _ui_buttons(node: Node, out: Array[Button] = []) -> Array[Button]:
@@ -205,5 +227,14 @@ func _test_shop_ui() -> void:
 	await process_frame
 	soul = _ui_button(scene, "Soul Draught")
 	_check(run.progress.max_soul == 39 and soul != null and soul.text.ends_with("16 Embers"), "P3 UI: buying shows the next price (16)")
+	run.shop_premium_seal = &"black"
+	run.progress.record_banks([&"pair"])
+	run.progress.embers = 12
+	scene._show_shop()
+	var rare := _ui_button(scene, "Rare Seal")
+	_check(rare != null and rare.text == "Rare Seal: 12 Embers (Black)" and not rare.disabled, "P4 UI: shop_premium_seal_button names the Seal")
+	rare.pressed.emit()
+	await process_frame
+	_check(run.progress.embers == 0 and _ui_button(scene, "Rare Seal") == null, "P4 UI: bought; the slot is gone")
 	scene.queue_free()
 	await process_frame
