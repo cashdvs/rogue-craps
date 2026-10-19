@@ -59,6 +59,8 @@ var seal: TextureRect
 var state: String = "open"
 
 
+## One of the card art textures in assets/ui/readability/bounty/ by file
+## name, or null if it is missing (the card then draws plain).
 static func tex(file: String) -> Texture2D:
 	var p := DIR + file
 	return load(p) as Texture2D if ResourceLoader.exists(p) else null

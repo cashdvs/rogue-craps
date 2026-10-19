@@ -8,8 +8,12 @@
 ##   <dir>/<prefix>_6_cleared.png        the clearing bank: TABLE CLEARED banner
 ##   xvfb-run -a -s "-screen 0 2400x2400x24" godot --path . --rendering-driver vulkan \\
 ##       --resolution 1920x1080 --script res://tools/capture_readability.gd -- dir=/tmp prefix=pc
+## Phone framing: add phone=390x844 (portrait) or phone=844x390 (landscape).
 ## Add --fixed-fps 30 --write-movie /tmp/x.avi before --script for a video.
 extends SceneTree
+
+## `-- phone=390x844` frames the table like a phone (CapturePhone).
+var _phone := CapturePhone.new()
 
 var _s: Bonfire3D
 var _dir := "user://"
@@ -41,7 +45,7 @@ func _shot(name: String, frames: int = 3) -> void:
 	for i in frames:
 		await process_frame
 	var path := "%s/%s_%s.png" % [_dir, _prefix, name]
-	root.get_texture().get_image().save_png(path)
+	_phone.image(root).save_png(path)
 	print("saved ", path)
 
 
@@ -57,7 +61,11 @@ func _run() -> void:
 	_s.setup = TableSetup.sandbox(t, 5)
 	_s.setup.table_seed = 5
 	_s.tutorial_override = 0
-	root.add_child(_s)
+	_phone.parse_args()
+	_phone.add_table(root, _s)
+	await process_frame
+	await process_frame
+	_phone.frame(_s)
 	await create_timer(0.6).timeout
 	await _throw([4, 4, 4, 5, 2] as Array[int])
 	await _shot("1_lit_cold")

@@ -107,6 +107,11 @@ func set_run_mode(on: bool) -> void:
 	forfeit_button.visible = on
 
 
+## Optional: asked when the menu opens (true = Forfeit allowed now). The
+## table sets it so Forfeit is greyed out while a throw is in flight.
+var can_forfeit: Callable
+
+
 ## Grey out Forfeit (e.g. the table is already over).
 func set_forfeit_enabled(on: bool) -> void:
 	forfeit_button.disabled = not on
@@ -136,6 +141,8 @@ func open() -> void:
 	panel.visible = true
 	options.visible = false
 	confirm_panel.visible = false
+	if can_forfeit.is_valid():
+		set_forfeit_enabled(bool(can_forfeit.call()))
 	get_tree().paused = true
 	resume_button.grab_focus()
 

@@ -5,9 +5,9 @@ Dice of the Damned isn't shipping on Steam yet, but we build toward it. This is 
 ratings and the Steamworks partner setup are out of scope here.
 
 Status key: **done** = in the repo and checked; **partial** = something exists but not enough for
-Steam; **missing** = nothing yet. Each gap has an issue draft labelled `steam-ready`.
+Steam; **missing** = nothing yet. Each gap has an issue labelled `steam-ready` (#74–#90).
 
-_Last checked against `main` at `fad5622` (Godot 4.7.2), 2026-10-19._
+_Last checked against `main` at `6557c35` (Godot 4.7.2), 2026-10-19._
 
 ## Decisions (PM, 2026-10-19)
 
@@ -16,7 +16,7 @@ _Last checked against `main` at `fad5622` (Godot 4.7.2), 2026-10-19._
 3. **Engine and templates:** pinned to Godot 4.7.2. Bump `GODOT_VERSION` in `ci.yml` and `export.yml` together.
 4. **Packaging:** embedded PCK, one `.exe` (and one Linux binary).
 5. **`user://` folder:** custom user dir `Tiny Anvil Games/Dice of the Damned`, set before any public build ([#75](https://github.com/cashdvs/rogue-craps/issues/75)).
-6. **AI disclosure scope:** Cash's call (PM is taking it to him); the log rows stay as written until then ([#89](https://github.com/cashdvs/rogue-craps/issues/89)).
+6. **AI disclosure scope:** broad disclosure (PM ruling, 2026-10-19). Log everything players see or hear that AI agents made or scripted, text included; script-built assets count as AI-assisted. Cash writes the final survey wording at submission ([AI_CONTENT_LOG.md](AI_CONTENT_LOG.md), [#89](https://github.com/cashdvs/rogue-craps/issues/89)).
 
 
 ## Summary
@@ -28,17 +28,17 @@ _Last checked against `main` at `fad5622` (Godot 4.7.2), 2026-10-19._
 | 3 | CI export job with a runnable artifact | done | `.github/workflows/export.yml` |
 | 4 | Export templates in CI | done | `export.yml` (cached download of the 4.7.2 templates) |
 | 5 | Version string | partial | `project.godot` `application/config/version`; stamped by CI; not shown in the UI |
-| 6 | Save and settings location (`user://`) | partial | `scripts/settings/game_settings.gd` → `user://settings.cfg`; no run save; default Godot user dir |
-| 7 | Resolution, window mode, fullscreen | partial | `project.godot [display]`; `GameSettings.fullscreen` / `vsync`; `scripts/ui/options_panel.gd` |
-| 8 | Stretch settings and aspect ratios (16:9, 16:10 Deck, ultrawide) | partial | `project.godot [display] window/stretch/*` |
+| 6 | Save and settings location (`user://`) | partial | `scripts/settings/game_settings.gd` → `user://settings.cfg`; no run save; custom user dir decided (`Tiny Anvil Games/Dice of the Damned`), lands in #75 |
+| 7 | Resolution, window mode, fullscreen | partial | `project.godot [display]`; `GameSettings.fullscreen` / `vsync`; `scripts/ui/options_panel.gd`; minimum window 1280×720 decided (#77) |
+| 8 | Stretch settings and aspect ratios (16:9, 16:10 Deck, ultrawide) | partial | `project.godot [display] window/stretch/*`; 1280×800 required, verification in #78 |
 | 9 | Controller support (Steam Deck) | missing (menus partial) | no `[input]` section in `project.godot`; mouse/touch-only table and map |
 | 10 | Pause on focus loss | missing | `scripts/ui/pause_menu.gd` has no `NOTIFICATION_APPLICATION_FOCUS_OUT` handling |
 | 11 | Steam overlay | partial | Forward+ renders every frame; needs Steamworks init to appear |
 | 12 | GodotSteam / Steamworks SDK hook | missing (designed) | planned `scripts/platform/steam_service.gd` autoload |
 | 13 | Achievements, cloud saves | deferred | after 12 |
-| 14 | Windows icon and version resources | partial | `export_presets.cfg` `application/*`; icon is on `main` since #71 (`assets/branding/studio/icon.png`) |
+| 14 | Windows icon and version resources | done | `export_presets.cfg` `application/*`; project icon `assets/branding/studio/icon.png` (on `main` since #71) |
 | 15 | Code signing | deferred (off) | `export_presets.cfg` `codesign/enable=false` |
-| 16 | AI content disclosure (Steam content survey) | partial | [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md); 5 rows still TBD |
+| 16 | AI content disclosure (Steam content survey) | partial | [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md) (broad disclosure, no TBD rows); final survey wording at submission |
 
 ## 1. Windows export preset: done
 
@@ -52,7 +52,7 @@ _Last checked against `main` at `fad5622` (Godot 4.7.2), 2026-10-19._
 - `application/file_version` and `product_version` are empty, so Godot uses
   `application/config/version` (checked: the exe reports `0.1.0.0`, or `0.1.0.<run>` from CI).
 - `application/modify_resources=true` writes the icon and version resources natively (no rcedit needed in 4.7).
-- `exclude_filter="tests/*, tools/*"`: tests and dev tools don't ship. Everything else is exported
+- `exclude_filter="tests/*, tools/*, art/*/src/*, assets/*/src/*"`: tests, dev tools and the art generator scripts (e.g. `make_hearth.gd`, `make_smiles.gd`) don't ship. Everything else is exported
   (the game loads from `art/`, `assets/`, `audio/` and `resources/` at runtime).
 - `debug/export_console_wrapper=1`: a console wrapper only for debug exports.
 - **No secrets**: `codesign/enable=false`. Godot 4 keeps the signing identity and password in
@@ -85,19 +85,26 @@ templates → stamp the version → `--import` (fails on script errors) → `--e
 version, commit and Godot version.
 
 Not yet: an upload to Steam (SteamPipe `steamcmd` with a `ContentBuilder` depot script). That needs
-the app id, depot ids and a builder account secret in GitHub. See issue "SteamPipe upload job".
+the app id, depot ids and a builder account secret in GitHub. Tracked in [#86](https://github.com/cashdvs/rogue-craps/issues/86).
 
 ## 4. Export templates in CI: done
 
 Templates must match the engine build exactly (`4.7.2.stable`). CI downloads
 `Godot_v4.7.2-stable_export_templates.tpz` (~1.3 GB) once, keeps only `version.txt` and the x86_64 Windows
 and Linux templates (~360 MB) in `~/.local/share/godot/export_templates/4.7.2.stable/`, and caches that
-folder under the key `godot-templates-4.7.2-stable-win64-linux64`. **Bumping Godot means bumping
+folder under the key `godot-templates-4.7.2-stable-win64-linux64-v2`. **Bumping Godot means bumping
 `GODOT_VERSION` in both `ci.yml` and `export.yml` together.**
+
+**Checksums:** on a cache miss, both the editor download (`ci.yml` and `export.yml`) and the templates
+download (`export.yml`) are checked against `SHA512-SUMS.txt` from the same Godot release before they
+are unpacked. A file that is missing from the list, or whose SHA-512 doesn't match, fails the job. A
+cache hit skips the download and the check. The editor key is
+`godot-<version>-stable-linux-x86_64-v2` and must stay identical in both workflows so they share one
+cached editor; bump the `-vN` suffix on all three keys together to force a cold, re-verified download.
 
 ## 5. Version string: partial
 
-- **Source of truth:** `project.godot` `application/config/version="0.1.0"` (added in this PR).
+- **Source of truth:** `project.godot` `application/config/version="0.1.0"` (added in #73).
   Bump it by hand for releases (`x.y.z`).
 - **CI stamp:** `export.yml` rewrites it in the runner's checkout to `x.y.z.<run number>` before
   exporting. Windows file and product versions must be numeric `a.b.c.d`, so the commit SHA goes into
@@ -114,11 +121,13 @@ folder under the key `godot-templates-4.7.2-stable-win64-linux64`. **Bumping God
   Missing or wrong-typed keys fall back to defaults.
 - **Not saved:** run progress. A run lives in memory (`RunProgress` / the map scene); quitting
   mid-run loses it. Nothing else writes to disk (`FileAccess` is only used to read `res://` data).
-- **Location:** `application/config/use_custom_user_dir` is off, so `user://` is Godot's default:
-  `%APPDATA%\Godot\app_userdata\Dice of the Damned\` on Windows, and
-  `~/.local/share/godot/app_userdata/Dice of the Damned/` on Linux and the Deck. For a shipped game
-  it should be `%APPDATA%\Tiny Anvil Games\Dice of the Damned\` (custom user dir), decided **before**
-  the first public build, because changing it later strands players' saves.
+- **Location (decided, PM 2026-10-19):** custom user dir `use_custom_user_dir=true`,
+  `custom_user_dir_name="Tiny Anvil Games/Dice of the Damned"`, so `user://` becomes
+  `%APPDATA%\Tiny Anvil Games\Dice of the Damned\` on Windows and
+  `~/.local/share/Tiny Anvil Games/Dice of the Damned/` on Linux and the Deck. It lands in
+  [#75](https://github.com/cashdvs/rogue-craps/issues/75), before any public build, because changing it
+  later strands players' saves. Until then `main` still uses Godot's default
+  (`%APPDATA%\Godot\app_userdata\Dice of the Damned\`).
 - **Cloud saves (deferred):** Steam Auto-Cloud can sync `user://` with no code if the save files
   sit in one folder with stable names. Keep settings and saves under the custom user dir and
   configure Auto-Cloud's root in Steamworks. That needs no GodotSteam call.
@@ -129,8 +138,10 @@ folder under the key `godot-templates-4.7.2-stable-win64-linux64`. **Bumping God
   (`window_width_override` / `window_height_override`).
 - Options (`scripts/ui/options_panel.gd`, saved by `GameSettings`): **Fullscreen** on/off
   (`DisplayServer.WINDOW_MODE_FULLSCREEN`, hidden on mobile) and **VSync**.
-- **Missing:** a windowed size or resolution choice, borderless versus exclusive fullscreen, a minimum
-  window size (`DisplayServer.window_set_min_size`; nothing stops the window shrinking to nothing), a
+- **Minimum window (decided, PM 2026-10-19):** 1280×720, enforced at boot with
+  `DisplayServer.window_set_min_size(Vector2i(1280, 720))`. Not implemented yet; see
+  [#77](https://github.com/cashdvs/rogue-craps/issues/77).
+- **Missing:** a windowed size or resolution choice, borderless versus exclusive fullscreen, a
   3D render scale (`rendering/scaling_3d/scale`) for the Deck and low-end GPUs, a frame cap
   (`Engine.max_fps`) and a UI scale. Alt+Enter isn't bound.
 
@@ -138,8 +149,9 @@ folder under the key `godot-templates-4.7.2-stable-win64-linux64`. **Bumping God
 
 `window/stretch/mode="canvas_items"`, `aspect="expand"`: the UI scales with the window, and other
 aspect ratios get more room rather than black bars. That's the right setup for 16:10 (Steam Deck,
-1280×800) and ultrawide. **Not verified:** that the HUD, map and shop fit at 1280×800 and 3440×1440,
-and that the smallest text stays legible on the Deck's 7" screen.
+1280×800) and ultrawide. **1280×800 is required** (PM decision, 2026-10-19): the HUD, map and shop
+must fit and the smallest text must stay legible on the Deck's 7" screen. That check, plus ultrawide
+(3440×1440), is [#78](https://github.com/cashdvs/rogue-craps/issues/78) and hasn't been done yet.
 
 ## 9. Controller support (Steam Deck): missing, menus partial
 
@@ -197,11 +209,11 @@ Achievements go through `SteamService.unlock_achievement` from game events (for 
 Floor 3). Ids are defined in Steamworks, mirrored in a data Resource. Cloud saves: Steam Auto-Cloud on
 the `user://` folder (6). Both wait for 12 and an app id.
 
-## 14. Windows icon and version resources: partial
+## 14. Windows icon and version resources: done
 
 The preset leaves `application/icon` empty, so the exporter uses the project icon
-(`application/config/icon`). That arrives with `chore/studio-branding` (`assets/branding/studio/icon.png`,
-1024×1024). Until it merges, Windows builds show Godot's default icon. Version resources are done (1).
+(`application/config/icon="res://assets/branding/studio/icon.png"`, 1024×1024, on `main` since #71).
+Exported `.exe` files carry the studio icon. Version resources are done (1).
 
 ## 15. Code signing: deferred (off)
 
@@ -212,8 +224,10 @@ If we sign later, the certificate goes into GitHub secrets and `.godot/export_cr
 ## 16. AI content disclosure: partial
 
 Steam's content survey asks about AI-generated content that ships with the game. The record is
-[AI_CONTENT_LOG.md](AI_CONTENT_LOG.md). Every PR that adds a shipped asset updates it. Five rows
-(shaders, in-game text, and the concept renders, which don't ship) are still `TBD`, waiting on their owners.
+[AI_CONTENT_LOG.md](AI_CONTENT_LOG.md), under PM's broad-disclosure ruling (2026-10-19): everything
+players see or hear that AI agents made or scripted is logged, and script-built assets count as
+AI-assisted. Every row has an owner-confirmed source and none are `TBD`. Every PR that adds a shipped
+asset updates the log. It stays partial until Cash writes the survey wording at submission.
 
 ## Index link
 

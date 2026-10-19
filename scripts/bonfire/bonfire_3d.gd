@@ -81,6 +81,8 @@ var juice: BonfireJuice
 ## Tutorial: -1 = GameSettings decides (Table 1, not seen), 0 = never,
 ## 1 = always (tests). Set before add_child.
 var tutorial_override: int = -1
+## Hints + tutorial seeds for this table (made in _ready).
+var onboarding: BonfireOnboarding
 ## Dice of the pot being counted up, pip -> die index, its tier.
 var _juice_dice: Array[DieVisual] = []
 var _pip_die: Array[int] = []
@@ -92,6 +94,11 @@ var _throw_claims: Array = []
 
 
 func _ready() -> void:
+	# Hints and tutorial seeds live in their own node (BonfireOnboarding).
+	onboarding = BonfireOnboarding.new()
+	onboarding.name = "Onboarding"
+	onboarding.table = self
+	add_child(onboarding)
 	if setup != null and setup.tuning != null:
 		bonfire_tuning = setup.tuning
 	if bonfire_tuning == null:
@@ -109,6 +116,10 @@ func _ready() -> void:
 	total_dice_per_throw = clampi(setup.dice.size(), 1, MAX_HANDFUL)
 	_apply_camera_tuning()
 	super()
+	# The status line sits between x 520 and 1400, clear of the bottom-left
+	# THROW / BANK column (ends at x 494) and the hand at the bottom right.
+	why_label.position = Vector2(520, 990)
+	why_label.size = Vector2(880, 80)
 	total_hud.visible = false
 	stack.visible = false
 	info_box.visible = false
@@ -136,6 +147,7 @@ func _ready() -> void:
 	add_child(pause_menu)
 	pause_menu.set_run_mode(setup.run_mode)
 	pause_menu.forfeit_confirmed.connect(func() -> void: forfeit())
+	pause_menu.can_forfeit = can_forfeit_now
 	juice = BonfireJuice.new()
 	add_child(juice)
 	juice.setup(self)
@@ -213,7 +225,7 @@ func new_run(seed_value: int = -1) -> void:
 	pause_menu.set_forfeit_enabled(true)
 	phase = Phase.BET
 	_set_why("Grab the %d dice and flick them. Dice that can score glow." % run.cold)
-	_maybe_start_tutorial()
+	onboarding.on_table_start()
 	_refresh_hud()
 
 
@@ -248,7 +260,7 @@ func outcome() -> TableOutcome:
 ## like a timeout (see BonfireRun.forfeit) and shows the end panel; CONTINUE
 ## then emits finished. Returns false if the table was already over.
 func forfeit() -> bool:
-	if run == null or run.is_over():
+	if not can_forfeit_now():
 		return false
 	if not run.forfeit():
 		return false
@@ -262,6 +274,14 @@ func forfeit() -> bool:
 	_refresh_hud()
 	hand_result.emit(run.last_result)
 	return true
+
+
+## Can the table be forfeited right now? Not while a throw is in flight
+## (rolling, landed, resolving): its faces are already decided, so a forfeit
+## then could dodge a bust you can see (QA #60 blocker). FORFEIT comes back
+## once the throw has resolved (bust or score applied) and phase is BET.
+func can_forfeit_now() -> bool:
+	return run != null and not run.is_over() and (phase == Phase.BET or phase == Phase.HELD)
 
 
 ## Is the Leave table button live right now? A cleared table, between
@@ -443,9 +463,7 @@ func throw_again() -> bool:
 		_set_active(all_dice)
 		_hot_hand_moment()
 		_set_why("Hot Hand! All %d dice back, +%d mult on every pot this hand." % [run.cold, run.mult_bonus()])
-		if _seed_hand == 1:
-			_seed_hot_h1 = true
-		_hint(&"th6_hot", {"all": run.cold, "mult": run.mult_bonus() / maxi(run.hot_hands, 1)})
+		onboarding.on_hot_hand()
 	else:
 		for d in cold_now:
 			_set_lit(d, false)
@@ -529,12 +547,9 @@ func _start_count_up(sel: Dictionary, dice_list: Array[DieVisual], faces: Array,
 		_pip_mods.append(fm.id if fm != null and not run.rule_ctx()["no_mods"] else &"")
 		if wild < 0 and fm != null and fm.effect == FaceModData.Effect.WILD and not run.rule_ctx()["no_mods"]:
 			wild = k
-	if is_sealed(StringName(sel.get("combo", &""))):
-		_hint(&"hs2_sealed", {})
-	if wild >= 0:
-		# JIT4: the first pot with a Wild face (die = its index in the throw).
-		var wd := throw_dice.find(dice_list[wild]) if wild < dice_list.size() else -1
-		_hint(&"jit4_wild", {"die": wd})
+	# JIT4 points at the first Wild face (its index in the throw, -1 = none).
+	var wd := throw_dice.find(dice_list[wild]) if wild >= 0 and wild < dice_list.size() else -1
+	onboarding.on_pot(StringName(sel.get("combo", &"")), wd)
 	var ids: Array = []
 	for d in dice_list:
 		ids.append(event_id(d))
@@ -615,12 +630,7 @@ func bank() -> Dictionary:
 		juice.stamp_sound()
 		if speed_mode != 2:
 			await _wait(bonfire_tuning.juice_stamp_gap / test_speed)
-	for b: BountyData in run.goal.required:
-		if (r["ticked"] as Array).has(b.id):
-			_hint(&"th7_claimed", {"card": b.id})
-			break
-	var tut := bhud.tutorial
-	_hint(&"th8_points", {}, func() -> bool: return int(tut.seen.get(&"th7_claimed", 0)) > 0)
+	onboarding.on_bank(r)
 	juice.drop(all_pot)
 	bhud.countup.clear()
 	_set_why("Banked %d points.%s" % [int(r["gain"]), (" Bounty: " + ", ".join(names) + "!") if not names.is_empty() else ""])
@@ -630,8 +640,6 @@ func bank() -> Dictionary:
 		bhud.show_cleared(2.0 if speed_mode == 1 else 1.0, speed_mode == 2 or reduced_motion)
 		events.table_cleared.emit()
 		_taunt(&"bonfire_clear")
-		if not run.is_over() and run.hands_left > 0 and run.goal.bonus.any(func(b: BountyData) -> bool: return not run.is_ticked(b)):
-			_hint(&"th10_cleared", {"card": (run.goal.bonus[0] as BountyData).id})
 		if not run.is_over():
 			_set_why("Table cleared! Chase the bonus with your remaining hands, or Leave table.")
 	_refresh_hud()
@@ -659,7 +667,7 @@ func pick_die(i: int) -> bool:
 		bhud.callout(camera.cam.unproject_position(d.global_position + Vector3(0, tuning.die_size, 0)), NO_SCORE_TEXT)
 		bhud.tutorial.on_action(&"refused")
 		# Just-in-time or never: it doesn't wait behind another hint.
-		_hint(&"th2b_nofit", {"die": i}, func() -> bool: return false)
+		onboarding.on_refused(i)
 		_set_why("That die doesn't score with this combo (a pot is exactly ONE combo).")
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
@@ -668,7 +676,7 @@ func pick_die(i: int) -> bool:
 		bhud.tutorial.on_action(&"potted")
 	if run.can_continue():
 		bhud.tutorial.on_action(&"valid_selection")
-		_selection_hints()
+		onboarding.on_selection()
 	_refresh_hud()
 	return true
 
@@ -677,45 +685,6 @@ func pick_die(i: int) -> bool:
 const NO_SCORE_TEXT := "doesn't score"
 ## A pick was refused (die index): tests / juice.
 signal refused(index: int)
-
-
-## After a pick that leaves a valid pot (onboarding_hints_v1.md): TH3 if it
-## would claim a bounty, TH4 when Bank and Rethrow are both on offer, TH5
-## (with the exact odds) when the rethrow would be 1-3 dice. One at a time:
-## the later ones wait and show only if still true.
-func _selection_hints() -> void:
-	var claims := claimable_bounties()
-	if not claims.is_empty():
-		var id: StringName = (claims[0] as BountyData).id if claims[0] is BountyData else StringName(str(claims[0]))
-		_hint(&"th3_pending", {"card": id}, func() -> bool: return not claimable_bounties().is_empty())
-		if not run.potted.is_empty():
-			var sel := run.selection()
-			var combo := StringName(sel.get("combo", &""))
-			for c in claims:
-				var b: BountyData = c if c is BountyData else _bounty(StringName(str(c)))
-				if b != null and bounty_combo(b) != &"" and bounty_combo(b) != combo:
-					_hint(&"hb4_bigger", {"card": b.id, "card_name": b.display_name, "combo": str(sel.get("name", combo)),
-						"run": b.kind == BountyData.Kind.RUN and String(combo).begins_with("run")},
-						func() -> bool: return claimable_bounties().has(b))
-					break
-	var both := func() -> bool: return run.state == BonfireRun.State.PICK and run.can_continue() and next_throw_size() > 0
-	if both.call():
-		_hint(&"th4_choice", {}, both)
-	var small := func() -> bool:
-		var k := next_throw_size()
-		return run.state == BonfireRun.State.PICK and run.can_continue() and k >= 1 and k <= 3 and not run.is_hot()
-	if small.call():
-		rethrow_prompt()
-		var n := next_throw_size()
-		_hint(&"th5_risk", {"n": n, "odds": BustRisk.odds_text(float(_risk.get("burn", 0.0)))}, small)
-
-
-## JIT1: the last hand starts with required bounties unclaimed.
-func _last_hand_hint() -> void:
-	if run == null or run.hands_left != 1 or run.is_over():
-		return
-	if run.goal.required.any(func(b: BountyData) -> bool: return not run.is_ticked(b)):
-		_hint(&"jit1_last", {"soul": run.soul_cost(run.goal.timeout_soul_per_bounty, &"timeout")})
 
 
 ## How many dice the next throw would use (0 = none / not a rethrow).
@@ -770,6 +739,34 @@ var _risk_key: String = ""
 var _risk: Dictionary = {}
 
 
+## The bust chance behind the last rethrow_prompt() (0-1).
+func bust_chance() -> float:
+	return float(_risk.get("burn", 0.0))
+
+
+# --- Onboarding (BonfireOnboarding does the work) --------------------------------------
+
+## The Table 1 tutorial (TH hints + seeded throws) runs on this table.
+func tutorial_wanted() -> bool:
+	return onboarding.tutorial_wanted()
+
+
+## Any hints on this table (Settings: Tutorial hints On/Off).
+func hints_wanted() -> bool:
+	return onboarding.hints_wanted()
+
+
+## Does the run hold a Seal for this combo? (BonfireOnboarding.is_sealed)
+func is_sealed(combo_id: StringName) -> bool:
+	return onboarding.is_sealed(combo_id)
+
+
+## Per throw this table: true if it was seeded by the tutorial (tests).
+var seeded_throws: Array[bool]:
+	get:
+		return onboarding.seeded_throws
+
+
 ## Bounty cards the current selection could claim (or, with nothing
 ## selected, what the lit dice could claim).
 func claimable_bounties() -> Array:
@@ -805,241 +802,6 @@ func _compute_throw_claims() -> void:
 		for id in _open_ticks(sc["bounty_values"]):
 			if not _throw_claims.has(id):
 				_throw_claims.append(id)
-
-
-# --- Tutorial -------------------------------------------------------------------------
-
-func _settings() -> Node:
-	return get_node_or_null("/root/GameSettings")
-
-
-func _is_table_one() -> bool:
-	return setup != null and setup.goal != null and (setup.goal == bonfire_tuning.table_goal or setup.goal.display_name == "Table 1")
-
-
-## The Table 1 tutorial (TH hints + seeded throws) runs on this table.
-func tutorial_wanted() -> bool:
-	if tutorial_override >= 0:
-		return tutorial_override == 1 and _is_first_table()
-	if not hints_wanted():
-		return false
-	var gs := _settings()
-	return _is_first_table() and not bool(gs.get("tutorial_seen"))
-
-
-## Any hints on this table (Settings: Tutorial hints On/Off). Only the real
-## game, never tests / tools (unless a test sets tutorial_override = 1): the
-## table is the current scene (sandbox) or inside it (a run's RunScreen;
-## same check as fix/full-run-pass-1, QA M2).
-func hints_wanted() -> bool:
-	if tutorial_override >= 0:
-		return tutorial_override == 1
-	var scene := get_tree().current_scene
-	if scene == null or not (scene == self or scene.is_ancestor_of(self)):
-		return false
-	var gs := _settings()
-	return gs != null and bool(gs.get("tutorial_enabled"))
-
-
-## The run's first table, and it's Table 1 (seeding / TH hints only there).
-func _is_first_table() -> bool:
-	return setup != null and setup.first_table and _is_table_one()
-
-
-func _maybe_start_tutorial() -> void:
-	var tut := bhud.tutorial
-	tut.visible = false
-	tut.active = false
-	tut.current = &""
-	tut.enabled = hints_wanted()
-	var gs := _settings()
-	tut.touch = phone_screen != Vector2.ZERO or (gs != null and gs.has_method("is_mobile") and bool(gs.call("is_mobile")))
-	tut.anchor_provider = _hint_anchor
-	if gs != null and gs.get("hints_seen") is Dictionary and tutorial_override < 0:
-		tut.seen = (gs.get("hints_seen") as Dictionary).duplicate()
-	if not tut.seen_changed.is_connected(_save_hints_seen):
-		tut.seen_changed.connect(_save_hints_seen)
-		tut.skipped.connect(func() -> void: _seeding = false)
-	_seeding = false
-	_seed_hand = 1
-	_seed_hot_h1 = false
-	seeded_throws.clear()
-	if tutorial_wanted():
-		tut.start()
-		_seeding = true
-		if gs != null and gs.has_method("set_option") and tutorial_override < 0:
-			gs.set_option(&"tutorial_seen", true)
-		_hint(&"th0_throw")
-	# JIT5: an Elite / boss table (a twist or cheat rule) starts.
-	if run != null and run.rules.any(func(r: TableRule) -> bool: return r.kind == TableRule.Kind.TWIST or r.kind == TableRule.Kind.CHEAT):
-		_hint(&"jit5_twist")
-	_bonus_hint()
-
-
-## HB3: the bonus card is on screen and TH1 has been dismissed (or no
-## tutorial runs on this table). Asked at
-## table start and after each throw lights; shown once per profile).
-func _bonus_hint() -> void:
-	if run == null or run.goal == null or run.goal.bonus.is_empty() or run.is_over():
-		return
-	var tut := bhud.tutorial
-	# On a tutorial table, after TH1; elsewhere right away.
-	var ready := func() -> bool: return (not tut.active or int(tut.seen.get(&"th1_lit", 0)) > 0) and tut.current != &"th1_lit" and not run.is_over()
-	if ready.call():
-		_hint(&"hb3_bonus", {"card": (run.goal.bonus[0] as BountyData).id}, ready)
-
-
-func _bounty(id: StringName) -> BountyData:
-	for b: BountyData in run.all_bounties():
-		if b.id == id:
-			return b
-	return null
-
-
-## The combo that exactly matches a bounty (Trips card = trips), so a
-## bigger one claiming it (Quads, Full House) can be told apart (HB4).
-static func bounty_combo(b: BountyData) -> StringName:
-	match b.kind:
-		BountyData.Kind.N_OF_A_KIND:
-			return [&"single", &"pair", &"trips", &"quads", &"five_kind"][clampi(b.n, 1, 5) - 1]
-		BountyData.Kind.RUN:
-			return StringName("run%d" % b.n)
-		BountyData.Kind.TWO_PAIR:
-			return &"two_pair"
-		BountyData.Kind.FULL_HOUSE:
-			return &"full_house"
-		BountyData.Kind.STRAIGHT_5:
-			return &"run5"
-	return &""
-
-
-## Does the run hold a Seal for this combo? (Its combo in this table's
-## tuning has more base or mult than the base tuning's: the run's Seal
-## levels, RunTableSetup.leveled.)
-func is_sealed(combo_id: StringName) -> bool:
-	if setup == null or not setup.run_mode:
-		return false
-	var base := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var mine: BonfireCombo = null
-	var plain: BonfireCombo = null
-	for c in bonfire_tuning.combos:
-		if c.id == combo_id:
-			mine = c
-	for c in base.combos:
-		if c.id == combo_id:
-			plain = c
-	return mine != null and plain != null and (mine.base > plain.base or mine.mult > plain.mult)
-
-
-func _save_hints_seen(seen: Dictionary) -> void:
-	var gs := _settings()
-	if gs != null and gs.has_method("set_option") and tutorial_override < 0:
-		gs.set_option(&"hints_seen", seen.duplicate())
-
-
-## Asks the tutorial for hint id (BonfireTutorial.request).
-func _hint(id: StringName, ctx: Dictionary = {}, still: Callable = Callable()) -> bool:
-	return bhud != null and bhud.tutorial.request(id, ctx, still)
-
-
-# --- Tutorial seeds (onboarding_hints_v1.md: Table 1 only, tutorial on) -------------
-
-## Seeding is on (stops at the first unseeded throw, after hand 2, on Skip).
-var _seeding: bool = false
-## The hand of the table (1 = first) and whether hand 1 reached a Hot Hand.
-var _seed_hand: int = 1
-var _seed_hot_h1: bool = false
-## Per throw this table: true if it was seeded (tests).
-var seeded_throws: Array[bool] = []
-
-
-## The faces for the next throw from BonfireTuning.tutorial_first_throw /
-## tutorial_seeds, or [] (unseeded: seeding stops). Never a bust: a seed
-## that would light nothing is not used.
-func tutorial_seed() -> Array[int]:
-	var out: Array[int] = []
-	if not _seeding or run == null or _seed_hand > 2 or not _is_first_table():
-		return out
-	var hand := _seed_hand
-	var th := run.throws_this_hand + 1
-	var n := dice.size()
-	var t := bonfire_tuning
-	if hand == 1 and th == 1:
-		if t.tutorial_first_throw.size() == n:
-			out.assign(t.tutorial_first_throw)
-	elif not (hand == 2 and _seed_hot_h1):
-		for e: Dictionary in t.tutorial_seeds:
-			if int(e.get("hand", 0)) != hand or int(e.get("throw", 0)) != th or int(e.get("dice", n)) != n:
-				continue
-			if bool(e.get("no_hot_hand", false)) and _seed_hot_h1:
-				continue
-			if e.has("bounty"):
-				var bid := StringName(e["bounty"])
-				var b: BountyData = null
-				for rb: BountyData in run.goal.required:
-					if rb.id == bid:
-						b = rb
-				if b == null or run.is_ticked(b) or run.pending.has(bid):
-					continue
-			out.assign(e.get("faces", []))
-			break
-	if out.size() != n or BonfireScoring.lit_indices(out, t, run.rule_ctx()).is_empty():
-		out.clear()
-	return out
-
-
-## Screen rect (HUD space) for a hint anchor (BonfireTutorial.HINTS).
-func _hint_anchor(anchor: StringName, ctx: Dictionary) -> Rect2:
-	match anchor:
-		&"hand":
-			return _rect_of([hand_spot(0), hand_spot(1)])
-		&"lit_dice", &"tray":
-			var pts: Array[Vector3] = []
-			for d in throw_dice:
-				pts.append(d.global_position)
-			return _rect_of(pts)
-		&"refused_die", &"wild_die":
-			var i := int(ctx.get("die", -1))
-			if i >= 0 and i < throw_dice.size():
-				return _rect_of([throw_dice[i].global_position])
-		&"pot_preview":
-			return bhud.countup.row.get_global_rect() if bhud.countup.is_playing() else bhud.throw_label.get_global_rect()
-		&"pulsing_card", &"stamped_card", &"unclaimed_cards", &"bonus_leave", &"bonus_card", &"lost_card":
-			var id := StringName(ctx.get("card", &""))
-			if anchor == &"bonus_leave" and bhud.leave_button.visible:
-				return bhud.leave_button.get_global_rect()
-			if bhud.portrait_goal.visible:
-				return bhud.portrait_goal.get_global_rect()
-			if bhud.bounty_cards.has(id):
-				return (bhud.bounty_cards[id] as Control).get_global_rect()
-			return bhud.checklist_panel.get_global_rect()
-		&"buttons":
-			return bhud.bank_button.get_global_rect().merge(bhud.throw_button.get_global_rect())
-		&"risk":
-			# Beside the Throw button (the risk line under the pot says the same).
-			return bhud.throw_button.get_global_rect()
-		&"mult":
-			return bhud.mult_label.get_global_rect()
-		&"embers":
-			return bhud.points_label.get_global_rect()
-		&"soul":
-			return soul_meter.get_global_rect()
-		&"rules":
-			return bhud.rules_panel.get_global_rect()
-	return Rect2()
-
-
-func _rect_of(points: Array[Vector3]) -> Rect2:
-	var r := Rect2()
-	var first := true
-	for p in points:
-		var sp := camera.cam.unproject_position(p + Vector3(0, tuning.die_size * 0.5, 0))
-		if first:
-			r = Rect2(sp, Vector2.ZERO)
-			first = false
-		else:
-			r = r.expand(sp)
-	return r.grow(tuning.die_size * 200.0) if not first else Rect2()
 
 
 func die_at_screen(p: Vector2) -> int:
@@ -1176,10 +938,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		sfx.play(&"rim_hit", 0.8, -6.0)
 		_set_why("%d lit. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
-		if _seed_hand == 1 and run.throws_this_hand == 1:
-			_hint(&"th1_lit")
-			_hint(&"th2_pot", {}, func() -> bool: return run.state == BonfireRun.State.PICK and run.potted.is_empty())
-		_bonus_hint()
+		onboarding.on_lit_settle()
 	else:
 		await _bust()
 	_skip = false
@@ -1225,7 +984,7 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 # --- Debug throw overlay (off by default) ------------------------------------------
 ## After each flick: the flick speed (game px/s), the dice's launch speed
 ## (m/s) and the curve fraction k; it stays until the next throw. Turn it
-## on with F3, GameSettings.throw_debug, or the command line user arg
+## on with F3 (debug builds only), GameSettings.throw_debug, or the command line user arg
 ## `-- --throw-debug`. Tools can also set `throw_debug = true` directly.
 var throw_debug: bool = false:
 	set(v):
@@ -1266,14 +1025,8 @@ func launch_k(flick_speed: float) -> float:
 ## Options > Throw sensitivity multiplies the flick speed (keyboard quick
 ## throws stay a fixed medium throw).
 func throw(velocity: Vector2, release_pos: Vector2 = Vector2.INF, drag: float = -1.0) -> bool:
-	var seeded := false
-	if _seeding and _rig.is_empty() and phase == Phase.BET and run != null and run.state == BonfireRun.State.AIM:
-		var f := tutorial_seed()
-		if f.is_empty():
-			_seeding = false
-		else:
-			rig_faces(f)
-			seeded = true
+	# The tutorial may rig this throw's faces (never over a test's own rig).
+	var seeded := _rig.is_empty() and phase == Phase.BET and onboarding.seed_next_throw()
 	var ok := super(velocity * (sensitivity() if _player_flick else 1.0), release_pos, drag)
 	if ok:
 		seeded_throws.append(seeded)
@@ -1336,6 +1089,9 @@ func _refresh_hud() -> void:
 	if bhud != null and run != null:
 		bhud.rethrow_prompt = rethrow_prompt() if phase == Phase.BET else ""
 		bhud.refresh(run, phase == Phase.BET)
+		# The rethrow risk line and the table's status line share the bottom
+		# row: while the risk shows, the status line steps aside (QA #63).
+		why_label.visible = bhud.risk_label.text == ""
 		bhud.pulse_cards(claimable_bounties())
 	if felt_label != null and run != null:
 		var lines: Array[String] = []
@@ -1359,11 +1115,8 @@ func _on_table_event(event: StringName, data: Dictionary) -> void:
 			# Blood faces pay Soul as the pot scores.
 			_burn_soul(int(data.get("soul_cost", 0)))
 		&"hand_start":
-			_seed_hand += 1
-			if _seed_hand > 2:
-				_seeding = false
 			_refresh_hud()
-			_last_hand_hint()
+			onboarding.on_hand_start()
 
 
 ## Rule face changes (Madame Shuffle's reroll, a Mirror's copy): each changed
@@ -1440,6 +1193,32 @@ func _take_down() -> String:
 	return ""
 
 
+## Dice come first (QA M1, #103 F1): a press on the dice in the hand is a
+## grab, and a press on a thrown die while picking is a pick, even where a
+## HUD button (THROW / BANK) overlaps them. _input runs before the GUI, so
+## the press (and a grab's drag and release) go straight to the table's
+## normal input and no button ever sees them.
+func _input(event: InputEvent) -> void:
+	var mb := event as InputEventMouseButton
+	var left := mb != null and mb.button_index == MOUSE_BUTTON_LEFT
+	var holding := phase == Phase.HELD and (event is InputEventMouseMotion or (left and not mb.pressed))
+	var on_dice := left and mb.pressed and (hand_grab_at(mb.position) or die_pick_at(mb.position))
+	if holding or on_dice:
+		get_viewport().set_input_as_handled()
+		_unhandled_input(event)
+
+
+## True if a press at screen point p would grab the dice waiting in the hand.
+func hand_grab_at(p: Vector2) -> bool:
+	return phase == Phase.BET and can_throw() == "" and _hand_contains(p)
+
+
+## True if a press at screen point p lands on a thrown die while picking
+## (it pots the die, or shakes it if it can't score).
+func die_pick_at(p: Vector2) -> bool:
+	return phase == Phase.BET and run != null and run.state == BonfireRun.State.PICK and die_at_screen(p) >= 0
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	var tap := event as InputEventScreenTouch
@@ -1467,12 +1246,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				bank()
 				return
 			KEY_L:
-				leave()
+				bhud.press_leave()  # a second L within 2 s leaves
 				return
 			KEY_F3:
-				throw_debug = not throw_debug
-				get_viewport().set_input_as_handled()
-				return
+				# Debug builds only (editor / debug export); a release
+				# build keeps F3 free. `-- --throw-debug` still works.
+				if OS.is_debug_build():
+					throw_debug = not throw_debug
+					get_viewport().set_input_as_handled()
+					return
 			KEY_SPACE, KEY_ENTER:
 				if phase == Phase.BET:
 					throw_again()
@@ -1487,6 +1269,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	# The pause menu's FORFEIT follows can_forfeit_now() every frame, so it
+	# is already greyed out when Esc pauses the tree mid-throw.
+	pause_menu.set_forfeit_enabled(can_forfeit_now())
 	if hand_label.text == "BET FIRST":
 		hand_label.text = ""  # no bets here
 
@@ -1539,13 +1324,10 @@ func _bust() -> void:
 	juice.crowd_pot(0)
 	bhud.countup.clear()
 	# HB5 replaces TH9 when the bust lost a pending bounty (TH9 stays unseen).
-	if not lost_cards.is_empty():
-		_hint(&"hb5_lost", {"card": lost_cards[0]})
-	else:
-		_hint(&"th9_bust", {"soul": int(r["soul_lost"])})
+	onboarding.on_bust(int(r["soul_lost"]), lost_cards)
 	_embers(_dice_center(), 24, 10)
 	_taunt(&"bonfire_bust")
-	_set_why("Nothing caught fire. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
+	_set_why("Nothing lit. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
 	# HANDS LEFT etc. now, not after the beat (a final bust ends the table
 	# and the end screen shows over this HUD; QA full run pass 1).
 	_refresh_hud()
@@ -1556,6 +1338,12 @@ func _bust() -> void:
 
 func _after_hand() -> void:
 	if run.is_over():
+		# Out of hands uncleared: the Soul meter drops by the table's
+		# penalty, like a bust or forfeit (QA M4). A cleared table costs no
+		# Soul here, so nothing burns. Only the part not shown yet burns: a
+		# final-hand bust already burned its Soul in _bust(), and maxi()
+		# keeps this from going negative.
+		_burn_soul(maxi(_soul_shown - run.soul, 0))
 		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER
 		_taunt(&"bonfire_clear" if run.state == BonfireRun.State.CLEARED else &"bonfire_fail")

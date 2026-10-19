@@ -77,6 +77,9 @@ var seen: Dictionary = {}
 var active: bool = false
 ## Hints at all (Settings: Tutorial hints On/Off).
 var enabled: bool = true
+## True once the table's end screen is up (stop()): no hint may show until
+## the next table resets it (start() or the table's new run).
+var stopped: bool = false
 ## Mobile wording ("Tap", "swipe") and dismiss (tap outside).
 var touch: bool = false
 ## Design px per pt (BonfireHud.ui_pt_px).
@@ -129,12 +132,25 @@ func _init() -> void:
 ## The Table 1 tutorial starts (TH hints on, seeding is the table's).
 func start() -> void:
 	active = true
+	stopped = false
 	shown.clear()
 	_queue.clear()
 	current = &""
 	visible = false
 
 
+## The table ended (end screen up, #103 N6): hide the hint, forget every
+## waiting hint and refuse new ones until the next table.
+func stop() -> void:
+	visible = false
+	current = &""
+	_left = -1.0
+	_queue.clear()
+	active = false
+	stopped = true
+
+
+## Sizes the bubble for the screen: px = screen pixels per design point.
 func set_ui_scale(px: float) -> void:
 	pt_px = px
 	_apply_scale()
@@ -152,7 +168,7 @@ func _apply_scale() -> void:
 
 ## Could hint `id` show now (ignoring a hint already up)?
 func can_show(id: StringName) -> bool:
-	if not enabled or not HINTS.has(id):
+	if stopped or not enabled or not HINTS.has(id):
 		return false
 	var h: Dictionary = HINTS[id]
 	if int(seen.get(id, 0)) >= int(h.get("max", 1)):

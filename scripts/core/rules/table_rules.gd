@@ -33,7 +33,7 @@ const INFO := {
 	&"ashmouth": ["Ashmouth", "No Hot Hand.", TableRule.Kind.CHEAT],
 	&"straight_man": ["The Straight Man", "Only 5-die runs count.", TableRule.Kind.CHEAT],
 	&"collector": ["The Collector", "Face mods are off on the first throw.", TableRule.Kind.CHEAT],
-	&"bloodletter": ["The Bloodletter", "Every Soul cost is doubled: a bust costs 2.", TableRule.Kind.CHEAT],
+	&"bloodletter": ["The Bloodletter", "Every Soul cost is doubled.", TableRule.Kind.CHEAT],
 }
 ## Special dice with a table-side handler (scoring-only ones live in
 ## BonfireScoring: twin_flame, coven, cracked x2, blood_pact, last_breath).

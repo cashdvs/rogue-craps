@@ -2,20 +2,24 @@
 
 [ext_resource type="Script" path="res://scripts/data/bounty_data.gd" id="1_5apsi"]
 [ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="2_ckbe5"]
-[ext_resource type="Resource" path="res://resources/map/rules/madame_shuffle.tres" id="3_odw4e"]
-[ext_resource type="Resource" path="res://resources/map/rules/pit_boss.tres" id="4_6fevn"]
-[ext_resource type="Resource" path="res://resources/map/rules/ashmouth.tres" id="5_kdpyk"]
-[ext_resource type="Resource" path="res://resources/map/rules/straight_man.tres" id="6_5f6h0"]
-[ext_resource type="Resource" path="res://resources/map/rules/collector.tres" id="7_4p31q"]
-[ext_resource type="Resource" path="res://resources/map/rules/bloodletter.tres" id="8_e7rnj"]
+[ext_resource type="Resource" path="res://resources/map/rules/mister_wick.tres" id="3_w6hk3"]
+[ext_resource type="Resource" path="res://resources/map/rules/baron_vig.tres" id="17_bvig"]
+[ext_resource type="Resource" path="res://resources/map/rules/odds_bodkin.tres" id="18_bodk"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_sixes.tres" id="9_n4w0n"]
 [ext_resource type="Resource" path="res://resources/map/rules/first_throw.tres" id="10_lh6d3"]
-[ext_resource type="Resource" path="res://resources/map/rules/short_table.tres" id="11_pq5b7"]
-[ext_resource type="Resource" path="res://resources/map/rules/heavy_burn.tres" id="12_sgrhs"]
 [ext_resource type="Resource" path="res://resources/map/rules/greedy_pot.tres" id="13_cbcbs"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_hands.tres" id="14_r55qv"]
 [ext_resource type="Resource" path="res://resources/map/floor_1_map.tres" id="15_rs5l7"]
 [ext_resource type="Script" path="res://scripts/data/floor_data.gd" id="16_4i6il"]
+
+[sub_resource type="Resource" id="Resource_xqojo"]
+script = ExtResource("1_5apsi")
+id = &"bonus_full_house"
+display_name = "Full House"
+description = "Bonus: pot three of a kind plus a pair."
+kind = 3
+n = 5
+bonus_embers = 8
 
 [sub_resource type="Resource" id="Resource_h33il"]
 script = ExtResource("1_5apsi")
@@ -23,23 +27,7 @@ id = &"bonus_quads"
 display_name = "Quads"
 description = "Bonus: pot four of a kind."
 n = 4
-bonus_embers = 5
-
-[sub_resource type="Resource" id="Resource_glfvm"]
-script = ExtResource("1_5apsi")
-id = &"full_house"
-display_name = "Full House"
-description = "Pot three of a kind plus a pair."
-kind = 3
-n = 5
-
-[sub_resource type="Resource" id="Resource_1ruv5"]
-script = ExtResource("1_5apsi")
-id = &"run4"
-display_name = "Run of 4"
-description = "Pot four numbers in a row."
-kind = 1
-n = 4
+bonus_embers = 8
 
 [sub_resource type="Resource" id="b_triple"]
 script = ExtResource("1_5apsi")
@@ -62,20 +50,13 @@ description = "Pot two different pairs in one pot."
 kind = 2
 n = 2
 
-[sub_resource type="Resource" id="Resource_ut1xe"]
+[sub_resource type="Resource" id="Resource_1ruv5"]
 script = ExtResource("1_5apsi")
-id = &"quads"
-display_name = "Quads"
-description = "Pot four of a kind."
+id = &"run4"
+display_name = "Run of 4"
+description = "Pot four numbers in a row."
+kind = 1
 n = 4
-
-[sub_resource type="Resource" id="Resource_oo81c"]
-script = ExtResource("1_5apsi")
-id = &"run5"
-display_name = "Run of 5"
-description = "Pot five numbers in a row."
-kind = 4
-n = 5
 
 [resource]
 script = ExtResource("16_4i6il")
@@ -83,12 +64,10 @@ display_name = "Floor 3"
 map = ExtResource("15_rs5l7")
 min_bounties = 4
 max_bounties = 4
-hands = 6
 common_bounties = Array[ExtResource("1_5apsi")]([SubResource("b_triple"), SubResource("b_run3"), SubResource("b_two_pairs")])
-featured_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_ut1xe"), SubResource("Resource_oo81c")])
-bonus_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_h33il")])
-elite_twists = Array[ExtResource("2_ckbe5")]([ExtResource("9_n4w0n"), ExtResource("10_lh6d3"), ExtResource("11_pq5b7"), ExtResource("12_sgrhs"), ExtResource("13_cbcbs"), ExtResource("14_r55qv")])
-boss_cheats = Array[ExtResource("2_ckbe5")]([ExtResource("3_odw4e"), ExtResource("4_6fevn"), ExtResource("5_kdpyk"), ExtResource("6_5f6h0"), ExtResource("7_4p31q"), ExtResource("8_e7rnj")])
-boss_adds_twist = true
-boss_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_glfvm"), SubResource("Resource_1ruv5")])
-boss_min_bounties = 5
+featured_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_1ruv5")])
+bonus_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_xqojo"), SubResource("Resource_h33il")])
+clear_embers = 14
+elite_twists = Array[ExtResource("2_ckbe5")]([ExtResource("9_n4w0n"), ExtResource("10_lh6d3"), ExtResource("13_cbcbs"), ExtResource("14_r55qv")])
+boss_cheats = Array[ExtResource("2_ckbe5")]([ExtResource("3_w6hk3"), ExtResource("17_bvig"), ExtResource("18_bodk")])
+boss_max_bounties = 4

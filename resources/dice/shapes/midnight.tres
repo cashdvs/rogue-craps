@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_74t0q"]
+
+[resource]
+script = ExtResource("1_74t0q")
+preset_mods = {
+12: &"hellfire"
+}
+id = &"midnight"
+display_name = "Midnight"
+description = "Faces 1-12; 7-12 light alone. The 12 is a carved Hellfire Face."
+faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])

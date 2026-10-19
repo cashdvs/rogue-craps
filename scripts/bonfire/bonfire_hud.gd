@@ -71,6 +71,9 @@ var _stamps: Dictionary = {}
 var _pending_stamps: Dictionary = {}
 var _pulse: Array = []
 var _t: float = 0.0
+## Top-left of the THROW / BANK column (1920x1080 design px). Kept clear of
+## the hand (bottom-right) at 16:9, phone landscape and phone portrait.
+const BUTTONS_POS := Vector2(184, 790)
 
 
 func _init() -> void:
@@ -91,10 +94,11 @@ func _init() -> void:
 	card_header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	checklist_panel.add_child(card_header)
 	pot_label = _label(64, Palette.BRASS_HI, Vector2(560, 860), Vector2(800, 80))
-	throw_label = _label(36, Palette.EMBER, Vector2(260, 936), Vector2(1400, 46))
-	notes_label = _label(24, Palette.BONE, Vector2(260, 982), Vector2(1400, 32))
+	# x 520-1400: clear of the bottom-left THROW / BANK column (ends at x 494).
+	throw_label = _label(36, Palette.EMBER, Vector2(520, 936), Vector2(880, 46))
+	notes_label = _label(24, Palette.BONE, Vector2(520, 982), Vector2(880, 32))
 	notes_label.name = "PotNotes"
-	risk_label = _label(30, Palette.BRASS_HI, Vector2(260, 1014), Vector2(1400, 40))
+	risk_label = _label(30, Palette.BRASS_HI, Vector2(520, 1014), Vector2(880, 40))
 	risk_label.name = "RethrowRisk"
 	mult_label = _label(34, Color("#FF2E3E"), Vector2(1260, 880), Vector2(260, 60))
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
@@ -104,7 +108,9 @@ func _init() -> void:
 	callout_label.name = "Callout"
 	callout_label.modulate.a = 0.0
 	var col := VBoxContainer.new()
-	col.position = Vector2(1580, 760)
+	# Bottom-left, beside the Soul meter: the hand of dice sits bottom-right,
+	# and buttons over it ate the grab (QA full run pass 1, M1).
+	col.position = BUTTONS_POS
 	col.add_theme_constant_override("separation", 14)
 	add_child(col)
 	throw_button = _button("Throw", 32, Palette.BURGUNDY)
@@ -127,7 +133,7 @@ func _init() -> void:
 	leave_button.name = "LeaveButton"
 	leave_button.custom_minimum_size = Vector2(310, 84)
 	leave_button.visible = false
-	leave_button.pressed.connect(func() -> void: leave_pressed.emit())
+	leave_button.pressed.connect(press_leave)
 	col.add_child(leave_button)
 	rules_panel = PanelContainer.new()
 	rules_panel.name = "RulesPanel"
@@ -188,6 +194,35 @@ func _init() -> void:
 ## commit (Bonfire3D sets this; the run state underneath is already final):
 ## {embers, points, pot_from, pot_add}. The pot counts up with the count-up.
 var display_hold: Dictionary = {}
+
+
+## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
+## the button into "LEAVE?  TAP AGAIN"; a second one within LEAVE_CONFIRM_S
+## leaves (emits leave_pressed). Otherwise the text goes back.
+const LEAVE_CONFIRM_S: float = 2.0
+const LEAVE_TEXT := "LEAVE TABLE  (L)"
+const LEAVE_ASK_TEXT := "LEAVE?  TAP AGAIN"
+## When the first tap came (seconds on leave_clock), -1 = not asked.
+var _leave_asked_at: float = -1.0
+## Seconds for the confirm window (tests can swap in a fake clock).
+var leave_clock: Callable = func() -> float: return Time.get_ticks_msec() / 1000.0
+
+
+func press_leave() -> void:
+	if not leave_button.visible:
+		return
+	var now: float = leave_clock.call()
+	if _leave_asked_at >= 0.0 and now - _leave_asked_at <= LEAVE_CONFIRM_S:
+		_reset_leave_ask()
+		leave_pressed.emit()
+	else:
+		_leave_asked_at = now
+		leave_button.text = LEAVE_ASK_TEXT
+
+
+func _reset_leave_ask() -> void:
+	_leave_asked_at = -1.0
+	leave_button.text = LEAVE_TEXT
 
 
 func refresh(run: BonfireRun, can_act: bool) -> void:
@@ -303,6 +338,8 @@ func _refresh_rules(run: BonfireRun) -> void:
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		line.custom_minimum_size = Vector2(290, 0)
 		row.add_child(line)
+		# Boss sign art (Systems Dev, BossSign): icon + tooltip; no art = this text row.
+		BossSign.decorate_hud_row(row, name_l, line, r.id, r.params)
 		rules_box.add_child(row)
 	rules_panel.reset_size()
 
@@ -434,6 +471,9 @@ func pulsing() -> Array:
 
 
 func _process(delta: float) -> void:
+	# The Leave question times out (or the button went away).
+	if _leave_asked_at >= 0.0 and (not leave_button.visible or float(leave_clock.call()) - _leave_asked_at > LEAVE_CONFIRM_S):
+		_reset_leave_ask()
 	_t += delta / maxf(Engine.time_scale, 0.001)
 	for id in _pulse:
 		var c: Control = bounty_cards.get(id)
@@ -539,6 +579,8 @@ func crumble_pending(reduced: bool = false) -> int:
 var callout_label: Label
 
 
+## Pops a short callout ("doesn't score") just above screen point `at`,
+## then fades it out.
 func callout(at: Vector2, text: String = "doesn't score") -> void:
 	callout_label.text = text
 	callout_label.position = at - Vector2(callout_label.size.x * 0.5, callout_label.size.y + 30.0)
@@ -686,6 +728,10 @@ func show_end(run: BonfireRun) -> void:
 			end_title.text = "Out of hands"
 			end_body.text = "%d bounties unclaimed: -%d Soul.\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), ember_line]
 	end_panel.visible = true
+	# A table can end mid-tutorial: the hint panel must not cover the end
+	# panel (#103 N6). stop() also drops the waiting hints, so dismiss()
+	# can't pop the next one over the end panel.
+	tutorial.stop()
 
 
 func _label(px: int, col: Color, pos: Vector2, sz: Vector2) -> Label:

@@ -2,12 +2,15 @@
 
 | File | What it is |
 |---|---|
-| [DESIGN.md](DESIGN.md) | Public design summary: pillars, core loop, craps rules, Coin and Soul, the table goal, POC scope |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | How the code fits together, who owns what, key signals, data files, recipes (die, face mod, event, boss) |
+| [DESIGN_INDEX.md](DESIGN_INDEX.md) | Where the design docs live and which are current or superseded |
+| [DESIGN.md](DESIGN.md) | Short overview of Bonfire as it plays now (full rules: `how_bonfire_plays.md`, team design folder) |
 | [MODULES.md](MODULES.md) | Module ownership map: the game's sub-sections, who owns them, how to claim one |
 | [STEAM_READINESS.md](STEAM_READINESS.md) | Steam release checklist: export presets, CI builds, saves, display, controller, version, Steamworks hook |
 | [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md) | Where each shipped asset came from and whether AI was involved (for the Steam content survey) |
+| [DICE_IDS.md](DICE_IDS.md) | Canonical dice ids: one shape id and one die id per die, naming rules for asset/face/audio keys, old aliases |
 
 The full, living design and art documents are maintained by the Tiny Anvil Games team and aren't in
-this repo. Issues quote any extra numbers or specs they need. If something in `DESIGN.md` looks
+this repo (index: [DESIGN_INDEX.md](DESIGN_INDEX.md)). Issues quote any extra numbers or specs they need. If something in `DESIGN.md` looks
 wrong or out of date, open an issue rather than changing it in a feature PR; design changes need
 the Game Designer's OK.

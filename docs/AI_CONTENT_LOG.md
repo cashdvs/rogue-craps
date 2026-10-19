@@ -1,65 +1,83 @@
 # AI content log
 
 **Why this exists:** Steam's content survey (filled in on the Steamworks store page before release)
-asks us to disclose AI-generated content that ships in the game, and to keep that disclosure true for
-every update. This file is the record we answer it from.
+asks us to disclose AI-generated content that ships with the game, and to keep that disclosure true
+for every update. This file is the record we answer it from.
 
-**Rule:** every PR that adds or replaces a shipped asset (art, model, texture, shader, audio, font,
-in-game text) adds or updates its row here, including when the answer is "not AI-generated". If you
-don't know how an asset was made, write `TBD (ask <owner>)`; never guess a tool or a date.
+**Rule:** every PR that adds or replaces something players see or hear (art, model, texture, shader,
+audio, font, in-game text) adds or updates its row here. If you don't know how an asset was made,
+write `TBD (ask <owner>)`; never guess a tool or a date.
 
-**How to read the columns**
-- **asset path**: a file or a glob in this repo (the export ships everything except `tests/` and `tools/`).
-- **tool used**: what produced the shipped file, as stated in the cited source.
-- **what it was used for**: what the tool did for that asset, then the source of the entry in brackets.
-- **date**: when the asset landed on `main` (from `git log`): first commit, plus the last change if it differs.
-- **owner**: who to ask. Art Director = 2D and branding, 3D Artist = models and textures,
-  Sound Designer = audio, VFX Dev = FX textures and shaders, Game Designer = text.
+## Policy: broad disclosure (PM ruling, Oct 19 2026)
 
-> **Open question for PM / Cash (affects the survey answer, not this table):** "not AI-generated
-> (procedural/script)" below means the shipped file was produced by a deterministic script or code,
-> with no image, audio or text model involved. The scripts and code themselves were written by the
-> team's AI agents (for example, the Bone d6 PR checklist in the Art Director's drafts says "AI agent
-> wrote this"). Steamworks' Content Survey page says the AI section covers "content that ships with
-> your game, and is consumed by players ... such as artwork, sound, narrative, localization", that
-> "efficiency gains" from AI tools are "not the focus", and defines Pre-Generated as content "created
-> with the help of AI tools during development". Steam's survey question also covers the store page,
-> community assets and marketing materials. Whether AI-agent-written generator scripts and AI-written
-> text count as "created with the help of AI tools" is Cash's call, not something this log can settle.
-> Source: https://partner.steamgames.com/doc/gettingstarted/contentsurvey (checked 2026-10-19).
+- Log **everything players see or hear that AI agents made or scripted, text included.** The Tiny
+  Anvil Games team is made up of Grok Bot agents, so this covers almost everything we ship.
+- An asset built by a script or code that an AI agent wrote counts as **AI-assisted**, even when no
+  image, audio or text model touched the output. It is never logged as "not AI".
+- Only third-party assets made by people outside the team (the OFL fonts) are **not AI**.
+- Cash writes the final survey wording at submission. This log is the evidence, not the wording.
+- Steam's question also covers the store page, community assets and marketing materials. Anything
+  from the development-only table that ends up there moves into scope.
+
+Steam's definition (Steamworks "Content Survey" page, checked 2026-10-19): the AI section covers
+"content that ships with your game, and is consumed by players ... such as artwork, sound, narrative,
+localization". Pre-Generated means content "created with the help of AI tools during development".
+https://partner.steamgames.com/doc/gettingstarted/contentsurvey
+
+**Classes used in "tool used":**
+- **AI-generated**: the output came from a generative model (text or image).
+- **AI-assisted (agent-written script)**: the output came from a deterministic script or code that a Grok Bot agent wrote.
+- **Not AI (third-party)**: made by people outside the team, under a licence.
+
+**Columns:** *asset path* is a file or glob in the repo (the export ships everything except `tests/`,
+`tools/`, `art/*/src/` and `assets/*/src/`). *Date* is when it landed on `main` (from `git log`), plus the last change.
+*Owner*: Art Director = 2D and branding, 3D Artist = models and textures, Sound Designer = audio,
+VFX Dev = FX textures and shaders, Game Designer = text. Sources are in brackets. "Team art folder" and
+"team design folder" are the owners' working folders outside the repo; ask the owner for them.
 
 ## Shipped content
 
 | asset path | tool used | what it was used for | date | owner |
 |---|---|---|---|---|
-| `assets/branding/studio/anvil.png`, `hammer.png`, `spark.png`, `spark_particle.png` | Python: `assets/branding/studio/src/shapes.py` + `build.py` (hand-written SVG geometry, rendered with cairosvg/Pillow) | Studio splash layers. **Not AI-generated (procedural/script).** [assets/branding/studio/README.md, src/README.md] | 2026-10-18 | Art Director |
-| `assets/branding/studio/wordmark_*.png` (6 files) | Python: `src/build.py`; Fredoka Bold (SIL OFL 1.1) shaped with HarfBuzz and outlined with fontTools | "TINY ANVIL" / "GAMES" wordmark layers. **Not AI-generated (procedural/script, real font).** The earlier AI concept renders of the logo are superseded and never ship (see the development-only table). [assets/branding/studio/README.md; art/concept/studio_logo.md] | 2026-10-18 | Art Director |
-| `assets/branding/studio/icon.png` (arrives with `chore/studio-branding`, not on `main` yet) | Python: `src/build.py` | App icon (orange anvil and spark on a charcoal square). **Not AI-generated (procedural/script).** [assets/branding/studio/README.md "Logo files", src/README.md] | 2026-10-19 (branch) | Art Director |
-| `fonts/AlfaSlabOne-Regular.ttf`, `fonts/BarlowCondensed-Bold.ttf`, `fonts/BarlowCondensed-SemiBold.ttf` | Third-party fonts (The Alfa Slab One Project Authors; The Barlow Project Authors), SIL OFL 1.1 | UI and HUD type. **Not AI-generated (third-party, licensed).** [fonts/OFL-alfaslabone.txt, fonts/OFL-barlowcondensed.txt] | 2026-10-18 | Art Director |
-| `art/models/dice/bone_d6.glb` + its materials (`materials/bone_*.tres`, `die_ink_*.tres`) | Blender 4.5 LTS Python script `art/models/dice/src/build_dice.py` | The standard die model. **Not AI-generated (procedural/script)**; "no third-party assets, textures or fonts". [art/models/dice/README.md] | 2026-10-18 | 3D Artist |
-| `art/models/dice/{mirror,twin_flame,wanderer,cracked,gilded,hellfire,bellows,blood_pact,coven,last_breath}_d6.glb` + `materials/*.tres` | Blender 4.5 LTS Python script `src/build_special_dice.py`; batch-2 materials and import mapping from `src/write_batch2.py` | Special dice models. **Not AI-generated (procedural/script).** [art/models/dice/SPECIAL_DICE.md, README.md] | 2026-10-18, last change 2026-10-19 | 3D Artist |
-| `art/models/boards/infernal_pit/**` (`*.glb`, `materials/`, `scenes/`) | Blender 4.5 LTS Python script `src/build_board_a.py` | Board A table kit. **Not AI-generated (procedural/script)**; "no third-party meshes or textures". [art/models/boards/infernal_pit/README.md] | 2026-10-18 | 3D Artist |
-| `art/models/boards/hearth/*.glb`, `materials/`, `scenes/` | Blender 4.5 LTS `src/build_hearth.py` + Godot script `src/make_hearth.gd` (wrapped by `src/rebuild_hearth.sh`) | Hearth board kit (brazier, candles, cauldron, demon faces). **Not AI-generated (procedural/script).** [art/models/boards/hearth/README.md] | 2026-10-18 | 3D Artist |
-| `art/models/boards/hearth/textures/felt_ember_corners.png` | Python + Pillow: `src/make_felt_motif.py` | Felt corner ember motif overlay. **Not AI-generated (procedural/script).** [hearth/README.md; header of make_felt_motif.py] | 2026-10-18 | 3D Artist |
-| `art/models/characters/smiles/**` (`smiles*.glb` incl. animation clips, `materials/`, `scenes/`) | Blender 4.5 LTS `src/build_smiles.py` + `src/make_smiles.gd`, `src/write_imports.py` | The dealer character, rig and clips. **Not AI-generated (procedural/script)**; "no third-party meshes, textures or fonts". [art/models/characters/smiles/README.md] | 2026-10-18, last change 2026-10-19 | 3D Artist |
-| `art/models/boards/hearth/textures/flame_tongue_4x4.png`, `flame_tongue_4x4_mobile.png`, `smoke_curl.png` | Python + numpy + Pillow: `art/models/boards/hearth/src/make_flame_atlas.py` (deterministic) | Toon flame flipbook and smoke curl for the board fire. **Not AI-generated (procedural/script)**; the script calls itself a 'Procedural "hand-drawn" flame flipbook'. [header of make_flame_atlas.py; hearth/README.md] | 2026-10-18, last change 2026-10-19 | VFX Dev |
-| `shaders/*.gdshader`, `shaders/3d/*.gdshader` (backdrop, bulb_light, felt, grade, fx_particle, fx_unshaded, outline, toon_noir) | TBD (ask VFX Dev) | Toon shading, ink outline, felt, post grade and FX particle shaders (from the file headers). How they were authored is TBD (ask VFX Dev). | 2026-10-18 | VFX Dev |
-| `art/models/boards/hearth/shaders/*.gdshader`, `hearth_instance.gdshaderinc` | TBD (ask VFX Dev) | Hearth demon eyes, ember seam, coals, flame card, candle glow and sparks (from the file headers). How they were authored is TBD (ask VFX Dev). | 2026-10-18 | VFX Dev |
-| `art/models/dice/shaders/toon_mirror.gdshader` | TBD (ask VFX Dev) | Mirror Die toon reflection (from the file header). How it was authored is TBD (ask VFX Dev). | 2026-10-18 | VFX Dev |
-| `audio/sfx/*.wav` (all 59) | Godot synth classes in `scripts/audio/` (`SfxSynth`, `BonfireSynth`, `ThrowSynth`, ...) baked by `tools/bake_sfx.gd` (fixed seeds) | Every sound effect, crowd loop and stinger. **Not AI-generated (procedural/script)**: "No recordings, samples or third-party sounds are used". [audio/sfx/SOURCES.md; scripts/audio/README.md] | 2026-10-18, last change 2026-10-19 | Sound Designer |
-| `resources/dealer/dealer_lines.json` and in-game UI/flavour text (`resources/**/*.tres` names and descriptions, strings in `scripts/`) | TBD (ask Game Designer) | Dealer taunts and player-facing text. No source in the repo says how it was written. | 2026-10-18, last change 2026-10-19 | Game Designer |
+| `assets/branding/studio/anvil.png`, `hammer.png`, `spark.png`, `spark_particle.png` | **AI-assisted (agent-written script):** Python `assets/branding/studio/src/shapes.py` + `build.py`, hand-written SVG geometry rendered with cairosvg/Pillow; no AI image generation | Studio splash layers. [assets/branding/studio/README.md, src/README.md; Art Director, team art folder PROVENANCE.md] | 2026-10-18 | Art Director |
+| `assets/branding/studio/wordmark_*.png` (6 files) | **AI-assisted (agent-written script):** `src/build.py`; Fredoka Bold (SIL OFL 1.1) shaped with HarfBuzz and converted to outlines with fontTools; no AI image generation | "TINY ANVIL" / "GAMES" wordmark layers. The bigger GAMES line in #71 (`wordmark_games_*`, `wordmark_cream/charcoal`) was rebuilt with the same script. [assets/branding/studio/README.md; Art Director, team art folder PROVENANCE.md] | 2026-10-18, last change 2026-10-19 | Art Director |
+| `assets/branding/studio/icon.png` (#71; project icon and Windows `.exe` icon) | **AI-assisted (agent-written script):** `src/build.py` (SVG geometry rendered with cairosvg); no AI image generation | App icon: orange anvil and spark on a charcoal square. [assets/branding/studio/README.md "Logo files"; Art Director, team art folder PROVENANCE.md] | 2026-10-19 | Art Director |
+| `assets/branding/studio/layers.json` (#71) | **AI-assisted (agent-written script):** written by `src/build.py` | Sizes and pivots of the splash layers, read by the splash at runtime. [assets/branding/studio/README.md "Other": "generated by the build"] | 2026-10-18, last change 2026-10-19 | Art Director |
+| `assets/branding/studio/splash_timings.json` (#71) | **AI-generated:** config written by Grok Bot agents (which agent isn't recorded); it mirrors the motion spec `splash_motion.md` | Splash motion timings, positions and SFX cue times, read at runtime. [assets/branding/studio/README.md "Other"; git history] | 2026-10-18, last change 2026-10-19 | Art Director |
+| `assets/bosses/floor3/` (`sign_baron_vig`, `sign_odds_bodkin`, `icon_*_rule_128`; the unused 256 px icons were not shipped). | **AI-assisted (agent-written script):** `build_signs.py` with OFL fonts (Alfa Slab One, Barlow Condensed); no AI image generation | Floor 3 boss signs and rule icons. [Art Director, 2026-10-19] | 2026-10-19 | Art Director |
+| `fonts/AlfaSlabOne-Regular.ttf`, `fonts/BarlowCondensed-Bold.ttf`, `fonts/BarlowCondensed-SemiBold.ttf` | **Not AI (third-party):** The Alfa Slab One Project Authors; The Barlow Project Authors; SIL OFL 1.1 | UI and HUD type. Fredoka (also OFL, by The Fredoka Project Authors) ships only as outlines inside the wordmarks, not as a font file. [fonts/OFL-alfaslabone.txt, fonts/OFL-barlowcondensed.txt, assets/branding/studio/src/OFL.txt] | 2026-10-18 | Art Director |
+| `art/models/dice/bone_d6.glb` + its materials (`materials/bone_*.tres`, `die_ink_*.tres`) | **AI-assisted (agent-written script):** Blender 4.5 LTS Python script `art/models/dice/src/build_dice.py` | Standard die model. No third-party assets, textures or fonts. [art/models/dice/README.md; 3D Artist ruling via PM] | 2026-10-18 | 3D Artist |
+| `art/models/dice/{mirror,twin_flame,wanderer,cracked,gilded,hellfire,bellows,blood_pact,coven,last_breath}_d6.glb` + `materials/*.tres` | **AI-assisted (agent-written script):** Blender 4.5 LTS `src/build_special_dice.py`; batch-2 materials and import mapping from `src/write_batch2.py` | Special dice models. [art/models/dice/SPECIAL_DICE.md, README.md] | 2026-10-18, last change 2026-10-19 | 3D Artist |
+| `art/models/dice/{caltrop_d4,lantern_d8,tithe_d10,midnight_d12,verdict_d20,ferryman_coin,powder_keg_d6,knucklebone_talus}{,_mobile}.glb` + their `materials/*.tres` (incl. `batch3_ink_thin.tres`), `batch3_faces.json`, `batch3_face_prints.json` | **AI-assisted (agent-written script):** Blender 4.5 LTS `art/models/dice/src/build_batch3.py`; materials, face prints and import mapping from `src/write_batch3.py` | Batch-3 non-d6 special dice models and mobile LODs. No third-party meshes or textures. [art/models/dice/BATCH3.md] | 2026-10-19 | 3D Artist |
+| `art/models/dice/textures/{caltrop_d4,lantern_d8,tithe_d10,midnight_d12,verdict_d20,ferryman_coin,powder_keg_d6,knucklebone_talus}_faces.png` | **AI-assisted (agent-written script):** Python + Pillow `art/models/dice/src/write_batch3.py`; numerals rasterised from Alfa Slab One (SIL OFL 1.1, `fonts/`); no AI image generation | Face atlases (numerals, pips, skull/moth, glass streak, stave lines). [art/models/dice/BATCH3.md; header of write_batch3.py] | 2026-10-19 | 3D Artist |
+| `art/models/boards/infernal_pit/**` (`*.glb`, `materials/`, `scenes/`) | **AI-assisted (agent-written script):** Blender 4.5 LTS `src/build_board_a.py` | Board A table kit. No third-party meshes or textures. [art/models/boards/infernal_pit/README.md] | 2026-10-18 | 3D Artist |
+| `art/models/boards/hearth/*.glb`, `materials/`, `scenes/` | **AI-assisted (agent-written script):** Blender 4.5 LTS `src/build_hearth.py` + Godot `src/make_hearth.gd` (via `src/rebuild_hearth.sh`) | Hearth board kit: brazier, candles, cauldron, demon faces. [art/models/boards/hearth/README.md] | 2026-10-18 | 3D Artist |
+| `art/models/boards/hearth/textures/felt_ember_corners.png` | **AI-assisted (agent-written script):** Python + Pillow `src/make_felt_motif.py` | Ember motif overlay for the felt corners. [hearth/README.md; header of make_felt_motif.py] | 2026-10-18 | 3D Artist |
+| `art/models/characters/smiles/**` (`smiles*.glb` incl. animation clips, `materials/`, `scenes/`) | **AI-assisted (agent-written script):** Blender 4.5 LTS `src/build_smiles.py` + `src/make_smiles.gd`, `src/write_imports.py` | Dealer character, rig and clips. No third-party meshes, textures or fonts. [art/models/characters/smiles/README.md] | 2026-10-18, last change 2026-10-19 | 3D Artist |
+| `art/models/boards/hearth/textures/flame_tongue_4x4.png`, `flame_tongue_4x4_mobile.png`, `smoke_curl.png` | **AI-assisted (agent-written script):** Python + numpy + Pillow `src/make_flame_atlas.py` (deterministic) | Toon flame flipbook and smoke curl for the board fire. [header of make_flame_atlas.py; hearth/README.md] | 2026-10-18, last change 2026-10-19 | VFX Dev |
+| `shaders/*.gdshader`, `shaders/3d/*.gdshader` (backdrop, bulb_light, felt, grade, fx_particle, fx_unshaded, outline, toon_noir) | **AI-assisted:** shader code written by Grok Bot agents | Toon-noir stepped lighting, felt, backdrop, grade, bulb light, ink outline and FX/particle shaders. [VFX Dev, git check 2026-10-19] | 2026-10-18 | VFX Dev |
+| `art/models/boards/hearth/shaders/*.gdshader`, `hearth_instance.gdshaderinc` | **AI-assisted:** shader code written by Grok Bot agents | Hearth brazier toon fire, flame cards, coals, ember seam, sparks, glow and demon eyes. [VFX Dev, git check 2026-10-19] | 2026-10-18 | VFX Dev |
+| `art/models/dice/shaders/toon_mirror.gdshader` | **AI-assisted:** shader code written by Grok Bot agents | Mirror Die toon shader. [VFX Dev, git check 2026-10-19] | 2026-10-18 | VFX Dev |
+| `audio/sfx/*.wav` (all 59 on `main`) | **AI-assisted (procedural, agent-written synth code):** our own Godot synth classes in `scripts/audio/` (`SfxSynth`, `BonfireSynth`, `ThrowSynth`, `SplashSynth`), baked by `tools/bake_sfx.gd` with fixed seeds. No recordings, third-party samples or AI audio models. | Every sound effect, crowd loop and stinger. The ~27 cues coming in the mod-trigger PRs (`ModTriggerSynth`) are synth too; those PRs extend this row. [audio/sfx/SOURCES.md; scripts/audio/README.md; Sound Designer, 2026-10-19] | 2026-10-18, last change 2026-10-19 | Sound Designer |
+| Player-facing text in `resources/**/*.tres`: names and descriptions of special dice, face mods, Seals, bosses, twists and events; plus hints and UI labels (in `resources/` and `scripts/`) | **AI-generated:** drafted by Grok Bot (Game Designer), then reviewed and approved via PM | All in-game names, descriptions, hints and labels. Collected in `strings_v1.md` (team design folder) and copied into the resources. [Game Designer, 2026-10-19] | 2026-10-18 to 2026-10-19 | Game Designer |
+| `resources/dealer/dealer_lines.json` | **AI-generated:** text written by Grok Bot agents during the POC work | Dealer taunts. Created in `3bcb657` (2026-10-18 10:51 CDT, POC table logic / DealerLines). Extended in `5b19b1f` (2026-10-18 14:11 CDT, Bonfire sandbox), which reached `main` in the #20 squash `e1cf25b`. [PM ruling 2026-10-19; git history] | 2026-10-18, last change 2026-10-19 | Game Designer |
+| `assets/ui/readability/` (`felt/`, `bounty/`, `banner/`: 25 PNG; generator scripts and SVG in `src/`, not exported) | **AI-assisted (agent-written script):** code-generated SVG (Python) rendered with cairosvg and Pillow; no AI image generation. Text set in the OFL fonts already in `fonts/` | Bonfire readability art: the combo table printed on the felt, bounty card frame / mini dice / PENDING ghost / CLAIMED seal, the TABLE CLEARED banner layers. Ships with #63. [assets/ui/readability/README.md; Art Director] | 2026-10-19 | Art Director |
+| `shaders/3d/toon_noir.gdshader`: the `die_lit` / `die_cold` looks (#63, `cb8cbcf`, `fad57d7`) | **AI-assisted:** shader code written by Grok Bot agents | Lit dice glow warm, cold dice read matte grey even under the warm lamp and rail light (readability pass). Extends the shader row above. [Godot Dev, git check 2026-10-19] | 2026-10-19 | Godot Dev |
 
-## Development-only AI use (does not ship)
+## Development-only (does not ship)
 
-Listed so the survey answer is complete. None of these files are in the repo or the build.
+These files aren't in the repo or the build. They're listed so the survey answer is complete, and in
+case any of them reach the store page, community hub or marketing.
 
 | asset path | tool used | what it was used for | date | owner |
 |---|---|---|---|---|
-| Concept renders listed in `/workspace/dice/art/concept/README_ASSETS.md` (team folder, outside the repo: key art, table mockups, dice sheets, boss dealers, studio logo concepts) | AI image generation ("the image tool", per README_ASSETS.md); the exact tool is TBD (ask Art Director) | Visual direction only. "All AI images are direction only"; the logo concepts are "superseded: never ship". [art/concept/style_guide.md, studio_logo.md, README_ASSETS.md] | TBD (ask Art Director) | Art Director |
+| Concept renders, passes 1–5 (key art, table mockups, dice, rarity sheets, sacrifice altar, boss dealers, floor tables) | **AI-generated:** text-to-image, Grok Bot image generation | Visual direction only. Never shipped. The AI-rendered text in them was never used. [team art folder PROVENANCE.md (ask Art Director)] | 2026-10-18 | Art Director |
+| Concept renders: `bonfire_table/` (6), `burnline_boards/` (22 incl. rejects), `fire/` (3), the 3 early studio-logo concepts, `title_screen_mood.png` | **AI-generated:** text-to-image, Grok Bot image generation | Visual direction only. Never shipped; the logo concepts are superseded. [team art folder PROVENANCE.md (ask Art Director)] | 2026-10-18 | Art Director |
+| Concept portraits: `bosses_floor3/` (Baron Vig, Odds Bodkin) | **AI-generated:** text-to-image, Grok Bot image generation | Floor 3 boss direction only. Never shipped. The shipped signs are the script-built `assets/bosses/floor3/` row above. [team art folder PROVENANCE.md (ask Art Director)] | 2026-10-19 | Art Director |
+| Studio avatar (`branding/studio/avatar/`), the readability kit's review mocks (`ui/readability/` mocks; the shipped part is the `assets/ui/readability/` row above), `special_dice/trigger_fx_mock.png`, the `studio_logo_final` previews, `splash_storyboard.png` | **AI-assisted (agent-written script):** code-generated SVG and Pillow; no AI image generation | Review mocks, previews and the studio avatar. Not in the build. If the avatar is used on Steam (community or developer page), it is in survey scope. [team art folder PROVENANCE.md (ask Art Director)] | 2026-10-18 to 2026-10-19 | Art Director |
 
 ## Not covered yet
 
-- Assets that arrive in open PRs (for example the new GAMES wordmarks and timings in `chore/studio-branding`)
-  add their rows in those PRs.
-- Generated captures, previews and contact sheets outside the repo (for example `/workspace/dice/captures/`)
-  don't ship and aren't listed.
+- Assets in open PRs (the mod-trigger sound cues, `feat/floor3-boss-signs`) add or extend their rows in
+  those PRs. Once they merge, move the rows marked "branch" to their `main` date.
+- Generated captures, previews and contact sheets kept outside the repo don't ship and aren't listed.

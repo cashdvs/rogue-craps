@@ -14,12 +14,16 @@ permissions:
 
 concurrency:
   group: export-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs only: back-to-back merges to main each keep their own export.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Must match ci.yml and the export templates (templates are tied to the exact engine build).
   GODOT_VERSION: "4.7.2"
   GODOT_DIR: ${{ github.workspace }}/../godot
+  # The commit being built. On pull_request, github.sha is GitHub's synthetic merge commit, which
+  # isn't on the branch, so artifact names and BUILD_INFO.txt use the PR head instead.
+  BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   export:
@@ -35,20 +39,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.GODOT_DIR }}
-          key: godot-${{ env.GODOT_VERSION }}-stable-linux-x86_64
+          key: godot-${{ env.GODOT_VERSION }}-stable-linux-x86_64-v2
 
       - name: Download Godot ${{ env.GODOT_VERSION }} (headless Linux)
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           mkdir -p "$GODOT_DIR"
-          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          curl -fsSL --retry 3 -o /tmp/godot.zip "$url"
+          release="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          file="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o /tmp/godot.zip "$release/$file"
+          # Verify against SHA512-SUMS.txt from the same release before unpacking (download only;
+          # a cache hit skips this step).
+          curl -fsSL --retry 3 -o /tmp/SHA512-SUMS.txt "$release/SHA512-SUMS.txt"
+          expected="$(awk -v f="$file" '$2 == f { print $1 }' /tmp/SHA512-SUMS.txt)"
+          test -n "$expected" || { echo "::error::$file is not listed in SHA512-SUMS.txt"; exit 1; }
+          echo "$expected  /tmp/godot.zip" | sha512sum -c - || { echo "::error::$file failed its SHA-512 check"; exit 1; }
           unzip -q -o /tmp/godot.zip -d "$GODOT_DIR"
           mv "$GODOT_DIR/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_DIR/godot"
           chmod +x "$GODOT_DIR/godot"
 
-      - name: Godot version
+      - name: Set build env (paths, print Godot version)
         run: |
           echo "GODOT=$GODOT_DIR/godot" >> "$GITHUB_ENV"
           echo "TEMPLATES_DIR=$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" >> "$GITHUB_ENV"
@@ -60,14 +71,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
-          key: godot-templates-${{ env.GODOT_VERSION }}-stable-win64-linux64
+          key: godot-templates-${{ env.GODOT_VERSION }}-stable-win64-linux64-v2
 
       - name: Download export templates ${{ env.GODOT_VERSION }}
         if: steps.cache-templates.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          curl -fsSL --retry 3 -o /tmp/templates.tpz "$url"
+          release="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          file="Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          curl -fsSL --retry 3 -o /tmp/templates.tpz "$release/$file"
+          # Verify against SHA512-SUMS.txt from the same release before extracting (download only;
+          # a cache hit skips this step).
+          curl -fsSL --retry 3 -o /tmp/SHA512-SUMS.txt "$release/SHA512-SUMS.txt"
+          expected="$(awk -v f="$file" '$2 == f { print $1 }' /tmp/SHA512-SUMS.txt)"
+          test -n "$expected" || { echo "::error::$file is not listed in SHA512-SUMS.txt"; exit 1; }
+          echo "$expected  /tmp/templates.tpz" | sha512sum -c - || { echo "::error::$file failed its SHA-512 check"; exit 1; }
           mkdir -p "$TEMPLATES_DIR"
           unzip -q -j -o /tmp/templates.tpz \
             templates/version.txt \
@@ -88,8 +106,8 @@ jobs:
           ver="${base}.${GITHUB_RUN_NUMBER}"
           sed -i "s/^config\/version=\".*\"$/config\/version=\"${ver}\"/" project.godot
           echo "BUILD_VERSION=$ver" >> "$GITHUB_ENV"
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
-          echo "Build version: $ver (${GITHUB_SHA::7})"
+          echo "SHORT_SHA=${BUILD_SHA::7}" >> "$GITHUB_ENV"
+          echo "Build version: $ver (${BUILD_SHA::7})"
 
       - name: Import project
         run: |
@@ -105,7 +123,7 @@ jobs:
           mkdir -p build/windows
           "$GODOT" --headless --path . --export-release "Windows Desktop" build/windows/DiceOfTheDamned.exe 2>&1 | tee export_windows.log
           test -s build/windows/DiceOfTheDamned.exe || { echo "::error::No Windows build produced"; exit 1; }
-          printf 'Dice of the Damned %s\ncommit %s\nGodot %s\n' "$BUILD_VERSION" "$GITHUB_SHA" "$GODOT_VERSION" > build/windows/BUILD_INFO.txt
+          printf 'Dice of the Damned %s\ncommit %s\nGodot %s\n' "$BUILD_VERSION" "$BUILD_SHA" "$GODOT_VERSION" > build/windows/BUILD_INFO.txt
           ls -la build/windows
 
       - name: Export Linux (release)
@@ -114,7 +132,7 @@ jobs:
           mkdir -p build/linux
           "$GODOT" --headless --path . --export-release "Linux" build/linux/DiceOfTheDamned.x86_64 2>&1 | tee export_linux.log
           test -s build/linux/DiceOfTheDamned.x86_64 || { echo "::error::No Linux build produced"; exit 1; }
-          printf 'Dice of the Damned %s\ncommit %s\nGodot %s\n' "$BUILD_VERSION" "$GITHUB_SHA" "$GODOT_VERSION" > build/linux/BUILD_INFO.txt
+          printf 'Dice of the Damned %s\ncommit %s\nGodot %s\n' "$BUILD_VERSION" "$BUILD_SHA" "$GODOT_VERSION" > build/linux/BUILD_INFO.txt
           ls -la build/linux
 
       - name: Smoke-run the exported Linux build (headless)
