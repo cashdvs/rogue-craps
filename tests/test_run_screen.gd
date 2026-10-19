@@ -143,7 +143,25 @@ func _test_panels(scene: RunScreen) -> void:
 	_check(shown, "table: the node's twist is listed at table entry")
 	scene.run.rules.clear()
 	scene._show_shop()
+	var hell: FaceModData = load("res://resources/mods/hellfire.tres")
+	scene.run.shop_mods[0] = hell
+	for d in scene.run.progress.dice.size():
+		scene.run.progress.set_face(d, 5, &"twin")
+	scene.run.progress.embers = hell.price
+	scene._show_shop()
+	var greyed := false
+	for b in _buttons(scene):
+		if b.text.begins_with("Hellfire Face - from %d" % scene.run.cheapest_mod_price(0)):
+			greyed = b.disabled
+	_check(greyed and scene.run.cheapest_mod_price(0) > hell.price, "shop: mod button greys out on the escalated price, and shows it")
+	for d in scene.run.progress.dice.size():
+		scene.run.progress.set_face(d, 5, &"")
+	scene._show_shop()
 	_check(_press(scene, "Leave") and scene.run.screen == S.MAP, "shop: leave")
+	await process_frame
+	_check(scene.quit_button.visible, "map: Quit to title shown on the map")
+	_check(_press(scene, "Quit to title") and scene._panel_root.visible and not scene.map_view.visible, "map: Quit to title asks to confirm first")
+	_check(_press(scene, "Keep playing") and scene.map_view.visible and scene.run.screen == S.MAP, "map: Keep playing goes back to the map")
 	_enter(scene, NT.REST)
 	await process_frame
 	var soul: int = scene.run.progress.soul
