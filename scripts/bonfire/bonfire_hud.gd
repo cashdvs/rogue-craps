@@ -95,10 +95,12 @@ func _init() -> void:
 	checklist_panel.add_child(card_header)
 	pot_label = _label(64, Palette.BRASS_HI, Vector2(560, 860), Vector2(800, 80))
 	# x 520-1400: clear of the bottom-left THROW / BANK column (ends at x 494).
-	throw_label = _label(36, Palette.EMBER, Vector2(520, 936), Vector2(880, 46))
-	notes_label = _label(24, Palette.BONE, Vector2(520, 982), Vector2(880, 32))
+	# Heights are the fonts' real line heights, so the three lines stack
+	# without overlapping (930-980, 982-1016, 1018-1060).
+	throw_label = _label(36, Palette.EMBER, Vector2(520, 930), Vector2(880, 50))
+	notes_label = _label(24, Palette.BONE, Vector2(520, 982), Vector2(880, 34))
 	notes_label.name = "PotNotes"
-	risk_label = _label(30, Palette.BRASS_HI, Vector2(520, 1014), Vector2(880, 40))
+	risk_label = _label(30, Palette.BRASS_HI, Vector2(520, 1018), Vector2(880, 42))
 	risk_label.name = "RethrowRisk"
 	mult_label = _label(34, Color("#FF2E3E"), Vector2(1260, 880), Vector2(260, 60))
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
