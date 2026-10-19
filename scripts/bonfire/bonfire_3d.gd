@@ -1647,9 +1647,6 @@ func _center_portrait(pts: Array[Vector3]) -> void:
 	if bottom - top < 100.0:
 		return
 	var base := camera.home_pivot
-	# Never bring a must-see point closer to an edge than the slide left it
-	# (or PHONE_EDGE_PX, whichever is smaller).
-	var keep := minf(CameraFraming.margin(camera.cam, pts), PHONE_EDGE_PX)
 	# Which ground axis moves things up / down the screen (X or Z)?
 	var y0 := camera.cam.unproject_position(pts[0]).y
 	var axis := Vector3.RIGHT
@@ -1671,11 +1668,14 @@ func _center_portrait(pts: Array[Vector3]) -> void:
 		camera._apply()
 		var lo := INF
 		var hi := -INF
+		var inside := true
 		for p in pts:
 			var sp := camera.cam.unproject_position(p)
 			lo = minf(lo, sp.y)
 			hi = maxf(hi, sp.y)
-		if CameraFraming.margin(camera.cam, pts) < keep or lo < top or hi > bottom:
+			if sp.x < 0.0 or sp.x > vs.x:
+				inside = false
+		if not inside or lo < top or hi > bottom:
 			continue
 		var err := absf((lo + hi) * 0.5 - (top + bottom) * 0.5)
 		if err < best_err:
