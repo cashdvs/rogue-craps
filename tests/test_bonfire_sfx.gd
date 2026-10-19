@@ -57,7 +57,8 @@ func _test_files() -> void:
 		_check(l > prev, "timing: tier %d stinger is longer than the one below (%.2f s)" % [tier, l])
 		prev = l
 		_check(l <= (1.2 if tier < 3 else 2.0), "timing: tier %d stinger fits its sequence (%.2f s)" % [tier, l])
-	_check(BonfireSynth.make(&"bank").data == BonfireSynth.make(&"bank").data, "synth: same sound on every bake")
+	for event: StringName in [&"mult_slam", &"bank"]:
+		_check(BonfireSynth.make(event).data == BonfireSynth.make(event).data, "synth: %s is the same on every bake" % event)
 
 
 func _test_helpers() -> void:
