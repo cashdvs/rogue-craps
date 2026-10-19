@@ -17,6 +17,15 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 
+## Game time (sum of frame deltas: exact under --fixed-fps).
+var _frame_t: float = 0.0
+
+
+func _process(delta: float) -> bool:
+	_frame_t += delta
+	return false
+
+
 func wait(s: float) -> void:
 	await create_timer(s, true, false, true).timeout
 
@@ -48,6 +57,9 @@ func _run() -> void:
 	scene = (load("res://scenes/table_3d.tscn") as PackedScene).instantiate() as Table3D
 	scene.rng_seed = 31
 	root.add_child(scene)
+	# --fixed-fps recording: flicks are timed on the recorded frame clock
+	# (the real clock would follow the render speed instead).
+	scene.flick_clock = func() -> float: return _frame_t
 	# A small ring shows where the (synthetic) mouse is.
 	var layer := CanvasLayer.new()
 	layer.layer = 100

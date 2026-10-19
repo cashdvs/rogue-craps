@@ -297,7 +297,9 @@ func _flat(t: Transform3D) -> Transform3D:
 	return Transform3D(nb.orthonormalized(), pos)
 
 
-## Finds contacts that began since the last tick and records them with the
+## Finds contacts that began since the last tick (ignoring speculative
+## contacts the solver hasn't pushed on yet, and stale ones left from where
+## the body was before it was teleported) and records them with the
 ## RELATIVE speed at the contact point, measured from the previous tick's
 ## (pre-impact) velocities of both bodies, plus the solver's impulse.
 ## Die-die contacts are recorded once per pair, by the lower die id.
@@ -311,6 +313,16 @@ func _scan_contacts() -> void:
 			for c in st.get_contact_count():
 				var other := st.get_contact_collider_object(c)
 				var key := "%d:%d" % [st.get_contact_collider_id(c), st.get_contact_collider_shape(c)]
+				# Stale contact: the first tick still lists where the body
+				# rested before simulate() teleported it into the hand (the
+				# point is then nowhere near the die). Not a hit.
+				if (st.get_contact_local_position(c) - com).length() > tuning.die_size:
+					continue
+				# A speculative contact (no impulse yet: the bodies are only
+				# close, e.g. a die released just above the felt) hasn't hit;
+				# it begins once the solver pushes on it.
+				if st.get_contact_impulse(c).length() <= 0.000001 and not _touching[i].has(key):
+					continue
 				now[key] = true
 				if _touching[i].has(key) or now.has(key + "+"):
 					continue
