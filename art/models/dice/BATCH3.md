@@ -51,13 +51,15 @@ swatches on purpose).
 the origin is **0.050 m** (d6s keep the 0.042 m box cap). Three dice were over and are scaled down uniformly in
 `build_batch3.py` (`EXTENT_CAP`), PC and mobile by the same factor, computed from the measured PC extent: **Caltrop
 ×0.8491** (0.0589 → 0.0500 m), **Knucklebone ×0.8661** (0.0577 → 0.0500 m), **Lantern ×0.9427** (0.0530 → 0.0500 m).
-Face directions, the face table, the centroid centring, UVs and materials are unchanged. The Tithe (0.0507 m) passes at
-~2% over by PM's ruling; the others are under the cap. The test asserts ≤ 0.051 m per axis for all, ≤ 0.050 m for the
-three scaled ones.
+The **Tithe** was 0.0507 m by our PC measure and 0.0509 m by a convex hull of its mobile mesh (Godot Dev's
+`test_die_hull_extent`), so it is scaled **×0.9784** (`SCALE_FIXED`, 0.0498 / 0.0509, from the larger measure) to
+0.0496 m PC / 0.0498 m mobile and hull. Face directions, the face table, the centroid centring, UVs and materials are
+unchanged. The others are under the cap. `test_batch3_dice_shapes.gd` asserts ≤ 0.050 m per axis for every die on the
+PC mesh, the mobile mesh and the hull of the mobile mesh.
 
 **Mobile LODs and hulls:** Godot Dev builds the hull colliders from the *mobile* meshes, so each mobile LOD is centred
 on its own centre of mass (within 0.5 mm; tested) and its extents, and its convex hull's, match the PC visual extents
-within 0.5 mm on every half-axis (tested; worst: Caltrop 0.37 mm, Tithe 0.21, Midnight 0.17, Knucklebone 0.09,
+within 0.5 mm on every half-axis (tested; worst: Caltrop 0.37 mm, Tithe 0.19, Midnight 0.17, Knucklebone 0.09,
 Verdict 0.07, Coin 0.04, Lantern and Keg ~0). The bevelled dice's mobile chamfer depth and a uniform scale are searched
 per die in `build_batch3.py` to land on the PC extents; the knucklebone LOD is fitted per half-axis and re-centred; the
 coin's mobile LOD uses 20 segments and the keg's has the PC's four hoops so they match. The dice that are symmetric by
@@ -68,7 +70,7 @@ wax seal is now 3-lobed and symmetric about the 20 face's mirror lines, 12-sided
 |---|---|---|---|---|---|---|---|
 | Caltrop | 92 | 20 | 0.0829 × 0.0690 × 0.0725 | 0.0746 | ×0.8491 | 0.0500 | 0.0496 |
 | Lantern | 152 | 92 | 0.1000 × 0.1000 × 0.1000 | 0.0743 | ×0.9427 | 0.0500 | 0.0500 |
-| Tithe | 198 | 94 | 0.1013 × 0.0988 × 0.0971 | 0.0807 | 1 | 0.0507 | 0.0509 |
+| Tithe | 198 | 94 | 0.0991 × 0.0966 × 0.0950 | 0.0789 | ×0.9784 | 0.0496 | 0.0498 |
 | Midnight | 276 | 116 | 0.0833 × 0.0724 × 0.0869 | 0.0806 | 1 | 0.0434 | 0.0436 |
 | Verdict | 304 | 160 | 0.0788 × 0.0754 × 0.0884 | 0.0807 | 1 | 0.0442 | 0.0443 |
 | Ferryman's Coin | 648 | 280 | 0.1000 × 0.0240 × 0.0985 | 0.0618 | 1 | 0.0500 | 0.0500 |

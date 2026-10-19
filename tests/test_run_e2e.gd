@@ -90,6 +90,10 @@ func _play_table(t: Bonfire3D) -> TableOutcome:
 			if t.phase == Table3D.Phase.BET:
 				break
 			await process_frame
+		# Cleared: the table stays open for the bonus; this bot leaves.
+		if r.cleared:
+			t.leave()
+			break
 		var want: BountyData = null
 		for b: BountyData in r.goal.required:
 			if not r.is_ticked(b):

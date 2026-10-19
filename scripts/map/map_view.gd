@@ -18,13 +18,16 @@ var map: RunMap
 var boss_name: String = ""
 ## The boss's cheat (and any extra twist), shown under its name.
 var boss_rules: String = ""
+## Shown under reachable Table nodes (an event's pending twist), else "".
+var table_note: String = ""
 var _time: float = 0.0
 
 
-func show_map(m: RunMap, boss: String, rules: String = "") -> void:
+func show_map(m: RunMap, boss: String, rules: String = "", note: String = "") -> void:
 	map = m
 	boss_name = boss
 	boss_rules = rules
+	table_note = note
 	queue_redraw()
 
 
@@ -98,5 +101,7 @@ func _draw() -> void:
 		var name: String = boss_name if n.id == map.boss_id else NAMES[n.type]
 		var tc := RunTheme.BONE if can or n.id == map.boss_id else RunTheme.ASH
 		draw_string(font, p + Vector2(-60, r + 22), name, HORIZONTAL_ALIGNMENT_CENTER, 120, 18, tc)
+		if can and n.type == MapGenData.NodeType.TABLE and table_note != "":
+			draw_string(font, p + Vector2(-150, r + 42), table_note, HORIZONTAL_ALIGNMENT_CENTER, 300, 15, RunTheme.EMBER)
 		if n.id == map.boss_id and boss_rules != "":
 			draw_string(font, p + Vector2(-400, r + 46), boss_rules, HORIZONTAL_ALIGNMENT_CENTER, 800, 16, RunTheme.EMBER)

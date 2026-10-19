@@ -10,6 +10,7 @@ signal choice_made(index: int, picks: Array[Vector2i])
 var _box: VBoxContainer
 var _event: EventData
 var _progress: RunProgress
+var _table_ahead: bool = true
 
 
 func _ready() -> void:
@@ -25,9 +26,10 @@ func _ready() -> void:
 	panel.add_child(_box)
 
 
-func show_event(e: EventData, p: RunProgress) -> void:
+func show_event(e: EventData, p: RunProgress, table_ahead: bool = true) -> void:
 	_event = e
 	_progress = p
+	_table_ahead = table_ahead
 	_clear()
 	_box.add_child(RunTheme.label(e.title, 44, RunTheme.EMBER, true))
 	var row := HBoxContainer.new()
@@ -39,10 +41,12 @@ func show_event(e: EventData, p: RunProgress) -> void:
 	_box.add_child(row)
 	for i in e.choices.size():
 		var c := e.choices[i]
+		if EventApplier.is_hidden(c, p):
+			continue
 		var b := RunTheme.button(c.label)
-		var why := EventApplier.why_not(c, p)
+		var why := EventApplier.why_not(c, p, table_ahead)
 		b.disabled = why != ""
-		b.tooltip_text = why
+		b.tooltip_text = "\n".join(([why] if why != "" else []) + EventApplier.tips(c))
 		b.pressed.connect(_on_choice.bind(i))
 		_box.add_child(b)
 		if why != "":
@@ -91,17 +95,31 @@ func _on_choice(i: int) -> void:
 		if not e.needs_pick():
 			continue
 		var picker := FacePicker.new()
-		var verb: String = "Pick a face to give up" if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
-			else "Pick a face for the %s" % e.mod.display_name
-		picker.build(_progress, verb, func(at: Vector2i) -> bool: return EventApplier.pick_ok(e, _progress, at) and not picks.has(at))
+		var verb: String = "Pick a face mod to give up." if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
+			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else "Pick a face for the %s" % e.mod.display_name)
+		picker.build(_progress, verb, func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks))
 		_clear()
 		_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
 		_box.add_child(picker)
+		if e.kind == EventEffectData.Kind.SELL_DIE:
+			for d in _progress.dice.size():
+				_box.add_child(RunTheme.label("%s: +%d Embers" % [_progress.die_name(d), EventApplier.sell_payout(e, _progress, d)], 20, RunTheme.GOLD))
 		var back := RunTheme.button("Back")
-		back.pressed.connect(func() -> void: show_event(_event, _progress))
+		back.pressed.connect(func() -> void: show_event(_event, _progress, _table_ahead))
 		_box.add_child(back)
 		picks.append(await picker.picked)
 	choice_made.emit(i, picks)
+
+
+## A legal, unused pick (a sold die can't be picked twice).
+func _pick_allowed(e: EventEffectData, at: Vector2i, picks: Array[Vector2i]) -> bool:
+	if not EventApplier.pick_ok(e, _progress, at) or picks.has(at):
+		return false
+	if e.kind == EventEffectData.Kind.SELL_DIE:
+		for q in picks:
+			if q.x == at.x:
+				return false
+	return true
 
 
 func _clear() -> void:

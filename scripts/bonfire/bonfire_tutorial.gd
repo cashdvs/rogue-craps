@@ -1,5 +1,5 @@
 ## The one-time, skippable Table 1 tutorial (bonfire_map_events_juice.md
-## section 4). Five hints in order, each shown when its moment comes; "seen"
+## section 4). Six hints in order, each shown when its moment comes; "seen"
 ## is saved in GameSettings (user://settings.cfg) so it shows once.
 class_name BonfireTutorial
 extends PanelContainer
@@ -13,6 +13,8 @@ const HINTS: Array[String] = [
 	"If nothing lights, the hand burns and you lose 1 Soul.",
 	"Land every bounty card to clear the table. Points become Embers for the shop.",
 	"All dice scored! Throw them all again at higher mult.",
+	# On clear (bonfire_map_events_juice.md section 4, PM Oct 19).
+	"Table cleared! Chase the bonus with your remaining hands, or Leave table.",
 ]
 
 var label: Label
