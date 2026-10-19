@@ -23,6 +23,10 @@ var seal_moves: Dictionary[StringName, Vector2i] = {}
 ## Combo id -> times banked this run (Black Seal). The table reports these.
 var banked: Dictionary[StringName, int] = {}
 var contract_pieces: int = 0
+## Free shop rerolls from events (spent before paid ones; they stack).
+var free_rerolls: int = 0
+## A twist an event put on the next table (MapRun.make_goal uses and clears it).
+var next_table_twist: RunRuleData
 var _next_die_id: int = 0
 
 
@@ -279,6 +283,21 @@ func ashen_seal(from: StringName, to: StringName) -> int:
 	return lv
 
 
+## Max Soul +/- delta, never below 1. A raise also heals delta (Game
+## Designer); a cut trims Soul to the new max. Returns the real change.
+func change_max_soul(delta: int) -> int:
+	var before := max_soul
+	max_soul = maxi(1, max_soul + delta)
+	soul = mini(soul + maxi(max_soul - before, 0), max_soul)
+	changed.emit()
+	return max_soul - before
+
+
+## Can a die be sold or given up (the bag stays at the starting size or more)?
+func can_lose_die() -> bool:
+	return dice.size() > data.starting_dice
+
+
 ## A contract piece (one per boss): +contract_max_soul max Soul, heal to full.
 func gain_contract_piece() -> void:
 	contract_pieces += 1
@@ -300,15 +319,15 @@ func table_dice() -> Array[TableDie]:
 	return out
 
 
-## Die i as the table gets it once TableDie has `shape` (Godot Dev's spec):
-## faces / weights / mods sized to the shape, e.g. Ferryman's Coin =
-## special &"ferryman", faces [heads, tails], weights [1, 1], shape &"coin".
 ## Shape id the table rolls die i as (DiceIds.shape_of its die id): the
 ## Ferryman's Coin rolls as &"coin", a Bone as &"d6"; &"" if unknown.
 func table_shape(die_i: int) -> StringName:
 	return DiceIds.shape_of(dice[die_i].shape)
 
 
+## Die i as the table gets it once TableDie has `shape` (Godot Dev's spec):
+## faces / weights / mods sized to the shape, e.g. Ferryman's Coin =
+## special &"ferryman", faces [heads, tails], weights [1, 1], shape &"coin".
 func shaped_table_die(die_i: int) -> TableDie:
 	return _table_die(dice[die_i], _table_lib(), true)
 
@@ -349,34 +368,8 @@ func _table_die(d: RunDie, lib: Array, shaped: bool) -> TableDie:
 	if "shape" in td:
 		td.set("shape", DiceIds.shape_of(d.shape))  # the table wants a shape id, not a die id
 	if not shaped:
-		_to_d6_slots(td)
+		TableDieSlots.to_d6_slots(td)
 	return td
-
-
-## Until TableDie has a `shape` (Godot Dev's shape commit) the table rolls
-## and labels a 6-slot d6 mesh, so a die with fewer faces is sent as 6 slots
-## with the same odds: each value (with its mod and weight) on 6/N physical
-## slots, e.g. Ferryman's Coin -> faces 5,5,5,0,0,0 (Tails scores 0; the
-## table's label clamps it to show 1). The Powder Keg is already 6 faces.
-## Face counts that don't divide 6 (d4, d8+, Knucklebone; all disabled)
-## are left N-sized.
-func _to_d6_slots(td: TableDie) -> void:
-	var n := td.faces.size()
-	if n == 6 or n == 0 or 6 % n != 0:
-		return
-	var rep := 6 / n
-	var faces: Array[int] = []
-	var mods: Array = []
-	var weights: Array[float] = []
-	for i in 6:
-		var k := i / rep
-		faces.append(td.faces[k])
-		mods.append(td.mods[k])
-		if td.weights.size() == n:
-			weights.append(td.weights[k])
-	td.faces = faces
-	td.mods.assign(mods)
-	td.weights = weights
 
 
 func _mod_from(lib: Array, id: StringName) -> FaceModData:
