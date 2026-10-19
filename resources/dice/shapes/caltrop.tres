@@ -1,10 +1,11 @@
 [gd_resource type="Resource" script_class="DieShape" format=3]
 
-[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_oshw5"]
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_7288p"]
 
 [resource]
-script = ExtResource("1_oshw5")
-id = &"d4"
+script = ExtResource("1_7288p")
+table_special = &"caltrop"
+id = &"caltrop"
 display_name = "Caltrop"
 description = "Faces 1-4. A run containing it gets +2 mult."
 price = 18

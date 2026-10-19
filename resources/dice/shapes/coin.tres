@@ -4,12 +4,10 @@
 
 [resource]
 script = ExtResource("1_v8uye")
-enabled = true
-preset_mods = {
-1: &"blank"
-}
+table_special = &"ferryman"
 id = &"coin"
 display_name = "Ferryman's Coin"
 description = "Heads copies the highest die in the tray, Tails the lowest. Thrown alone: Heads = 5, Tails = Blank."
 price = 18
-faces = Array[int]([5, 1])
+faces = Array[int]([5, 0])
+weights = Array[float]([1.0, 1.0])

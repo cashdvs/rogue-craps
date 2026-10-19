@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="DieShape" format=3]
 
-[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_pd1tg"]
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_u6c8u"]
 
 [resource]
-script = ExtResource("1_pd1tg")
+script = ExtResource("1_u6c8u")
 preset_mods = {
 8: &"wild"
 }
-id = &"d8"
+id = &"lantern"
 display_name = "Lantern"
 description = "Faces 1-8. The 8 is a carved Wild Face; 7 lights alone."
 faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8])

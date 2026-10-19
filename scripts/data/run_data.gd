@@ -19,8 +19,8 @@ extends Resource
 @export var events: Array[EventData] = []
 ## Special dice the Shop and Elite rewards offer (SpecialDieData resources).
 @export var special_dice: Array[SpecialDieData] = []
-## Die shapes (design/nonstandard_dice.md): d6 (the default) plus Coin, d3,
-## d4, d8, d10, d12, d20, each with its price and an `enabled` flag.
+## Die shapes (design/nonstandard_dice.md §10): d6 (the default) plus the batch-3 dice,
+## each with its price, pre-carved faces and an `enabled` flag.
 @export var shapes: Array[DieShape] = []
 ## Chance a dice offer (shop slot or Elite reward) is a shaped die instead of
 ## a special die (Game Designer: about 1 in 4). Enabled shapes share it equally.

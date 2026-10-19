@@ -97,7 +97,11 @@ func die_name(die_i: int) -> String:
 func mod_price(mod: FaceModData, die_i: int) -> int:
 	var n: int = 0
 	if die_i >= 0 and die_i < dice.size():
-		n = dice[die_i].modded_faces().size() - dice[die_i].faces.count(RunDie.BLANK)
+		var d := dice[die_i]
+		var sh := shape_data(d.shape) if d.shape != &"d6" else null
+		for f in d.modded_faces():
+			if d.faces[f] != RunDie.BLANK and not (sh != null and sh.is_preset(f, d.faces[f])):
+				n += 1
 	return mod.price * (100 + data.mod_price_step_percent * n) / 100
 
 
@@ -286,42 +290,84 @@ func gain_contract_piece() -> void:
 ## values / weights, its per-face mods, and Heavy faces weighted
 ## RunData.heavy_weight (the table doesn't read Heavy itself).
 func table_dice() -> Array[TableDie]:
+	var lib := _table_lib()
+	var shaped := "shape" in TableDie.new()
+	var out: Array[TableDie] = []
+	for d in dice:
+		out.append(_table_die(d, lib, shaped))
+	return out
+
+
+## Die i as the table gets it once TableDie has `shape` (Godot Dev's spec):
+## faces / weights / mods sized to the shape, e.g. Ferryman's Coin =
+## special &"ferryman", faces [heads, tails], weights [1, 1], shape &"coin".
+func shaped_table_die(die_i: int) -> TableDie:
+	return _table_die(dice[die_i], _table_lib(), true)
+
+
+func _table_lib() -> Array:
 	var lib: Array = data.face_mods.duplicate()
 	var blank: FaceModData = load("res://resources/mods/blank.tres")
 	if not lib.has(blank):
 		lib.append(blank)
-	var out: Array[TableDie] = []
-	for d in dice:
-		var sd := special_die(d.special_id)
-		var sh := shape_data(d.shape) if d.shape != &"d6" else null
-		var def: SpecialDieData = sd if sd != null else sh
-		var td := TableDie.from_mod_ids(d.faces, lib, def.id if def != null else &"bone",
-			def.display_name if def != null else "Bone", sd.id if sd != null else &"")
-		td.run_die_id = d.id
-		if def != null:
-			td.faces = def.faces.duplicate()
-			td.weights = def.weights.duplicate()
-		# N-sided: faces / weights / mods sized to the shape (TableDie.shape
-		# arrives with Godot Dev's shape commit; until then the table plays d6).
-		td.mods.resize(td.faces.size())
-		for i in td.faces.size():
-			td.mods[i] = _mod_from(lib, d.faces[i] if i < d.faces.size() else &"")
-		if "shape" in td:
-			td.set("shape", d.shape)
-		var heavy := false
-		for m in td.mods:
-			heavy = heavy or (m != null and (m as FaceModData).effect == FaceModData.Effect.HEAVY)
-		if heavy:
-			if td.weights.size() != td.faces.size():
-				td.weights.clear()
-				for i in td.faces.size():
-					td.weights.append(1.0)
+	return lib
+
+
+func _table_die(d: RunDie, lib: Array, shaped: bool) -> TableDie:
+	var sd := special_die(d.special_id)
+	var sh := shape_data(d.shape) if d.shape != &"d6" else null
+	var def: SpecialDieData = sd if sd != null else sh
+	var td := TableDie.from_mod_ids(d.faces, lib, def.id if def != null else &"bone",
+		def.display_name if def != null else "Bone", sd.id if sd != null else (sh.table_special if sh != null else &""))
+	td.run_die_id = d.id
+	if def != null:
+		td.faces = def.faces.duplicate()
+		td.weights = def.weights.duplicate()
+	td.mods.resize(td.faces.size())
+	for i in td.faces.size():
+		td.mods[i] = _mod_from(lib, d.faces[i] if i < d.faces.size() else &"")
+	var heavy := false
+	for m in td.mods:
+		heavy = heavy or (m != null and (m as FaceModData).effect == FaceModData.Effect.HEAVY)
+	if heavy:
+		if td.weights.size() != td.faces.size():
+			td.weights.clear()
 			for i in td.faces.size():
-				var m: FaceModData = td.mods[i]
-				if m != null and m.effect == FaceModData.Effect.HEAVY:
-					td.weights[i] *= data.heavy_weight
-		out.append(td)
-	return out
+				td.weights.append(1.0)
+		for i in td.faces.size():
+			var m: FaceModData = td.mods[i]
+			if m != null and m.effect == FaceModData.Effect.HEAVY:
+				td.weights[i] *= data.heavy_weight
+	if "shape" in td:
+		td.set("shape", d.shape)
+	if not shaped:
+		_to_d6_slots(td)
+	return td
+
+
+## Until TableDie has a `shape` (Godot Dev's shape commit) the table rolls
+## and labels a 6-slot d6 mesh, so a Coin / d3 is sent as 6 slots with the
+## same odds: each value (with its mod and weight) on 6/N physical slots,
+## e.g. Ferryman's Coin -> 5,5,5,1,1,1 (the Powder Keg is already 6 faces).
+## Face counts that don't divide 6 (d4, d8+, Knucklebone; all disabled)
+## are left N-sized.
+func _to_d6_slots(td: TableDie) -> void:
+	var n := td.faces.size()
+	if n == 6 or n == 0 or 6 % n != 0:
+		return
+	var rep := 6 / n
+	var faces: Array[int] = []
+	var mods: Array = []
+	var weights: Array[float] = []
+	for i in 6:
+		var k := i / rep
+		faces.append(td.faces[k])
+		mods.append(td.mods[k])
+		if td.weights.size() == n:
+			weights.append(td.weights[k])
+	td.faces = faces
+	td.mods.assign(mods)
+	td.weights = weights
 
 
 func _mod_from(lib: Array, id: StringName) -> FaceModData:

@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="DieShape" format=3]
 
-[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_6dpjw"]
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_p6ayp"]
 
 [resource]
-script = ExtResource("1_6dpjw")
+script = ExtResource("1_p6ayp")
 preset_mods = {
 10: &"gilded"
 }
-id = &"d10"
+id = &"tithe"
 display_name = "Tithe"
 description = "Faces 1-10; 7-10 light alone. The 10 is a carved Gilded Face."
 faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])

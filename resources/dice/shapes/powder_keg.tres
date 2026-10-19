@@ -1,15 +1,15 @@
 [gd_resource type="Resource" script_class="DieShape" format=3]
 
-[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_a7d5e"]
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_2cpsk"]
 
 [resource]
-script = ExtResource("1_a7d5e")
+script = ExtResource("1_2cpsk")
 enabled = true
 preset_mods = {
 3: &"twin"
 }
-id = &"d3"
+id = &"powder_keg"
 display_name = "Powder Keg"
 description = "A d3 printed 1-1-2-2-3-3. Both 3s are carved Twin Faces (each counts as two 3s)."
 price = 18
-faces = Array[int]([1, 2, 3])
+faces = Array[int]([1, 1, 2, 2, 3, 3])
