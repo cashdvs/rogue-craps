@@ -1,0 +1,23 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_flame_card.gdshader" id="1_hoeo1"]
+[ext_resource type="Texture2D" path="res://art/models/boards/hearth/textures/smoke_curl.png" id="2_fxib2"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_hoeo1")
+shader_parameter/atlas = ExtResource("2_fxib2")
+shader_parameter/mode = 1
+shader_parameter/fps = null
+shader_parameter/core_color = null
+shader_parameter/mid_color = Color(0.22745098, 0.20392157, 0.19607843, 1)
+shader_parameter/outer_color = Color(0.11764706, 0.105882354, 0.101960786, 1)
+shader_parameter/outline_color = Color(0.05490196, 0.078431375, 0.078431375, 1)
+shader_parameter/core_energy = 1.0
+shader_parameter/outline_px = 1.6
+shader_parameter/back_offset = null
+shader_parameter/y_billboard = null
+shader_parameter/erode = 0.3
+shader_parameter/min_size = 0.45
+shader_parameter/flare_grow = null
+shader_parameter/rise = 0.05

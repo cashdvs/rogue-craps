@@ -18,6 +18,16 @@ const EVENTS: Array[StringName] = [
 	&"chip_refuse", &"heartbeat", &"tension", &"rim_hit", &"dice_grab", &"dice_drop",
 ]
 
+## Events that also come as several takes (variants), and how many. Hits that
+## happen many times a roll sound robotic if every one is the same sample, so
+## each take is the same recipe with slightly different numbers. Baked as
+## res://audio/sfx/<event>_01.wav, _02.wav, ... (listed by bake_all()).
+const VARIANTS: Dictionary[StringName, int] = {
+	&"dice_hit": 4,
+	&"rim_hit": 3,
+	&"chip_place": 4,
+}
+
 # Fixed seed: placeholder sounds come out identical every time.
 static var _rng := RandomNumberGenerator.new()
 
@@ -51,7 +61,7 @@ static func make(event: StringName) -> AudioStreamWAV:
 		&"tension":
 			samples = _tension()
 		&"rim_hit":
-			samples = _knock(0.14, 380.0, 95.0, 1.0)
+			samples = _rail_thump(0.15, 95.0, 720.0, 260.0)
 		&"dice_grab":
 			samples = _clack(0.06, 1800.0)
 		&"dice_drop":
@@ -60,6 +70,51 @@ static func make(event: StringName) -> AudioStreamWAV:
 			push_error("SfxSynth: unknown event %s" % event)
 			samples = PackedFloat32Array([0.0])
 	return _to_wav(samples)
+
+
+## Every file tools/bake_sfx.gd writes for this synth: {file name: sound}.
+static func bake_all() -> Dictionary[String, AudioStreamWAV]:
+	var out: Dictionary[String, AudioStreamWAV] = {}
+	for event in EVENTS:
+		out[String(event) + ".wav"] = make(event)
+		for n in range(1, variant_count(event) + 1):
+			out["%s_%02d.wav" % [event, n]] = make_variant(event, n)
+	return out
+
+
+## Builds take number n (1, 2, ...) of an event listed in VARIANTS. Each take
+## has its own fixed seed (hash(event) + n), so baking is repeatable, and its
+## own small offsets so no two takes sound identical. Take 1 stays closest to
+## the original placeholder.
+static func make_variant(event: StringName, n: int) -> AudioStreamWAV:
+	_rng.seed = hash(event) + n
+	# k = 0 for take 1, growing for later takes; j = a random -1..1 nudge.
+	var k := float(n - 1)
+	var samples: PackedFloat32Array
+	match event:
+		&"dice_hit":
+			# Dry bone clack: the knock plus a bone overtone; takes 3+ add a
+			# tiny second tap (the die chattering on its edge).
+			var click := 900.0 * (1.0 + _jit(0.12))
+			var body := 180.0 * (1.0 + _jit(0.1))
+			var flam := 0.0 if n < 3 else _rng.randf_range(0.012, 0.022)
+			samples = _bone_clack(0.09 + k * 0.006, click, body, _rng.randf_range(1.45, 1.75), flam)
+		&"rim_hit":
+			# Leather rail thump: body 80-110 Hz, damped mid slap, little ring.
+			var body_hz := clampf(95.0 + _jit(15.0), 80.0, 110.0)
+			samples = _rail_thump(0.14 + k * 0.01, body_hz, _rng.randf_range(600.0, 900.0), _rng.randf_range(230.0, 320.0))
+		&"chip_place":
+			# Clay chip clack with a jittered ping ratio, so stacks sparkle.
+			samples = _chip_clack(0.08 + k * 0.004, 2600.0 * (1.0 + _jit(0.1)), _rng.randf_range(1.38, 1.56), _rng.randf_range(2.1, 2.45))
+		_:
+			push_error("SfxSynth: no variants for event %s" % event)
+			return make(event)
+	return _to_wav(samples)
+
+
+## How many takes an event has (0 = just the single sound).
+static func variant_count(event: StringName) -> int:
+	return VARIANTS.get(event, 0)
 
 
 # --- Building blocks ------------------------------------------------------------
@@ -83,6 +138,66 @@ static func _knock(seconds: float, click_hz: float, body_hz: float, gain: float)
 		var body := sin(phase) * env
 		var ring := sin(TAU * click_hz * t) * exp(-t * 90.0) * 0.3
 		buf[i] = (click * 0.6 + body * 0.8 + ring) * gain
+	return buf
+
+
+## A random nudge in -amount..amount (uses the fixed-seed generator).
+static func _jit(amount: float) -> float:
+	return _rng.randf_range(-amount, amount)
+
+
+## A bone die clack: the _knock recipe plus an inharmonic "bone" overtone for
+## a drier, harder edge. flam_s > 0 adds a quieter second tap that long after.
+static func _bone_clack(seconds: float, click_hz: float, body_hz: float, partial: float, flam_s: float) -> PackedFloat32Array:
+	var buf := _knock(seconds, click_hz, body_hz, 0.9)
+	for i in buf.size():
+		var t := float(i) / MIX_RATE
+		buf[i] += sin(TAU * click_hz * partial * t) * exp(-t * 130.0) * 0.22
+	if flam_s > 0.0:
+		var start := int(flam_s * MIX_RATE)
+		for i in range(start, buf.size()):
+			var t := float(i - start) / MIX_RATE
+			var tap := _rng.randf_range(-1.0, 1.0) * exp(-t * 200.0) + sin(TAU * click_hz * 1.1 * t) * exp(-t * 120.0) * 0.4
+			buf[i] += tap * 0.35
+	return buf
+
+
+## A die thumping the padded leather rail: a low body that drops in pitch
+## (the thump), a short band-limited noise slap (leather), and a little wood
+## ring from the rail frame underneath.
+static func _rail_thump(seconds: float, body_hz: float, slap_hz: float, ring_hz: float) -> PackedFloat32Array:
+	var buf := _buffer(seconds)
+	var phase := 0.0
+	var lp := 0.0
+	var lp2 := 0.0
+	# One-pole filter amounts: lp keeps roughly below slap_hz, lp2 removes the
+	# lows, so lp - lp2 is a band of noise around the slap.
+	var a := clampf(TAU * slap_hz * 1.5 / MIX_RATE, 0.0, 1.0)
+	var b := clampf(TAU * slap_hz * 0.5 / MIX_RATE, 0.0, 1.0)
+	for i in buf.size():
+		var t := float(i) / MIX_RATE
+		var freq := body_hz * (1.0 + 0.5 * exp(-t * 80.0))
+		phase += TAU * freq / MIX_RATE
+		var body := sin(phase) * minf(t * 900.0, 1.0) * exp(-t * 30.0)
+		var n := _rng.randf_range(-1.0, 1.0)
+		lp += (n - lp) * a
+		lp2 += (lp - lp2) * b
+		var slap := (lp - lp2) * exp(-t * 85.0) * 2.4
+		var ring := sin(TAU * ring_hz * t) * exp(-t * 24.0) * 0.12
+		buf[i] = body + slap + ring
+	return buf
+
+
+## A clay chip landing: the _clack recipe with a third ping and a tiny low
+## "tock" so it has weight as well as sparkle.
+static func _chip_clack(seconds: float, ping_hz: float, ratio: float, ratio2: float) -> PackedFloat32Array:
+	var buf := _buffer(seconds)
+	for i in buf.size():
+		var t := float(i) / MIX_RATE
+		var noise := _rng.randf_range(-1.0, 1.0) * exp(-t * 220.0)
+		var ping := (sin(TAU * ping_hz * t) + 0.6 * sin(TAU * ping_hz * ratio * t) + 0.25 * sin(TAU * ping_hz * ratio2 * t)) * exp(-t * 55.0)
+		var tock := sin(TAU * 420.0 * t) * exp(-t * 120.0) * 0.3
+		buf[i] = noise * 0.7 + ping * 0.35 + tock
 	return buf
 
 

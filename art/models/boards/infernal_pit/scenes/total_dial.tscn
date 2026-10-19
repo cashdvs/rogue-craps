@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/total_dial.glb" id="1_hrpiy"]
+
+[node name="TotalDial" type="Node3D" unique_id=1644844476]
+
+[node name="Model" type="Node3D" parent="." unique_id=1128566379 instance=ExtResource("1_hrpiy")]
+
+[node name="NumberAnchor" type="Marker3D" parent="." unique_id=1112274081]
+transform = Transform3D(1, 0, 0, 0, 0.500011, 0.86601907, 0, -0.86601907, 0.500011, 0, 0.0512, 0.07)

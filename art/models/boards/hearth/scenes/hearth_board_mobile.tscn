@@ -1,0 +1,282 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/felt_floor.glb" id="1_vm6t4"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_felt.tres" id="2_kq2a0"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/rails_mobile.glb" id="3_1bbpt"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_leather.tres" id="4_d2ctu"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/trim_studs_mobile.glb" id="5_ldtsj"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/backboard.glb" id="6_xbqkx"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/body_skirt.glb" id="7_pbkbi"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/brazier_mobile.tscn" id="8_vfhmk"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/total_dial.tscn" id="9_odeat"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/cauldron_mobile.tscn" id="10_8ugk5"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/demon_face_mobile.tscn" id="11_nbv7d"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/corner_cap.tscn" id="12_7ppcd"]
+[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_fx.gd" id="13_qk002"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/candle_mobile.tscn" id="14_pvn1m"]
+
+[sub_resource type="Animation" id="Animation_mekw2"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:snuff")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:wisp")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".:flare")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_676aa"]
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:flare")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [1.0, 0.8, 0.65, 0.5, 0.35, 0.15, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_bj0ie"]
+length = 0.75
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:snuff")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.5, 0.5833333, 0.6666667),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.4, 0.7, 1.0, 0.6, 0.3, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:wisp")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5, 0.5833333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.01, 0.20600000000000002, 0.402, 0.598, 0.794, 0.99, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7jw7p"]
+_data = {
+&"RESET": SubResource("Animation_mekw2"),
+&"flare": SubResource("Animation_676aa"),
+&"snuff": SubResource("Animation_bj0ie")
+}
+
+[sub_resource type="Animation" id="Animation_x2byp"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:pulse")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_dsx0i"]
+length = 0.15
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:pulse")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.15),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [1.0, 0.5, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_l70xg"]
+_data = {
+&"RESET": SubResource("Animation_x2byp"),
+&"seam_pulse": SubResource("Animation_dsx0i")
+}
+
+[node name="Board" type="Node3D" unique_id=346224328]
+
+[node name="Visual" type="Node3D" parent="." unique_id=356908149]
+
+[node name="Floor" parent="Visual" unique_id=383043155 instance=ExtResource("1_vm6t4")]
+
+[node name="felt_floor" parent="Visual/Floor" index="0" unique_id=1600232088]
+surface_material_override/0 = ExtResource("2_kq2a0")
+
+[node name="FloorDecal" type="Decal" parent="Visual" unique_id=1745606457]
+visible = false
+size = Vector3(0.6, 0.05, 0.6)
+
+[node name="Rails" parent="Visual" unique_id=744027919 instance=ExtResource("3_1bbpt")]
+
+[node name="rails_mobile" parent="Visual/Rails" index="0" unique_id=1679001446]
+surface_material_override/0 = ExtResource("4_d2ctu")
+
+[node name="Trim" parent="Visual" unique_id=625550448 instance=ExtResource("5_ldtsj")]
+
+[node name="Backboard" parent="Visual" unique_id=25817161 instance=ExtResource("6_xbqkx")]
+
+[node name="Body" parent="Visual" unique_id=1570908456 instance=ExtResource("7_pbkbi")]
+
+[node name="Anchors" type="Node3D" parent="." unique_id=2059764831]
+
+[node name="TargetPlate" type="Marker3D" parent="Anchors" unique_id=1769644269]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, -0.61)
+
+[node name="Plate" parent="Anchors/TargetPlate" unique_id=179735042 instance=ExtResource("8_vfhmk")]
+
+[node name="TotalPlate" type="Marker3D" parent="Anchors" unique_id=1736920001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0.61)
+
+[node name="Plate" parent="Anchors/TotalPlate" unique_id=1644844476 instance=ExtResource("9_odeat")]
+
+[node name="BurnLine" type="Marker3D" parent="Anchors" unique_id=1642213493]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, -0.4)
+
+[node name="ChipTray" type="Marker3D" parent="Anchors" unique_id=312209522]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, 0)
+
+[node name="Tray" parent="Anchors/ChipTray" unique_id=1048457664 instance=ExtResource("10_8ugk5")]
+
+[node name="Corner_FL" type="Marker3D" parent="Anchors" unique_id=584467258]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.11, 0.11, -0.61)
+
+[node name="Cap" parent="Anchors/Corner_FL" unique_id=1807590771 instance=ExtResource("11_nbv7d")]
+transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, -0.02828427, 0, -0.02828427)
+
+[node name="Corner_FR" type="Marker3D" parent="Anchors" unique_id=923994804]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, -0.61)
+
+[node name="Cap" parent="Anchors/Corner_FR" unique_id=969261740 instance=ExtResource("11_nbv7d")]
+transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 0.02828427, 0, -0.02828427)
+
+[node name="Corner_NL" type="Marker3D" parent="Anchors" unique_id=2011190911]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.11, 0.11, 0.61)
+
+[node name="Cap" parent="Anchors/Corner_NL" unique_id=1676915884 instance=ExtResource("12_7ppcd")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+
+[node name="Corner_NR" type="Marker3D" parent="Anchors" unique_id=1042561305]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, 0.61)
+
+[node name="Cap" parent="Anchors/Corner_NR" unique_id=235755499 instance=ExtResource("12_7ppcd")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0, 0, 0)
+
+[node name="RailProp_FL" type="Marker3D" parent="Anchors" unique_id=61812082]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.11, -0.61)
+
+[node name="RailProp_FR" type="Marker3D" parent="Anchors" unique_id=242363243]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.11, -0.61)
+
+[node name="Zones" type="Node3D" parent="Anchors" unique_id=1530824838]
+
+[node name="Ambient" type="Node3D" parent="." unique_id=833021472]
+
+[node name="Hearth" type="Node3D" parent="." unique_id=1553309658]
+script = ExtResource("13_qk002")
+
+[node name="Candles" type="Node3D" parent="Hearth" unique_id=875481881]
+
+[node name="RailLeft" type="Node3D" parent="Hearth/Candles" unique_id=927888974]
+
+[node name="Candle1" parent="Hearth/Candles/RailLeft" unique_id=1097347134 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.42)
+glow_tilt = 16.0
+
+[node name="Candle3" parent="Hearth/Candles/RailLeft" unique_id=1489480388 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.24)
+height = 0.92
+spin = 1.4
+glow_tilt = 16.0
+
+[node name="Candle5" parent="Hearth/Candles/RailLeft" unique_id=2014659767 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, 0.24)
+height = 1.1
+spin = 2.8
+glow_tilt = 16.0
+
+[node name="Candle7" parent="Hearth/Candles/RailLeft" unique_id=2037907871 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, 0.42)
+height = 1.04
+spin = 4.199999999999999
+glow_tilt = 16.0
+
+[node name="RailRight" type="Node3D" parent="Hearth/Candles" unique_id=1399518042]
+
+[node name="Candle2" parent="Hearth/Candles/RailRight" unique_id=501696771 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, -0.42)
+height = 1.12
+spin = 0.7
+glow_tilt = -16.0
+
+[node name="Candle4" parent="Hearth/Candles/RailRight" unique_id=361351005 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, -0.24)
+height = 1.06
+spin = 2.0999999999999996
+glow_tilt = -16.0
+
+[node name="Candle6" parent="Hearth/Candles/RailRight" unique_id=1565809133 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, 0.24)
+height = 0.95
+spin = 3.5
+glow_tilt = -16.0
+
+[node name="Candle8" parent="Hearth/Candles/RailRight" unique_id=1124276302 instance=ExtResource("14_pvn1m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, 0.42)
+height = 0.9
+spin = 4.8999999999999995
+glow_tilt = -16.0
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Hearth" unique_id=1793361669]
+libraries/ = SubResource("AnimationLibrary_7jw7p")
+
+[node name="SeamPlayer" type="AnimationPlayer" parent="Hearth" unique_id=4135873]
+libraries/ = SubResource("AnimationLibrary_l70xg")
+
+[editable path="Visual/Floor"]
+[editable path="Visual/Rails"]

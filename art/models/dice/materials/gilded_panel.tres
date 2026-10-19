@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="1"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1")
+shader_parameter/albedo = Color(0.419608, 0.352941, 0.203922, 1)
+shader_parameter/shadow_color = Color(0.164706, 0.109804, 0.039216, 1)
+shader_parameter/mid_tint = 0.7
+shader_parameter/spec_size = 0.95
+shader_parameter/spec_color = Color(0.886275, 0.752941, 0.415686, 1)
+shader_parameter/spec_strength = 0.5
+shader_parameter/roughness = 0.5
+shader_parameter/light_gain = 0.7

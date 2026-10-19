@@ -149,6 +149,21 @@ func _test_rest_and_shop() -> void:
 	_check(run.buy_mod(0, Vector2i(3, 1)) and run.progress.embers == before - mod.price * 3 / 2, "shop: mod +50% with a mod already on the die")
 	before = run.progress.embers
 	_check(run.sell_die(5) and run.progress.embers == before + die_price / 2 and run.progress.dice.size() == 5, "shop: sell a special die for half")
+	run.progress.add_die(&"")
+	var e0 := run.progress.embers
+	_check(run.progress.sell_value(5) == 0 and run.sell_die(5) and run.progress.dice.size() == 5 and run.progress.embers == e0,
+		"shop: a 0-Ember sale still sells and returns true")
+	# Escalated mod price: greyed / picker by the die's price, not the base.
+	var hell: FaceModData = load("res://resources/mods/hellfire.tres")
+	run.shop_mods[0] = hell
+	for f in 4:
+		run.progress.set_face(4, f, &"wild")
+	run.progress.embers = hell.price
+	_check(run.can_buy_mod_at(0, Vector2i(2, 5)) and not run.can_buy_mod_at(0, Vector2i(4, 5)), "shop: a die with mods costs more; can't afford it there")
+	_check(run.cheapest_mod_price(0) == hell.price, "shop: cheapest price over dice with a free face")
+	for d in 5:
+		run.progress.set_face(d, 5, &"wild")
+	_check(run.cheapest_mod_price(0) > hell.price and not run.can_buy_mod_at(0, Vector2i(2, 4)), "shop: every die has a mod -> escalated price, unaffordable")
 	run.progress.embers = 0
 	_check(not run.shop_reroll(), "shop: can't reroll broke")
 	run.progress.embers = 100
