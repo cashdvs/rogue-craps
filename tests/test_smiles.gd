@@ -175,6 +175,14 @@ func _check(lod: String) -> void:
 	ap.play("taunt")
 	ap.seek(0.5, true)
 	_ok(rad_to_deg(skel.get_bone_pose_rotation(skel.find_bone("jaw")).get_euler().x) > 15.0, label + ": taunt cackles (jaw open > 15 deg)")
+	# as dealer he is lamp-lit only: the visible grin / visor / pale-green rim carry no emission
+	var lit_bad: Array[String] = []
+	for n in ["smiles_gold", "smiles_visor", "smiles_visor_rim"]:
+		var mm := load("res://art/models/characters/smiles/materials/%s.tres" % n) as ShaderMaterial
+		var e: Variant = mm.get_shader_parameter("emission_energy")
+		if e != null and float(e) > 0.0:
+			lit_bad.append(n)
+	_ok(lit_bad.is_empty(), "%s: dealer grin / visor / rim are non-emissive %s" % [label, lit_bad])
 	# MC-only glow: the glow_* shells are collapsed in every dealer clip and shown in the MC clips
 	var glow_bad: Array[String] = []
 	for c in ap.get_animation_list():

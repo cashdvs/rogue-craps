@@ -26,7 +26,7 @@ He is modelled from the waist up and stands behind the far rail. This is art onl
 
 **Art Director revision pass (r2).**
 - **Horns:** about 30% shorter and swept back, so they lean along the top frame edge in the game camera.
-- **Visor brim:** tipped up 15° more (29° total), so the eyes show from above. It has a pale-green rim along the brim edge and stays opaque. The outer headband is now visor green.
+- **Visor brim:** tipped up 15° more (29° total), so the eyes show from above. It has a pale-green rim along the brim edge (a 7 mm-radius tube, ~2 px wider at game-camera scale so the green reads at 48 px; non-emissive as dealer) and stays opaque. The outer headband is now visor green.
 - **Teeth:** two chunky 7-tooth gold bands (upper on `head`, lower on `jaw`; the outer teeth ride on `grin_L|R`). Each row is one connected strip that bulges per tooth and notches between teeth.
 - **Dealer lighting:** the dealer is lit by the lamp only. `smiles_gold` and `smiles_visor` have no emission. The glow is MC-only (see `glow_*` below).
 
