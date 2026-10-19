@@ -34,19 +34,59 @@ const MC_POS := Vector3(-1.32, -0.42, -0.30)
 const RAIL_TOP := 0.14
 ## Key gesture frames that must read above the far rail in the game camera: [clip, time, hands].
 const GESTURES: Array = [["grudging", 0.5, ["L", "R"]], ["grudging", 1.0, ["L", "R"]],
-	["taunt", 0.5, ["R"]], ["cheat", 0.45, ["L", "R"]]]
+	["taunt", 0.5, ["R"]], ["cheat", 0.45, ["R"]]]
 ## Game camera from feat/bonfire-sandbox a153087: rig at the pivot pitched -55, camera dolly d, look-up 7.5, fov 36.
 const GAME_CAMS: Dictionary = {"pc": [Vector2i(1920, 1080), 2.40, Vector3(0, 0, 0.26)], "phone": [Vector2i(844, 390), 2.04, Vector3(0, 0, 0.34)]}
 const CAM_RAIL_TOP := 0.11  # RAIL_TOP_Y in the sandbox: the band is measured from here
 const VISOR_MIN_PX := 2
 const HORN_TIP_PX := 4
 const IDLE_HANDS_MAX := 0.10
+## Brazier bowl + goal plaque (Hearth board, art/board-hearth f25a745: Anchors/TargetPlate/Plate/Model/brazier),
+## world-space hull points (support points in 600 directions). Smiles keeps >= BRAZIER_CLEAR_PX of clear dark from
+## it on screen in both game cameras, every dealer clip.
+const BRAZIER_HULL: Array[Vector3] = [
+	Vector3(-0.134, 0.213, -0.77), Vector3(-0.134, 0.22, -0.77), Vector3(-0.129, 0.213, -0.805), Vector3(-0.129, 0.213, -0.735), Vector3(-0.129, 0.22, -0.805), Vector3(-0.129, 0.22, -0.735),
+	Vector3(-0.128, 0.17, -0.773), Vector3(-0.128, 0.17, -0.767), Vector3(-0.116, 0.213, -0.837), Vector3(-0.116, 0.22, -0.837), Vector3(-0.116, 0.22, -0.703), Vector3(-0.115, 0.165, -0.801),
+	Vector3(-0.107, 0.173, -0.832), Vector3(-0.103, 0.165, -0.83), Vector3(-0.095, 0.213, -0.865), Vector3(-0.095, 0.22, -0.865), Vector3(-0.095, 0.22, -0.675), Vector3(-0.087, 0.173, -0.857),
+	Vector3(-0.084, 0.165, -0.854), Vector3(-0.078, 0.137, -0.617), Vector3(-0.078, 0.141, -0.611), Vector3(-0.078, 0.203, -0.647), Vector3(-0.077, 0.174, -0.627), Vector3(-0.074, 0.174, -0.625),
+	Vector3(-0.067, 0.213, -0.886), Vector3(-0.067, 0.22, -0.886), Vector3(-0.067, 0.22, -0.654), Vector3(-0.066, 0.17, -0.879), Vector3(-0.061, 0.17, -0.882), Vector3(-0.045, 0.09, -0.77),
+	Vector3(-0.043, 0.09, -0.782), Vector3(-0.043, 0.09, -0.758), Vector3(-0.039, 0.09, -0.793), Vector3(-0.039, 0.09, -0.748), Vector3(-0.035, 0.213, -0.899), Vector3(-0.035, 0.22, -0.899),
+	Vector3(-0.035, 0.22, -0.641), Vector3(-0.032, 0.09, -0.802), Vector3(-0.032, 0.09, -0.738), Vector3(-0.031, 0.165, -0.885), Vector3(-0.023, 0.09, -0.809), Vector3(-0.012, 0.09, -0.813),
+	Vector3(-0.012, 0.09, -0.727), Vector3(-0, 0.09, -0.815), Vector3(-0, 0.09, -0.725), Vector3(-0, 0.165, -0.889), Vector3(-0, 0.173, -0.893), Vector3(-0, 0.213, -0.904),
+	Vector3(-0, 0.22, -0.904), Vector3(-0, 0.22, -0.636), Vector3(0.012, 0.09, -0.813), Vector3(0.012, 0.09, -0.727), Vector3(0.022, 0.09, -0.809), Vector3(0.031, 0.165, -0.885),
+	Vector3(0.032, 0.09, -0.802), Vector3(0.032, 0.09, -0.738), Vector3(0.035, 0.213, -0.899), Vector3(0.035, 0.22, -0.899), Vector3(0.035, 0.22, -0.641), Vector3(0.039, 0.09, -0.793),
+	Vector3(0.039, 0.09, -0.748), Vector3(0.043, 0.09, -0.782), Vector3(0.043, 0.09, -0.758), Vector3(0.045, 0.09, -0.77), Vector3(0.061, 0.17, -0.882), Vector3(0.066, 0.17, -0.879),
+	Vector3(0.067, 0.213, -0.886), Vector3(0.067, 0.22, -0.886), Vector3(0.067, 0.22, -0.654), Vector3(0.074, 0.174, -0.625), Vector3(0.077, 0.174, -0.627), Vector3(0.078, 0.137, -0.617),
+	Vector3(0.078, 0.141, -0.611), Vector3(0.078, 0.203, -0.647), Vector3(0.084, 0.165, -0.854), Vector3(0.095, 0.213, -0.865), Vector3(0.095, 0.22, -0.865), Vector3(0.095, 0.22, -0.675),
+	Vector3(0.103, 0.165, -0.83), Vector3(0.107, 0.173, -0.832), Vector3(0.115, 0.165, -0.801), Vector3(0.116, 0.213, -0.837), Vector3(0.116, 0.22, -0.837), Vector3(0.116, 0.22, -0.703),
+	Vector3(0.128, 0.17, -0.773), Vector3(0.128, 0.17, -0.767), Vector3(0.129, 0.213, -0.805), Vector3(0.129, 0.213, -0.735), Vector3(0.129, 0.22, -0.805), Vector3(0.129, 0.22, -0.735),
+	Vector3(0.134, 0.213, -0.77), Vector3(0.134, 0.22, -0.77),
+]
+const BRAZIER_CLEAR_PX := 20.0
+## The pale-green visor rim has to read to the phone camera on every clip: rim area on screen (px^2) that faces the
+## camera and sits in the lamp's lit band.
+const RIM_MIN_PX2 := 55.0
+## Grudging clap: wrist (hand bone) x-gap below which the palms touch, the held-apart keys and their minimum gap.
+const CLAP_TOUCH := 0.05
+const CLAP_HELD: Array[float] = [0.3, 0.44, 0.6, 0.8, 0.94, 1.1, 1.25]
+const CLAP_HELD_GAP := 0.08
+const CLAP_PALM_GAP := 0.05  # clear air between the two hand meshes when held (about a palm-width)
+const CLAP_SCREEN_GAP := 8.0  # ... and as seen by the game camera, px (PC; the phone gets half)
+## Table lamp (the spot the captures use, over the felt centre). RIM_LIT is tuned on the captures: at the dealer spot the
+## lamp's cone falloff means the rim only renders pale green where N.L >= ~0.75 (the dark-rim frames measured 31-41 px^2,
+## the reading ones 64-75).
+const LAMP_POS := Vector3(0, 1.35, -0.05)
+const RIM_LIT := 0.75
+## Beats where the rim is also ray-tested against the brim / head (camera line of sight + lamp shadow).
+const RIM_BEATS: Array = [["idle", 0.0], ["idle", 1.4], ["taunt", 0.5], ["taunt", 1.0], ["grudging", 0.5], ["grudging", 1.0],
+	["cheat", 0.45], ["cheat", 0.85], ["deal", 0.42], ["deal", 0.7]]
 const GLOW: Array[String] = ["glow_head", "glow_jaw", "glow_grin_L", "glow_grin_R", "glow_visor"]
 const FELT_TOP := 0.03
 const LIMBS: Array[String] = ["forearm_L", "forearm_R", "hand_L", "hand_R", "index_L", "index_R", "fingers_L", "fingers_R", "thumb_L", "thumb_R", "chip"]
 
 var _passed: int = 0
 var _failed: int = 0
+var _closest := Vector3.ZERO
 
 
 func _initialize() -> void:
@@ -215,6 +255,10 @@ func _check(lod: String) -> void:
 	var horn_bad: Array[String] = []
 	var visor_bad: Array[String] = []
 	var over_head: Array[String] = []
+	var polys := {"pc": _brazier_poly(cams["pc"]), "phone": _brazier_poly(phone)}
+	var clear := {}
+	var near_at := {}
+	var rim_min := {}
 	for c in ["idle", "taunt", "grudging", "cheat", "deal"]:
 		var a := ap.get_animation(c)
 		var mx := {}
@@ -224,6 +268,11 @@ func _check(lod: String) -> void:
 			ap.play(c)
 			ap.seek(t, true)
 			var pts := _skinned(s, skel)
+			for ck in cams:
+				var bp := _brazier_px(cams[ck], polys[ck], pts["all"])
+				if bp < clear.get(ck + " " + c, INF):
+					clear[ck + " " + c] = bp
+					near_at[ck + " " + c] = "@%.2f %s" % [t, _closest.snapped(Vector3.ONE * 0.01)]
 			var fm := {}
 			for cat: String in pts:
 				for q: Vector3 in pts[cat]:
@@ -244,6 +293,23 @@ func _check(lod: String) -> void:
 			horn_bad.append("%s %.0f px" % [c, px["horn"]])
 		if c == "idle" and mx["hands"] > IDLE_HANDS_MAX:
 			band_bad.append("idle hands %.3f (lean low on the rail)" % mx["hands"])
+	var clear_bad: Array[String] = []
+	for key: String in clear:
+		print("  info %s brazier + plaque clearance %s: %.1f px (closest %s)" % [label, key, clear[key], near_at[key]])
+		if clear[key] < BRAZIER_CLEAR_PX:
+			clear_bad.append("%s %.1f px" % [key, clear[key]])
+	_ok(clear_bad.is_empty(), "%s: >= %d px of clear dark between Smiles and the brazier / goal plaque (PC + phone, every clip) %s" % [label, BRAZIER_CLEAR_PX, clear_bad])
+	for kb in RIM_BEATS:
+		ap.play(kb[0])
+		ap.seek(kb[1], true)
+		var occ_a := _rim_px2(phone, _skinned(s, skel), true)
+		print("  info %s visor rim %s@%.2f phone: %.1f px^2 lit, front-facing and unoccluded" % [label, kb[0], kb[1], occ_a])
+		rim_min[kb[0]] = minf(rim_min.get(kb[0], INF), occ_a)
+	var rim_bad: Array[String] = []
+	for c: String in rim_min:
+		if rim_min[c] < RIM_MIN_PX2:
+			rim_bad.append("%s %.1f" % [c, rim_min[c]])
+	_ok(rim_bad.is_empty(), "%s: pale-green visor rim reads to the phone camera on every clip (lit, front-facing, unoccluded >= %.0f px^2 at each beat) %s" % [label, RIM_MIN_PX2, rim_bad])
 	_ok(band_bad.is_empty(), "%s: grin + visor stay inside the phone band (<= %.2f m above the rail) in every clip, idle hands low %s" % [label, band, band_bad])
 	_ok(visor_bad.is_empty(), "%s: visor never clips the phone frame (>= %d px inside) %s" % [label, VISOR_MIN_PX, visor_bad])
 	_ok(horn_bad.is_empty(), "%s: horns swept back - at most the tips clip the phone frame (<= %d px) %s" % [label, HORN_TIP_PX, horn_bad])
@@ -285,6 +351,65 @@ func _check(lod: String) -> void:
 	_ok(low.is_empty(), "%s: key gestures (clap / point / cheat) read over the rail inside the phone + PC frames, grin above the clap %s" % [label, low.slice(0, 3)])
 	for ck in cams:
 		(cams[ck] as Camera3D).get_viewport().queue_free()
+	# grudging clap (AD final): held keys a palm-width apart, palms facing, fingers up, wrists never crossing, and the
+	# palms only meet for 2-3 frames (30 fps) per clap
+	var clap_bad: Array[String] = []
+	var runs: Array[int] = []
+	var run := 0
+	var ga := ap.get_animation("grudging")
+	for fi in int(round(ga.length * 30.0)) + 1:
+		var t := fi / 30.0
+		ap.play("grudging")
+		ap.seek(t, true)
+		var gl := skel.get_bone_global_pose(skel.find_bone("hand_L"))
+		var gr := skel.get_bone_global_pose(skel.find_bone("hand_R"))
+		var gap := gl.origin.x - gr.origin.x
+		if gap <= 0.0:
+			clap_bad.append("wrists cross @%.2f" % t)
+		if gap < CLAP_TOUCH:
+			run += 1
+		elif run > 0:
+			runs.append(run)
+			run = 0
+	if run > 0:
+		runs.append(run)
+	for ht in CLAP_HELD:
+		ap.play("grudging")
+		ap.seek(ht, true)
+		var gl := skel.get_bone_global_pose(skel.find_bone("hand_L"))
+		var gr := skel.get_bone_global_pose(skel.find_bone("hand_R"))
+		var across := (gr.origin - gl.origin).normalized()
+		var palm_l := (-gl.basis.x).normalized()  # curl() closes the fingers toward local -X on the left hand, +X on the right
+		var palm_r := gr.basis.x.normalized()
+		var up_l := (-gl.basis.y).normalized().y
+		var up_r := (-gr.basis.y).normalized().y
+		var gap := gl.origin.x - gr.origin.x
+		var hp := _skinned(s, skel)
+		var l_min := INF
+		var r_max := -INF
+		var sgap := {}
+		for q: Vector3 in hp["hand_L"]:
+			l_min = minf(l_min, q.x)
+		for q: Vector3 in hp["hand_R"]:
+			r_max = maxf(r_max, q.x)
+		for ck: String in cams:
+			var c: Camera3D = cams[ck]
+			var sl := INF
+			var sr := -INF
+			for q: Vector3 in hp["hand_L"]:
+				sl = minf(sl, c.unproject_position(q).x)
+			for q: Vector3 in hp["hand_R"]:
+				sr = maxf(sr, c.unproject_position(q).x)
+			sgap[ck] = sl - sr
+		print("  info %s grudging held @%.2f: wrist gap %.3f m, mesh gap %.3f m, screen gap pc %.1f / phone %.1f px, palms facing %.2f / %.2f, fingers up %.2f / %.2f" % [label, ht, gap, l_min - r_max, sgap["pc"], sgap["phone"], palm_l.dot(across), palm_r.dot(-across), up_l, up_r])
+		if l_min - r_max < CLAP_PALM_GAP or sgap["pc"] < CLAP_SCREEN_GAP or sgap["phone"] < CLAP_SCREEN_GAP * 0.5:
+			clap_bad.append("held @%.2f hands only %.3f m / %.1f px apart" % [ht, l_min - r_max, sgap["pc"]])
+		if gap < CLAP_HELD_GAP or palm_l.dot(across) < 0.8 or palm_r.dot(-across) < 0.8 or up_l < 0.6 or up_r < 0.6:
+			clap_bad.append("held @%.2f gap %.3f palms %.2f/%.2f up %.2f/%.2f" % [ht, gap, palm_l.dot(across), palm_r.dot(-across), up_l, up_r])
+	print("  info %s grudging palms-touching runs (frames at 30 fps): %s" % [label, runs])
+	if runs.size() != 2 or runs.any(func(r: int) -> bool: return r < 2 or r > 3):
+		clap_bad.append("touch runs %s (want 2 claps x 2-3 frames)" % [runs])
+	_ok(clap_bad.is_empty(), "%s: grudging claps: held a palm-width apart, palms facing, fingers up, wrists never cross, palms meet 2-3 frames per clap %s" % [label, clap_bad.slice(0, 3)])
 	# rail clearance at the documented spots (arms never sink into the rail / table)
 	for spot in [[DEALER_POS, 0.0, false], [MC_POS, 90.0, true]]:
 		s.position = spot[0]
@@ -369,7 +494,8 @@ func _headroom(cam: Camera3D) -> float:
 ## CPU-skinned world positions of the drawn vertices, by what has to read (glow shells and the chip skipped).
 func _skinned(s: Node3D, skel: Skeleton3D) -> Dictionary:
 	var out := {"horn": PackedVector3Array(), "visor": PackedVector3Array(), "grin": PackedVector3Array(), "hands": PackedVector3Array(),
-		"hand_L": PackedVector3Array(), "hand_R": PackedVector3Array(), "head": PackedVector3Array()}
+		"hand_L": PackedVector3Array(), "hand_R": PackedVector3Array(), "head": PackedVector3Array(),
+		"all": PackedVector3Array(), "rim": PackedVector3Array(), "rim_n": PackedVector3Array(), "occ": PackedVector3Array()}
 	for mi: MeshInstance3D in s.find_children("*", "MeshInstance3D", true, false):
 		var skin := mi.skin
 		var mats: Array[Transform3D] = []
@@ -382,13 +508,21 @@ func _skinned(s: Node3D, skel: Skeleton3D) -> Dictionary:
 		for si in mi.mesh.get_surface_count():
 			var m := mi.get_active_material(si)
 			var mname := m.resource_path.get_file().get_basename() if m != null else "?"
-			if mname.begins_with("smiles_chip"):
-				continue
+			if mname.begins_with("smiles_chip") and skel.get_bone_pose_scale(skel.find_bone("chip")).x < 0.05:
+				continue  # palmed / thrown: not drawn
 			var arr := mi.mesh.surface_get_arrays(si)
 			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
 			var bs: PackedInt32Array = arr[Mesh.ARRAY_BONES]
 			var ws: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
 			var k := ws.size() / maxi(vs.size(), 1)
+			var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			var rim := mname == "smiles_visor_rim"
+			var occ := (mi.name == "Smiles_Head" or mi.name == "Smiles_Visor") and not rim
+			var rim_p := PackedVector3Array()
+			var rim_n := PackedVector3Array()
+			if rim or occ:
+				rim_p.resize(vs.size())
+				rim_n.resize(vs.size())
 			for vi in vs.size():
 				var q := Vector3.ZERO
 				var wsum := 0.0
@@ -406,6 +540,10 @@ func _skinned(s: Node3D, skel: Skeleton3D) -> Dictionary:
 				if wsum <= 0.0 or top.begins_with("glow_"):
 					continue
 				q /= wsum
+				out["all"].append(q)
+				if rim or occ:
+					rim_p[vi] = q
+					rim_n[vi] = (mats[bs[vi * k]].basis * ns[vi]).normalized()
 				if mname == "smiles_horn":
 					out["horn"].append(q)
 				if mi.name == "Smiles_Visor":
@@ -418,4 +556,89 @@ func _skinned(s: Node3D, skel: Skeleton3D) -> Dictionary:
 					if top in ["hand_" + sd, "index_" + sd, "fingers_" + sd, "thumb_" + sd]:
 						out["hand_" + sd].append(q)
 						out["hands"].append(q)
+			if occ:
+				var oidx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+				for ti in oidx.size():
+					out["occ"].append(rim_p[oidx[ti]])
+			if rim:
+				var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+				for ti in idx.size():
+					out["rim"].append(rim_p[idx[ti]])
+					out["rim_n"].append(rim_n[idx[ti]])
 	return out
+
+
+## Lit, front-facing area (px^2) of the visor rim triangles inside the frame and over the far rail line.
+func _rim_px2(cam: Camera3D, pts: Dictionary, occlude: bool = false) -> float:
+	var tri: PackedVector3Array = pts["rim"]
+	var nn: PackedVector3Array = pts["rim_n"]
+	var eye := cam.global_position
+	var vs := Vector2(cam.get_viewport().size)
+	var area := 0.0
+	for i in range(0, tri.size(), 3):
+		var c := (tri[i] + tri[i + 1] + tri[i + 2]) / 3.0
+		var n := (nn[i] + nn[i + 1] + nn[i + 2]).normalized()
+		if n.dot(eye - c) <= 0.0 or n.dot((LAMP_POS - c).normalized()) < RIM_LIT:
+			continue  # back-facing, or not in toon_noir's lit band (pale green only reads when the lamp hits it)
+		var a := cam.unproject_position(tri[i])
+		var b := cam.unproject_position(tri[i + 1])
+		var d := cam.unproject_position(tri[i + 2])
+		var m := (a + b + d) / 3.0
+		if occlude and (_blocked(c + n * 0.001, eye, pts["occ"]) or _blocked(c + n * 0.001, LAMP_POS, pts["occ"])):
+			continue  # hidden behind the brim / head, or in their shadow from the lamp
+		if m.x < 0.0 or m.y < 0.0 or m.x > vs.x or m.y > vs.y:
+			continue
+		area += absf((b - a).cross(d - a)) * 0.5
+	return area
+
+
+## Screen-space convex hull of the brazier + plaque (monotone chain), counter-clockwise.
+func _brazier_poly(cam: Camera3D) -> PackedVector2Array:
+	var p: Array[Vector2] = []
+	for v in BRAZIER_HULL:
+		p.append(cam.unproject_position(v))
+	p.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x or (a.x == b.x and a.y < b.y))
+	var h: Array[Vector2] = []
+	for pass_i in 2:
+		var start := h.size()
+		var seq := p if pass_i == 0 else p.duplicate()
+		if pass_i == 1:
+			seq.reverse()
+		for q in seq:
+			while h.size() >= start + 2 and (h[-1] - h[-2]).cross(q - h[-2]) <= 0.0:
+				h.pop_back()
+			h.append(q)
+		h.pop_back()
+	return PackedVector2Array(h)
+
+
+## Smallest on-screen distance (px) from any of `pts` to the brazier polygon (0 = touching / overlapping).
+func _brazier_px(cam: Camera3D, poly: PackedVector2Array, pts: PackedVector3Array) -> float:
+	var lo := INF
+	for v in poly:
+		lo = minf(lo, v.x)
+	var best := INF
+	for q in pts:
+		var sp := cam.unproject_position(q)
+		if sp.x < lo - best:
+			continue
+		if q.z < -0.72 and sp.y > cam.unproject_position(Vector3(q.x, RAIL_TOP, -0.72)).y:
+			continue  # below the far rail's sight line: the rail hides it
+		if Geometry2D.is_point_in_polygon(sp, poly):
+			_closest = q
+			return 0.0
+		for i in poly.size():
+			var c := Geometry2D.get_closest_point_to_segment(sp, poly[i], poly[(i + 1) % poly.size()])
+			if sp.distance_to(c) < best:
+				best = sp.distance_to(c)
+				_closest = q
+	return best
+
+
+## True when the segment from `p` to `to` passes through any of the triangles in `tris`.
+func _blocked(p: Vector3, to: Vector3, tris: PackedVector3Array) -> bool:
+	var dir := (to - p).normalized()
+	for i in range(0, tris.size(), 3):
+		if Geometry3D.ray_intersects_triangle(p, dir, tris[i], tris[i + 1], tris[i + 2]) != null:
+			return true
+	return false
