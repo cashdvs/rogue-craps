@@ -79,10 +79,15 @@ static func attach_to_pause(menu: PauseMenu, r: RunRuleData, px_height: int) -> 
 	return true
 
 
+## Boss id -> the twist handler id it used before #99, so a table entry
+## like greedy_pot {min_pot: 3} still finds Baron Vig.
+const LEGACY_RULE_IDS := {&"baron_vig": &"greedy_pot", &"odds_bodkin": &"first_throw"}
+
 ## The art-carrying boss behind a table rule {id, params}, or null. Matches
 ## the resource's id and params (Baron Vig is greedy_pot {min_pot: 3}, the
 ## Elite twist is greedy_pot {min_pot: 2}), or the boss's own id
-## (baron_vig / odds_bodkin, as TableRules may register them).
+## (baron_vig / odds_bodkin, as TableRules registers them since #99).
+## The old rule+params form still works through LEGACY_RULE_IDS.
 static func for_table_rule(id: StringName, params: Dictionary = {}) -> RunRuleData:
 	for path in ART_RULES:
 		var r := load(path) as RunRuleData
@@ -90,7 +95,7 @@ static func for_table_rule(id: StringName, params: Dictionary = {}) -> RunRuleDa
 			continue
 		if StringName(path.get_file().get_basename()) == id:
 			return r
-		if r.id == id and _params_match(r.params, params):
+		if (r.id == id or LEGACY_RULE_IDS.get(r.id, &"") == id) and _params_match(r.params, params):
 			return r
 	return null
 

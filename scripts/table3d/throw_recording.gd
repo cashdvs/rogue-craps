@@ -27,6 +27,19 @@ var assisted: bool = false
 var assisted_dice: int = 0
 ## How many small nudges un-cocked a die leaning on the rail.
 var nudges: int = 0
+## Coin nudges that found it standing on its edge (CoinPhysics.EDGE_DEG).
+var edge_nudges: int = 0
+## Per die: a coin's tilt off flat (deg) when the sim stopped, before the
+## final lay-flat (0 for cubes). Near 90 would mean it rested on its edge.
+var rest_tilt_deg: Array[float] = []
+## Per die: still moving when the settle assist took over (it was then
+## eased flat, not at rest where it was).
+var end_moving: Array[bool] = []
+## Tests only (DiceSim.post_rest_watch): per die, the largest linear /
+## angular speed after it had settled, and how often it started moving again.
+var post_rest_max_lin: Array[float] = []
+var post_rest_max_ang: Array[float] = []
+var post_rest_restarts: Array[int] = []
 
 
 ## Sizes every per-die array for `n` dice.
@@ -36,7 +49,17 @@ func init(n: int) -> void:
 	tumble_end_t = []
 	tumble_end_speed = []
 	up_values = []
+	rest_tilt_deg = []
+	end_moving = []
+	post_rest_max_lin = []
+	post_rest_max_ang = []
+	post_rest_restarts = []
 	for i in n:
+		rest_tilt_deg.append(0.0)
+		end_moving.append(false)
+		post_rest_max_lin.append(0.0)
+		post_rest_max_ang.append(0.0)
+		post_rest_restarts.append(0)
 		frames.append([])
 		rest_t.append(-1.0)
 		tumble_end_t.append(-1.0)
