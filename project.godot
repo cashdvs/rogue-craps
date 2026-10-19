@@ -27,10 +27,12 @@ window/size/window_height_override=720
 [autoload]
 
 SplashState="*res://scripts/splash/splash_state.gd"
+GameSettings="*res://scripts/settings/game_settings.gd"
 
 [boot]
 
-next_scene="res://scenes/table_3d.tscn"
+next_scene="res://scenes/title.tscn"
+play_scene="res://scenes/run.tscn"
 
 [debug]
 

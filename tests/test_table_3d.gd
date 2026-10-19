@@ -17,6 +17,7 @@ extends SceneTree
 
 var _passed: int = 0
 var _failed: int = 0
+var _clock_t: float = 0.0
 
 
 func _initialize() -> void:
@@ -41,10 +42,15 @@ func _run() -> void:
 	await _test_flick_clock(scene)
 	await _test_faces_and_bounds(scene)
 	await _test_audio_hooks(scene)
+	await _test_sfx_hooks(scene)
+	_test_flat_separation(scene)
 	await _test_timing_stats(scene)
 	await _test_real_time_reveal(scene)
 	await _test_speed_modes(scene)
 	await _test_no_soul_restore(scene)
+	await _test_running_total(scene, 1)
+	await _test_running_total(scene, 3)
+	await _test_back_to_craps(scene)
 	scene.queue_free()
 	await process_frame
 	await _test_die_size()
@@ -61,6 +67,136 @@ func _make_scene() -> Table3D:
 	t.target_bankroll = 1000000
 	s.tuning = t
 	return s
+
+
+## Stand-ins for the Sound Designer's SfxManager hooks (not on this branch
+## yet): play_throw(flick_speed_px_s) -> float and play_impact(kind,
+## speed_mps, material = &"bone", die_id = -1) -> bool. Both log their calls;
+## play() logs the fallback events so we can see which path ran.
+const SFX_STUB_SRC := """extends SfxManager
+var calls: Array = []
+func play(event: StringName, _pitch: float = 1.0, _volume_db: float = 0.0, _jitter: float = 0.06) -> void:
+	calls.append([&"play", event])
+func play_throw(flick_speed_px_s: float) -> float:
+	calls.append([&"throw", flick_speed_px_s])
+	return 0.5
+func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bone", die_id: int = -1) -> bool:
+	calls.append([&"impact", kind, speed_mps, material, die_id])
+	return true
+"""
+## The no-hooks path: a plain Node with only what that path calls (play,
+## has_event), so it stays hook-free whatever SfxManager grows.
+const SFX_FALLBACK_SRC := """extends Node
+var calls: Array = []
+func play(event: StringName, _pitch: float = 1.0, _volume_db: float = 0.0, _jitter: float = 0.06) -> void:
+	calls.append([&"play", event])
+func has_event(_event: StringName) -> bool:
+	return true
+"""
+
+
+func _sfx_stub(src: String) -> Node:
+	var gd := GDScript.new()
+	gd.source_code = src
+	gd.reload()
+	var n: Node = gd.new()
+	return n
+
+
+func _test_sfx_hooks(s: Table3D) -> void:
+	var real_sfx := s.sfx
+	var stub := _sfx_stub(SFX_STUB_SRC)
+	s.add_child(stub)
+	s.sfx = stub
+	# Throw: the raw flick speed (game px/s) reaches play_throw, no dice_shake.
+	_bet(s)
+	s.throw(Table3D.QUICK_THROW)
+	await s.sequence_finished
+	var throws: Array = stub.calls.filter(func(e: Array) -> bool: return e[0] == &"throw")
+	check(throws.size() == 1 and is_equal_approx(float(throws[0][1]), Table3D.QUICK_THROW.length()), "play_throw gets the flick speed %.0f px/s once (%s)" % [Table3D.QUICK_THROW.length(), str(throws)])
+	check(not stub.calls.has([&"play", &"dice_shake"]), "play_throw replaces the fixed dice_shake")
+	var impacts: Array = stub.calls.filter(func(e: Array) -> bool: return e[0] == &"impact")
+	check(impacts.size() >= 1, "a real throw calls play_impact (%d)" % impacts.size())
+	var floor_ok := true
+	for e: Array in impacts:
+		if float(e[2]) < s.tuning.impact_min_speed or int(e[4]) < 0 or int(e[4]) >= s.dice.size() or not (e[1] is StringName) or not (e[3] is StringName):
+			floor_ok = false
+	check(floor_ok, "play_impact args: kind/material StringName, speed >= floor, valid die_id")
+	# Contacts: die_id passes through; the 0.3 m/s floor and 0.05 s filter hold.
+	stub.calls.clear()
+	s._last_impact.fill(-1.0)
+	s._play_t = 0.0
+	s._on_contact({"t": 0.0, "die": 1, "kind": &"rail", "speed": s.tuning.impact_min_speed - 0.05, "impulse": 0.001, "other": -1})
+	check(stub.calls.is_empty(), "under-floor contact: no play_impact")
+	s._play_t = 1.0
+	s._on_contact({"t": 1.0, "die": 1, "kind": &"rail", "speed": 2.5, "impulse": 0.01, "other": -1})
+	s._play_t = 1.01
+	s._on_contact({"t": 1.01, "die": 1, "kind": &"felt", "speed": 2.0, "impulse": 0.01, "other": -1})
+	check(stub.calls.size() == 1 and stub.calls[0][1] == &"rail" and is_equal_approx(float(stub.calls[0][2]), 2.5) and stub.calls[0][3] == StringName(s.dice[1].material) and int(stub.calls[0][4]) == 1, "play_impact(&\"rail\", 2.5, material, 1), throttled after (%s)" % str(stub.calls))
+	s._play_t = -1.0
+	# Without the hooks the old events still play.
+	var fb := _sfx_stub(SFX_FALLBACK_SRC)
+	s.add_child(fb)
+	s.sfx = fb
+	s.thrown.emit(1500.0)
+	s._last_impact.fill(-1.0)
+	s._play_t = 2.0
+	s._on_contact({"t": 2.0, "die": 0, "kind": &"backboard", "speed": 2.0, "impulse": 0.01, "other": -1})
+	s._play_t = -1.0
+	check(not fb.has_method("play_throw") and not fb.has_method("play_impact"), "fallback stub has no hooks")
+	check(fb.calls.has([&"play", &"dice_shake"]) and fb.calls.has([&"play", &"rim_hit"]), "fallback: dice_shake and rim_hit without the hooks (%s)" % str(fb.calls))
+	s.sfx = real_sfx
+	# Stale/speculative contacts: a die that rested elsewhere and is thrown
+	# from the hand must not log a phantom hit at release (the previous rest
+	# spot's felt contact, with a nonsense speed of 20-50 m/s).
+	var rest_at: Array[Transform3D] = [Transform3D(Basis.IDENTITY, Vector3(-0.6, 0.041, -0.2)), Transform3D(Basis.IDENTITY, Vector3(-0.3, 0.041, 0.1))]
+	var zero: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+	await s.sim.simulate(rest_at, zero, zero, 7)
+	var tilt := Basis.from_euler(Vector3(0.5, 0.3, 0.7))
+	var from: Array[Transform3D] = [Transform3D(tilt, Vector3(0.75, 0.06, 0.3)), Transform3D(tilt, Vector3(0.9, 0.06, 0.3))]
+	var lin2: Array[Vector3] = [Vector3(-3.0, 1.0, -3.0), Vector3(-3.0, 1.0, -3.0)]
+	var ang2: Array[Vector3] = [Vector3(25.0, 0.0, 15.0), Vector3(-20.0, 10.0, 0.0)]
+	var rec2: ThrowRecording = await s.sim.simulate(from, lin2, ang2, 7)
+	var cap := lin2[0].length() + 30.0 * s.tuning.die_size + 0.5
+	var worst := 0.0
+	var at_release := 0
+	for c: Dictionary in rec2.contacts:
+		worst = maxf(worst, float(c["speed"]))
+		if float(c["t"]) <= 0.0:
+			at_release += 1
+	check(at_release == 0, "no contact logged on the release tick (%d)" % at_release)
+	check(worst <= cap, "contact speeds stay physical: max %.2f m/s <= %.2f" % [worst, cap])
+	stub.queue_free()
+	fb.queue_free()
+	await process_frame
+
+
+## Flattening at the end of a throw (settle assist / timeout) puts every die
+## on the felt: a die resting on top of another must be moved beside it, not
+## dropped inside it (seen on hard 5-die bonfire throws near the backboard).
+func _test_flat_separation(s: Table3D) -> void:
+	var ds := s.tuning.die_size
+	var lim := Table3DBuilder.FELT_HALF - Vector2.ONE * ds * 0.75
+	var cases := [
+		[Vector3(0.70, ds * 0.5, -0.37), Vector3(0.70, ds * 1.5, -0.37)],  # stacked
+		[Vector3(0.70, ds * 0.5, -0.37), Vector3(0.71, ds * 0.5, -0.37)],  # side by side, overlapping
+		[Vector3(lim.x, ds * 0.5, -lim.y), Vector3(lim.x, ds * 1.5, -lim.y)],  # stacked in the corner
+	]
+	for c: Array in cases:
+		var froms: Array[Transform3D] = []
+		var targets: Array[Transform3D] = []
+		for p: Vector3 in c:
+			froms.append(Transform3D(Basis.IDENTITY, p))
+			targets.append(s.sim._flat(Transform3D(Basis.IDENTITY, p)))
+		var bottom_before := targets[0].origin
+		s.sim._separate(targets, froms)
+		var d := Vector2(targets[0].origin.x - targets[1].origin.x, targets[0].origin.z - targets[1].origin.z).length()
+		var inside := true
+		for tr in targets:
+			inside = inside and absf(tr.origin.x) <= lim.x + 0.0001 and absf(tr.origin.z) <= lim.y + 0.0001
+		check(d >= ds * 0.95 and inside, "flattened dice from %s end apart (%.3f m >= %.3f) inside the rails" % [str(c), d, ds * 0.95])
+		if c[1].y > c[0].y + ds * 0.5 and absf(c[0].x) < lim.x - ds:
+			check(targets[0].origin.is_equal_approx(bottom_before), "the bottom die stays put; the stacked one moves")
 
 
 # --- Pure face math ---------------------------------------------------------------
@@ -165,6 +301,9 @@ func _test_flick_clock(s: Table3D) -> void:
 ## releases, stepping Table3D._process by hand. Returns true if it threw.
 func _scripted_flick(s: Table3D, fps: float, ts: float, hitch: float, speed: float) -> bool:
 	s.set_process(false)
+	# The flick clock is real (wall) time; here the script's own real_t.
+	_clock_t = 0.0
+	s.flick_clock = func() -> float: return _clock_t
 	Engine.time_scale = ts
 	var hand := s.camera.cam.unproject_position(Table3D.HAND)
 	var dir := Vector2(-0.55, -0.83).normalized()
@@ -181,6 +320,7 @@ func _scripted_flick(s: Table3D, fps: float, ts: float, hitch: float, speed: flo
 		if hitch > 0.0 and real_t + dt >= flick - hitch:
 			dt = flick - real_t  # the release frame is one long hitch
 		real_t += dt
+		_clock_t = real_t
 		s._process(dt * ts)  # the engine passes scaled delta
 		while ev_t <= real_t + 0.00001:
 			var mm := InputEventMouseMotion.new()
@@ -194,6 +334,7 @@ func _scripted_flick(s: Table3D, fps: float, ts: float, hitch: float, speed: flo
 	rel.pressed = false
 	rel.position = hand + dir * speed * real_t
 	s._unhandled_input(rel)
+	s.flick_clock = Callable()
 	s.set_process(true)
 	await process_frame
 	return s.phase != Table3D.Phase.BET and s.phase != Table3D.Phase.HELD
@@ -250,6 +391,78 @@ func _test_faces_and_bounds(s: Table3D) -> void:
 	check(mismatches == 0, "up-faces match the DiceRoller result on all %d throws (%d mismatches)" % [n, mismatches])
 	check(not_flat == 0, "dice rest flat (%d tilted)" % not_flat)
 	check(off_table == 0, "dice stay on the felt (%d off)" % off_table)
+
+
+## Running-total mode (Burn Line groundwork): N dice per throw (1 and 3)
+## with the same flick, physics and seeded-face guarantees; the total, HUD
+## and Stop placeholder follow.
+func _test_running_total(s: Table3D, per_throw: int) -> void:
+	s.test_speed = 10.0
+	s.set_speed_mode(0)
+	s.set_mode(Table3D.Mode.RUNNING_TOTAL, per_throw)
+	await process_frame
+	check(s.dice.size() == per_throw and s.dice_per_throw() == per_throw, "%d-die mode: %d visible dice" % [per_throw, per_throw])
+	check(s.total_hud.visible and s.total_hud.stop_button.disabled, "%d-die mode: total HUD shown, Stop disabled at 0" % per_throw)
+	check(s.can_throw() == "", "%d-die mode: no Pass Line bet needed to throw" % per_throw)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77 + per_throw
+	var mismatches := 0
+	var bad_pose := 0
+	var slow := 0
+	var expected := 0
+	var throws := 8
+	for k in throws:
+		if k % 2 == 0:
+			var rig: Array[int] = []
+			for i in per_throw:
+				rig.append(rng.randi_range(1, 6))
+			s.rig_next_values(rig)
+		var v := Vector2.from_angle(rng.randf_range(-PI * 0.9, -PI * 0.3)) * rng.randf_range(s.tuning.min_throw_speed * 1.05, s.tuning.max_throw_speed)
+		var hand := s.camera.cam.unproject_position(Table3D.HAND)
+		check(s.throw(v, hand + Vector2(rng.randf_range(-30, 30), rng.randf_range(-20, 20))), "%d-die throw %d starts" % [per_throw, k])
+		var landed: Array = await s.dice_landed
+		check(landed.size() == per_throw and s.last_recording.count() == per_throw, "%d-die throw %d: %d values and simulated bodies" % [per_throw, k, per_throw])
+		for i in per_throw:
+			var d := s.dice[i]
+			if d.up_value() != int(landed[i]):
+				mismatches += 1
+			var p := d.global_position
+			var lim := Table3DBuilder.FELT_HALF
+			if d.up_dot() < 0.999 or absf(p.x) > lim.x - 0.039 or absf(p.z) > lim.y - 0.039:
+				bad_pose += 1
+			expected += int(landed[i])
+		if s.last_recording.duration() + s.tuning.windup_time + s.tuning.settle_wobble_time > s.tuning.reveal_cap + 0.001:
+			slow += 1
+		await s.sequence_finished
+		check(s.running_total.total == expected and s.running_total.count() == (k + 1) * per_throw, "%d-die throw %d: running total %d" % [per_throw, k, expected])
+	check(mismatches == 0, "%d-die mode: up-faces match the seeded values (%d mismatches)" % [per_throw, mismatches])
+	check(bad_pose == 0, "%d-die mode: dice rest flat on the felt (%d bad)" % [per_throw, bad_pose])
+	check(slow == 0, "%d-die mode: every reveal within reveal_cap (%d slow)" % [per_throw, slow])
+	await create_timer(0.6).timeout  # let the count-up finish
+	check(s.total_hud.total_label.text == str(expected), "%d-die mode: HUD counts up to the total (%s)" % [per_throw, s.total_hud.total_label.text])
+	await process_frame
+	check(s.total_hud.list_box.get_child_count() == throws * per_throw, "%d-die mode: HUD lists every die thrown" % per_throw)
+	check(not s.total_hud.stop_button.disabled, "%d-die mode: Stop enabled once something is thrown" % per_throw)
+	var stopped: Array[int] = []
+	var cb := func(t: int) -> void: stopped.append(t)
+	s.total_stopped.connect(cb)
+	s.total_hud.stop_button.pressed.emit()
+	s.total_stopped.disconnect(cb)
+	check(stopped == [expected] and s.running_total.total == 0, "%d-die mode: Stop banks %d and starts a new total" % [per_throw, expected])
+	check(s.stop_total() == -1, "%d-die mode: Stop with nothing thrown does nothing" % per_throw)
+
+
+## Switching back keeps the craps flow intact (2 dice, Pass Line).
+func _test_back_to_craps(s: Table3D) -> void:
+	s.set_mode(Table3D.Mode.CRAPS)
+	await process_frame
+	check(s.dice.size() == 2 and not s.total_hud.visible, "back to craps: 2 dice, total HUD hidden")
+	_bet(s)
+	s.rig_next_roll(2, 5)
+	check(s.quick_throw(), "back to craps: a Pass Line throw starts")
+	var report: PocRollReport = await s.outcome_shown
+	check(report.table_report.roll.total == 7 and s.dice[0].up_value() == 2 and s.dice[1].up_value() == 5, "back to craps: seeded 2-5 rolls a 7")
+	await s.sequence_finished
 
 
 ## Sound Designer hooks: die-die once per pair (lower id, other_id set),

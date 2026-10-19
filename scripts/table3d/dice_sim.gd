@@ -1,4 +1,4 @@
-## The REAL physics for a throw: two invisible RigidBody3D dice that bounce
+## The REAL physics for a throw: N invisible RigidBody3D dice (1 or more) that bounce
 ## off the table's rails and felt (Table3DBuilder adds those colliders).
 ##
 ## How the seeded result and live physics fit together (Cash's override of
@@ -30,31 +30,40 @@ var _rec: ThrowRecording
 var _t: float = 0.0
 var _rest_t: float = 0.0
 # Previous tick's velocities (pre-impact) for relative contact speed.
-var _prev_lin: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
-var _prev_ang: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+var _prev_lin: Array[Vector3] = []
+var _prev_ang: Array[Vector3] = []
 # Contacts touching last tick, per die: "collider_id:shape" keys.
-var _touching: Array[Dictionary] = [{}, {}]
-var _rest_since: Array[float] = [-1.0, -1.0]
-var _spun_up: Array[bool] = [false, false]
+var _touching: Array[Dictionary] = []
+var _rest_since: Array[float] = []
+var _spun_up: Array[bool] = []
 var _saved_ticks: int = 60
 var _saved_scale: float = 1.0
 var _saved_steps: int = 8
 var _rng := RandomNumberGenerator.new()
+var _mat: PhysicsMaterial
+## Dice in the current throw (bodies past this stay parked and frozen).
+var active: int = 0
 
 
-func setup(t: TuningData) -> void:
+func setup(t: TuningData, count: int = 2) -> void:
 	tuning = t
-	var mat := PhysicsMaterial.new()
-	mat.friction = t.die_friction
-	mat.bounce = t.die_bounce
-	for i in 2:
+	_mat = PhysicsMaterial.new()
+	_mat.friction = t.die_friction
+	_mat.bounce = t.die_bounce
+	ensure_bodies(count)
+
+
+## Makes sure there are at least `n` die bodies (added on demand, never removed).
+func ensure_bodies(n: int) -> void:
+	while bodies.size() < n:
+		var i := bodies.size()
 		var b := RigidBody3D.new()
 		b.name = "DieBody%d" % i
-		b.mass = t.die_mass
-		b.physics_material_override = mat
-		b.linear_damp = t.die_linear_damp
-		b.angular_damp = t.die_angular_damp
-		b.gravity_scale = t.die_gravity_scale
+		b.mass = tuning.die_mass
+		b.physics_material_override = _mat
+		b.linear_damp = tuning.die_linear_damp
+		b.angular_damp = tuning.die_angular_damp
+		b.gravity_scale = tuning.die_gravity_scale
 		b.linear_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 		b.angular_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 		b.continuous_cd = true
@@ -67,22 +76,31 @@ func setup(t: TuningData) -> void:
 		b.set_meta("die_index", i)
 		var cs := CollisionShape3D.new()
 		var box := BoxShape3D.new()
-		box.size = Vector3.ONE * t.die_size
+		box.size = Vector3.ONE * tuning.die_size
 		cs.shape = box
 		b.add_child(cs)
 		add_child(b)
 		bodies.append(b)
+		_prev_lin.append(Vector3.ZERO)
+		_prev_ang.append(Vector3.ZERO)
+		_touching.append({})
+		_rest_since.append(-1.0)
+		_spun_up.append(false)
 
 
-## Throws both dice from `starts` with the given velocities and spins.
+## Throws one die per entry of `starts` (1 or more) with the given velocities
+## and spins; other bodies stay parked.
 ## Returns (via `finished` and as the awaited value) the full recording.
 func simulate(starts: Array[Transform3D], lin: Array[Vector3], ang: Array[Vector3], nudge_seed: int = 0) -> ThrowRecording:
+	active = starts.size()
+	ensure_bodies(active)
 	_rec = ThrowRecording.new()
+	_rec.init(active)
 	_rec.dt = 1.0 / float(tuning.physics_hz)
 	_rng.seed = nudge_seed
 	_t = 0.0
 	_rest_t = 0.0
-	for i in 2:
+	for i in active:
 		var b := bodies[i]
 		b.linear_damp = tuning.die_linear_damp
 		b.angular_damp = tuning.die_angular_damp
@@ -114,13 +132,14 @@ func _physics_process(_delta: float) -> void:
 	if not running:
 		return
 	var dt := _rec.dt
-	for i in 2:
+	for i in active:
 		(_rec.frames[i] as Array).append(bodies[i].global_transform)
 	_scan_contacts()
 	_t += dt
 	# After a while, damp hard so every throw ends.
 	if _t >= tuning.sim_damp_after:
-		for b in bodies:
+		for i in active:
+			var b := bodies[i]
 			b.linear_damp = tuning.die_linear_damp * 3.0
 			b.angular_damp = tuning.die_angular_damp * 3.0
 	# Settle assist: anything still moving now gets eased onto its face.
@@ -128,7 +147,7 @@ func _physics_process(_delta: float) -> void:
 		_assist()
 		return
 	var at_rest := true
-	for i in 2:
+	for i in active:
 		var b := bodies[i]
 		var still := b.linear_velocity.length() <= tuning.sim_rest_linear and b.angular_velocity.length() <= tuning.sim_rest_angular
 		if not still:
@@ -174,7 +193,9 @@ func _assist() -> void:
 	_rec.assisted = true
 	var dur := maxf(end_time() - _t, 0.06)
 	var steps := maxi(int(ceil(dur / _rec.dt)), 2)
-	for i in 2:
+	var froms: Array[Transform3D] = []
+	var targets: Array[Transform3D] = []
+	for i in active:
 		var b := bodies[i]
 		var from := b.global_transform.orthonormalized()
 		var moving := b.linear_velocity.length() > tuning.sim_rest_linear or b.angular_velocity.length() > tuning.sim_rest_angular
@@ -182,7 +203,13 @@ func _assist() -> void:
 			_rec.assisted_dice += 1
 			_rest_since[i] = -1.0
 		var drift := Vector3(b.linear_velocity.x, 0.0, b.linear_velocity.z) * minf(dur, 0.25) * 0.5
-		var target := _flat(Transform3D(from.basis, from.origin + drift))
+		froms.append(from)
+		targets.append(_flat(Transform3D(from.basis, from.origin + drift)))
+	_separate(targets, froms)
+	for i in active:
+		var b := bodies[i]
+		var from := froms[i]
+		var target := targets[i]
 		var qa := from.basis.get_rotation_quaternion()
 		var qb := target.basis.get_rotation_quaternion()
 		for k in steps:
@@ -205,7 +232,8 @@ func _nudge_cocked() -> bool:
 	if _rec.nudges >= 8:
 		return false
 	var any := false
-	for b in bodies:
+	for i in active:
+		var b := bodies[i]
 		var basis := b.global_transform.basis.orthonormalized()
 		var up := DieVisual.value_up(basis)
 		var d := (basis * (DieVisual.FACE_AXES[up] as Vector3)).dot(Vector3.UP)
@@ -229,9 +257,16 @@ func _finish(already_flat: bool = false) -> void:
 	Engine.max_physics_steps_per_frame = _saved_steps
 	# Guarantee: end exactly flat on the felt with a short settle (normally
 	# a fraction of a degree; the fallback for a throw that timed out).
-	for i in 2:
-		var last := bodies[i].global_transform.orthonormalized()
-		var target := _flat(last)
+	var lasts: Array[Transform3D] = []
+	var targets: Array[Transform3D] = []
+	for i in active:
+		lasts.append(bodies[i].global_transform.orthonormalized())
+		targets.append(_flat(lasts[i]))
+	if not already_flat:
+		_separate(targets, lasts)
+	for i in active:
+		var last := lasts[i]
+		var target := targets[i]
 		var room := maxi(int((end_time() - _t) / _rec.dt), 1)
 		var steps := mini(12, room) if last.basis.get_rotation_quaternion().angle_to(target.basis.get_rotation_quaternion()) > 0.02 else 1
 		if already_flat:
@@ -250,13 +285,50 @@ func _finish(already_flat: bool = false) -> void:
 			_rec.tumble_end_speed[i] = 0.0
 		bodies[i].freeze = true
 		bodies[i].global_transform = target
-	# Keep the two final frame arrays the same length.
-	var n := maxi((_rec.frames[0] as Array).size(), (_rec.frames[1] as Array).size())
-	for i in 2:
+	# Keep every die's frame array the same length.
+	var n := 0
+	for i in active:
+		n = maxi(n, (_rec.frames[i] as Array).size())
+	for i in active:
 		var f := _rec.frames[i] as Array
 		while f.size() < n:
 			f.append(f[f.size() - 1])
 	finished.emit(_rec)
+
+
+## Flattening drops every die onto the felt, so a die that came to rest on
+## top of (or leaning on) another would land inside it. Push overlapping
+## targets apart on the felt (the higher die, the one that was stacked,
+## moves; otherwise both), staying inside the rails.
+func _separate(targets: Array[Transform3D], from: Array[Transform3D]) -> void:
+	var min_d := tuning.die_size * 1.05
+	var lim := Table3DBuilder.FELT_HALF - Vector2.ONE * tuning.die_size * 0.75
+	for it in 16:
+		var moved := false
+		for i in targets.size():
+			for j in range(i + 1, targets.size()):
+				var a := Vector2(targets[i].origin.x, targets[i].origin.z)
+				var c := Vector2(targets[j].origin.x, targets[j].origin.z)
+				var d := a.distance_to(c)
+				if d >= min_d:
+					continue
+				var dir := (a - c) / d if d > 0.0001 else Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU))
+				var push := min_d - d + 0.001
+				var wi := 0.5
+				if it < 8:  # later rounds split evenly (gets out of corners)
+					if from[i].origin.y > from[j].origin.y + tuning.die_size * 0.3:
+						wi = 1.0
+					elif from[j].origin.y > from[i].origin.y + tuning.die_size * 0.3:
+						wi = 0.0
+				a += dir * push * wi
+				c -= dir * push * (1.0 - wi)
+				a = Vector2(clampf(a.x, -lim.x, lim.x), clampf(a.y, -lim.y, lim.y))
+				c = Vector2(clampf(c.x, -lim.x, lim.x), clampf(c.y, -lim.y, lim.y))
+				targets[i].origin = Vector3(a.x, targets[i].origin.y, a.y)
+				targets[j].origin = Vector3(c.x, targets[j].origin.y, c.y)
+				moved = true
+		if not moved:
+			return
 
 
 ## The nearest orientation that sits perfectly flat, resting on the felt,
@@ -275,12 +347,14 @@ func _flat(t: Transform3D) -> Transform3D:
 	return Transform3D(nb.orthonormalized(), pos)
 
 
-## Finds contacts that began since the last tick and records them with the
+## Finds contacts that began since the last tick (ignoring speculative
+## contacts the solver hasn't pushed on yet, and stale ones left from where
+## the body was before it was teleported) and records them with the
 ## RELATIVE speed at the contact point, measured from the previous tick's
 ## (pre-impact) velocities of both bodies, plus the solver's impulse.
 ## Die-die contacts are recorded once per pair, by the lower die id.
 func _scan_contacts() -> void:
-	for i in 2:
+	for i in active:
 		var b := bodies[i]
 		var st := PhysicsServer3D.body_get_direct_state(b.get_rid())
 		var now: Dictionary = {}
@@ -289,6 +363,16 @@ func _scan_contacts() -> void:
 			for c in st.get_contact_count():
 				var other := st.get_contact_collider_object(c)
 				var key := "%d:%d" % [st.get_contact_collider_id(c), st.get_contact_collider_shape(c)]
+				# Stale contact: the first tick still lists where the body
+				# rested before simulate() teleported it into the hand (the
+				# point is then nowhere near the die). Not a hit.
+				if (st.get_contact_local_position(c) - com).length() > tuning.die_size:
+					continue
+				# A speculative contact (no impulse yet: the bodies are only
+				# close, e.g. a die released just above the felt) hasn't hit;
+				# it begins once the solver pushes on it.
+				if st.get_contact_impulse(c).length() <= 0.000001 and not _touching[i].has(key):
+					continue
 				now[key] = true
 				if _touching[i].has(key) or now.has(key + "+"):
 					continue
@@ -310,6 +394,6 @@ func _scan_contacts() -> void:
 				var impulse := st.get_contact_impulse(c).length()
 				_rec.contacts.append({"t": _t, "die": i, "kind": kind, "speed": (v_self - v_other).length(), "impulse": impulse, "other": other_id})
 		_touching[i] = now
-	for i in 2:
+	for i in active:
 		_prev_lin[i] = bodies[i].linear_velocity
 		_prev_ang[i] = bodies[i].angular_velocity

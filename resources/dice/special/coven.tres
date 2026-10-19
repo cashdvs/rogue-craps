@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpecialDieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_die_data.gd" id="1_og5tx"]
+
+[resource]
+script = ExtResource("1_og5tx")
+id = &"coven"
+display_name = "Coven Die"
+description = "Trips or Full House containing it get x2 mult."
+price = 24
+faces = Array[int]([1, 2, 3, 4, 5, 6])

@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_f8usp"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_grv1p"]
+[ext_resource type="Resource" path="res://resources/mods/wild.tres" id="3_jv6hg"]
+[ext_resource type="Resource" path="res://resources/mods/twin.tres" id="4_881ww"]
+[ext_resource type="Resource" path="res://resources/mods/blank.tres" id="5_vkcuk"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="6_w5si2"]
+
+[sub_resource type="Resource" id="Resource_kwjdd"]
+script = ExtResource("2_grv1p")
+kind = 1
+amount = -6
+
+[sub_resource type="Resource" id="Resource_1bm0g"]
+script = ExtResource("2_grv1p")
+kind = 2
+mod = ExtResource("3_jv6hg")
+
+[sub_resource type="Resource" id="Resource_bvmp0"]
+script = ExtResource("1_f8usp")
+label = "Commission a Wild Face: -6 Embers."
+result_text = "The face goes smooth and strange."
+effects = Array[ExtResource("2_grv1p")]([SubResource("Resource_kwjdd"), SubResource("Resource_1bm0g")])
+
+[sub_resource type="Resource" id="Resource_lremk"]
+script = ExtResource("2_grv1p")
+kind = 2
+mod = ExtResource("4_881ww")
+
+[sub_resource type="Resource" id="Resource_xkx82"]
+script = ExtResource("2_grv1p")
+kind = 2
+mod = ExtResource("5_vkcuk")
+target = 1
+
+[sub_resource type="Resource" id="Resource_48bv2"]
+script = ExtResource("1_f8usp")
+label = "Let him improvise: a free Twin Face, but another face goes Blank."
+result_text = "He carves fast. Too fast."
+effects = Array[ExtResource("2_grv1p")]([SubResource("Resource_lremk"), SubResource("Resource_xkx82")])
+
+[sub_resource type="Resource" id="Resource_vtyix"]
+script = ExtResource("1_f8usp")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("6_w5si2")
+id = &"bone_carver"
+title = "The Bone Carver"
+body = "A hunched carver whittles dice from knucklebones by candlelight. He eyes your handful and grins: 'I can make them say whatever you want.'"
+art_note = "Old carver with a knife, bone shavings, one candle."
+choices = Array[ExtResource("1_f8usp")]([SubResource("Resource_bvmp0"), SubResource("Resource_48bv2"), SubResource("Resource_vtyix")])

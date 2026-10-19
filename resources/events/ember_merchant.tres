@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_1c4eb"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_jscqj"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_8wv1b"]
+
+[sub_resource type="Resource" id="Resource_twrc1"]
+script = ExtResource("2_jscqj")
+kind = 1
+amount = -8
+
+[sub_resource type="Resource" id="Resource_qt08m"]
+script = ExtResource("2_jscqj")
+kind = 4
+amount = 1
+seal = &"run3"
+
+[sub_resource type="Resource" id="Resource_sprla"]
+script = ExtResource("1_1c4eb")
+label = "Buy a Seal: -8 Embers, Run of 3 Seal +1."
+result_text = "A seal of three steps, still warm."
+effects = Array[ExtResource("2_jscqj")]([SubResource("Resource_twrc1"), SubResource("Resource_qt08m")])
+
+[sub_resource type="Resource" id="Resource_b3wpr"]
+script = ExtResource("2_jscqj")
+kind = 3
+
+[sub_resource type="Resource" id="Resource_slmgi"]
+script = ExtResource("2_jscqj")
+kind = 1
+amount = 12
+
+[sub_resource type="Resource" id="Resource_dtiul"]
+script = ExtResource("1_1c4eb")
+label = "Sell a carving: give a face mod, +12 Embers."
+result_text = "The lantern swallows your carving."
+effects = Array[ExtResource("2_jscqj")]([SubResource("Resource_b3wpr"), SubResource("Resource_slmgi")])
+requires_face_mod = true
+
+[sub_resource type="Resource" id="Resource_vtyix"]
+script = ExtResource("1_1c4eb")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_8wv1b")
+id = &"ember_merchant"
+title = "The Ember Merchant"
+body = "A merchant's lantern is crammed with trapped embers that whisper prices. 'Everything is for sale down here, friend. Even your carvings.'"
+art_note = "Cloaked merchant holding a lantern of swirling embers."
+choices = Array[ExtResource("1_1c4eb")]([SubResource("Resource_sprla"), SubResource("Resource_dtiul"), SubResource("Resource_vtyix")])

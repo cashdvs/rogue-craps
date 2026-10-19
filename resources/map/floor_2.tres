@@ -1,0 +1,96 @@
+[gd_resource type="Resource" script_class="FloorData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/bounty_data.gd" id="1_ypktt"]
+[ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="2_seg2v"]
+[ext_resource type="Resource" path="res://resources/map/rules/straight_man.tres" id="3_8hmiw"]
+[ext_resource type="Resource" path="res://resources/map/rules/collector.tres" id="4_2mc8b"]
+[ext_resource type="Resource" path="res://resources/map/rules/bloodletter.tres" id="5_xfmm3"]
+[ext_resource type="Resource" path="res://resources/map/rules/cold_sixes.tres" id="6_clgi4"]
+[ext_resource type="Resource" path="res://resources/map/rules/first_throw.tres" id="7_oxovy"]
+[ext_resource type="Resource" path="res://resources/map/rules/short_table.tres" id="8_bu3lb"]
+[ext_resource type="Resource" path="res://resources/map/rules/heavy_burn.tres" id="9_hpjuf"]
+[ext_resource type="Resource" path="res://resources/map/rules/greedy_pot.tres" id="10_fiotg"]
+[ext_resource type="Resource" path="res://resources/map/rules/cold_hands.tres" id="11_ryafq"]
+[ext_resource type="Resource" path="res://resources/map/floor_1_map.tres" id="12_rew8i"]
+[ext_resource type="Script" path="res://scripts/data/floor_data.gd" id="13_rgtap"]
+
+[sub_resource type="Resource" id="Resource_mhwom"]
+script = ExtResource("1_ypktt")
+id = &"bonus_full_house"
+display_name = "Full House"
+description = "Bonus: pot three of a kind plus a pair."
+kind = 3
+n = 5
+bonus_embers = 5
+
+[sub_resource type="Resource" id="Resource_h33il"]
+script = ExtResource("1_ypktt")
+id = &"bonus_quads"
+display_name = "Quads"
+description = "Bonus: pot four of a kind."
+n = 4
+bonus_embers = 5
+
+[sub_resource type="Resource" id="Resource_ut1xe"]
+script = ExtResource("1_ypktt")
+id = &"quads"
+display_name = "Quads"
+description = "Pot four of a kind."
+n = 4
+
+[sub_resource type="Resource" id="Resource_oo81c"]
+script = ExtResource("1_ypktt")
+id = &"run5"
+display_name = "Run of 5"
+description = "Pot five in a row."
+kind = 4
+n = 5
+
+[sub_resource type="Resource" id="b_triple"]
+script = ExtResource("1_ypktt")
+id = &"triple"
+display_name = "Triple"
+description = "Pot three of a kind."
+
+[sub_resource type="Resource" id="b_run3"]
+script = ExtResource("1_ypktt")
+id = &"run3"
+display_name = "Run of 3"
+description = "Pot three in a row."
+kind = 1
+
+[sub_resource type="Resource" id="b_two_pairs"]
+script = ExtResource("1_ypktt")
+id = &"two_pairs"
+display_name = "Two Pairs"
+description = "Pot two different pairs."
+kind = 2
+n = 2
+
+[sub_resource type="Resource" id="Resource_1ruv5"]
+script = ExtResource("1_ypktt")
+id = &"run4"
+display_name = "Run of 4"
+description = "Pot four in a row."
+kind = 1
+n = 4
+
+[sub_resource type="Resource" id="Resource_glfvm"]
+script = ExtResource("1_ypktt")
+id = &"full_house"
+display_name = "Full House"
+description = "Pot three of a kind plus a pair."
+kind = 3
+n = 5
+
+[resource]
+script = ExtResource("13_rgtap")
+display_name = "Floor 2"
+map = ExtResource("12_rew8i")
+max_bounties = 4
+common_bounties = Array[ExtResource("1_ypktt")]([SubResource("b_triple"), SubResource("b_run3"), SubResource("b_two_pairs")])
+featured_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_1ruv5"), SubResource("Resource_glfvm")])
+bonus_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_mhwom"), SubResource("Resource_h33il")])
+elite_twists = Array[ExtResource("2_seg2v")]([ExtResource("6_clgi4"), ExtResource("7_oxovy"), ExtResource("8_bu3lb"), ExtResource("9_hpjuf"), ExtResource("10_fiotg"), ExtResource("11_ryafq")])
+boss_cheats = Array[ExtResource("2_seg2v")]([ExtResource("3_8hmiw"), ExtResource("4_2mc8b"), ExtResource("5_xfmm3")])
+boss_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_ut1xe"), SubResource("Resource_oo81c")])

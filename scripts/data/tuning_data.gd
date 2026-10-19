@@ -158,6 +158,10 @@ extends Resource
 @export var cam_distance: float = 2.5
 ## Look-at pivot on the felt (spec: slightly toward the player).
 @export var cam_pivot: Vector3 = Vector3(0.0, 0.0, 0.05)
+## The camera looks this many degrees above the pivot (a tilt of the lens,
+## not of the orbit): more of the space behind the far rail (the dealer)
+## for the same felt. 0 = aimed at the pivot (spec). Landscape only.
+@export var cam_look_up_deg: float = 0.0
 ## Reveal follow/zoom: distance and timings (spec: 2.5 -> 2.1 m in 0.30 s, back in 0.40 s).
 @export var cam_reveal_distance: float = 2.1
 @export var cam_reveal_time: float = 0.30
@@ -214,6 +218,10 @@ extends Resource
 @export var sim_rest_linear: float = 0.03
 @export var sim_rest_angular: float = 0.5
 @export var sim_rest_time: float = 0.12
+## Running-total mode (groundwork for Burn Line): the target-line marker.
+## PLACEHOLDER until design/burn_line.md sets the real number and rules.
+@export var total_target_line: int = 21
+
 ## Audio: at most one impact signal per die per this many seconds.
 @export var impact_min_interval: float = 0.05
 ## Audio: contacts slower than this (relative m/s) are silent (no signal).
@@ -231,7 +239,17 @@ extends Resource
 
 @export_group("3D throw timing (design doc 5b: one throw every 2-3 s)")
 ## Pace target: MEDIAN time from release to the dice at rest (seconds).
+## Since design/bonfire_map_events_juice.md section 7 this covers soft and
+## medium throws only (flick <= settle_split_px_s); hard throws get the two
+## targets below.
 @export var settle_target: float = 0.9
+## Section 7: the flick speed (game px/s, the value the throw curve reads)
+## splitting soft/medium throws (settle_target) from hard ones.
+@export var settle_split_px_s: float = 2200.0
+## Section 7: hard throws (> settle_split_px_s): MEDIAN release -> rest.
+@export var settle_target_hard: float = 1.3
+## Section 7: hard throws: 95th percentile release -> rest (long tails).
+@export var settle_p95_hard: float = 1.8
 ## Settle assist: a die still moving this long after release is eased
 ## (smoothly, no snap) flat onto its face; the face remap makes that the
 ## seeded face.

@@ -1,5 +1,5 @@
 {
-	"_comment": "Dealer taunts for the POC table. Edit freely: event id -> list of lines. One is picked at random, never the same line twice in a row. Events: natural, craps, point_set, point_hit, seven_out, big_bet, low_soul, table_win, table_fail.",
+	"_comment": "Dealer taunts for the POC table. Edit freely: event id -> list of lines. One is picked at random, never the same line twice in a row. Events: natural, craps, point_set, point_hit, seven_out, big_bet, low_soul, table_win, table_fail. Bonfire sandbox: bonfire_bust, bonfire_bank, bonfire_hot, bonfire_clear, bonfire_fail.",
 	"natural": [
 		"Beginner's luck. It burns out fast.",
 		"Enjoy it. I'm keeping count.",
@@ -51,5 +51,26 @@
 		"House wins. House always wins.",
 		"Pay the man. With your soul.",
 		"Come back when you've got more to lose."
+	],
+	"bonfire_bust": [
+		"Cold dice. Cold heart. Hand it over.",
+		"Nothing burns. Except you.",
+		"The fire went out. So did your pot."
+	],
+	"bonfire_bank": [
+		"Banking? The fire was just getting warm.",
+		"Cautious little moth."
+	],
+	"bonfire_hot": [
+		"All of them burning? Throw them again. I dare you.",
+		"Hot hand. Hotter fall."
+	],
+	"bonfire_clear": [
+		"Fine. Take your embers and go.",
+		"You walk out warm. This time."
+	],
+	"bonfire_fail": [
+		"Out of hands. The bonfire keeps your coin.",
+		"Ashes. Lovely."
 	]
 }

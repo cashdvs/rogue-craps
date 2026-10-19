@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FaceModData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="1_ewpli"]
+
+[resource]
+script = ExtResource("1_ewpli")
+id = &"heavy"
+display_name = "Heavy Face"
+description = "Lands twice as often."
+effect = 6
+price = 6
