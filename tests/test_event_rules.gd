@@ -192,10 +192,10 @@ func _test_table_ahead() -> void:
 func _test_twist_greyed() -> void:
 	var twist: EventChoiceData = _demo.choices[7]
 	var p := RunProgress.new(_run)
-	_check(EventApplier.why_not(twist, p, false) == "No table left on this floor.", "twist: greyed with the reason line")
+	_check(EventApplier.why_not(twist, p, false) == "No Table left on this floor.", "twist: greyed with the reason line")
 	_check(EventApplier.can_choose(twist, p, true), "twist: allowed while a Table is ahead")
 	var lines := EventApplier.apply(twist, p, _rng(1), [], false)
-	_check(lines == (["refused: No table left on this floor."] as Array[String]) and p.next_table_twist == null, "twist: apply refuses it too")
+	_check(lines == (["refused: No Table left on this floor."] as Array[String]) and p.next_table_twist == null, "twist: apply refuses it too")
 	var run := MapRun.new(_run, 9)
 	run.map = _line(NT.REST)
 	run.screen = S.EVENT
@@ -210,7 +210,7 @@ func _test_twist_greyed() -> void:
 	var found := false
 	for c in view._box.get_children():
 		if c is Button and c.text == twist.label:
-			found = c.disabled and c.tooltip_text == "No table left on this floor."
+			found = c.disabled and c.tooltip_text.begins_with("No Table left on this floor.")
 	_check(found, "twist: the event screen greys the button with the reason")
 	view.free()
 
@@ -227,7 +227,7 @@ func _buttons(view: EventView) -> Array[String]:
 ## substitute; the Leave-only skip still applies.
 func test_hidden() -> void:
 	var gd := load("res://resources/events/gravedigger.tres") as EventData
-	var lantern := _run.shapes.filter(func(s: DieShape) -> bool: return s.id == &"lantern")[0] as DieShape
+	var lantern := _run.shapes.filter(func(s: DieShape) -> bool: return s.id == DiceIds.DIE_LANTERN)[0] as DieShape
 	var was := lantern.enabled
 	lantern.enabled = false
 	var p := RunProgress.new(_run)

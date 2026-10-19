@@ -46,7 +46,7 @@ func show_event(e: EventData, p: RunProgress, table_ahead: bool = true) -> void:
 		var b := RunTheme.button(c.label)
 		var why := EventApplier.why_not(c, p, table_ahead)
 		b.disabled = why != ""
-		b.tooltip_text = why
+		b.tooltip_text = "\n".join(([why] if why != "" else []) + EventApplier.tips(c))
 		b.pressed.connect(_on_choice.bind(i))
 		_box.add_child(b)
 		if why != "":
@@ -95,12 +95,15 @@ func _on_choice(i: int) -> void:
 		if not e.needs_pick():
 			continue
 		var picker := FacePicker.new()
-		var verb: String = "Pick a face to give up" if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
-			else ("Pick a die to give up" if e.kind == EventEffectData.Kind.SELL_DIE else "Pick a face for the %s" % e.mod.display_name)
+		var verb: String = "Pick a face mod to give up." if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
+			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else "Pick a face for the %s" % e.mod.display_name)
 		picker.build(_progress, verb, func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks))
 		_clear()
 		_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
 		_box.add_child(picker)
+		if e.kind == EventEffectData.Kind.SELL_DIE:
+			for d in _progress.dice.size():
+				_box.add_child(RunTheme.label("%s: +%d Embers" % [_progress.die_name(d), EventApplier.sell_payout(e, _progress, d)], 20, RunTheme.GOLD))
 		var back := RunTheme.button("Back")
 		back.pressed.connect(func() -> void: show_event(_event, _progress, _table_ahead))
 		_box.add_child(back)
