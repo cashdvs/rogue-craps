@@ -55,7 +55,7 @@ func _check_board(path: String, budget: int, all_on: bool) -> void:
 	var tag := " [all optional ON]" if all_on else " [default]"
 	if not all_on:
 		var plate := board.get_node_or_null("Anchors/TargetPlate/Plate")
-		_check(plate != null and plate.scene_file_path.ends_with("goal_plaque.tscn"), path.get_file() + ": far rail has the generic goal plaque by default")
+		_check(plate != null and plate.scene_file_path.ends_with("goal_plaque.tscn"), path.get_file() + ": far rail has the goal_plaque_scene (generic goal plaque) at TargetPlate by default")
 		for slot: String in ["ChipTray", "BurnLine", "Zones"]:
 			_check(board.get_node("Anchors/" + slot).get_child_count() == 0, "%s: optional slot %s is empty by default" % [path.get_file(), slot])
 		_check(_count_lights(board) == 0, path.get_file() + ": no light nodes (Lamp3D owns the lights)")
