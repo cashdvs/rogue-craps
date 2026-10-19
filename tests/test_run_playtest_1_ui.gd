@@ -13,8 +13,7 @@ var _failed: int = 0
 
 
 func _initialize() -> void:
-	RunProfile.path = "user://test_profile_playtest_1_ui.cfg"
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(RunProfile.path))
+	var guard := ProfileGuard.begin("playtest_1_ui")
 	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
 	scene.run_seed = 4242
 	root.add_child(scene)
@@ -27,7 +26,7 @@ func _initialize() -> void:
 	scene.queue_free()
 	await process_frame
 	await _test_embers_hud()
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(RunProfile.path))
+	_check(guard.end(), "profile: the real user://profile.cfg is untouched")
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 

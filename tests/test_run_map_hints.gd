@@ -13,8 +13,8 @@ var _failed: int = 0
 
 
 func _initialize() -> void:
-	RunProfile.path = "user://test_profile_map_hints.cfg"
-	_wipe()
+	_test_auto_path()
+	var guard := ProfileGuard.begin("map_hints")
 	_test_profile_file()
 	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
 	scene.run_seed = 4242
@@ -35,7 +35,7 @@ func _initialize() -> void:
 	_test_mini_dice(scene)
 	scene.queue_free()
 	await process_frame
-	_wipe()
+	_check(guard.end(), "profile: the real user://profile.cfg is untouched")
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -50,6 +50,21 @@ func _check(c: bool, name: String) -> void:
 
 func _wipe() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(RunProfile.path))
+
+
+## Without an override, a --script run (tests, tools) keeps the profile in
+## memory: no file, never the real profile.
+func _test_auto_path() -> void:
+	RunProfile.path = ""
+	var before := ProfileGuard.snapshot()
+	_check(RunProfile.file_path() == "" and RunProfile.REAL_PATH == "user://profile.cfg",
+		"profile: a --script run without an override uses memory (%s)" % RunProfile.file_path())
+	_check(RunProfile.mark_map_key_seen() == OK and RunProfile.map_key_seen() and ProfileGuard.snapshot() == before,
+		"profile: memory mode remembers the flag and writes no file")
+	RunProfile._memory.clear()
+	RunProfile.path = "user://test_profile_override.cfg"
+	_check(RunProfile.file_path() == RunProfile.path, "profile: RunProfile.path overrides the file")
+	RunProfile.path = ""
 
 
 func _test_profile_file() -> void:

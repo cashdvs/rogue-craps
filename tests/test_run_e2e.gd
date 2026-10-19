@@ -121,6 +121,7 @@ func _play_table(t: Bonfire3D) -> TableOutcome:
 
 
 func _run() -> void:
+	var guard := ProfileGuard.begin("run_e2e")
 	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
 	scene.run_seed = 4242
 	root.add_child(scene)
@@ -185,6 +186,7 @@ func _run() -> void:
 	_check(run.screen == S.RUN_WON or run.screen == S.RUN_OVER, "the run reaches an end screen")
 	_check(run.screen != S.RUN_WON or (run.progress.contract_pieces == 3 and floors_seen.size() == 3), "Run won only with all 3 contract pieces")
 	_check(floors_seen.size() == 3, "played into floor 3")
+	_check(guard.end(), "profile: the real user://profile.cfg is untouched")
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	scene.queue_free()
 	await process_frame
