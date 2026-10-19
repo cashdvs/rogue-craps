@@ -133,6 +133,7 @@ func _ready() -> void:
 	all_dice = dice.duplicate()
 	for i in all_dice.size():
 		var td: TableDie = setup.dice[mini(i, setup.dice.size() - 1)]
+		td.normalize()  # a faces / mods / shape mismatch warns and is padded, never a SCRIPT ERROR
 		_die_of[all_dice[i]] = td
 		all_dice[i].set_meta(&"handful_id", i)
 		apply_die_look(all_dice[i], td)
@@ -342,22 +343,22 @@ func table_die(d: DieVisual) -> TableDie:
 func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	if td == null:
 		return
-	if td.faces != [1, 2, 3, 4, 5, 6]:
-		var lab: Array[int] = []
-		for v in td.faces:
-			lab.append(clampi(v, 1, 6))
-		lab.resize(6)
-		d.set_look(Palette.BONE, Palette.PIT_BLACK, lab)
+	if td.shape == &"coin":
+		d.make_coin()
+	elif td.faces != [1, 2, 3, 4, 5, 6]:
+		# DieVisual.safe_labels pads / trims a mismatched face list to 6.
+		d.set_look(Palette.BONE, Palette.PIT_BLACK, td.faces)
 	var old := d.faces.get_node_or_null("FaceMods")
 	if old != null:
 		old.free()
 	var root := Node3D.new()
 	root.name = "FaceMods"
 	d.faces.add_child(root)
-	for slot in range(1, 7):
+	# One decal per modded slot the mesh has (a coin: heads, tails).
+	for slot in range(1, mini(td.mods.size(), 2 if d.shape == &"coin" else 6) + 1):
 		var m := td.mod_at(slot)
 		if m != null:
-			_add_mod_decal(root, d, slot, m)
+			_add_mod_decal(root, d, d.mesh_face(slot), m)
 
 
 func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> void:
@@ -369,7 +370,7 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 	# Everything sits just above the pip tops (h + 0.01 e) so the die's ink
 	# outline pass can't swallow it; fills would hide the pips, so the
 	# coloured mods are a rim + tinted pips.
-	var lift := e * 0.5 + 0.014 * e
+	var lift := d.face_half(slot) + 0.014 * e
 	match m.effect:
 		FaceModData.Effect.MULT_FACTOR:
 			var c: Array[Color] = [HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR]
@@ -958,7 +959,7 @@ func _pick_values() -> Array[int]:
 		for i in dice.size():
 			var td := _td(i)
 			var slot := _rig[i] if _rig_is_slots else td.slot_for_value(_rig[i])
-			v.append(clampi(slot if slot > 0 else _rig[i], 1, 6))
+			v.append(clampi(slot if slot > 0 else _rig[i], 1, td.face_count()))
 		_rig.clear()
 		return v
 	for i in dice.size():
@@ -1096,6 +1097,13 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 		var axis: Vector3 = base["spin"][i]
 		axis = axis.normalized() if axis.length() > 0.001 else Vector3.RIGHT
 		spin.append(axis * spin_mag * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter)))
+		if i < n and dice[i].shape == &"coin":
+			# Ferryman's Coin: a hard end-over-end flip about a diameter plus
+			# extra lift, both growing with the flick, so it visibly flips.
+			var cn := dice[i].global_transform.basis.orthonormalized() * Vector3.UP
+			var flip := CoinPhysics.flip_axis(cn, lin[i], _fx_rng, deg_to_rad(bt.coin_axis_jitter_deg))
+			spin[i] = flip * lerpf(bt.coin_flip_min_rad_s, bt.coin_flip_max_rad_s, k) * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter))
+			lin[i].y += lerpf(bt.coin_lift_min_mps, bt.coin_lift_max_mps, k)
 	last_launch = {"lin": lin, "spin": spin, "speed": speed, "k": k, "flick": velocity.length()}
 	_show_throw_debug(velocity.length(), speed, k)
 	throw_measured.emit(velocity.length(), speed, k)
@@ -1174,6 +1182,8 @@ func _update_portrait_hud() -> void:
 	bhud.set_ui_scale(ui_pt_px(portrait), BonfireHud.PHONE_LANDSCAPE_CARDS if phone_land else 1.0)
 	if felt_combos != null:
 		felt_combos.set_portrait(portrait, portrait and portrait_felt_flipped())
+		if not portrait:
+			_fit_landscape_felt()
 
 
 ## Portrait: the Art Director drew the portrait combo block for a camera
@@ -1255,7 +1265,7 @@ func _show_face_changes(th: TableThrow) -> void:
 		if i < throw_slots.size():
 			throw_slots[i] = slot
 		var phys := DieVisual.value_up(d.global_transform.basis)
-		var to := DieVisual.remap_basis(phys, slot).get_rotation_quaternion()
+		var to := DieVisual.remap_basis(phys, d.mesh_face(slot)).get_rotation_quaternion()
 		if i < _remap_to.size() and dice.has(d):
 			var k := dice.find(d)
 			_remap_from[k] = to
@@ -1628,6 +1638,68 @@ func fit_phone(size: Vector2) -> float:
 	return px
 
 
+## Landscape: keep the felt combo band clear of the Soul meter on the left
+## and the screen's right edge (8 pt margins) for this camera framing.
+func _fit_landscape_felt() -> void:
+	if felt_combos == null or camera == null:
+		return
+	var vs := get_viewport().get_visible_rect().size
+	# 16:9 and narrower keep the band exactly as the Art Director drew it.
+	if vs.x <= vs.y * 16.0 / 9.0 + 1.0:
+		felt_combos.set_land_fit(1.0, 0.0)
+		return
+	var margin := 8.0 * ui_pt_px(false)
+	var left := margin
+	if soul_meter != null and soul_meter.is_visible_in_tree():
+		left = soul_meter.get_global_rect().end.x + margin
+	# The band must fit every pose the camera takes in play: home, and the
+	# reveal glide (closer in, pivot slid up to cam_follow_clamp each way).
+	# Home must fit both edges; in the glide only the left end (under the
+	# Soul meter) counts, since the right end just runs off the screen.
+	var c := tuning.cam_follow_clamp
+	var close := minf(tuning.cam_reveal_distance, camera.home_distance)
+	var hp := camera.home_pivot
+	var poses: Array = [[hp, camera.home_distance]]
+	for px: float in [-c, 0.0, c]:
+		for pz: float in [-c, 0.0, c]:
+			poses.append([Vector3(px, 0.0, pz + hp.z), close])
+	# ok[i] is true while size/slide candidate i fits every pose so far.
+	# Candidates: size 100% down to 70%, slide -0.30..+0.30 m in 5 mm steps.
+	var ok: Array[bool] = []
+	ok.resize(31 * 121)
+	ok.fill(true)
+	var was_pos := camera.position
+	var was_dist := camera.distance
+	var was_tilt := camera.tilt_deg
+	for pose: Array in poses:
+		camera.position = pose[0]
+		camera.distance = pose[1]
+		camera.tilt_deg = 0.0
+		camera._apply()
+		for i in ok.size():
+			if ok[i]:
+				var right := vs.x - margin if pose == poses[0] else INF
+				ok[i] = felt_combos.land_fits(camera.cam, (100 - i / 121) / 100.0, (i % 121 - 60) * 0.005, left, right)
+	camera.position = was_pos
+	camera.distance = was_dist
+	camera.tilt_deg = was_tilt
+	camera._apply()
+	# Biggest size that fits; for that size, the smallest slide.
+	var k := 0.70
+	var sx := 0.0
+	var found := false
+	for ki in 31:
+		for si in 121:
+			var shift := (si - 60) * 0.005
+			if ok[ki * 121 + si] and (not found or absf(shift) < absf(sx)):
+				sx = shift
+				found = true
+		if found:
+			k = (100 - ki) / 100.0
+			break
+	felt_combos.set_land_fit(k, sx)
+
+
 ## Phone landscape: the home framing's pitch and tilt, closer in and
 ## centred (BonfireTuning cam_phone_landscape_*), so the whole felt, the
 ## near rail and the TotalPlate are in frame with dice as big as the old
@@ -1650,6 +1722,7 @@ func _fit_phone_landscape() -> float:
 		camera.distance = camera.home_distance
 		camera._apply()
 	phone_dial_visible = true
+	_fit_landscape_felt()
 	return _smallest_die_px(CameraFraming.rest_spots(tuning.die_size))
 
 

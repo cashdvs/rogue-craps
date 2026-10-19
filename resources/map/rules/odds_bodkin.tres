@@ -7,7 +7,7 @@
 
 [resource]
 script = ExtResource("1_bodk")
-id = &"first_throw"
+id = &"odds_bodkin"
 display_name = "Odds Bodkin"
 description = "Bounties count only on each hand's first throw; +1 hand."
 kind = 1

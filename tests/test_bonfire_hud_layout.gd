@@ -50,6 +50,14 @@ func _run() -> void:
 		s.pick_die(i)
 	await process_frame
 	check(h.risk_label.text != "" and not s.why_label.visible, "risk line up: the status line is hidden (%s)" % h.risk_label.text)
+	# The three bottom text lines never overlap, sideways OR up/down
+	# (Rect2.intersects checks both axes; touching edges are fine).
+	var lines: Array[Control] = [h.throw_label, h.notes_label, h.risk_label]
+	for a in lines.size():
+		for b in range(a + 1, lines.size()):
+			var ra := lines[a].get_global_rect()
+			var rb := lines[b].get_global_rect()
+			check(not ra.intersects(rb), "%s %s and %s %s don't overlap" % [lines[a].name, str(ra), lines[b].name, str(rb)])
 	for i in 3:
 		s.pick_die(i)
 	await process_frame

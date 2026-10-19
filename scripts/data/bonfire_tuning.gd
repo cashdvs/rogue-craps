@@ -147,4 +147,14 @@ extends Resource
 ## +- random spread on each die's spin (fraction) and its fan angle (deg).
 @export var spin_jitter: float = 0.18
 @export var fan_deg: float = 5.0
+
+@export_group("Coin flip (Ferryman's Coin)")
+## End-over-end spin (rad/s) about the coin's diameter: gentle lob .. hard throw.
+@export var coin_flip_min_rad_s: float = 45.0
+@export var coin_flip_max_rad_s: float = 60.0
+## Extra upward launch (m/s) on top of launch_up_*, so it tumbles in the air.
+@export var coin_lift_min_mps: float = 1.8
+@export var coin_lift_max_mps: float = 2.0
+## Random tilt (deg) of the flip axis around vertical.
+@export var coin_axis_jitter_deg: float = 20.0
 @export var table_goal: TableGoal

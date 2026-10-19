@@ -56,6 +56,15 @@ var labels: Dictionary = {}
 ## (z, metres). 1 / 0 = as drawn.
 var port_scale: float = 1.0
 var port_shift_z: float = 0.0
+## Landscape only: the band's fit to the camera (fit_landscape_view): a
+## uniform scale about the felt's centre line, then a slide along x
+## (metres). 1 / 0 = as drawn.
+var land_scale: float = 1.0
+var land_shift_x: float = 0.0
+## The landscape band as drawn (felt metres): its x span, its z span and
+## the point it scales about (x 0, the middle of its depth).
+const LAND_X := Vector2(-0.955, 0.980)
+const LAND_Z := Vector2(0.382, 0.4925)
 var _tuning: BonfireTuning
 var _levels: Dictionary = {}
 var _slots: Dictionary = {}
@@ -151,6 +160,33 @@ func fit_portrait_view(cam: Camera3D, view: Vector2, margin_px: float) -> void:
 	_apply()
 
 
+## Landscape: on a window wider than 16:9 (e.g. 1688x780) the band's left
+## end ("Pair") slid under the Soul meter once the camera glided in for a
+## throw. Bonfire3D works out a size and slide that fits every camera pose
+## (land_fits) and sets it here: the print and the slots move together.
+func set_land_fit(k: float, sx: float) -> void:
+	land_scale = k
+	land_shift_x = sx
+	_apply()
+
+
+## True if the band, scaled by k and slid by sx, is inside [left_px, right_px].
+func land_fits(cam: Camera3D, k: float, sx: float, left_px: float, right_px: float) -> bool:
+	# The print can't leave the felt (2.04 m wide): past its edge it's cut.
+	if LAND_X.x * k + sx < -1.01 or LAND_X.y * k + sx > 1.01:
+		return false
+	var zc := (LAND_Z.x + LAND_Z.y) * 0.5
+	for x: float in [LAND_X.x, LAND_X.y]:
+		for z: float in [LAND_Z.x, LAND_Z.y]:
+			var p := Vector3(x * k + sx, 0.0, zc + (z - zc) * k + LAND_SHIFT_Z)
+			if cam.is_position_behind(p):
+				return false
+			var px := cam.unproject_position(p).x
+			if px < left_px or px > right_px:
+				return false
+	return true
+
+
 ## The felt's z range at x that the camera shows margin_px inside the
 ## viewport's left / right edges (x: min, y: max).
 static func visible_z(cam: Camera3D, view: Vector2, x: float, margin_px: float) -> Vector2:
@@ -198,7 +234,11 @@ func _apply() -> void:
 		# The felt is 1.04 m deep, so metres / 1.04 = UV units.
 		var shift := Vector2(0.0, port_shift_z / 1.04) if fit else Vector2.ZERO
 		if not portrait:
-			shift = Vector2(0.0, LAND_SHIFT_Z / 1.04)
+			shift = Vector2(land_shift_x / 2.04, LAND_SHIFT_Z / 1.04)
+			var land_fit := not is_equal_approx(land_scale, 1.0)
+			var zc := (LAND_Z.x + LAND_Z.y) * 0.5
+			felt_material.set_shader_parameter("overlay_pivot", Vector2(0.5, (zc + 0.52) / 1.04) if land_fit else Vector2(0.5, 0.5))
+			felt_material.set_shader_parameter("overlay_scale", land_scale if land_fit else 1.0)
 		else:
 			# The felt is 2.04 m wide: metres / 2.04 = UV units.
 			shift.x = _port_shift_x() / 2.04
@@ -239,7 +279,11 @@ func _apply() -> void:
 			z = pv.y + (z - pv.y) * k + port_shift_z
 			x += _port_shift_x()
 		else:
-			z += LAND_SHIFT_Z
+			# Landscape fit: scale about the band's middle, slide along x.
+			k = land_scale
+			var zc := (LAND_Z.x + LAND_Z.y) * 0.5
+			x = x * k + land_shift_x
+			z = zc + (z - zc) * k + LAND_SHIFT_Z
 		l.position = Vector3(x, LIFT, z)
 		l.rotation_degrees = rot
 		var stretch := PORT_STRETCH if portrait else LAND_STRETCH
