@@ -43,6 +43,8 @@ func show_event(e: EventData, p: RunProgress, table_ahead: bool = true) -> void:
 	_box.add_child(row)
 	for i in e.choices.size():
 		var c := e.choices[i]
+		if EventApplier.is_hidden(c, p):
+			continue
 		var b := RunTheme.button(c.label)
 		var why := EventApplier.why_not(c, p, table_ahead)
 		b.disabled = why != ""

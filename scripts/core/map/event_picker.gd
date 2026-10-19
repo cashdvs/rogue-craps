@@ -22,7 +22,7 @@ static func is_leave(c: EventChoiceData) -> bool:
 ## the event screen greys choices with (EventApplier.why_not).
 static func worth_offering(e: EventData, p: RunProgress, table_ahead: bool) -> bool:
 	for c in e.choices:
-		if not is_leave(c) and EventApplier.why_not(c, p, table_ahead) == "":
+		if not is_leave(c) and not EventApplier.is_hidden(c, p) and EventApplier.why_not(c, p, table_ahead) == "":
 			return true
 	return false
 

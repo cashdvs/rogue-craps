@@ -73,6 +73,10 @@ func _test_load() -> void:
 
 
 func _test_resolve() -> void:
+	# The Lantern shape ships disabled, so its choice is hidden; resolve it enabled.
+	var lantern: DieShape = _run.shapes.filter(func(s: DieShape) -> bool: return s.id == &"lantern")[0]
+	_check(not lantern.enabled and EventApplier.is_hidden(_events[&"gravedigger"].choices[1], _rich()), "hidden: the Lantern choice is hidden while the Lantern is disabled")
+	lantern.enabled = true
 	for id in FLOORS:
 		var e: EventData = _events[id]
 		for i in 2:
@@ -99,6 +103,7 @@ func _test_resolve() -> void:
 
 
 func _test_picks() -> void:
+	(_run.shapes.filter(func(s: DieShape) -> bool: return s.id == &"lantern")[0] as DieShape).enabled = true
 	var p := _rich()
 	EventApplier.apply(_events[&"gravedigger"].choices[1], p, RandomNumberGenerator.new())
 	_check(p.dice.back().shape == &"lantern" and p.dice.back().faces.size() == 8, "dice: Gravedigger gives a Lantern d8")

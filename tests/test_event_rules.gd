@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_test_fallback()
 	_test_table_ahead()
 	_test_twist_greyed()
+	test_hidden()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_run = null
 	_altar = null
@@ -212,3 +213,43 @@ func _test_twist_greyed() -> void:
 			found = c.disabled and c.tooltip_text == "No table left on this floor."
 	_check(found, "twist: the event screen greys the button with the reason")
 	view.free()
+
+
+func _buttons(view: EventView) -> Array[String]:
+	var out: Array[String] = []
+	for c in view._box.get_children():
+		if c is Button:
+			out.append(c.text)
+	return out
+
+
+## Game Designer: a GIVE_DIE of a shape with enabled = false is hidden, no
+## substitute; the Leave-only skip still applies.
+func test_hidden() -> void:
+	var gd := load("res://resources/events/gravedigger.tres") as EventData
+	var lantern := _run.shapes.filter(func(s: DieShape) -> bool: return s.id == &"lantern")[0] as DieShape
+	var was := lantern.enabled
+	lantern.enabled = false
+	var p := RunProgress.new(_run)
+	_check(EventApplier.is_hidden(gd.choices[1], p) and not EventApplier.is_hidden(gd.choices[0], p) and not EventApplier.is_hidden(gd.choices[2], p),
+		"hidden: only the Lantern choice is hidden")
+	_check(EventApplier.apply(gd.choices[1], p, _rng(1))[0].begins_with("refused") and p.dice.size() == 5, "hidden: it can't be taken and no die is substituted")
+	var view := EventView.new()
+	view._ready()
+	view.show_event(gd, p)
+	var labels := _buttons(view)
+	_check(labels == ([gd.choices[0].label, gd.choices[2].label] as Array[String]), "hidden: the Gravedigger shows Bone and Leave only (%s)" % [labels])
+	view.free()
+	_check(EventPicker.worth_offering(gd, p, true), "hidden: the Bone option keeps the Gravedigger offered")
+	var full := RunProgress.new(_run)
+	while full.can_add_die():
+		full.add_die(&"d6")
+	_check(not EventPicker.worth_offering(gd, full, true), "hidden: with a full bag, only Leave is left, so it's skipped")
+	var lone := EventData.new()
+	lone.id = &"lone"
+	lone.choices = [gd.choices[1], gd.choices[2]] as Array[EventChoiceData]
+	_check(not EventPicker.worth_offering(lone, p, true), "hidden: an event whose only other choice is hidden is skipped")
+	lantern.enabled = true
+	p.change_embers(20)
+	_check(not EventApplier.is_hidden(gd.choices[1], p) and EventPicker.worth_offering(lone, p, true), "hidden: enabling the Lantern shows it again")
+	lantern.enabled = was
