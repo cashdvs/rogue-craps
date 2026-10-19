@@ -279,6 +279,7 @@ func drop(dice: Array, immediate: bool = false) -> void:
 				table.call("_set_lit", dv, false)
 			dv.body_material.set_shader_parameter("emission_energy", 0.0)
 			if immediate:
+				dv.position = rest
 				continue
 			var tw := dv.create_tween().set_ignore_time_scale(true)
 			tw.tween_property(dv, "position", rest, 0.12)

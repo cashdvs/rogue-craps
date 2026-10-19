@@ -129,14 +129,26 @@ func _init() -> void:
 	add_child(tutorial)
 
 
+## While a pot counts up, the HUD numbers show the values from before the
+## commit (Bonfire3D sets this; the run state underneath is already final):
+## {embers, points, pot_from, pot_add}. The pot counts up with the count-up.
+var display_hold: Dictionary = {}
+
+
 func refresh(run: BonfireRun, can_act: bool) -> void:
-	coin_label.text = "EMBERS %d" % run.embers
-	points_label.text = "points %d  (1 Ember / %d)" % [run.points, run.tuning.points_per_ember]
+	coin_label.text = "EMBERS %d" % int(display_hold.get("embers", run.embers))
+	points_label.text = "points %d  (1 Ember / %d)" % [int(display_hold.get("points", run.points)), run.tuning.points_per_ember]
 	hands_label.text = "HANDS LEFT %d" % run.hands_left
 	_refresh_checklist(run)
 	_refresh_rules(run)
-	pot_label.text = "POT %d" % run.hand_pot()
 	var picking := run.state == BonfireRun.State.PICK
+	if display_hold.has("pot_from"):
+		hold_count(float(display_hold.get("f", 0.0)))
+	elif picking and run.throw_points() > 0:
+		# The selection is a preview until the count-up banks it into the pot.
+		pot_label.text = "POT %d  (+%d)" % [run.pot, run.throw_points()]
+	else:
+		pot_label.text = "POT %d" % run.hand_pot()
 	if picking:
 		var sel := run.selection()
 		if sel["valid"]:
@@ -157,6 +169,14 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	else:
 		throw_button.disabled = not can_act
 		throw_button.text = "THROW %d  (Space)" % run.cold
+
+
+## The held pot counts up with the count-up (f = 0..1).
+func hold_count(f: float) -> void:
+	if not display_hold.has("pot_from"):
+		return
+	display_hold["f"] = f
+	pot_label.text = "POT %d" % (int(display_hold["pot_from"]) + int(round(int(display_hold.get("pot_add", 0)) * clampf(f, 0.0, 1.0))))
 
 
 ## One row per active rule: NAME (brass; red for a boss cheat) + its line.
