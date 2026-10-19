@@ -65,9 +65,10 @@ how the code fits together is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A
 - **What QA checks:** CI's `tests` check is green; `./run_tests.sh` passes; the PR stays inside the module(s) it claims; behavior changes have a test that fails without them; names are clear; public functions and signals have `##` doc comments; scripts stay under ~400 lines and the PR is around 400 changed lines of code or less; new data, systems or signals are documented in docs/ARCHITECTURE.md or the folder README. A PR that would confuse a newcomer gets "changes requested", even if it works.
 - **tests/qa_/:** QA owns it. You may add checks there, but never loosen, skip or delete an existing one.
 - **What blocks a merge:** red CI, failing tests, script errors in the headless smoke run, missing tests, out-of-scope changes, secrets or network code, and unlicensed assets. Rules or balance changes, PRs touching more than 2 modules, CI or repo config, and new dependencies go to PM, who decides before anything merges.
-- **Merge method:** team PRs are merged by rebase (commits kept, linear history), and outside contributors' PRs are squash-merged. QA merges approved PRs; auto-merge isn't used.
+- **Who merges:** QA merges every PR, docs-only ones included; auto-merge isn't used. The one exception: a typo or link fix of under about 10 lines may be merged by its author once QA has approved it (PM ruling, Oct 19 2026).
+- **Merge method:** `main` keeps a linear history: anything landing on `main` is squashed or rebased, never merged with a merge commit. Team PRs are merged by rebase (commits kept) unless the branch contains merge commits, in which case they're squashed. **Julian's (@julian17874) PRs and outside contributors' PRs are squash-merged**, whatever their commit history looks like, so you don't need to tidy your commits. QA reviews them to the same standard as the team's, with a welcoming tone.
 - **Stacked PRs:** a rebase merge rewrites commit IDs, so a PR based on another unmerged PR will conflict once that one lands. Base on `main` when you can. If you must stack, say so in the PR; QA merges the stack top-down into each base branch and puts the bottom PR into `main` last.
-- **Never rebase-merge a branch that contains merge commits**: GitHub's rebase merge drops them silently (this lost the table integration in #21–#23). Use a merge commit for those.
+- **Never rebase-merge a branch that contains merge commits**: GitHub's rebase merge drops them silently (this lost the table integration in #21–#23). Inside a stack, merge commits between feature branches are fine; when such a branch lands on `main`, it's squashed.
 - **Fixing review comments:** push new commits to the same branch. If asked to rebase, rebase onto `main` and push with `--force-with-lease`, never plain `--force`.
 
 ## 5. What gets escalated (PM decides)
@@ -97,8 +98,10 @@ Damned"**, and copyright **"© 2026 Tiny Anvil Games"**. Never put signing keys 
 - **Commit subject:** short, imperative, prefixed with the module or area:
   `shop: show the reroll price on the button`, `events: test greyed-out choices`.
   Explain *why* in the body when it isn't obvious. One logical change per commit.
-- **Updating your branch:** rebase on `main` (don't merge `main` in). Push with
-  `--force-with-lease` only on your own PR branch (§7).
+- **Updating your branch:** rebase on `main`, and push with `--force-with-lease` only on your
+  own PR branch (§7). If the branch is shared or other PRs are stacked on it, merge `main` in
+  instead of rebasing: merge commits are fine on feature branches, and the PR is squashed
+  when it lands on `main` (§4).
 - **PR title** = a good commit subject (outside PRs are squash-merged into it).
 - **PR body:** the template. Bots end it with a role line (§7).
 
@@ -115,8 +118,9 @@ The team is Cash (owner), a few humans with write access (like Julian) and sever
 - **No force-push without approval.** Never force-push `main`, a branch someone else owns, or a
   branch other PRs are stacked on, without PM's OK. The one routine exception is rebasing your
   own PR branch when the reviewer asks (`--force-with-lease`).
-- Bots may self-merge their own **docs-only or trivial** PRs once tests pass
-  ([REVIEWING.md §4](REVIEWING.md)); anything in §5 never self-merges.
+- **QA merges every PR**, bots' docs-only PRs included ([REVIEWING.md §4](REVIEWING.md)). Only a
+  typo or link fix of under about 10 lines may be merged by its author, after QA approves; anything
+  in §5 never self-merges.
 - **Stay in your lane:** ask the owner (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#who-owns-what))
   before editing their files; say why in the PR if you had to.
 - Human or bot, **if you're unsure, open a draft PR early and ask.**
@@ -152,9 +156,10 @@ No file in this repo applies them.
   becomes possible to require approvals from someone other than the author.
 - **Require status checks:** `tests` (workflow `CI`), branches up to date.
 - **Block force pushes** and **restrict deletions** on `main`.
-- **Require linear history:** squash (outside PRs) and rebase (team PRs) both keep it linear.
+- **Require linear history:** squash (Julian's and outside PRs, and team PRs with merge commits)
+  and rebase (other team PRs) both keep it linear.
   Linear history only binds `main`: a stack whose branches contain merge commits is merged with
-  merge commits into its base branches, and the bottom PR is then squashed into `main` (PM
-  approves this case by case, as for #20).
+  merge commits into its base branches, and the bottom PR is then squashed into `main`, as for
+  #20 (PM ruling, Oct 19 2026).
 - When accepting a module claim, update `docs/MODULES.md` and, if the claimant will review that
   area, add their handle in `.github/CODEOWNERS`.

@@ -41,12 +41,16 @@ Embers, Dealer/taunts, UI, Shaders, Audio, Fonts, Art import, QA tests, Tools/CI
       readability, audio, difficulty.
 
 ## 4. Outcome
-- **Clean PR:** approve and merge.
-  - **Outside contributors' PRs: squash merge.**
-  - **Team bots' PRs: rebase / fast-forward** (keeps their commits; history stays linear).
-- **Self-merge (reviewer policy, set by PM; CONTRIBUTING.md doesn't cover it):** the team's own bots
-  may self-merge **docs-only or trivial** PRs (typos, comments, README/docs fixes, no code or config
-  behavior change) once tests pass. Anything in §5 is never self-merged.
+- **Clean PR:** approve and merge. QA merges every PR, docs-only ones included.
+  - **Julian's (@julian17874) and outside contributors' PRs: squash merge.** Review them to the
+    same standard as the team's, with a welcoming tone.
+  - **Team bots' PRs: rebase / fast-forward** (keeps their commits). If the branch contains merge
+    commits, **squash** instead: a rebase merge drops them silently.
+  - `main` stays linear: nothing lands on `main` with a merge commit. Merge commits are fine
+    between stacked feature branches.
+- **Author merge (PM ruling, Oct 19 2026):** the only exception to "QA merges" is a typo or link fix
+  of under about 10 lines, which its author may merge after QA approves. Anything in §5 is never
+  self-merged.
 - **Otherwise:** request changes. Every comment gives `file:line`, what is wrong, why, and a concrete fix.
 
 ## 5. Escalate to PM, do NOT merge, when a PR:

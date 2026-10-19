@@ -254,7 +254,10 @@ needs it, because it rewrites files in `resources/`.
 
 1. **Small, focused PRs.** One issue / one module per PR, roughly ≤ 400 changed lines of code
    (generated `.uid`/`.tres`/`.import` excluded). No drive-by refactors or reformatting.
-   Rebase on `main` to update your branch; no merge commits (history is linear).
+   Linear history applies only to `main`: anything landing on `main` is squashed or rebased,
+   never merged with a merge commit. Merge commits are fine inside stacked feature branches
+   (merge the base in rather than rebasing a pushed branch others build on); such a PR is
+   squashed into `main`. QA merges every PR (see [CONTRIBUTING.md §4](CONTRIBUTING.md)).
 2. **Tests required for logic.** Any change in `scripts/core/` or `scripts/data/` needs new or
    updated checks in `tests/test_*.gd` (follow the existing check pattern in the file you extend,
    e.g. `_check(condition, name)` or `check(...)`, and exit with
