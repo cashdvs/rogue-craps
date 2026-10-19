@@ -17,6 +17,8 @@ can land before Godot Dev's TableEvents PR without double-playing.
 | `hot_hand(count)` | `hot_hand` (bone clacks; no fire) | `win_big` |
 | `no_score` | `no_score` | `chip_refuse` |
 | `table_cleared` | `table_cleared` (once per table) | `win_big` |
+| `table_started` (#91) | resets the TABLE CLEARED guard (`reset()`) | none |
+| *(called by TriggerFx)* `mod_trigger(id, die, anchor, ctx) -> float` | `sfx.play_mod_trigger(id, ctx.tier ?? -1, ctx.intensity ?? 1.0, -1, ctx.flavor ?? &"")` once per trigger at its FX start; returns seconds until the audio hit (-1 = silent). Also hands the hook `sfx.crowd` (BonfireJuice's) and `sfx.trigger_speed_mode` (0/1/2). Stagger, voice cap, cluster, Bellows-once and crowd nudge are the hook's job. | -1 if `play_mod_trigger` is missing |
 
 ### One-owner rule
 
@@ -36,4 +38,26 @@ for throw, impact, hot_hand, no_score, or table_cleared. Whichever PR adds
 godot --headless --path . --script res://tests/test_fx_table_audio.gd
 # or the full suite:
 ./run_tests.sh
+```
+
+## TriggerFx (special-die / face-mod trigger FX)
+
+`trigger_fx.gd` is a child of the 3D table (spec: `art/concept/special_dice/trigger_fx_spec.md` v0.2).
+Entry point: `trigger_fx(&"mirror_copy", die, ctx := {}) -> float` (seconds to the key hit).
+
+- **Grammar** (12 fps on twos): anticipation squash + charge ring → key hit (glow shape, sparks, link)
+  → icon pop → the row's motion beat → settle. Motion goes on the die's `faces` node in world axes and
+  is restored exactly, so the face remap is safe. Glow only: no fire, no lights, sparks never rise.
+- **Rows**: `trigger_fx_defs.gd` (`ROWS`, `BEATS`, `ALIASES` from table ids like `&"hellfire"`).
+  Built: `mirror_copy`, `gilded_payout`, `coin_heads_copy`, `hellfire_face`; others use a generic pop.
+  Shapes are procedural stand-ins (`trigger_shapes.gd`), icons drawn in code (`trigger_icon.gd`).
+- **Driven by** `table.events.triggers_resolved` (#91: starts each burst at its `start_s`), else
+  `mod_triggered` (5 or 7 args). Sound goes through `TableAudio.mod_trigger` and the flash is retimed
+  to its return value.
+- **Cap**: 4 visible bursts, the rest queued, starts 0.08 s apart, biggest tier first; pool of 8 (6 on
+  mobile), pre-warmed. 2× halves the time; Instant shows static icons; reduced motion = glow + icon.
+
+```bash
+godot --headless --path . --script res://tests/test_fx_trigger.gd
+# capture (needs a display): tools/capture_trigger_fx.gd, see its header
 ```

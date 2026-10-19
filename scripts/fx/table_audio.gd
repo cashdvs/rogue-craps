@@ -42,6 +42,7 @@ const HOOKS: Dictionary[StringName, StringName] = {
 	&"hot_hand": &"_on_hot_hand",
 	&"no_score": &"_on_no_score",
 	&"table_cleared": &"_on_table_cleared",
+	&"table_started": &"_on_table_started",
 }
 
 ## The SfxManager (typed Node so tests can pass a stand-in).
@@ -51,7 +52,10 @@ var events: Object
 ## Every cue played, as "<event>" or "<event>(fb)" (tests and captures).
 ## Trimmed like BonfireJuice so long tables do not grow forever.
 var calls: Array[String] = []
+## The table (for speed_mode and BonfireJuice's crowd); set by the parent bind.
+var table: Node
 var _cleared_played: bool = false
+var _crowd_set: bool = false
 
 
 func _init() -> void:
@@ -69,6 +73,7 @@ func _bind_to_parent() -> void:
 		return
 	var ev: Variant = table.get("events")
 	var s: Variant = table.get("sfx")
+	table = table if table != null else get_parent()
 	if ev is Object and s is Node:
 		bind(ev as Object, s as Node)
 
@@ -132,11 +137,50 @@ func _on_no_score() -> void:
 	cue(&"no_score")
 
 
+## A new table (TableEvents.table_started, #91): TABLE CLEARED may play again.
+func _on_table_started() -> void:
+	reset()
+
+
 func _on_table_cleared() -> void:
 	if _cleared_played:
 		return
 	_cleared_played = true
 	cue(&"table_cleared", 0.0)
+
+
+## Trigger FX sound (trigger_fx_spec.md 4, "Sound hooks"). TableAudio is the
+## ONLY caller of sfx.play_mod_trigger: TriggerFx calls this once per trigger,
+## in resolve order, at that trigger's FX start, and syncs its flash to the
+## returned seconds until the audio hit (-1 = silent). The Sound Designer's
+## hook does the stagger, the 4-voice cap and cluster, speed modes,
+## Bellows-once and the signature crowd nudge, so none of that is here.
+## ctx: tier (-1 = the row's), intensity (0..1), flavor (e.g. &"verdict").
+func mod_trigger(id: StringName, _die: Variant = null, _anchor: StringName = &"", ctx: Dictionary = {}) -> float:
+	if sfx == null or not sfx.has_method("play_mod_trigger"):
+		return -1.0
+	_sync_trigger_audio()
+	var s := float(sfx.call("play_mod_trigger", id, int(ctx.get("tier", -1)), float(ctx.get("intensity", 1.0)), -1.0,
+			StringName(ctx.get("flavor", &""))))
+	calls.append("mod:%s" % id)
+	return s
+
+
+## Hands the hook the crowd (once) and the count-up speed (0 1x, 1 2x, 2
+## Instant, as JuicePlan uses), if the SfxManager has those properties.
+func _sync_trigger_audio() -> void:
+	if table == null:
+		return
+	if "trigger_speed_mode" in sfx:
+		if table.has_method("get_speed_mode"):
+			sfx.set("trigger_speed_mode", int(table.call("get_speed_mode")))
+		elif "speed_mode" in table:
+			sfx.set("trigger_speed_mode", int(table.get("speed_mode")))
+	if not _crowd_set and "crowd" in sfx and "juice" in table and table.get("juice") != null:
+		var crowd: Variant = table.get("juice").get("crowd")
+		if crowd is Node:
+			sfx.set("crowd", crowd)
+			_crowd_set = true
 
 
 ## Plays `event` (or its fallback) if the SfxManager has it. Returns what played.
