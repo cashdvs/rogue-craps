@@ -54,6 +54,18 @@ var _coin_stuck: Array[float] = []
 var _coin_nudges: Array[int] = []
 
 
+## Tests only: after a natural settle keep the dice live this many seconds
+## and record their speeds (ThrowRecording.post_rest_*), to catch jitter. The
+## rest time stamps are unchanged. 0 = off (the game).
+var post_rest_watch: float = 0.0
+var _watch_t: float = -1.0
+var _watch_moving: Array[bool] = []
+## Per body: last tick's spin (rad/s), for the hull dice's creep check.
+var _poly_prev_w: Array[float] = []
+## Slowest spin of each hull die since it last came to rest (creep check).
+var _poly_min_w: Array[float] = []
+
+
 func setup(t: TuningData, count: int = 2) -> void:
 	tuning = t
 	_mat = PhysicsMaterial.new()
@@ -97,6 +109,8 @@ func ensure_bodies(n: int) -> void:
 		_spun_up.append(false)
 		_coin_stuck.append(0.0)
 		_coin_nudges.append(0)
+		_poly_prev_w.append(0.0)
+		_poly_min_w.append(INF)
 
 
 func _box_shape() -> BoxShape3D:
@@ -112,17 +126,40 @@ func _box_shape() -> BoxShape3D:
 func set_body_shapes(list: Array) -> void:
 	ensure_bodies(list.size())
 	for i in list.size():
-		var want: StringName = &"coin" if StringName(list[i]) == &"coin" else &"d6"
+		var want := StringName(list[i])
+		if want != &"coin" and not PolyDie.has_shape(want):
+			want = &"d6"
 		if shapes[i] == want:
 			continue
 		shapes[i] = want
 		var cs := bodies[i].get_node("Shape") as CollisionShape3D
-		cs.shape = CoinPhysics.make_shape() if want == &"coin" else _box_shape()
+		if want == &"coin":
+			cs.shape = CoinPhysics.make_shape()
+		elif want == &"d6":
+			cs.shape = _box_shape()
+		else:
+			# PM ruling: a hull of the die's mobile mesh, d6 mass.
+			cs.shape = PolyDie.make_shape(want)
 		bodies[i].mass = tuning.die_mass * (CoinPhysics.MASS_FACTOR if want == &"coin" else 1.0)
 
 
 func is_coin(i: int) -> bool:
 	return i >= 0 and i < shapes.size() and shapes[i] == &"coin"
+
+
+## Body i is a hull die with its own face table (PolyDie: d4, d8, ...).
+func is_poly(i: int) -> bool:
+	return i >= 0 and i < shapes.size() and PolyDie.has_shape(shapes[i])
+
+
+## Tilt off clean rest (deg) of body i in pose b: the coin off flat, a hull
+## die its up slot off vertical, a cube 0 (not tracked).
+func rest_tilt(i: int, b: Basis) -> float:
+	if is_coin(i):
+		return CoinPhysics.tilt_deg(b)
+	if is_poly(i):
+		return PolyDie.tilt_deg(shapes[i], b)
+	return 0.0
 
 
 ## Height of body i's centre when it lies flat on the felt.
@@ -132,6 +169,8 @@ func rest_height(i: int) -> float:
 
 ## Radius of body i's footprint on the felt (for pushing flattened dice apart).
 func footprint(i: int) -> float:
+	if is_poly(i):
+		return PolyDie.radius(shapes[i]) * 0.85
 	return CoinPhysics.RADIUS if is_coin(i) else tuning.die_size * 0.5
 
 
@@ -147,6 +186,7 @@ func simulate(starts: Array[Transform3D], lin: Array[Vector3], ang: Array[Vector
 	_rng.seed = nudge_seed
 	_t = 0.0
 	_rest_t = 0.0
+	_watch_t = -1.0
 	for i in active:
 		var b := bodies[i]
 		b.linear_damp = tuning.die_linear_damp
@@ -163,6 +203,8 @@ func simulate(starts: Array[Transform3D], lin: Array[Vector3], ang: Array[Vector
 		_spun_up[i] = false
 		_coin_stuck[i] = 0.0
 		_coin_nudges[i] = 0
+		_poly_prev_w[i] = ang[i].length()
+		_poly_min_w[i] = INF
 	# Bodies not in this throw go back under the table. Left frozen where
 	# the last throw ended, they were invisible obstacles on the felt (on a
 	# rethrow, the potted dice's old landing spots).
@@ -197,6 +239,26 @@ func _physics_process(_delta: float) -> void:
 			var b := bodies[i]
 			b.linear_damp = tuning.die_linear_damp * 3.0
 			b.angular_damp = tuning.die_angular_damp * 3.0
+	if _watch_t >= 0.0:
+		# Test-only watch after a natural settle (post_rest_watch): the dice
+		# stay live; record the largest speeds and any restart (jitter).
+		_watch_t += dt
+		for i in active:
+			var bw := bodies[i]
+			# Same felt as during the throw (roll damping keeps acting).
+			if is_coin(i):
+				_coin_on_felt(i, dt)
+			elif is_poly(i):
+				_poly_on_felt(i, dt)
+			_rec.post_rest_max_lin[i] = maxf(_rec.post_rest_max_lin[i], bw.linear_velocity.length())
+			_rec.post_rest_max_ang[i] = maxf(_rec.post_rest_max_ang[i], bw.angular_velocity.length())
+			var moving_now := bw.linear_velocity.length() > tuning.sim_rest_linear or bw.angular_velocity.length() > tuning.sim_rest_angular
+			if moving_now and not _watch_moving[i]:
+				_rec.post_rest_restarts[i] += 1
+			_watch_moving[i] = moving_now
+		if _watch_t >= post_rest_watch:
+			_finish()
+		return
 	# Settle assist: anything still moving now gets eased onto its face.
 	if _t >= assist_time():
 		_assist()
@@ -204,13 +266,30 @@ func _physics_process(_delta: float) -> void:
 	for i in active:
 		if is_coin(i):
 			_coin_on_felt(i, dt)
+		elif is_poly(i):
+			_poly_on_felt(i, dt)
 	var at_rest := true
 	for i in active:
 		var b := bodies[i]
 		var still := b.linear_velocity.length() <= tuning.sim_rest_linear and b.angular_velocity.length() <= tuning.sim_rest_angular
+		if still and is_poly(i):
+			# A hull die balanced just off a face can creep over slowly (spin
+			# under the rest threshold but growing): not at rest until it
+			# stops speeding up, or it would "settle" and then move again.
+			# It can also rock off a ridge (the Powder Keg's bowed staves):
+			# spin swings down and then grows again, so compare to the
+			# slowest spin since it came to rest too.
+			var wn := b.angular_velocity.length()
+			_poly_min_w[i] = minf(_poly_min_w[i], wn)
+			if wn > 0.003 and (wn > _poly_prev_w[i] * PolyDie.CREEP_GROWTH or wn > _poly_min_w[i] * PolyDie.CREEP_REBOUND):
+				still = false
+		if i < _poly_prev_w.size():
+			_poly_prev_w[i] = b.angular_velocity.length()
 		if not still:
 			at_rest = false
 			_rest_since[i] = -1.0
+			if i < _poly_min_w.size():
+				_poly_min_w[i] = INF
 		elif _rest_since[i] < 0.0:
 			_rest_since[i] = _t
 		# The tumble is ending: spin drops under the threshold (once per throw).
@@ -226,6 +305,12 @@ func _physics_process(_delta: float) -> void:
 			_rest_t = 0.0
 		else:
 			_rec.settled = true
+			if post_rest_watch > 0.0:
+				_watch_t = 0.0
+				_watch_moving.clear()
+				for i in active:
+					_watch_moving.append(false)
+				return
 			_finish()
 			return
 	if _t >= tuning.sim_max_time:
@@ -263,7 +348,7 @@ func _assist() -> void:
 		var drift := Vector3(b.linear_velocity.x, 0.0, b.linear_velocity.z) * minf(dur, 0.25) * 0.5
 		froms.append(from)
 		targets.append(_flat(Transform3D(from.basis, from.origin + drift), i))
-		_rec.rest_tilt_deg[i] = CoinPhysics.tilt_deg(from.basis) if is_coin(i) else 0.0
+		_rec.rest_tilt_deg[i] = rest_tilt(i, from.basis)
 		_rec.end_moving[i] = moving
 	_separate(targets, froms)
 	for i in active:
@@ -299,9 +384,16 @@ func _nudge_cocked() -> bool:
 			if _nudge_coin(i):
 				any = true
 			continue
-		var up := DieVisual.value_up(basis)
-		var d := (basis * (DieVisual.FACE_AXES[up] as Vector3)).dot(Vector3.UP)
-		var too_high := b.global_position.y > tuning.die_size * 0.62
+		var d := 0.0
+		var too_high := false
+		if is_poly(i):
+			# Resting on an edge or point (or on another die): tip it over.
+			d = cos(deg_to_rad(PolyDie.tilt_deg(shapes[i], basis)))
+			too_high = b.global_position.y > PolyDie.rest_height(shapes[i], PolyDie.flat_basis(shapes[i], basis)) + tuning.die_size * 0.12
+		else:
+			var up := DieVisual.value_up(basis)
+			d = (basis * (DieVisual.FACE_AXES[up] as Vector3)).dot(Vector3.UP)
+			too_high = b.global_position.y > tuning.die_size * 0.62
 		if d < tuning.sim_cocked_dot or too_high:
 			var to_center := Vector3(-b.global_position.x, 0.0, -b.global_position.z).normalized()
 			b.linear_velocity = Vector3(0, 0.35, 0) + to_center * 0.25
@@ -389,6 +481,19 @@ func _nudge_coin(i: int) -> bool:
 	return true
 
 
+## Felt rolling resistance for hull dice (Jolt has none): a die low on the
+## felt and nearly stopped loses its slow rocking spin, so a rounded die (the
+## Knucklebone's curved sides) doesn't rock on after it seemed at rest and
+## start moving again (jitter). Fast tumbling and flight are untouched.
+func _poly_on_felt(i: int, dt: float) -> void:
+	var b := bodies[i]
+	if b.angular_velocity.length() > PolyDie.ROLL_DAMP_MAX_SPIN or b.linear_velocity.length() > 0.3:
+		return
+	var low := PolyDie.rest_height(shapes[i], PolyDie.flat_basis(shapes[i], b.global_transform.basis)) + 0.01
+	if b.global_position.y <= low:
+		b.angular_velocity *= maxf(1.0 - PolyDie.FELT_ROLL_DAMP * dt, 0.0)
+
+
 func _finish(already_flat: bool = false) -> void:
 	running = false
 	Engine.physics_ticks_per_second = _saved_ticks
@@ -402,7 +507,7 @@ func _finish(already_flat: bool = false) -> void:
 		lasts.append(bodies[i].global_transform.orthonormalized())
 		targets.append(_flat(lasts[i], i))
 		if not already_flat:
-			_rec.rest_tilt_deg[i] = CoinPhysics.tilt_deg(lasts[i].basis) if is_coin(i) else 0.0
+			_rec.rest_tilt_deg[i] = rest_tilt(i, lasts[i].basis)
 	if not already_flat:
 		_separate(targets, lasts)
 	for i in active:
@@ -421,6 +526,9 @@ func _finish(already_flat: bool = false) -> void:
 		_rec.up_values[i] = DieVisual.value_up(target.basis)
 		if is_coin(i):
 			_rec.up_values[i] = CoinPhysics.axis_id(CoinPhysics.face_slot(target.basis))
+		elif is_poly(i):
+			# A hull die: its face SLOT (1-based, PolyDie direction table).
+			_rec.up_values[i] = PolyDie.up_slot(shapes[i], target.basis)
 		# Physically at rest: when it stopped for good (or the end of the
 		# assist / settle-to-flat frames if it never stopped on its own).
 		var end_t := float((_rec.frames[i] as Array).size() - 1) * _rec.dt
@@ -488,6 +596,14 @@ func _flat(t: Transform3D, i: int = -1) -> Transform3D:
 		cpos.z = clampf(cpos.z, -clim.y, clim.y)
 		cpos.y = rest_height(i)
 		return Transform3D(CoinPhysics.flat_basis(t.basis, _rng), cpos)
+	if is_poly(i):
+		var pb := PolyDie.flat_basis(shapes[i], t.basis)
+		var ppos := t.origin
+		var plim := Table3DBuilder.FELT_HALF - Vector2.ONE * tuning.die_size * 0.75
+		ppos.x = clampf(ppos.x, -plim.x, plim.x)
+		ppos.z = clampf(ppos.z, -plim.y, plim.y)
+		ppos.y = PolyDie.rest_height(shapes[i], pb)
+		return Transform3D(pb, ppos)
 	var b := t.basis.orthonormalized()
 	var up := DieVisual.value_up(b)
 	var axis_world := b * (DieVisual.FACE_AXES[up] as Vector3)

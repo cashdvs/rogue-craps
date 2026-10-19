@@ -30,7 +30,7 @@ func _initialize() -> void:
 
 	# Every shape: face count and default values (PR #50 convention).
 	var want := {&"coin": [1, 5], &"d3": [1, 2, 3], &"d4": [1, 2, 3, 4], &"d6": [1, 2, 3, 4, 5, 6],
-		&"d8": [1, 2, 3, 4, 5, 6, 7, 8], &"d10": range(1, 11), &"d12": range(1, 13), &"d20": range(1, 21)}
+		&"d8": [1, 2, 3, 4, 5, 6, 7, 8], &"d10": range(1, 11), &"d12": range(1, 13), &"d20": range(1, 21), &"talus": [1, 3, 4, 6]}
 	for sh in want:
 		var s := TableDie.new(&"x", "X", sh)
 		check(s.shape == sh and s.faces == Array(want[sh]) and s.mods.size() == s.faces.size() and s.weights.is_empty(),
@@ -96,11 +96,28 @@ func _initialize() -> void:
 	# Caltrop d4: read from the vertex that points up.
 	var vert_ok := true
 	for vk in range(1, 5):
-		vert_ok = vert_ok and D4Geometry.up_slot(D4Geometry.basis_for_slot(vk)) == vk
-		vert_ok = vert_ok and D4Geometry.up_slot(Basis(Vector3.UP, 1.3) * D4Geometry.basis_for_slot(vk)) == vk
+		vert_ok = vert_ok and PolyDie.up_slot(&"d4", PolyDie.remap_basis(&"d4", Basis.IDENTITY, vk)) == vk
+		vert_ok = vert_ok and PolyDie.up_slot(&"d4", Basis(Vector3.UP, 1.3) * PolyDie.remap_basis(&"d4", Basis.IDENTITY, vk)) == vk
 	check(vert_ok, "d4: the vertex pointing up is the slot read (any spin about vertical)")
-	var tilted := Basis(Vector3.RIGHT, deg_to_rad(10)) * D4Geometry.basis_for_slot(3)
-	check(D4Geometry.up_slot(tilted) == 3, "d4: a slightly tilted landing still reads its top vertex")
+	var tilted := Basis(Vector3.RIGHT, deg_to_rad(10)) * PolyDie.remap_basis(&"d4", Basis.IDENTITY, 3)
+	check(PolyDie.up_slot(&"d4", tilted) == 3, "d4: a slightly tilted landing still reads its top vertex")
+	# Knucklebone = talus (4 resting faces), read from the top face.
+	var kb := TableDie.new(&"knucklebone", "Knucklebone", &"talus")
+	kb.special = &"knucklebone"
+	check(kb.faces == [1, 3, 4, 6] and PolyDie.body_shape_for(kb) == &"talus", "talus: faces 1, 3, 4, 6; its own body")
+	check(PolyDie.values(&"talus") == [1, 3, 4, 6] and PolyDie.read_mode(&"talus") == &"face" and PolyDie.read_mode(&"d4") == &"vertex", "talus reads its top face; the d4 its top vertex")
+	var talus_ok := true
+	for ts in range(1, 5):
+		var tb := PolyDie.remap_basis(&"talus", Basis.IDENTITY, ts)
+		talus_ok = talus_ok and PolyDie.up_slot(&"talus", tb) == ts
+	check(talus_ok, "talus: each face slot read back after a remap")
+	var keg := TableDie.new(&"powder_keg", "Powder Keg")
+	keg.faces = [1, 1, 2, 2, 3, 3] as Array[int]
+	check(keg.shape == &"d6" and PolyDie.body_shape_for(keg) == &"keg", "Powder Keg: d6 data, barrel body")
+	var keg_ok := PolyDie.values(&"keg") == [1, 1, 2, 2, 3, 3]
+	for ks in range(1, 7):
+		keg_ok = keg_ok and PolyDie.up_slot(&"keg", PolyDie.remap_basis(&"keg", Basis.IDENTITY, ks)) == ks and keg.value_at(ks) == PolyDie.values(&"keg")[ks - 1]
+	check(keg_ok, "Powder Keg: the stave pointing up is the slot read (6 staves -> slots 1-6, values 1-2-3 x2)")
 
 	print("test_table_die_shape: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
