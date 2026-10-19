@@ -104,6 +104,17 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 			for r: Color in RESERVED:
 				far = far and _rgb_dist(alb as Color, r) > 0.12
 		_check(alb != null and far, "%s: body albedo %s stays clear of Soul cyan / Danger / Satanic violet / felt" % [die, alb])
+	if die == "blood_pact_d6":
+		# AD, Oct 18: the seal stamps are bone (like the pips), never gold/brass (the Devilish corner-cap cue).
+		var st: ShaderMaterial = null
+		for s in mesh.get_surface_count():
+			if mesh.surface_get_name(s) == "blood_pact_stamp":
+				st = mesh.surface_get_material(s) as ShaderMaterial
+		var sc: Variant = st.get_shader_parameter("albedo") if st != null else null
+		var bone := sc != null and (sc as Color).s < 0.3 and (sc as Color).v > 0.75
+		for g: Color in [Color("#B08D3C"), Color("#E2C06A"), Color("#D4AF37")]:
+			bone = bone and sc != null and _rgb_dist(sc as Color, g) > 0.2
+		_check(bone, "blood_pact_d6: seal stamp albedo %s is bone, not gold/brass" % [sc])
 	var body := mesh.surface_get_material(0) as ShaderMaterial
 	var ink := body.next_pass as ShaderMaterial if body != null else null
 	_check(ink != null and ink.shader.resource_path == OUTLINE_SHADER, "%s: body carries the ink hull" % die)

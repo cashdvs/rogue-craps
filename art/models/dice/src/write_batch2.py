@@ -79,8 +79,9 @@ MATS = {
     "blood_pact_pip": (PIP_BONE, False),
     "blood_pact_seal": ({"albedo": "#141012", "shadow_color": "#060405", "mid_tint": 0.7, "roughness": 0.2,
                          "spec_size": 0.9, "spec_color": "#D8C8C0", "spec_strength": 0.7}, False),
-    "blood_pact_stamp": ({"albedo": "#B08D3C", "shadow_color": "#3B2A10", "mid_tint": 0.72, "wrap": 0.25, "roughness": 0.3,
-                          "spec_size": 0.9, "spec_color": "#E2C06A", "spec_strength": 0.9, "light_gain": 0.8}, False),
+    # bone stamps (AD, Oct 18: bone, not gold, so nothing on the corners reads as the Devilish brass cue); the
+    # same bone as the pips, lamp-tuned so the raised boss reads bone rather than clipping to the lamp's orange-white
+    "blood_pact_stamp": ({**PIP_BONE, **lamp_comp("#E8DCC0", s=0.3, v=1.5), "roughness": 0.5, **BONE_SPEC}, False),
     # Coven: matte dusty plum, NO glow / emission, bone pips (wax-pale coves keep the scooped edges reading)
     "coven_body": ({"albedo": "#6E4A6E", "shadow_color": "#241626", "mid_tint": 0.74, "wrap": 0.3, "roughness": 0.95, **lamp_comp("#6E4A6E", v=1.2)}, True),
     "coven_pip": (PIP_BONE, False),
