@@ -1,0 +1,14 @@
+{
+  "standin": true,
+  "size": 1024,
+  "cells": 5,
+  "mark_cell": 2,
+  "mark_value": 3,
+  "channels": {
+    "R": "hard glyph inlay",
+    "G": "soft halo ~1.3x",
+    "B": "spare",
+    "A": "spare"
+  },
+  "note": "Stand-in for tests/captures. 3D Artist replaces with the real mask PNG on the keg UV1 atlas."
+}

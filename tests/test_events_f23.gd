@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_test_load()
 	_test_resolve()
 	_test_picks()
+	_test_numbers()
 	test_shill_hand()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_run = null
@@ -75,7 +76,7 @@ func _test_load() -> void:
 
 func _test_resolve() -> void:
 	# The Lantern shape ships disabled, so its choice is hidden; resolve it enabled.
-	var lantern: DieShape = _run.shapes.filter(func(s: DieShape) -> bool: return s.id == &"lantern")[0]
+	var lantern: DieShape = _run.shapes.filter(func(s: DieShape) -> bool: return s.id == DiceIds.DIE_LANTERN)[0]
 	_check(not lantern.enabled and EventApplier.is_hidden(_events[&"gravedigger"].choices[1], _rich()), "hidden: the Lantern choice is hidden while the Lantern is disabled")
 	lantern.enabled = true
 	for id in FLOORS:
@@ -104,16 +105,16 @@ func _test_resolve() -> void:
 
 
 func _test_picks() -> void:
-	(_run.shapes.filter(func(s: DieShape) -> bool: return s.id == &"lantern")[0] as DieShape).enabled = true
+	(_run.shapes.filter(func(s: DieShape) -> bool: return s.id == DiceIds.DIE_LANTERN)[0] as DieShape).enabled = true
 	var p := _rich()
 	EventApplier.apply(_events[&"gravedigger"].choices[1], p, RandomNumberGenerator.new())
-	_check(p.dice.back().shape == &"lantern" and p.dice.back().faces.size() == 8, "dice: Gravedigger gives a Lantern d8")
+	_check(p.dice.back().shape == DiceIds.DIE_LANTERN and p.dice.back().faces.size() == 8, "dice: Gravedigger gives a Lantern d8")
 	p = _rich()
 	EventApplier.apply(_events[&"fence"].choices[1], p, RandomNumberGenerator.new())
-	_check(p.dice.back().special_id == &"cracked", "dice: the Fence sells a Cracked Die")
+	_check(p.dice.back().special_id == DiceIds.DIE_CRACKED, "dice: the Fence sells a Cracked Die")
 	p = _rich()
 	EventApplier.apply(_events[&"back_room"].choices[0], p, RandomNumberGenerator.new())
-	_check(p.dice.back().special_id == &"coven" and p.embers == 30, "dice: the Back Room sells a Coven Die for 20")
+	_check(p.dice.back().special_id == DiceIds.DIE_COVEN and p.embers == 30, "dice: the Back Room sells a Coven Die for 20")
 	p = _rich()
 	var max0 := p.max_soul
 	EventApplier.apply(_events[&"toll_keeper"].choices[0], p, RandomNumberGenerator.new())
@@ -124,12 +125,53 @@ func _test_picks() -> void:
 	var broke := RunProgress.new(_run)
 	broke.change_embers(-broke.embers)
 	_check(not EventPicker.worth_offering(_events[&"fence"], broke, true), "skip: the Fence at 5 dice and 0 Embers is skipped (only Leave)")
-	broke.change_embers(10)
-	_check(EventPicker.worth_offering(_events[&"fence"], broke, true), "skip: with 10 Embers the Fence is offered")
+	broke.change_embers(13)
+	_check(not EventPicker.worth_offering(_events[&"fence"], broke, true), "skip: with 13 Embers the Fence (14) is still skipped")
+	broke.change_embers(1)
+	_check(EventPicker.worth_offering(_events[&"fence"], broke, true), "skip: with 14 Embers the Fence is offered")
 	var full := RunProgress.new(_run)
 	while full.can_add_die():
 		full.add_die(DiceIds.DIE_BONE)
 	_check(not EventPicker.worth_offering(_events[&"gravedigger"], full, true), "skip: the Gravedigger is skipped with a full bag")
+
+
+## id -> per choice [Embers, Soul, max Soul, dice, free rerolls, {seal: levels}]
+## deltas from _rich() (a sold die is the plain Bone, worth 0), so changing
+## any number in the data (e.g. the Fence's +6 to 0) fails here.
+const NUMBERS := {
+	&"toll_keeper": [[-12, 4, 4, 0, 0, {}], [12, 0, -5, 0, 0, {}]],
+	&"fence": [[6, 0, 0, -1, 0, {}], [-14, 0, 0, 1, 0, {}]],
+	&"gravedigger": [[0, -9, 0, 1, 0, {}], [-10, 0, 0, 1, 0, {}]],
+	&"shill": [[0, 6, 0, 0, 0, {}], [0, 0, 0, 0, 0, {&"run4": 1}]],
+	&"tout": [[-6, 0, 0, 0, 3, {}], [0, -4, 0, 0, 3, {}]],
+	&"bone_setter": [[0, 3, 3, -1, 0, {}], [0, 0, -8, 1, 0, {}]],
+	&"back_room": [[-20, 0, 0, 1, 0, {}], [0, -8, 0, 0, 0, {&"trips": 1, &"full_house": 1}]],
+}
+
+
+func _test_numbers() -> void:
+	for id in NUMBERS:
+		for i in 2:
+			var p := _rich()
+			p.change_soul(-10)  # room below max, so heals aren't capped
+			var before := [p.embers, p.soul, p.max_soul, p.dice.size(), p.free_rerolls]
+			var c: EventChoiceData = _events[id].choices[i]
+			var picks: Array[Vector2i] = []
+			for fx in c.effects:
+				if fx.needs_pick():
+					picks.append(Vector2i(5, 0))
+			EventApplier.apply(c, p, RandomNumberGenerator.new(), picks)
+			var want: Array = NUMBERS[id][i]
+			var got := [p.embers - before[0], p.soul - before[1], p.max_soul - before[2], p.dice.size() - before[3], p.free_rerolls - before[4]]
+			var seals := true
+			for sid in want[5]:
+				seals = seals and p.seal_level(sid) == want[5][sid]
+			_check(got == want.slice(0, 5) and seals, "numbers: %s/%s deltas %s (want %s)" % [id, "ab"[i], got, want])
+	var cut := EventApplier.tips(_events[&"toll_keeper"].choices[1])
+	var twist := EventApplier.tips(_events[&"shill"].choices[0])
+	_check(cut == (["A lower max Soul also lowers your Soul to match."] as Array[String])
+		and twist == (["An event twist applies to your next Table, not Elites or Bosses.", "An unplayed event twist ends when you leave the floor."] as Array[String])
+		and EventApplier.tips(_events[&"fence"].choices[1]).is_empty(), "tips: the three §10 tooltips on max-Soul cuts and twists")
 
 
 ## The Shill's "+1 hand": cold_sixes / greedy_pot carry hands_delta = 1, so

@@ -18,7 +18,7 @@ effects = Array[ExtResource("2_effect")]([SubResource("fx_fence_a1")])
 [sub_resource type="Resource" id="fx_fence_b1"]
 script = ExtResource("2_effect")
 kind = 1
-amount = -10
+amount = -14
 
 [sub_resource type="Resource" id="fx_fence_b2"]
 script = ExtResource("2_effect")
@@ -27,7 +27,7 @@ die = &"cracked"
 
 [sub_resource type="Resource" id="ch_fence_b"]
 script = ExtResource("1_choice")
-label = "Buy a hot die: -10 Embers for a Cracked Die."
+label = "Buy a hot die: -14 Embers for a Cracked Die."
 result_text = "It's warm from someone else's pocket, and slightly cracked."
 effects = Array[ExtResource("2_effect")]([SubResource("fx_fence_b1"), SubResource("fx_fence_b2")])
 
