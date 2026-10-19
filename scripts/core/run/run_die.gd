@@ -14,11 +14,12 @@ var id: StringName = &""
 var special_id: StringName = &""
 ## One face-mod id per face; sized to the shape's face count (d6: 6).
 var faces: Array[StringName] = [&"", &"", &"", &"", &"", &""]
-## Die shape id (DieShape.id): &"d6", &"coin", &"d3", ... Special dice are d6.
-var shape: StringName = &"d6"
+## Die shape id (DieShape.id): &"bone", &"powder_keg", &"ferryman" (Ferryman's Coin), ...
+## Special dice are d6.
+var shape: StringName = DiceIds.DIE_BONE
 
 
-func _init(special: StringName = &"", shape_id: StringName = &"d6", face_count: int = 6) -> void:
+func _init(special: StringName = &"", shape_id: StringName = DiceIds.DIE_BONE, face_count: int = 6) -> void:
 	shape = shape_id
 	faces.resize(face_count)
 	faces.fill(&"")

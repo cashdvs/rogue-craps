@@ -30,6 +30,10 @@ var owned_dice_count: int = -1
 ## Run mode: the run's Embers before this table. The HUD shows this plus the
 ## table's payout; TableOutcome.embers stays the payout only.
 var run_embers: int = 0
+## The run's first table (the sandbox counts as one): only it gets the
+## Table 1 tutorial seeds and TH hints (Game Designer's
+## design/onboarding_hints_v1.md, in the design docs outside this repo).
+var first_table: bool = true
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.

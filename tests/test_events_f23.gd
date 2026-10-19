@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_test_load()
 	_test_resolve()
 	_test_picks()
+	test_shill_hand()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_run = null
 	_events.clear()
@@ -40,7 +41,7 @@ func _check(c: bool, name: String) -> void:
 func _rich() -> RunProgress:
 	var p := RunProgress.new(_run)
 	p.change_embers(50 - p.embers)
-	p.add_die(&"d6")
+	p.add_die(DiceIds.DIE_BONE)
 	p.set_face(0, 0, &"wild")
 	return p
 
@@ -127,5 +128,25 @@ func _test_picks() -> void:
 	_check(EventPicker.worth_offering(_events[&"fence"], broke, true), "skip: with 10 Embers the Fence is offered")
 	var full := RunProgress.new(_run)
 	while full.can_add_die():
-		full.add_die(&"d6")
+		full.add_die(DiceIds.DIE_BONE)
 	_check(not EventPicker.worth_offering(_events[&"gravedigger"], full, true), "skip: the Gravedigger is skipped with a full bag")
+
+
+## The Shill's "+1 hand": cold_sixes / greedy_pot carry hands_delta = 1, so
+## the next regular Table gets one extra hand.
+func test_shill_hand() -> void:
+	var shill: EventData = _events[&"shill"]
+	for i in 2:
+		var rule: RunRuleData = shill.choices[i].effects.back().rule
+		_check(rule.hands_delta == 1, "shill: %s has hands_delta = 1" % rule.id)
+		var run := MapRun.new(_run, 12)
+		run.progress.change_embers(50)
+		EventApplier.apply(shill.choices[i], run.progress, RandomNumberGenerator.new())
+		var table: MapNode = null
+		for n: MapNode in run.map.nodes.values():
+			if n.type == MapGenData.NodeType.TABLE and table == null:
+				table = n
+		run.map.current_id = table.prev[0] if not table.prev.is_empty() else -1
+		run.choose_node(table.id)
+		_check(run.rules.has(rule) and run.goal.hands == run.floor_data().hands + 1,
+			"shill: choice %s gives the next Table +1 hand (%d)" % ["ab"[i], run.goal.hands])

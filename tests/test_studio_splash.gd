@@ -1,4 +1,4 @@
-## Headless test for the Tiny Anvil boot splash (scenes/studio_splash.tscn).
+## Headless test for the Tiny Anvil Games boot splash (scenes/studio_splash.tscn).
 ## Checks: it is the main scene and loads; it advances to boot/next_scene after
 ## its duration (with its sound cues: per-cue OR the single studio_splash sting, never both); any key / click skips with a fast fade
 ## (mouse motion doesn't); it never replays once played; reduced motion is a

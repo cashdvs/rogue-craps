@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_v8uye")
 table_special = &"ferryman"
-id = &"coin"
+id = &"ferryman"
 display_name = "Ferryman's Coin"
 description = "Heads copies the highest die in the tray, Tails the lowest. Thrown alone: Heads = 5, Tails = Blank."
 price = 18

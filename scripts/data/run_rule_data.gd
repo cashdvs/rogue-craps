@@ -33,3 +33,19 @@ func text(hands: int) -> String:
 ## Same rule or same effect as `other` (same id, or same effect_group).
 func same_effect(other: RunRuleData) -> bool:
 	return other != null and (other.id == id or (effect_group != &"" and other.effect_group == effect_group))
+
+@export_group("Boss sign (optional)")
+## Boss intro / pause sign at 600x210 (null = no sign; text panels only).
+## Script-built by Art Director (build_signs.py); see BossSign for use.
+@export var sign_texture: Texture2D
+## The same sign at 1200x420, used when the window is 1080 px tall or more.
+@export var sign_texture_2x: Texture2D
+## 128 px rule icon for the table HUD row (shown at ~56 px). null = text row.
+@export var rule_icon: Texture2D
+## The sign's rule line(s), e.g. "POT 3+ DICE EVERY THROW" (HUD tooltip).
+@export var tooltip_text: String = ""
+## Everything printed on the sign, for screen readers / accessible text.
+@export var sign_alt_text: String = ""
+## HUD: keep the rule's text line visible under the name even with an icon
+## (BossSign also does this for any rule that states a Soul / Ember cost).
+@export var hud_always_show_line: bool = false

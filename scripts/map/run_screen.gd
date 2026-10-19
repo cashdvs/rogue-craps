@@ -38,6 +38,11 @@ var quit_button: Button
 var bag_button: Button
 var key_button: Button
 var map_key: MapKey
+## Boss intro sign (BossSign), or null. Tests / captures read it.
+var boss_sign: TextureRect
+## Tests: treat the window as this many pixels tall when picking @1x / @2x
+## sign art (0 = the real window).
+var sign_px_height: int = 0
 const TITLE_SCENE := "res://scenes/title.tscn"
 
 
@@ -151,7 +156,7 @@ func refresh() -> void:
 		map_key.visible = false
 	match run.screen:
 		S.MAP:
-			map_view.show_map(run.map, run.boss_name(), _boss_rules(), run.pending_twist_note())
+			map_view.show_map(run.map, run.boss_name(), TablePreview.boss_rules(run), run.pending_twist_note())
 		S.EVENT:
 			event_view.show_event(run.event, run.progress, run.table_ahead())
 		S.TABLE:
@@ -191,16 +196,6 @@ func _panel(title: String, lines: Array, buttons: Array, extra: Control = null) 
 		_panel_box.add_child(b)
 
 
-## The floor boss's cheat (and Floor 3's extra twist), for the map.
-func _boss_rules() -> String:
-	var out: Array[String] = []
-	if run.boss != null:
-		out.append(run.boss.description)
-	if run.boss_twist != null:
-		out.append("Twist: %s - %s" % [run.boss_twist.display_name, run.boss_twist.description])
-	return " / ".join(out)
-
-
 ## Confirm before leaving the run for the title screen.
 func ask_quit() -> void:
 	map_view.visible = false
@@ -231,10 +226,14 @@ func _show_table() -> void:
 	if stubs_enabled():
 		buttons.append(["Stub: clear", func() -> void: run.quick_resolve(true)])
 		buttons.append(["Stub: miss", func() -> void: run.quick_resolve(false)])
-	var dice := MiniDiceRow.new()
-	dice.build(run.progress)
-	dice.opened.connect(show_dice)
-	_panel(g.display_name, lines, buttons, dice)
+	_panel(g.display_name, lines, buttons, TablePreview.dice_row(run.progress, show_dice))
+	boss_sign = TablePreview.add_boss_sign(_panel_box, run, _px_height(), get_viewport().get_visible_rect().size.x) \
+		if run.table_type == NT.BOSS else null
+
+
+## Window height in pixels (for @1x / @2x sign art).
+func _px_height() -> int:
+	return sign_px_height if sign_px_height > 0 else get_window().size.y
 
 
 ## Dev stub buttons at tables: only with debug_table_stubs in a debug build.
@@ -249,6 +248,8 @@ func _play_table() -> void:
 	_ui.visible = false
 	add_child(t)
 	t.finished.connect(_on_table_finished)
+	if run.table_type == NT.BOSS:
+		BossSign.attach_to_pause(t.pause_menu, run.boss, _px_height())
 
 
 ## Bonfire3D.finished (CONTINUE on its end panel): apply the outcome, free
@@ -337,12 +338,12 @@ func mod_offer_text(i: int) -> String:
 	return "%s - %d Embers" % [m.display_name, r.x] if r.x == r.y else "%s - %d to %d Embers, by die" % [m.display_name, r.x, r.y]
 
 
-## The handful by name and shape, e.g. "Bone, Bone, Coin (2 faces), Mirror Die".
+## The handful by name and shape, e.g. "Bone, Powder Keg (6 faces), Ferryman's Coin (2 faces), Mirror Die".
 func bag_text() -> String:
 	var names: Array[String] = []
 	for i in run.progress.dice.size():
 		var d := run.progress.dice[i]
-		names.append(run.progress.die_name(i) + ("" if d.shape == &"d6" else " (%d faces)" % d.faces.size()))
+		names.append(run.progress.die_name(i) + ("" if d.shape == DiceIds.DIE_BONE else " (%d faces)" % d.faces.size()))
 	return ", ".join(names)
 
 

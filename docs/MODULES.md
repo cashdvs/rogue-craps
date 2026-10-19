@@ -1,5 +1,9 @@
 # Module ownership map
 
+> The labels, roles and claim process below are current. The **Status** and **paths** columns predate
+> the Bonfire loop (run, map, shop, events and bosses are built now); for today's files see
+> [ARCHITECTURE.md](ARCHITECTURE.md#module-map).
+
 Dice of the Damned is split into **feature modules**: sub-sections that one person or agent can
 claim and work on without stepping on anyone else. **"Module" always means one of the feature
 modules below** (not a folder). A normal feature PR spans several folders of one module, for

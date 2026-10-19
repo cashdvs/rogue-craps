@@ -19,6 +19,7 @@ func _initialize() -> void:
 	_test_data()
 	_test_dice()
 	_test_table()
+	_test_table_shapes()
 	_test_offers()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_run = null
@@ -38,20 +39,20 @@ func _test_data() -> void:
 	for s in _run.shapes:
 		by[s.id] = s
 	var want := {&"powder_keg": ["Powder Keg", 18, [1, 1, 2, 2, 3, 3], {3: &"twin"}, &""],
-		&"coin": ["Ferryman's Coin", 18, [5, 0], {}, &"ferryman"],
+		&"ferryman": ["Ferryman's Coin", 18, [5, 0], {}, &"ferryman"],
 		&"caltrop": ["Caltrop", 18, [1, 2, 3, 4], {}, &"caltrop"],
 		&"lantern": ["Lantern", 12, [1, 2, 3, 4, 5, 6, 7, 8], {8: &"wild"}, &""],
 		&"tithe": ["Tithe", 12, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], {10: &"gilded"}, &""],
 		&"midnight": ["Midnight", 12, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], {12: &"hellfire"}, &""],
 		&"verdict": ["Verdict", 18, range(1, 21), {20: &"hellfire", 1: &"blood"}, &""],
 		&"knucklebone": ["Knucklebone", 18, [1, 3, 4, 6], {}, &"knucklebone"]}
-	_check(by.size() == 9 and by.has(&"d6") and not by.has(&"d3") and not by.has(&"d20"), "data: d6 + the 8 named §10 dice; no plain Coin / d3 / dN")
+	_check(by.size() == 9 and by.has(&"bone") and not by.has(&"d3") and not by.has(&"d20"), "data: d6 + the 8 named §10 dice; no plain Coin / d3 / dN")
 	for id in want:
 		var sh: DieShape = by.get(id)
 		var w: Array = want[id]
 		_check(sh != null and sh.display_name == w[0] and sh.price == w[1] and Array(sh.faces) == w[2]
 			and sh.preset_mods == w[3] and sh.table_special == w[4], "data: %s matches §10 (name, price, faces, pre-carved, hook)" % id)
-	var coin: DieShape = by[&"coin"]
+	var coin: DieShape = by[&"ferryman"]
 	_check(coin.weights == ([1.0, 1.0] as Array[float]), "data: Ferryman's Coin weights 1/1 (heads, tails)")
 	var on: Array[StringName] = []
 	for s: DieShape in _run.shapes:
@@ -63,7 +64,7 @@ func _test_data() -> void:
 
 func _test_dice() -> void:
 	var p := RunProgress.new(_run)
-	_check(p.add_die(&"powder_keg") and p.add_die(&"coin"), "dice: buy a Powder Keg and a Coin")
+	_check(p.add_die(&"powder_keg") and p.add_die(&"ferryman"), "dice: buy a Powder Keg and a Coin")
 	var keg := p.dice[5]
 	var coin := p.dice[6]
 	_check(keg.shape == &"powder_keg" and keg.faces.size() == 6 and keg.special_id == &"" and coin.faces.size() == 2 and keg.id == &"powder_keg_5",
@@ -77,7 +78,7 @@ func _test_dice() -> void:
 	p.set_face(5, 0, &"wild")
 	_check(p.mod_price(twin, 5) == plain_price * 3 / 2, "mods: a carved face does (+50% per mod, §5)")
 	var run := MapRun.new(_run, 3)
-	run.progress.add_die(&"coin")
+	run.progress.add_die(&"ferryman")
 	_check(run.free_face(Vector2i(5, 1)) and not run.free_face(Vector2i(5, 2)), "picks: a Coin has faces 0-1 only")
 	_check(EventApplier.pick_ok(_add_fx(), run.progress, Vector2i(5, 0)) and not EventApplier.pick_ok(_add_fx(), run.progress, Vector2i(5, 4)),
 		"events: picked faces bounded by the die's face count")
@@ -86,7 +87,7 @@ func _test_dice() -> void:
 	var m := RunProgress.new(_run)
 	m.add_die(&"mirror")
 	m.add_die(&"cracked")
-	_check(m.dice[5].shape == &"d6" and m.dice[5].faces.size() == 6 and m.table_dice()[6].special == &"cracked", "specials: Mirror / Cracked stay d6 specials")
+	_check(m.dice[5].shape == &"bone" and m.dice[5].faces.size() == 6 and m.table_dice()[6].special == &"cracked", "specials: Mirror / Cracked stay d6 specials")
 
 
 func _add_fx() -> EventEffectData:
@@ -100,7 +101,7 @@ func _add_fx() -> EventEffectData:
 func _test_table() -> void:
 	var p := RunProgress.new(_run)
 	p.add_die(&"powder_keg")
-	p.add_die(&"coin")
+	p.add_die(&"ferryman")
 	p.set_face(5, 2, &"heavy")
 	var td := p.table_dice()
 	var k := td[5]
@@ -125,7 +126,7 @@ func _test_table() -> void:
 	d6s.faces = [1, 2, 3] as Array[int]
 	d6s.mods = [null, &"x", null]
 	d6s.weights = [1.0, 1.0, 2.0] as Array[float]
-	p._to_d6_slots(d6s)
+	TableDieSlots.to_d6_slots(d6s)
 	_check(d6s.faces == ([1, 1, 2, 2, 3, 3] as Array[int]) and d6s.mods == [null, null, &"x", &"x", null, null]
 		and d6s.weights == ([1.0, 1.0, 1.0, 1.0, 2.0, 2.0] as Array[float]), "table: 6-slot mapping puts each value's mod and weight on both its slots")
 	var run := MapRun.new(_run, 5)
@@ -141,9 +142,25 @@ func _test_table() -> void:
 
 ## What table_dice() emits for die i once TableDie has `shape` (simulated
 ## with the pre-conversion arrays): RunProgress.shaped_table_die.
+## #107: RunDie.shape holds a die id; the table gets DiceIds.shape_of it.
+func _test_table_shapes() -> void:
+	var p := RunProgress.new(_run)
+	_check(p.table_shape(0) == DiceIds.SHAPE_D6, "table shape: a starting Bone rolls as d6")
+	var want := {DiceIds.DIE_FERRYMAN: DiceIds.SHAPE_COIN, DiceIds.DIE_CALTROP: DiceIds.SHAPE_D4,
+		DiceIds.DIE_LANTERN: DiceIds.SHAPE_D8, DiceIds.DIE_TITHE: DiceIds.SHAPE_D10,
+		DiceIds.DIE_MIDNIGHT: DiceIds.SHAPE_D12, DiceIds.DIE_VERDICT: DiceIds.SHAPE_D20,
+		DiceIds.DIE_POWDER_KEG: DiceIds.SHAPE_D6, DiceIds.DIE_KNUCKLEBONE: DiceIds.SHAPE_TALUS}
+	for id: StringName in want:
+		var q := RunProgress.new(_run)
+		var ok := q.add_die(id)
+		var i := q.dice.size() - 1
+		_check(ok and q.dice[i].shape == id and q.table_shape(i) == want[id],
+			"table shape: %s rolls as %s (got %s)" % [id, want[id], q.table_shape(i) if ok else &"-"])
+
+
 func _shaped_emission(p: RunProgress, i: int) -> Dictionary:
 	var td: TableDie = p.shaped_table_die(i)
-	return {"faces": td.faces, "weights": td.weights, "mods": td.mods, "special": td.special, "shape": p.dice[i].shape}
+	return {"faces": td.faces, "weights": td.weights, "mods": td.mods, "special": td.special, "shape": p.table_shape(i)}
 
 
 func _test_offers() -> void:

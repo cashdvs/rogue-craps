@@ -115,7 +115,7 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 			K.MAX_SOUL:
 				lines.append("Max Soul %+d (%d)" % [p.change_max_soul(e.amount), p.max_soul])
 			K.GIVE_DIE:
-				if p.add_die(e.die if e.die != &"" else &"d6"):
+				if p.add_die(e.die if e.die != &"" else DiceIds.DIE_BONE):
 					lines.append("gained %s" % p.die_name(p.dice.size() - 1))
 				else:
 					lines.append("bag full")

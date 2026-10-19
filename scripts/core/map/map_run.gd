@@ -158,6 +158,7 @@ func table_setup() -> RunTableSetup:
 	s.start_soul = progress.soul
 	s.max_soul = progress.max_soul
 	s.seed_value = hash([run_seed, floor_index, map.current_id, &"table", boss_misses])
+	s.first_table = tables_played == 0
 	s.rules = rules.duplicate()
 	for r in rules:
 		if r.bust_soul_loss >= 0:
@@ -172,6 +173,7 @@ func table_setup() -> RunTableSetup:
 func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[StringName] = []) -> void:
 	if screen != Screen.TABLE:
 		return
+	tables_played += 1
 	progress.change_soul(soul_after - progress.soul)
 	progress.change_embers(embers)
 	progress.record_banks(banked)
