@@ -23,6 +23,10 @@ var seal_moves: Dictionary[StringName, Vector2i] = {}
 ## Combo id -> times banked this run (Black Seal). The table reports these.
 var banked: Dictionary[StringName, int] = {}
 var contract_pieces: int = 0
+## Free shop rerolls from events (spent before paid ones; they stack).
+var free_rerolls: int = 0
+## A twist an event put on the next table (MapRun.make_goal uses and clears it).
+var next_table_twist: RunRuleData
 var _next_die_id: int = 0
 
 
@@ -275,6 +279,21 @@ func ashen_seal(from: StringName, to: StringName) -> int:
 	seal_levels[from] = 0
 	add_seal_levels(to, lv)
 	return lv
+
+
+## Max Soul +/- delta, never below 1; Soul is cut to the new max (a raise
+## doesn't heal). Returns the real change.
+func change_max_soul(delta: int) -> int:
+	var before := max_soul
+	max_soul = maxi(1, max_soul + delta)
+	soul = mini(soul, max_soul)
+	changed.emit()
+	return max_soul - before
+
+
+## Can a die be sold or given up (the bag stays at the starting size or more)?
+func can_lose_die() -> bool:
+	return dice.size() > data.starting_dice
 
 
 ## A contract piece (one per boss): +contract_max_soul max Soul, heal to full.

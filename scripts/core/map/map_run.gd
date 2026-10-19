@@ -45,6 +45,8 @@ var shop_mods: Array[FaceModData] = []
 var shop_seals: Array[StringName] = []
 var shop_seals_bought: int = 0
 var shop_rerolls: int = 0
+## Free (event) rerolls spent this shop visit; only seeds the new stock.
+var shop_free_rerolls: int = 0
 ## Rest: the face mod the free carve offers.
 var rest_mod: FaceModData
 
@@ -106,6 +108,7 @@ func choose_node(id: int) -> bool:
 		NT.SHOP:
 			shop_seals_bought = 0
 			shop_rerolls = 0
+			shop_free_rerolls = 0
 			_roll_shop()
 			_set_screen(Screen.SHOP)
 		NT.REST:
@@ -138,6 +141,11 @@ func make_goal(t: NT) -> TableGoal:
 		var tw := _pick_rule(f.elite_twists, rng)
 		if tw != null:
 			rules.append(tw)
+	# An event twist rides on exactly the next table, then clears.
+	if progress.next_table_twist != null:
+		if not rules.has(progress.next_table_twist):
+			rules.append(progress.next_table_twist)
+		progress.next_table_twist = null
 	for r in rules:
 		g.hands += r.hands_delta
 	g.hands = maxi(g.hands, 1)
@@ -402,7 +410,7 @@ func _dice_offers(rng: RandomNumberGenerator, n: int) -> Array[SpecialDieData]:
 
 
 func _roll_shop() -> void:
-	var rng := _rng(&"shop", shop_rerolls)
+	var rng := _rng(&"shop", shop_rerolls + 1000 * shop_free_rerolls)
 	shop_dice.clear()
 	shop_dice = _dice_offers(rng, data.shop_dice)
 	shop_mods.clear()
@@ -418,7 +426,10 @@ func seal_price(id: StringName) -> int:
 	return data.shop_seal_price + data.shop_seal_step * shop_seals_bought
 
 
+## 0 while free rerolls (events) are banked; they don't raise the step.
 func reroll_price() -> int:
+	if progress.free_rerolls > 0:
+		return 0
 	return data.reroll_base + data.reroll_step * shop_rerolls
 
 
@@ -430,9 +441,14 @@ func _pay(cost: int) -> bool:
 
 
 func shop_reroll() -> bool:
-	if not _pay(reroll_price()):
+	if progress.free_rerolls > 0 and screen == Screen.SHOP:
+		progress.free_rerolls -= 1
+		shop_free_rerolls += 1
+		progress.changed.emit()
+	elif _pay(reroll_price()):
+		shop_rerolls += 1
+	else:
 		return false
-	shop_rerolls += 1
 	_roll_shop()
 	return true
 

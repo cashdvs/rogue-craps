@@ -27,6 +27,12 @@ static func why_not(choice: EventChoiceData, p: RunProgress) -> String:
 			ember_cost -= e.amount
 		elif e.kind == K.ADD_FACE_MOD and _all_free(p).is_empty():
 			return "No blank face left to carve."
+		elif e.kind == K.MAX_SOUL and e.amount < 0 and p.max_soul + e.amount < 1:
+			return "Not enough max Soul."
+		elif e.kind == K.GIVE_DIE and not p.can_add_die():
+			return "Your bag is full (%d dice)." % p.data.max_dice
+		elif e.kind == K.SELL_DIE and not p.can_lose_die():
+			return "You have no die to spare."
 	if soul_cost > 0 and p.soul <= soul_cost:
 		return "Not enough Soul."
 	if ember_cost > p.embers:
@@ -48,6 +54,8 @@ static func picks_needed(choice: EventChoiceData) -> int:
 ## Is (die, face) a legal pick for effect `e`? ADD: a face with no mod on
 ## it (Blank can be carved over); REMOVE: a face holding a real mod.
 static func pick_ok(e: EventEffectData, p: RunProgress, pick: Vector2i) -> bool:
+	if e.kind == K.SELL_DIE:
+		return pick.x >= 0 and pick.x < p.dice.size() and pick.y >= 0 and pick.y < p.dice[pick.x].faces.size()
 	if e.kind == K.REMOVE_FACE_MOD:
 		return p.modded_faces().has(pick)
 	return pick.x >= 0 and pick.x < p.dice.size() and pick.y >= 0 and pick.y < p.dice[pick.x].faces.size() \
@@ -69,7 +77,7 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 		if e.needs_pick():
 			if k >= picks.size() or not pick_ok(e, p, picks[k]):
 				return ["refused: pick a valid face"]
-			var key := [e.kind, picks[k]]
+			var key := [e.kind, picks[k] if e.kind != K.SELL_DIE else Vector2i(picks[k].x, 0)]
 			if used.has(key):
 				return ["refused: pick a different face for each"]
 			used[key] = true
@@ -83,6 +91,35 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 				lines.append("Soul %+d" % p.change_soul(e.amount))
 			K.EMBERS:
 				lines.append("Embers %+d" % p.change_embers(e.amount))
+			K.MAX_SOUL:
+				lines.append("Max Soul %+d (%d)" % [p.change_max_soul(e.amount), p.max_soul])
+			K.GIVE_DIE:
+				if p.add_die(e.die if e.die != &"" else &"d6"):
+					lines.append("gained %s" % p.die_name(p.dice.size() - 1))
+				else:
+					lines.append("bag full")
+			K.SELL_DIE:
+				var d: int = -1
+				if e.needs_pick():
+					d = picks[next_pick].x
+					next_pick += 1
+				elif p.can_lose_die():
+					d = rng.randi_range(0, p.dice.size() - 1)
+				if d < 0 or not p.can_lose_die():
+					lines.append("no die to sell")
+					continue
+				var name := p.die_name(d)
+				var paid := p.sell_die(d)
+				var bonus := p.change_embers(e.amount) if e.amount != 0 else 0
+				lines.append("sold %s: Embers %+d" % [name, paid + bonus])
+			K.FREE_SHOP_REROLL:
+				p.free_rerolls += maxi(e.amount, 0)
+				p.changed.emit()
+				lines.append("%d free shop reroll%s (%d banked)" % [e.amount, "" if e.amount == 1 else "s", p.free_rerolls])
+			K.NEXT_TABLE_TWIST:
+				p.next_table_twist = e.rule
+				p.changed.emit()
+				lines.append("next table: %s" % (e.rule.display_name if e.rule != null else "no twist"))
 			K.SEAL_LEVEL:
 				p.add_seal_levels(e.seal, e.amount)
 				lines.append("%s Seal +%d (Lv%d)" % [e.seal, e.amount, p.seal_level(e.seal)])

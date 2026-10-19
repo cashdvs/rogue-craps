@@ -266,7 +266,7 @@ func _show_shop() -> void:
 		if sd != null and run.progress.sell_value(d_i) > 0:
 			buttons.append(["Sell your %s (+%d Embers)" % [sd.display_name, run.progress.sell_value(d_i)],
 				func() -> void: run.sell_die(d_i); _show_shop()])
-	buttons.append(["Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
+	buttons.append(["Free reroll (%d left)" % run.progress.free_rerolls if run.progress.free_rerolls > 0 else "Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
 	buttons.append(["Leave", func() -> void: run.leave()])
 	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half.", "Your dice: " + bag_text()], buttons)
 
