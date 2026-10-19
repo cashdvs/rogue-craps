@@ -98,6 +98,7 @@ func _ready() -> void:
 		bonfire_seed = setup.table_seed
 	mode = Mode.RUNNING_TOTAL
 	total_dice_per_throw = clampi(setup.dice.size(), 1, MAX_HANDFUL)
+	_apply_camera_tuning()
 	super()
 	total_hud.visible = false
 	stack.visible = false
@@ -1144,7 +1145,21 @@ const PILLAR_HEIGHT: float = 0.3
 var phone_dial_visible: bool = true
 
 
+## Bonfire's own home framing (BonfireTuning "Game camera") over the shared
+## TuningData (a copy, so the PoC table keeps the spec camera).
+func _apply_camera_tuning() -> void:
+	if tuning == null or bonfire_tuning == null:
+		return
+	tuning = tuning.duplicate() as TuningData
+	tuning.cam_pitch_deg = bonfire_tuning.cam_pitch_deg
+	tuning.cam_distance = bonfire_tuning.cam_distance
+	tuning.cam_pivot = bonfire_tuning.cam_pivot
+	tuning.cam_look_up_deg = bonfire_tuning.cam_look_up_deg
+
+
 func fit_phone(size: Vector2) -> float:
+	if size.x >= size.y:
+		return _fit_phone_landscape()
 	var px := super(size)
 	var n := maxi(setup.dice.size() if setup != null else 5, 1)
 	var must: Array[Vector3] = [pot_slot(0) + Vector3(0, PILLAR_HEIGHT, 0), pot_slot(n - 1) + Vector3(0, tuning.die_size, 0),
@@ -1176,6 +1191,31 @@ func fit_phone(size: Vector2) -> float:
 	camera.position = camera.home_pivot
 	camera._apply()
 	return px
+
+
+## Phone landscape: the home framing's pitch and tilt, closer in and
+## centred (BonfireTuning cam_phone_landscape_*), so the whole felt, the
+## near rail and the TotalPlate are in frame with dice as big as the old
+## hand-centred phone framing. Dollies out a little if a must-see point
+## (or the pot row) still touches an edge. Returns the smallest die (px).
+func _fit_phone_landscape() -> float:
+	camera.fit_viewport(Vector2(get_viewport().get_visible_rect().size))
+	camera.home_distance = bonfire_tuning.cam_phone_landscape_distance
+	camera.distance = camera.home_distance
+	camera.home_pivot = bonfire_tuning.cam_phone_landscape_pivot
+	camera.position = camera.home_pivot
+	camera._apply()
+	var n := maxi(setup.dice.size() if setup != null else 5, 1)
+	var pts := CameraFraming.must_points()
+	pts.append_array([pot_slot(0) + Vector3(0, PILLAR_HEIGHT, 0), pot_slot(n - 1) + Vector3(0, tuning.die_size, 0)])
+	for step in 20:
+		if CameraFraming.margin(camera.cam, pts) >= bonfire_tuning.cam_edge_margin_px:
+			break
+		camera.home_distance *= 1.02
+		camera.distance = camera.home_distance
+		camera._apply()
+	phone_dial_visible = true
+	return _smallest_die_px(CameraFraming.rest_spots(tuning.die_size))
 
 
 ## How far (px) the pot row / hand points want to stay from the viewport

@@ -77,6 +77,35 @@ extends Resource
 ## Table 1 tutorial: the first throw lands a pair + a run of 3.
 @export var tutorial_first_throw: Array[int] = [2, 2, 4, 5, 6]
 
+@export_group("Game camera (home framing, applied over TuningData)")
+## Bonfire's home framing (PM / Art Director, Oct 19): the spec pitch, a bit
+## closer and pivoted toward the player, the lens tilted up 7.5 degrees, so
+## ~0.44 m shows above the far rail where Smiles stands
+## (art/dealer-smiles, x -0.42, z -0.86), while the whole felt, the near rail
+## and the TotalPlate stay in frame on 16:9 and resting dice shrink <= 5%
+## and every die stays >= min_die_px and the goal plaque >= 96% of its old
+## size (tools/measure_camera_framing.gd; tests/test_bonfire_camera.gd).
+## The asked-for 0.5-0.6 m would push the far-corner die under min_die_px
+## and shrink the plaque > 5%. Was the spec camera: pitch 55, 2.5 m, pivot
+## z 0.05, no tilt.
+@export_range(30.0, 80.0) var cam_pitch_deg: float = 55.0
+@export var cam_distance: float = 2.40
+@export var cam_pivot: Vector3 = Vector3(0.0, 0.0, 0.26)
+@export var cam_look_up_deg: float = 7.5
+## Phone landscape (short side <= 500 px): same pitch and tilt, closer and
+## centred, so the whole felt / near rail / TotalPlate fit and dice stay as
+## big as the old hand-centred phone framing (which cropped the left third
+## of the felt).
+@export var cam_phone_landscape_distance: float = 2.04
+@export var cam_phone_landscape_pivot: Vector3 = Vector3(0.0, 0.0, 0.34)
+## Framing targets the camera test holds the numbers above to (16:9):
+## headroom above the far rail top at the dealer's depth (m), the largest
+## allowed shrink of a resting die vs the spec camera (fraction), and the
+## must-see points' margin inside the frame (px).
+@export var cam_headroom_min_m: float = 0.42
+@export var cam_die_shrink_max: float = 0.05
+@export var cam_edge_margin_px: float = 15.0
+
 @export_group("Throw momentum (flick speed -> launch)")
 ## Flick speeds (screen px/s, after the Options "Throw sensitivity"
 ## multiplier) mapped onto the launch range below. Under flick_speed_min it's

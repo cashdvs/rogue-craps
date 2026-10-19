@@ -18,6 +18,8 @@ var distance: float = 2.5
 var home_distance: float = 2.5
 var home_pivot := Vector3.ZERO
 var tilt_deg: float = 0.0
+## Lens tilt above the pivot (degrees, TuningData.cam_look_up_deg).
+var look_up_deg: float = 0.0
 
 var _trauma: float = 0.0
 var _max_px: float = 0.0
@@ -38,6 +40,7 @@ func setup(t: TuningData) -> void:
 	_noise.frequency = 1.0
 	_noise.seed = 18
 	pitch_deg = t.cam_pitch_deg
+	look_up_deg = t.cam_look_up_deg
 	home_distance = t.cam_distance
 	distance = home_distance
 	home_pivot = t.cam_pivot
@@ -53,6 +56,7 @@ func fit_viewport(size: Vector2) -> float:
 	var portrait := size.y > size.x
 	yaw_deg = 90.0 if portrait else 0.0
 	pitch_deg = 60.0 if portrait else tuning.cam_pitch_deg
+	look_up_deg = 0.0 if portrait else tuning.cam_look_up_deg
 	cam.fov = 40.0 if portrait else tuning.cam_fov
 	home_distance = 3.2 if portrait else tuning.cam_distance
 	# Die size in px ~ edge * height_px / (2 * d * tan(fov / 2)) at the pivot.
@@ -167,4 +171,4 @@ func _apply() -> void:
 		cam.h_offset = _noise.get_noise_2d(_t * 40.0, 0.0) * m * k
 		cam.v_offset = _noise.get_noise_2d(0.0, _t * 40.0) * m * k
 		roll += _noise.get_noise_2d(_t * 30.0, 50.0) * _max_px * tuning.shake_deg_per_px * k
-	cam.rotation_degrees = Vector3(0, 0, roll)
+	cam.rotation_degrees = Vector3(look_up_deg, 0, roll)

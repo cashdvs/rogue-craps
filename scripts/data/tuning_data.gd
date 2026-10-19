@@ -158,6 +158,10 @@ extends Resource
 @export var cam_distance: float = 2.5
 ## Look-at pivot on the felt (spec: slightly toward the player).
 @export var cam_pivot: Vector3 = Vector3(0.0, 0.0, 0.05)
+## The camera looks this many degrees above the pivot (a tilt of the lens,
+## not of the orbit): more of the space behind the far rail (the dealer)
+## for the same felt. 0 = aimed at the pivot (spec). Landscape only.
+@export var cam_look_up_deg: float = 0.0
 ## Reveal follow/zoom: distance and timings (spec: 2.5 -> 2.1 m in 0.30 s, back in 0.40 s).
 @export var cam_reveal_distance: float = 2.1
 @export var cam_reveal_time: float = 0.30
