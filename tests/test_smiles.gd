@@ -14,8 +14,10 @@ const TOON := "res://shaders/3d/toon_noir.gdshader"
 const OUTLINE := "res://shaders/3d/outline.gdshader"
 const BONES: Array[String] = ["root", "spine", "chest", "neck", "head", "jaw", "grin_L", "grin_R", "visor",
 	"shoulder_L", "upper_arm_L", "forearm_L", "hand_L", "thumb_L", "index_L", "fingers_L",
-	"shoulder_R", "upper_arm_R", "forearm_R", "hand_R", "thumb_R", "index_R", "fingers_R", "chip"]
-const PARENTS: Dictionary = {"spine": "root", "chest": "spine", "neck": "chest", "head": "neck", "jaw": "head",
+	"shoulder_R", "upper_arm_R", "forearm_R", "hand_R", "thumb_R", "index_R", "fingers_R", "chip",
+	"glow_head", "glow_jaw", "glow_grin_L", "glow_grin_R", "glow_visor"]
+const PARENTS: Dictionary = {"glow_head": "head", "glow_jaw": "jaw", "glow_grin_L": "grin_L", "glow_grin_R": "grin_R", "glow_visor": "visor",
+	"spine": "root", "chest": "spine", "neck": "chest", "head": "neck", "jaw": "head",
 	"grin_L": "head", "grin_R": "head", "visor": "head", "hand_L": "forearm_L", "hand_R": "forearm_R", "chip": "hand_R"}
 const LOOPS: Array[String] = ["idle", "mc_idle"]
 const REACTIONS: Array[String] = ["taunt", "grudging", "cheat", "deal", "mc_cheer"]
@@ -30,6 +32,10 @@ const SOUL_CYAN := Color("#4FE6E0")
 const DEALER_POS := Vector3(-0.42, -0.47, -0.86)
 const MC_POS := Vector3(-1.32, -0.42, -0.30)
 const RAIL_TOP := 0.14
+## Key gesture frames that must read above the far rail in the game camera: [clip, time, bones].
+const GESTURES: Array = [["grudging", 0.5, ["hand_L", "hand_R"]], ["grudging", 1.0, ["hand_L", "hand_R"]],
+	["taunt", 0.5, ["hand_R"]], ["cheat", 0.45, ["hand_L", "hand_R"]]]
+const GLOW: Array[String] = ["glow_head", "glow_jaw", "glow_grin_L", "glow_grin_R", "glow_visor"]
 const FELT_TOP := 0.03
 const LIMBS: Array[String] = ["forearm_L", "forearm_R", "hand_L", "hand_R", "index_L", "index_R", "fingers_L", "fingers_R", "thumb_L", "thumb_R", "chip"]
 
@@ -169,6 +175,41 @@ func _check(lod: String) -> void:
 	ap.play("taunt")
 	ap.seek(0.5, true)
 	_ok(rad_to_deg(skel.get_bone_pose_rotation(skel.find_bone("jaw")).get_euler().x) > 15.0, label + ": taunt cackles (jaw open > 15 deg)")
+	# MC-only glow: the glow_* shells are collapsed in every dealer clip and shown in the MC clips
+	var glow_bad: Array[String] = []
+	for c in ap.get_animation_list():
+		if c == "RESET":
+			continue
+		var want := 1.0 if String(c).begins_with("mc_") else 0.0
+		for t in [0.0, ap.get_animation(c).length * 0.5]:
+			ap.play(c)
+			ap.seek(t, true)
+			for g in GLOW:
+				if absf(skel.get_bone_pose_scale(skel.find_bone(g)).x - want) > 0.01:
+					glow_bad.append("%s %s @%.1f" % [c, g, t])
+	_ok(glow_bad.is_empty(), "%s: grin + visor-rim glow only in the MC clips %s" % [label, glow_bad.slice(0, 3)])
+	# key gestures read above the far rail from the game camera (palm centre over the rail's top edge)
+	s.position = DEALER_POS
+	s.rotation_degrees = Vector3.ZERO
+	var cam := Transform3D(Basis.from_euler(Vector3(deg_to_rad(-55), 0, 0)), Vector3.ZERO)
+	cam.origin = Vector3(0, 0, 0.05) + cam.basis * Vector3(0, 0, 2.5)
+	var inv := cam.affine_inverse()
+	var low := ""
+	var margin := INF
+	for gst in GESTURES:
+		ap.play(gst[0])
+		ap.seek(gst[1], true)
+		for b in gst[2]:
+			var palm: Vector3 = skel.global_transform * skel.get_bone_global_pose(skel.find_bone(b)) * Vector3(0, -0.05, 0)
+			var pv := inv * palm
+			var rv := inv * Vector3(palm.x, RAIL_TOP, -0.72)
+			var m := pv.y / -pv.z - rv.y / -rv.z
+			margin = minf(margin, m)
+			print("  info %s@%.2f %s palm margin %.3f" % [gst[0], gst[1], b, m])
+			if m < 0.01 and low == "":
+				low = "%s@%.2f %s (%.3f)" % [gst[0], gst[1], b, m]
+	_ok(low == "", "%s: key gesture hands (clap / point / cheat) above the rail in the game camera %s" % [label, low])
+	print("  info %s gesture palm margin over the rail line %.3f (tan units)" % [label, margin])
 	# rail clearance at the documented spots (arms never sink into the rail / table)
 	for spot in [[DEALER_POS, 0.0, false], [MC_POS, 90.0, true]]:
 		s.position = spot[0]

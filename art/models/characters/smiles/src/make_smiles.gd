@@ -65,11 +65,19 @@ func _materials() -> void:
 	_toon("smiles_vest", rim.merged({"albedo": Color("#9E1E2A"), "shadow_color": OXBLOOD, "mid_tint": 0.68,
 		"emission_color": Color("#2E0A10"), "emission_energy": 0.6}), ink)
 	_toon("smiles_black", rim.merged({"albedo": Color("#1C1616"), "shadow_color": Color("#0A0808"), "rim_color": BURGUNDY, "rim_strength": 0.7}), ink)
-	# The grin and the visor are the 48 px read: both carry an emission floor so they hold in the dark room.
+	# The grin and the visor are the 48 px read. As the dealer they are lit by the lamp only (no emission);
+	# the MC clips switch on the glow shells (smiles_glow_*) via the glow_* bones.
 	_toon("smiles_gold", {"albedo": Color("#F2C04A"), "shadow_color": Color("#7A5418"), "spec_size": 0.9, "spec_color": Color("#FFF0C0"),
-		"spec_strength": 0.6, "rim_color": Color("#FFE6A8"), "rim_strength": 0.5, "emission_color": Color("#F2B840"), "emission_energy": 0.9}, ink_thin)
-	_toon("smiles_visor", {"albedo": Color("#36B054"), "shadow_color": Color("#0E3A1E"), "mid_tint": 0.7, "spec_size": 0.92, "spec_strength": 0.4,
-		"rim_color": Color("#8CF0A0"), "rim_strength": 0.6, "emission_color": Color("#1E8A3A"), "emission_energy": 0.8}, ink)
+		"spec_strength": 0.6, "rim_color": Color("#FFE6A8"), "rim_strength": 0.5, "emission_energy": 0.0}, ink_thin)
+	_toon("smiles_visor", {"albedo": Color("#3CBC5C"), "shadow_color": Color("#14502A"), "mid_tint": 0.75, "wrap": 0.5, "light_gain": 1.6, "spec_size": 0.92, "spec_strength": 0.4,
+		"rim_color": Color("#8CF0A0"), "rim_strength": 0.6, "emission_energy": 0.0}, ink)
+	_toon("smiles_visor_rim", {"albedo": Color("#C8F8D2"), "shadow_color": Color("#6AAE7C"), "mid_tint": 0.85, "wrap": 0.6, "light_gain": 2.0, "rim_color": Color("#E6FFEC"),
+		"rim_strength": 0.4, "emission_energy": 0.0}, ink_thin)
+	# MC-only glow shells: faint, they sit just over the teeth / rim and replace them while shown.
+	_toon("smiles_glow_gold", {"albedo": Color("#F2C04A"), "shadow_color": Color("#9A6E22"), "spec_size": 0.9, "spec_color": Color("#FFF0C0"),
+		"spec_strength": 0.6, "emission_color": Color("#FFC850"), "emission_energy": 0.9}, ink_thin)
+	_toon("smiles_glow_rim", {"albedo": Color("#C8FFD2"), "shadow_color": Color("#7AC48C"), "light_gain": 0.4,
+		"emission_color": Color("#9CFFB0"), "emission_energy": 1.3}, ink_thin)
 	_toon("smiles_eye", {"albedo": Color("#FFC23A"), "shadow_color": Color("#FFC23A"), "light_gain": 0.0,
 		"emission_color": Color("#FFC23A"), "emission_energy": 2.2}, null)
 	_toon("smiles_mouth", {"albedo": Color("#1A0608"), "shadow_color": Color("#0A0204"), "rim_strength": 0.0}, null)

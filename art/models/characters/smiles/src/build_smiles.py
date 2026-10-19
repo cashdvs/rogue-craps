@@ -28,7 +28,8 @@ OUT = os.path.normpath(os.path.join(HERE, ".."))
 FPS = 30
 
 MATS = ["smiles_skin", "smiles_horn", "smiles_shirt", "smiles_vest", "smiles_black", "smiles_gold",
-        "smiles_visor", "smiles_eye", "smiles_mouth", "smiles_chip", "smiles_chip_edge"]
+        "smiles_visor", "smiles_eye", "smiles_mouth", "smiles_chip", "smiles_chip_edge",
+        "smiles_visor_rim", "smiles_glow_gold", "smiles_glow_rim"]
 
 # bone: (parent, head position)
 BONES = {
@@ -53,6 +54,11 @@ for s, sx in (("L", 1), ("R", -1)):
         "fingers_" + s: ("hand_" + s, (sx * 0.2, 0.012, -0.168)),
     })
 BONES["chip"] = ("hand_R", (-0.212, -0.06, -0.205))
+# MC-only glow shells (grin + visor rim): each glow_* bone sits on its parent's head and is keyed to
+# scale 0 in every dealer clip and 1 in the MC clips, so the clips alone switch the glow (no script).
+GLOW_BONES = {"glow_head": "head", "glow_jaw": "jaw", "glow_grin_L": "grin_L", "glow_grin_R": "grin_R", "glow_visor": "visor"}
+for _g, _p in GLOW_BONES.items():
+    BONES[_g] = (_p, BONES[_p][1])
 
 
 class Part:
@@ -218,24 +224,50 @@ def build_model(arm, mobile):
     head.tube([((0, -0.02, 0.6), 0.07), ((0, -0.045, 0.54), 0.046), ((0, -0.068, 0.5), 0.012)], "smiles_skin", "jaw", seg=S(14), flat=0.82)
     head.ellipsoid((0, -0.074, 0.574), (0.074, 0.026, 0.026), "smiles_mouth", "head", seg=(S(12), S(8)))
     head.ellipsoid((0, -0.076, 0.556), (0.04, 0.02, 0.01), "smiles_mouth", "jaw", seg=(S(10), S(6)))
-    n = 11 if not mobile else 9
-    for i in range(n):
-        u = -1 + 2 * i / (n - 1)
-        a = math.radians(64) * u
-        R = 0.0955
-        x, y = R * math.sin(a), -0.008 - 0.0955 * math.cos(a) * (1.0 - 0.06 * u * u)
-        zu = 0.583 + 0.04 * u * u
-        w = 2 * R * math.sin(math.radians(64) / (n - 1)) * 1.04
-        bu = "grin_L" if u > 0.45 else "grin_R" if u < -0.45 else "head"
-        bl = "grin_L" if u > 0.45 else "grin_R" if u < -0.45 else "jaw"
-        head.box((x, y, zu + 0.0005), (w, 0.008, 0.021 - 0.006 * abs(u)), "smiles_gold", bu, rot=rot(0, 0, -math.degrees(a)))
-        head.box((x * 0.985, y + 0.002, zu - 0.0195 + 0.005 * abs(u)), (w * 0.97, 0.008, 0.018 - 0.005 * abs(u)), "smiles_gold", bl, rot=rot(0, 0, -math.degrees(a)))
+    def teeth_band(part, lower, mat, bones, grow=0.0, n=7, front_only=False):
+        """One connected strip of n chunky teeth along the grin arc: each tooth bulges forward and the
+        top (bottom) edge notches between teeth, so the teeth read without separate pieces."""
+        bm = part.bm
+        rings = []
+        per = 2 if mobile else 4
+        M = n * per
+        for k in range(M + 1):
+            u = -1 + 2 * k / M
+            ph = (k % per) / per
+            bump = math.sin(math.pi * ph) if k % per else 0.0
+            a = math.radians(64) * u
+            R = 0.0955 + 0.0022 * bump + grow
+            zc = 0.583 + 0.04 * u * u
+            h = 0.026 - 0.008 * abs(u)
+            if lower:
+                zc, h = zc - 0.022 + 0.005 * abs(u), 0.021 - 0.006 * abs(u)
+            notch = 0.0045 * (1.0 - min(1.0, bump * 2.5))
+            top = zc + h * 0.5 + grow - (0 if lower else notch)
+            bot = zc - h * 0.5 - grow + (notch if lower else 0)
+            fx, fy = math.sin(a), -math.cos(a) * (1.0 - 0.06 * u * u)
+            def at(rr, z):
+                return bm.verts.new((rr * fx, -0.008 + rr * fy, z))
+            ring = [at(R, top), at(R, bot)] if front_only else [at(R, top), at(R, bot), at(R - 0.009, bot), at(R - 0.009, top)]
+            rings.append((u, ring))
+        for (_u0, r0), (_u1, r1) in zip(rings, rings[1:]):
+            for j in range(1 if front_only else 4):
+                bm.faces.new((r0[j], r1[j], r1[(j + 1) % 4], r0[(j + 1) % 4]))
+        if not front_only:
+            bm.faces.new(rings[0][1][::-1])
+            bm.faces.new(rings[-1][1])
+        for u, ring in rings:
+            part._assign(ring, mat, bones[2] if u > 0.4 else bones[1] if u < -0.4 else bones[0])
+
+    teeth_band(head, False, "smiles_gold", ("head", "grin_R", "grin_L"))
+    teeth_band(head, True, "smiles_gold", ("jaw", "grin_R", "grin_L"))
+    teeth_band(head, False, "smiles_glow_gold", ("glow_head", "glow_grin_R", "glow_grin_L"), grow=0.0011, front_only=True)
+    teeth_band(head, True, "smiles_glow_gold", ("glow_jaw", "glow_grin_R", "glow_grin_L"), grow=0.0011, front_only=True)
     for sx in (-1, 1):
         head.ellipsoid((sx * 0.037, -0.083, 0.648), (0.022, 0.009, 0.0095), "smiles_eye", "head", seg=(S(10), S(6)), rot=rot(0, -sx * 18, 0))
         head.tube([((sx * 0.012, -0.093, 0.652), 0.005), ((sx * 0.04, -0.091, 0.668), 0.0065), ((sx * 0.068, -0.08, 0.678), 0.0)], "smiles_black", "head", seg=S(6))
         # ears (long, pointed, swept back) + horns (curl in)
         head.tube([((sx * 0.08, 0.004, 0.632), 0.026), ((sx * 0.14, 0.022, 0.668), 0.016), ((sx * 0.19, 0.04, 0.705), 0.0)], "smiles_skin", "head", seg=S(8), flat=0.35, flat_axis=(0, 1, 0))
-        head.tube([((sx * 0.045, -0.03, 0.725), 0.021), ((sx * 0.07, -0.022, 0.78), 0.015), ((sx * 0.066, -0.01, 0.825), 0.008), ((sx * 0.05, 0.0, 0.85), 0.0)], "smiles_horn", "head", seg=S(9))
+        head.tube([((sx * 0.045, -0.024, 0.722), 0.021), ((sx * 0.066, 0.0, 0.762), 0.015), ((sx * 0.07, 0.032, 0.79), 0.008), ((sx * 0.062, 0.06, 0.806), 0.0)], "smiles_horn", "head", seg=S(9))
     head.tube([((0, -0.088, 0.64), 0.011), ((0, -0.106, 0.615), 0.005), ((0, -0.108, 0.605), 0.0)], "smiles_skin", "head", seg=S(6))
     # black hair: a cap swept back + spikes
     head.ellipsoid((0, 0.014, 0.67), (0.097, 0.097, 0.095), "smiles_black", "head", seg=(S(16), S(10)))
@@ -246,9 +278,15 @@ def build_model(arm, mobile):
     ob_head = head.finish(arm)
 
     visor = Part("Smiles_Visor")
-    visor.tube([((0, -0.006, 0.678), 0.092), ((0, -0.006, 0.703), 0.09)], "smiles_black", "visor", seg=S(20), flat=1.03, caps=False)
+    # outer headband in visor green (faces the lamp + game camera: the visor's green read now the brim tips up)
+    visor.tube([((0, -0.006, 0.678), 0.092), ((0, -0.006, 0.703), 0.09)], "smiles_visor", "visor", seg=S(20), flat=1.03, caps=False)
     visor.tube([((0, -0.006, 0.679), 0.0925), ((0, -0.006, 0.702), 0.0905)], "smiles_black", "visor", seg=S(20), flat=1.03, caps=False)
-    visor.ellipsoid((0, -0.098, 0.692), (0.124, 0.078, 0.0075), "smiles_visor", "visor", seg=(S(20), S(8)), rot=rot(-14, 0, 0))
+    BRIM_C, BRIM_R, BRIM_ROT = Vector((0, -0.098, 0.694)), (0.124, 0.078), rot(-29, 0, 0)
+    visor.ellipsoid(BRIM_C, (BRIM_R[0], BRIM_R[1], 0.0075), "smiles_visor", "visor", seg=(S(20), S(8)), rot=BRIM_ROT)
+    K = S(18)
+    ring = [BRIM_C + BRIM_ROT @ Vector((BRIM_R[0] * math.cos(2 * math.pi * k / K), BRIM_R[1] * math.sin(2 * math.pi * k / K), 0)) for k in range(K + 1)]
+    visor.tube([(p, 0.0055) for p in ring], "smiles_visor_rim", "visor", seg=4, caps=False)
+    visor.tube([(p, 0.0065) for p in ring], "smiles_glow_rim", "glow_visor", seg=4, caps=False)
     ob_visor = visor.finish(arm)
 
     chip = Part("Smiles_Chip")
@@ -389,29 +427,40 @@ clip("taunt", 1.4, [
     (1.4, STAND),
 ])
 
-# grudging (1.6 s, big score tier 3+): two slow claps up at chin height, the grin cracks
+# grudging (1.6 s, big score tier 3+): two slow sarcastic claps raised beside his chin (screen-left of the
+# face, so the cracking grin stays clear) with the hands big over the rail in the game camera
 _crack = {"jaw": (4, 0, 0), "grin_L": (0, 0, -16), "grin_R": (0, 0, 16)}
-_clap_open = P(STAND, _crack, arm("L", (0.14, -0.05, 0.3), (0.35, 0.25, -0.25), fingers=(-0.15, 0.05, 1)), arm("R", (-0.14, -0.05, 0.3), (-0.35, 0.25, -0.25), fingers=(0.15, 0.05, 1)),
-               spine=(2, 0, 0), chest=(4, 0, 0), head=(-14, 0, 6))
-_clap_shut = P(_clap_open, arm("L", (0.045, -0.06, 0.31), (0.35, 0.25, -0.25), fingers=(0, 0.05, 1)), arm("R", (-0.045, -0.06, 0.31), (-0.35, 0.25, -0.25), fingers=(0, 0.05, 1)))
+_clap_open = P(STAND, _crack, arm("L", (-0.09, -0.05, 0.57), (0.2, 0.3, -0.3), fingers=(-0.3, -0.05, 1)),
+               arm("R", (-0.34, 0.02, 0.6), (-0.5, 0.3, -0.2), fingers=(0.3, -0.05, 1)),
+               spine=(2, 0, 0), chest=(4, 0, 0), head=(-18, -8, 6))
+_clap_shut = P(_clap_open, arm("L", (-0.165, 0.0, 0.6), (0.2, 0.3, -0.3), fingers=(-0.12, -0.05, 1)),
+               arm("R", (-0.255, 0.01, 0.61), (-0.5, 0.3, -0.2), fingers=(0.12, -0.05, 1)))
+_clap_rise = P(STAND, arm("L", (-0.02, -0.01, 0.43), (0.2, 0.3, -0.3), fingers=(-0.1, 0.1, 1)),
+               arm("R", (-0.26, 0.02, 0.46), (-0.5, 0.3, -0.2), fingers=(0.1, 0.1, 1)), chest=(2, 0, 0), head=(-16, -4, 3))
 clip("grudging", 1.6, [
     (0.0, STAND),
+    (0.15, _clap_rise),
     (0.3, _clap_open),
     (0.5, P(_clap_shut, head=(-12, 0, 8), grin_L=(0, 0, -20), grin_R=(0, 0, 20))),
     (0.8, P(_clap_open, grin_L=(0, 0, -18), grin_R=(0, 0, 18))),
     (1.0, P(_clap_shut, head=(-10, 0, 9), jaw=(2, 0, 0), grin_L=(0, 0, -24), grin_R=(0, 0, 24))),
     (1.25, P(_clap_open, grin_L=(0, 0, -14), grin_R=(0, 0, 14))),
+    (1.45, _clap_rise),
     (1.6, STAND),
 ])
 
-# cheat (1.2 s, boss tell): shifty glance, visor tipped down, chip slipped up the left sleeve, smug grin
+# cheat (1.2 s, boss tell): shifty glance, visor tipped down, left cuff raised beside his cheek and the chip
+# slipped up it by the right hand -- both hands over the rail in the game camera -- then a smug grin
 _glance = P(STAND, head=(-12, 26, 0), neck=(-10, 10, 0), visor=(14, 0, 0))
-_sleeve = arm("L", (0.1, -0.03, 0.33), (0.4, 0.3, 0.0), fingers=(-0.3, 0.1, 1))
+_sleeve = arm("L", (0.22, 0.02, 0.6), (0.5, 0.3, -0.2), fingers=(0.05, -0.05, 1))
 clip("cheat", 1.2, [
     (0.0, STAND),
-    (0.2, P(_glance, _sleeve, arm("R", (-0.02, -0.05, 0.38), (-0.4, 0.3, 0.0), fingers=(0.3, 0.1, 1)))),
-    (0.45, P(_glance, _sleeve, arm("R", (0.05, -0.04, 0.33), (-0.3, 0.3, 0.0), fingers=(0.6, 0.1, 0.8)), chip=(40, 0, 0, 0, 0.0, 0, 0.6))),
-    (0.6, P(_glance, _sleeve, arm("R", (0.04, -0.04, 0.34), (-0.3, 0.3, 0.0), fingers=(0.5, 0.1, 1)), head=(-16, -10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
+    (0.1, P(STAND, arm("R", (-0.1, 0.0, 0.42), (-0.4, 0.3, -0.3), fingers=(0.2, 0.15, 1)), head=(-10, 14, 0), neck=(-6, 5, 0), visor=(7, 0, 0))),
+    (0.2, P(_glance, _sleeve, arm("R", (0.05, -0.01, 0.55), (-0.4, 0.3, -0.3), fingers=(0.6, 0.15, 0.8)))),
+    (0.45, P(_glance, _sleeve, arm("R", (0.13, -0.02, 0.63), (-0.4, 0.2, -0.3), fingers=(1, 0.05, 0.3)), chip=(40, 0, 0, 0, 0.0, 0, 0.6))),
+    (0.6, P(_glance, _sleeve, arm("R", (0.12, -0.02, 0.62), (-0.4, 0.2, -0.3), fingers=(1, 0.05, 0.4)), head=(-16, -10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
+    (0.72, P(STAND, arm("R", (-0.12, 0.0, 0.45), (-0.4, 0.3, -0.3), fingers=(0.2, 0.15, 1)), arm("L", (0.16, 0.02, 0.46), (0.5, 0.3, -0.2), fingers=(-0.1, 0.1, 1)),
+             head=(-18, 4, 4), visor=(8, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10), chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (0.85, P(STAND, head=(-20, 0, 6), visor=(4, 0, 0), grin_L=(0, 0, 14), grin_R=(0, 0, -14), chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.1, P(STAND, chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.2, P(STAND, chip=(0, 0, 0, 0, 0, 0, 1.0))),
@@ -472,6 +521,8 @@ def make_actions(arm):
                 loc = v[3:6] if len(v) >= 6 else (0, 0, 0)
                 pb.location = loc
                 sc = v[6] if len(v) >= 7 else 1.0
+                if pb.name in GLOW_BONES:
+                    sc = 1.0 if name.startswith("mc_") else 0.0  # grin + visor-rim glow: MC only
                 pb.scale = (max(sc, 0.001),) * 3
                 pb.keyframe_insert("rotation_quaternion", frame=f)
                 pb.keyframe_insert("location", frame=f)
