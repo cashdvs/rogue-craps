@@ -276,7 +276,7 @@ func bag_text() -> String:
 	var names: Array[String] = []
 	for i in run.progress.dice.size():
 		var d := run.progress.dice[i]
-		names.append(run.progress.die_name(i) + ("" if d.shape == &"d6" else " (%d faces)" % d.faces.size()))
+		names.append(run.progress.die_name(i) + ("" if d.shape == DiceIds.DIE_BONE else " (%d faces)" % d.faces.size()))
 	return ", ".join(names)
 
 
