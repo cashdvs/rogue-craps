@@ -101,6 +101,7 @@ for trig in fired:
 | `coin_heads_copy` / `coin_tails_copy` (major, 333) | a flick ping, a spin whirr speeding up, the landing ring (heads C7, tails a fourth lower, G6) |
 | `coin_alone_heads` (minor, 250) | a flick ping, a short one-turn spin, a bright lucky landing ring (E♭7) + a glint |
 | `knucklebone_level` (major, 250) | a dry bone clack + a two-note brass "level up" blip (G5–C6) |
+| `verdict_20_alt` (signature, 250) **optional variant** | the v0.1 Verdict 20 cue, kept at the Art Director's request: the gavel lifts (creak), a wood crack + deep brass hit, a crowd gasp. Never the default (Verdict 20 plays `hellfire_face` + `verdict`); only `sfx.play_mod_trigger(&"verdict_20_alt")` plays it. Its gasp is crowd noise, not the die, so the no-hiss test allows it. |
 
 **Batch 3** follows the final rules (`design/nonstandard_dice.md` §10, Game Designer, Oct 19; spec v0.2). Pre-carved faces reuse the face-mod row, so pass the face-mod id plus `ctx.flavor` (`play_mod_trigger(&"hellfire_face", -1, 1.0, -1.0, &"verdict")`), or the die's own id, which implies both (`ALIASES`, `FLAVOR_OF`). The flavour adds one small layer (`trigger_flavor_<flavour>.wav`) on the same hit, 6 dB under the cue, and never a new beat:
 
