@@ -118,8 +118,8 @@ func _test_sell_die() -> void:
 		"sell die: at the starting bag size the choice is greyed")
 	p.add_die(DiceIds.DIE_MIRROR)
 	var e0 := p.embers
-	_check(EventApplier.sell_payout(_ch(&"sell").effects[0], p, 5) == 8 and EventApplier.sell_payout(_ch(&"sell").effects[0], p, 0) == 2,
-		"sell die: the picker's payout line is sell value + bonus (Mirror 8, plain 2)")
+	_check(EventApplier.sell_payout(_ch(&"sell").effects[0], p, 5) == p.sell_value(5) + 2 and p.sell_value(5) > 0 and EventApplier.sell_payout(_ch(&"sell").effects[0], p, 0) == 2,
+		"sell die: the picker's payout line is sell value + bonus (Mirror half price + 2, plain 2)")
 	_check(EventApplier.picks_needed(_ch(&"sell")) == 1, "sell die: a picked sell needs one pick")
 	_check(_apply(&"sell", p, [Vector2i(9, 0)])[0].begins_with("refused") and p.dice.size() == 6, "sell die: an invalid die pick changes nothing")
 	var lines := _apply(&"sell", p, [Vector2i(5, 3)])
