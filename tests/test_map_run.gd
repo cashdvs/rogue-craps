@@ -67,10 +67,13 @@ func _test_goals() -> void:
 	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, 1 bonus")
 	_check(ok[1], "goals: floor 2 has 3-4 incl. Run of 4 or Full House, 5 hands")
 	_check(ok[2], "goals: floor 3 has 4 incl. Quads or Run of 5, 6 hands")
-	var run := MapRun.new(_data, 5)
-	_enter(run, NT.BOSS)
-	_check(run.goal.required.size() == 3 and run.goal.display_name == run.boss_name(),
-		"goals: floor 1 boss has 3 bounties (tuning addendum)")
+	var boss_ok := true
+	for f in 3:
+		var run := MapRun.new(_data, 5)
+		run._start_floor(f)
+		_enter(run, NT.BOSS)
+		boss_ok = boss_ok and run.goal.required.size() == [3, 5, 4][f] and run.goal.display_name == run.boss_name()
+	_check(boss_ok, "goals: bosses have 3 / 5 / 4 bounties on floors 1 / 2 / 3")
 	var a := MapRun.new(_data, 9)
 	var b := MapRun.new(_data, 9)
 	_enter(a, NT.TABLE)
