@@ -41,8 +41,12 @@ func _apply() -> void:
 	HearthProps.wisp(get_node_or_null("Wisp") as Node3D, wisp if step > 0 else 0.0)
 
 
-func _process(_delta: float) -> void:
-	# The column twists, stepped at 12 fps (on twos): drawn, not tweened.
+var _twist_t: float = 0.0
+
+
+func _process(delta: float) -> void:
+	# The column twists, stepped at 12 fps (on twos): drawn, not tweened. Scene time (delta), so it stops on pause.
+	_twist_t += delta
 	var tw := get_node_or_null("Fire/Step4/Twist") as Node3D
 	if tw != null and step == 4:
-		tw.rotation.y = floorf(Time.get_ticks_msec() / 1000.0 * 12.0) / 12.0 * 1.6
+		tw.rotation.y = floorf(_twist_t * 12.0) / 12.0 * 1.6
