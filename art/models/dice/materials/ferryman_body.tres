@@ -1,0 +1,22 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="1"]
+[ext_resource type="Material" path="res://art/models/dice/materials/die_ink_outline.tres" id="2"]
+[ext_resource type="Texture2D" path="res://art/models/dice/textures/ferryman_d2_faces.png" id="3"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("2")
+shader = ExtResource("1")
+shader_parameter/albedo = Color(0.541176, 0.650980, 0.772549, 1)
+shader_parameter/shadow_color = Color(0.180392, 0.164706, 0.149020, 1)
+shader_parameter/mid_tint = 0.74
+shader_parameter/wrap = 0.3
+shader_parameter/roughness = 0.45
+shader_parameter/light_gain = 0.204
+shader_parameter/spec_size = 0.99
+shader_parameter/spec_color = Color(0.941176, 0.925490, 0.894118, 1)
+shader_parameter/spec_strength = 0.1
+shader_parameter/use_overlay = true
+shader_parameter/overlay_tex = ExtResource("3")
+shader_parameter/overlay_tint = Color(1, 1, 1, 1)
