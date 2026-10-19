@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://scripts/data/bounty_data.gd" id="1_5apsi"]
 [ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="2_ckbe5"]
 [ext_resource type="Resource" path="res://resources/map/rules/mister_wick.tres" id="3_w6hk3"]
+[ext_resource type="Resource" path="res://resources/map/rules/baron_vig.tres" id="17_bvig"]
+[ext_resource type="Resource" path="res://resources/map/rules/odds_bodkin.tres" id="18_bodk"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_sixes.tres" id="9_n4w0n"]
 [ext_resource type="Resource" path="res://resources/map/rules/first_throw.tres" id="10_lh6d3"]
 [ext_resource type="Resource" path="res://resources/map/rules/greedy_pot.tres" id="13_cbcbs"]
@@ -67,5 +69,5 @@ featured_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_1ruv5")
 bonus_bounties = Array[ExtResource("1_5apsi")]([SubResource("Resource_xqojo"), SubResource("Resource_h33il")])
 clear_embers = 14
 elite_twists = Array[ExtResource("2_ckbe5")]([ExtResource("9_n4w0n"), ExtResource("10_lh6d3"), ExtResource("13_cbcbs"), ExtResource("14_r55qv")])
-boss_cheats = Array[ExtResource("2_ckbe5")]([ExtResource("3_w6hk3")])
+boss_cheats = Array[ExtResource("2_ckbe5")]([ExtResource("3_w6hk3"), ExtResource("17_bvig"), ExtResource("18_bodk")])
 boss_max_bounties = 4

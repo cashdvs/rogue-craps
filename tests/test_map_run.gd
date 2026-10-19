@@ -213,8 +213,8 @@ func _play(seed_value: int) -> MapRun:
 
 func _test_rules_and_seals() -> void:
 	var f1: FloorData = _data.floors[0]
-	_check(f1.elite_twists.size() == 4 and f1.boss_cheats.size() == 3 and _data.floors[2].boss_cheats.size() == 1
-		and not _data.floors[2].boss_adds_twist and not f1.boss_adds_twist, "rules: 4 twists; 3 bosses on floors 1-2, Mister Wick alone on floor 3")
+	_check(f1.elite_twists.size() == 4 and f1.boss_cheats.size() == 3 and _data.floors[2].boss_cheats.size() == 3
+		and not _data.floors[2].boss_adds_twist and not f1.boss_adds_twist, "rules: 4 twists; 3 bosses on every floor (Floor 3: Wick, Vig, Bodkin)")
 	var run := MapRun.new(_data, 8)
 	_check(f1.boss_cheats.has(run.boss) and run.boss_twist == null, "rules: floor 1 boss drawn from its pool on entering the floor")
 	var short: RunRuleData = load("res://resources/map/rules/short_table.tres")
@@ -294,7 +294,8 @@ func _test_rules_and_seals() -> void:
 ## default params, sent to TableSetup.rules as {"id", "params"}.
 func _test_rule_ids() -> void:
 	var allowed := {}
-	for pair in [[&"cold_sixes", {"face": 6}], [&"first_throw", {"throws": 2}], [&"greedy_pot", {"min_pot": 2}],
+	for pair in [[&"cold_sixes", {"face": 6}], [&"first_throw", {"throws": 2}], [&"first_throw", {"throws": 1}],
+			[&"greedy_pot", {"min_pot": 2}], [&"greedy_pot", {"min_pot": 3}],
 			[&"cold_hands", {}], [&"pit_boss", {"faces": [1, 2, 3, 4, 5, 6]}], [&"pit_boss", {"faces": [2, 3, 4]}],
 			[&"ashmouth", {}], [&"straight_man", {"min_run": 4}], [&"collector", {"throws": 1}], [&"bloodletter", {"soul_cost_mult": 2}]]:
 		if not allowed.has(pair[0]):
@@ -305,12 +306,12 @@ func _test_rule_ids() -> void:
 		for r in f.elite_twists + f.boss_cheats:
 			if not emitted.has(r):
 				emitted.append(r)
-	var ok := emitted.size() == 11
+	var ok := emitted.size() == 13
 	for r in emitted:
 		if not allowed.has(r.id) or not str(r.params) in allowed[r.id]:
 			ok = false
 			print("  bad rule: ", r.id, " ", r.params)
-	_check(ok, "rules: all 11 emitted rules (Mister Wick reuses cold_sixes, Madame Shuffle pit_boss) are the table's ids, with the agreed params")
+	_check(ok, "rules: all 13 emitted rules (Wick/Vig/Bodkin reuse twist ids, Madame Shuffle pit_boss) are the table's ids, with the agreed params")
 	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
 	var seen_ids: Dictionary = {}
 	for s in 30:

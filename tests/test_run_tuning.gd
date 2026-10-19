@@ -1,7 +1,7 @@
-## Headless tests for run_tuning_v1: floor 2/3 table data, Mister Wick as the
-## Floor 3 boss, the Elite twist cut (no Short Table / Heavy Burn), and the
-## Floor 1/2 boss bounty counts. Split out of test_map_run.gd so that file
-## stays under ~400 lines.
+## Headless tests for run_tuning_v1: floor 2/3 table data, the Floor 3 boss
+## pool (Mister Wick, Baron Vig, Odds Bodkin), the Elite twist cut (no Short
+## Table / Heavy Burn), and the Floor 1/2 boss bounty counts. Split out of
+## test_map_run.gd so that file stays under ~400 lines.
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_run_tuning.gd
@@ -81,13 +81,51 @@ func _test_tuning_v1() -> void:
 		"tuning v1: Mister Wick is a cold_sixes cheat, face 6, bust costs 2")
 	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
 	var ok := true
-	for s in 10:
+	var saw_wick := false
+	for s in 40:
 		var run := MapRun.new(_data, s)
 		run._start_floor(2)
 		_enter(run, NT.BOSS)
+		if run.boss.display_name != "Mister Wick":
+			continue
+		saw_wick = true
 		var ts: TableSetup = run.table_setup().to_table_setup(base)
 		ok = ok and ts.rules.size() == 1 and ts.rules[0]["id"] == &"cold_sixes" and ts.tuning.bust_soul_loss == 2 and run.goal.required.size() == 4
-	_check(ok, "tuning v1: floor 3 boss table gets only cold_sixes, bust_soul_loss 2, 4 bounties")
+	_check(saw_wick and ok, "tuning v1: Mister Wick's table is cold_sixes, bust_soul_loss 2, 4 bounties")
+	_test_tuning_addendum_2()
+
+
+## run_tuning_v1 addendum 2: Floor 3 boss pool (Wick, Vig, Bodkin).
+func _test_tuning_addendum_2() -> void:
+	var f3: FloorData = _data.floors[2]
+	var names := _rule_names(f3.boss_cheats)
+	var ids: Array = []
+	for r in f3.boss_cheats:
+		ids.append(r.id)
+	_check(f3.boss_cheats.size() == 3 and names == ["mister_wick", "baron_vig", "odds_bodkin"]
+		and ids == [&"cold_sixes", &"greedy_pot", &"first_throw"]
+		and f3.boss_cheats[0].display_name == "Mister Wick"
+		and f3.boss_cheats[1].display_name == "Baron Vig"
+		and f3.boss_cheats[2].display_name == "Odds Bodkin",
+		"addendum 2: Floor 3 boss pool = Mister Wick, Baron Vig, Odds Bodkin")
+	var vig: RunRuleData = f3.boss_cheats[1]
+	var bod: RunRuleData = f3.boss_cheats[2]
+	_check(vig.kind == RunRuleData.Kind.CHEAT and str(vig.params) == str({"min_pot": 3}) and vig.hands_delta == 0
+		and bod.kind == RunRuleData.Kind.CHEAT and str(bod.params) == str({"throws": 1}) and bod.hands_delta == 1,
+		"addendum 2: Vig min_pot 3, Bodkin throws 1 / hands_delta +1")
+	var seen: Dictionary = {}
+	var hok := true
+	for s in 200:
+		var run := MapRun.new(_data, s)
+		run._start_floor(2)
+		_enter(run, NT.BOSS)
+		var n: String = run.boss.display_name
+		seen[n] = true
+		var want_h: int = 7 if n == "Odds Bodkin" else 6
+		hok = hok and run.goal.hands == want_h and run.goal.required.size() == 4 and run.rules.size() == 1
+	_check(seen.has("Mister Wick") and seen.has("Baron Vig") and seen.has("Odds Bodkin") and seen.size() == 3,
+		"addendum 2: all 3 Floor 3 bosses appear across 200 seeds (%d seen)" % seen.size())
+	_check(hok, "addendum 2: Odds Bodkin boss tables have 7 hands, Wick and Vig have 6")
 
 
 ## run_tuning_v1 addendum: Floor 1/2 bosses and the Elite twists.

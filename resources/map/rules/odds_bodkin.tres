@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RunRuleData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="1_bodk"]
+
+[resource]
+script = ExtResource("1_bodk")
+id = &"first_throw"
+display_name = "Odds Bodkin"
+description = "Bounties count only on each hand's first throw; +1 hand."
+kind = 1
+hands_delta = 1
+params = {
+"throws": 1
+}
