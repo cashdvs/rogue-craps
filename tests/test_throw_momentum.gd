@@ -34,6 +34,7 @@ func _run() -> void:
 	sfx.played.connect(func(e: StringName) -> void: _played.append(e))
 	_test_play_throw(sfx)
 	_test_play_impact(sfx)
+	await _test_pool(sfx)
 	await create_timer(0.6).timeout
 	sfx.free()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -181,3 +182,22 @@ func _test_play_impact(sfx: SfxManager) -> void:
 	_played.clear()
 	sfx.play_impact(&"felt", 0.5)
 	_check(not _played.has(&"impact_click"), "play_impact: a soft felt tap has no click")
+	sfx.impact_clock = -1.0
+	var limited := sfx.play_impact(&"die", 3.0, &"bone", 7) and not sfx.play_impact(&"die", 3.0, &"bone", 7)
+	sfx._process(0.05)  # 0.05 s of game time, no matter how long the frame really took
+	_check(limited and sfx.play_impact(&"die", 3.0, &"bone", 7), "play_impact: the rate limit runs on the game clock (blocked at once, free 0.05 game-s later)")
+
+
+## A burst of short sounds takes free players before reusing one still ringing.
+func _test_pool(sfx: SfxManager) -> void:
+	await create_timer(0.6).timeout
+	sfx.play(&"throw_fwip_tail", 1.0, -40.0, 0.0)
+	var tail: AudioStreamPlayer = null
+	for p in sfx.get_children():
+		if p is AudioStreamPlayer and (p as AudioStreamPlayer).stream != null and (p as AudioStreamPlayer).playing and (p as AudioStreamPlayer).stream.get_length() > 0.4:
+			tail = p
+	for i in SfxManager.POOL_SIZE - 1:
+		sfx.play(&"impact_click", 1.0, -40.0, 0.0)
+	await create_timer(0.1).timeout
+	sfx.play(&"impact_click", 1.0, -40.0, 0.0)
+	_check(tail != null and tail.playing and tail.stream.get_length() > 0.4, "pool: a 12th sound takes a free player, not the ringing throw tail")
