@@ -5,10 +5,10 @@
 [resource]
 render_priority = 0
 shader = ExtResource("1")
-shader_parameter/albedo = Color(0.164706, 0.039216, 0.062745, 1)
-shader_parameter/shadow_color = Color(0.054902, 0.015686, 0.023529, 1)
+shader_parameter/albedo = Color(0.078431, 0.062745, 0.070588, 1)
+shader_parameter/shadow_color = Color(0.023529, 0.015686, 0.019608, 1)
 shader_parameter/mid_tint = 0.7
 shader_parameter/roughness = 0.2
 shader_parameter/spec_size = 0.9
-shader_parameter/spec_color = Color(1.000000, 0.690196, 0.690196, 1)
-shader_parameter/spec_strength = 0.8
+shader_parameter/spec_color = Color(0.847059, 0.784314, 0.752941, 1)
+shader_parameter/spec_strength = 0.7

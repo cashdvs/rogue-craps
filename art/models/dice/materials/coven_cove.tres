@@ -9,4 +9,4 @@ shader_parameter/albedo = Color(0.850980, 0.796078, 0.658824, 1)
 shader_parameter/shadow_color = Color(0.431373, 0.376471, 0.282353, 1)
 shader_parameter/mid_tint = 0.8
 shader_parameter/wrap = 0.4
-shader_parameter/roughness = 0.6
+shader_parameter/roughness = 0.9

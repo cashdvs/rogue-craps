@@ -442,17 +442,22 @@ def octahedron(bm, centre, axes):
     bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if all(v in vs for v in f.verts)])  # mirrored axes flip winding
 
 
+LINE_W = 0.0016  # half-width of Twin Flame's ember waist line (3.2 mm, ~2 px at the game camera)
+
+
 def build_twin_flame():
-    """Twin Flame Die: two dice fused at the waist. The x = 0 plane splits it into a bone half and a burgundy
-    half; V-notches bite the 4 edges that cross the seam (a pinched waist at 48 px). Pips flip colour with the
-    half (dark on bone, bone on burgundy), so the centre pips on the seam are split twins."""
-    body_m = make_material("twin_flame_body", "E8DCC0", 0.55)
+    """Twin Flame Die: two dice fused at the waist. The x = 0 plane splits it into a bone half and a charcoal
+    half with a thin ember line round the seam; V-notches bite the 4 edges that cross it (a pinched waist at
+    48 px). Pips flip colour with the half (dark on bone, bone on charcoal), so the centre pips on the seam are
+    split twins."""
+    body_m = make_material("twin_flame_body", "EDE3CF", 0.55)
     pip_m = make_material("twin_flame_pip", "0E1414", 0.8)
-    half_m = make_material("twin_flame_half", "3B0D14", 0.45)
-    pipl_m = make_material("twin_flame_pip_light", "E8DCC0", 0.6)
+    half_m = make_material("twin_flame_half", "2A2426", 0.6)
+    pipl_m = make_material("twin_flame_pip_light", "EDE3CF", 0.6)
     cleft_m = make_material("twin_flame_cleft", "0E1414", 0.8)
+    line_m = make_material("twin_flame_line", "E8622A", 0.5)
     bm = rounded_cube_bmesh(0.15 * EDGE, 2)
-    ob = new_obj("TwinFlameD6", bm, [body_m, pip_m, half_m, pipl_m, cleft_m])
+    ob = new_obj("TwinFlameD6", bm, [body_m, pip_m, half_m, pipl_m, cleft_m, line_m])
     nb = bmesh.new()
     for sy in (-1, 1):
         for sz in (-1, 1):
@@ -465,8 +470,9 @@ def build_twin_flame():
     # a clean seam: split every polygon that straddles x = 0 before recolouring by side
     bm = bmesh.new()
     bm.from_mesh(ob.data)
-    geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
-    bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-7, plane_co=(0, 0, 0), plane_no=(1, 0, 0))
+    for x0 in (0.0, -LINE_W, LINE_W):  # the seam + both edges of the thin ember line along it
+        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-7, plane_co=(x0, 0, 0), plane_no=(1, 0, 0))
     bm.to_mesh(ob.data)
     bm.free()
 
@@ -478,17 +484,19 @@ def build_twin_flame():
         l1 = abs(c.x) / 0.02 + (abs(dy + dz) + abs(dy - dz)) / (math.sqrt(2) * 0.0178)
         if 0.85 < l1 < 1.08:
             return 4  # the notch clefts (on the octahedra's surface) are inked dark on both halves
+        if abs(c.x) < LINE_W:
+            return 5  # the thin ember line round the waist
         return 0 if c.x >= 0 else 2
     recolor(ob, pick)
     return ob, 30.0
 
 
 def build_wanderer():
-    """Wanderer Die: a road-clay block with a compass point on the middle of every edge (12 bone fins), so the
-    outline is an 8-pointed star from any side."""
-    body_m = make_material("wanderer_body", "7E3E28", 0.7)
-    pip_m = make_material("wanderer_pip", "0E1414", 0.8)
-    fin_m = make_material("wanderer_fin", "E8DCC0", 0.5)
+    """Wanderer Die: a steel-blue block with a compass point on the middle of every edge (12 brass fins), so the
+    outline is an 8-pointed star from any side; cream pips."""
+    body_m = make_material("wanderer_body", "5C7894", 0.6)
+    pip_m = make_material("wanderer_pip", "F2E6C8", 0.6)
+    fin_m = make_material("wanderer_fin", "B08D3C", 0.3, 1.0)
     radius = 0.12 * EDGE
     bm = rounded_cube_bmesh(radius, 2)
     ob = new_obj("WandererD6", bm, [body_m, pip_m, fin_m])
@@ -515,8 +523,8 @@ def build_wanderer():
 def build_bellows():
     """Bellows Die: tan leather with every edge folded into a 3-step staircase (accordion pleats, dark leather
     risers), so the outline corners are stepped."""
-    body_m = make_material("bellows_body", "A8784A", 0.75)
-    pip_m = make_material("bellows_pip", "0E1414", 0.8)
+    body_m = make_material("bellows_body", "B88A5A", 0.75)
+    pip_m = make_material("bellows_pip", "3B0D14", 0.8)
     pleat_m = make_material("bellows_pleat", "3A2418", 0.85)
     bm = rounded_cube_bmesh(0.05 * EDGE, 2)
     ob = new_obj("BellowsD6", bm, [body_m, pip_m, pleat_m])
@@ -541,35 +549,40 @@ def build_bellows():
 
 def build_blood_pact():
     """Blood Pact Die: glossy crimson with two blood-black wax seals pressed onto opposite corners (the pact's
-    two parties: a wide disc with a raised boss); bone pips (the signature)."""
-    body_m = make_material("blood_pact_body", "8E1822", 0.3)
+    two parties: a wide black disc with a gold stamp boss); bone pips (the signature)."""
+    body_m = make_material("blood_pact_body", "7E1626", 0.3)
     pip_m = make_material("blood_pact_pip", "E8DCC0", 0.6)
-    seal_m = make_material("blood_pact_seal", "2A0A10", 0.2)
+    seal_m = make_material("blood_pact_seal", "141012", 0.2)
+    stamp_m = make_material("blood_pact_stamp", "B08D3C", 0.3, 1.0)
     radius = 0.14 * EDGE
     bm = rounded_cube_bmesh(radius, 2)
-    ob = new_obj("BloodPactD6", bm, [body_m, pip_m, seal_m])
+    ob = new_obj("BloodPactD6", bm, [body_m, pip_m, seal_m, stamp_m])
     c = H - radius
     sb = bmesh.new()
+    gb = bmesh.new()
     for sgn in (1, -1):
         dv = Vector((sgn, sgn, sgn))
         dn = dv.normalized()
         corner = dv * c + dn * radius
         rot = Vector((0, 0, 1)).rotation_difference(g2b(dn)).to_matrix().to_4x4()
-        # a pressed wax seal: a wide flattened disc on the corner plus a raised boss in its middle
-        for rr, th, lift in ((0.0148, 0.0058, 0.0004), (0.0082, 0.0062, 0.0036)):
-            res = bmesh.ops.create_uvsphere(sb, u_segments=12, v_segments=6, radius=1.0)
-            bmesh.ops.transform(sb, verts=res["verts"], matrix=rot @ Matrix.Diagonal((rr, rr, th, 1.0)))
-            bmesh.ops.translate(sb, verts=res["verts"], vec=g2b(corner + dn * lift))
+        # a pressed black wax seal (a wide flattened disc) with a gold stamp boss in its middle
+        res = bmesh.ops.create_uvsphere(sb, u_segments=12, v_segments=6, radius=1.0)
+        bmesh.ops.transform(sb, verts=res["verts"], matrix=rot @ Matrix.Diagonal((0.0148, 0.0148, 0.0058, 1.0)))
+        bmesh.ops.translate(sb, verts=res["verts"], vec=g2b(corner + dn * 0.0004))
+        res = bmesh.ops.create_uvsphere(gb, u_segments=10, v_segments=5, radius=1.0)
+        bmesh.ops.transform(gb, verts=res["verts"], matrix=rot @ Matrix.Diagonal((0.0072, 0.0072, 0.0056, 1.0)))
+        bmesh.ops.translate(gb, verts=res["verts"], vec=g2b(corner + dn * 0.0042))
     boolean(ob, new_obj("seals", sb, [seal_m]), op="UNION", use_self=True)
+    boolean(ob, new_obj("stamps", gb, [stamp_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
     return ob, 30.0
 
 
 def build_coven():
-    """Coven Die: soot-plum block with all 12 edges scooped into concave coves (wax-pale), leaving pointed
+    """Coven Die: matte dusty-plum block (no glow / emission) with all 12 edges scooped into concave coves (wax-pale), leaving pointed
     three-way corners: a cross-like outline with concave corners at 48 px."""
-    body_m = make_material("coven_body", "3A2E3E", 0.7)
+    body_m = make_material("coven_body", "6E4A6E", 0.95)
     pip_m = make_material("coven_pip", "E8DCC0", 0.6)
     cove_m = make_material("coven_cove", "D9CBA8", 0.6)
     bm = rounded_cube_bmesh(0.04 * EDGE, 1)
@@ -590,10 +603,10 @@ def build_coven():
 
 
 def build_last_breath():
-    """Last Breath Die: an ash-grey stone urn block with a dark iron collar hoop round one end (above the 1-face
-    ring of side pips), so one end reads as a lidded urn."""
-    body_m = make_material("last_breath_body", "565C62", 0.85)
-    pip_m = make_material("last_breath_pip", "0E1414", 0.8)
+    """Last Breath Die: a pale ash-stone urn block with a dark iron collar hoop round BOTH ends (outside the
+    side pips), so it reads as a banded urn from any side; charcoal pips."""
+    body_m = make_material("last_breath_body", "9AA0A6", 0.85)
+    pip_m = make_material("last_breath_pip", "2A2426", 0.8)
     collar_m = make_material("last_breath_collar", "34302E", 0.4, 1.0)
     radius = 0.14 * EDGE
     bm = rounded_cube_bmesh(radius, 2)
@@ -602,14 +615,14 @@ def build_last_breath():
     k = d_flat * math.sqrt(2) - a_flat
     ring = [(a_flat, -k), (a_flat, k), (k, a_flat), (-k, a_flat), (-a_flat, k), (-a_flat, -k), (-k, -a_flat), (k, -a_flat)]
     cb = bmesh.new()
-    y0, y1 = 0.0270, 0.0345
-    lo = [cb.verts.new(g2b(Vector((x, y0, z)))) for x, z in ring]
-    hi = [cb.verts.new(g2b(Vector((x, y1, z)))) for x, z in ring]
-    cb.faces.new(lo[::-1])
-    cb.faces.new(hi)
-    for i in range(8):
-        j = (i + 1) % 8
-        cb.faces.new((lo[i], lo[j], hi[j], hi[i]))
+    for y0, y1 in ((0.0270, 0.0345), (-0.0345, -0.0270)):  # a collar on BOTH ends (outside the side pips)
+        lo = [cb.verts.new(g2b(Vector((x, y0, z)))) for x, z in ring]
+        hi = [cb.verts.new(g2b(Vector((x, y1, z)))) for x, z in ring]
+        cb.faces.new(lo[::-1])
+        cb.faces.new(hi)
+        for i in range(8):
+            j = (i + 1) % 8
+            cb.faces.new((lo[i], lo[j], hi[j], hi[i]))
     bmesh.ops.recalc_face_normals(cb, faces=cb.faces)
     boolean(ob, new_obj("collar", cb, [collar_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE

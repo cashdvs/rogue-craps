@@ -55,6 +55,11 @@ _subresources={
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/dice/materials/blood_pact_seal.tres",
 "use_external/path": "res://art/models/dice/materials/blood_pact_seal.tres"
+},
+"blood_pact_stamp": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/dice/materials/blood_pact_stamp.tres",
+"use_external/path": "res://art/models/dice/materials/blood_pact_stamp.tres"
 }
 }
 }
