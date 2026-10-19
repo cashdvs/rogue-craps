@@ -114,7 +114,7 @@ func _test_table() -> void:
 	_check(c.special == &"ferryman", "table: Ferryman's Coin is TableDie special &\"ferryman\"")
 	if "shape" in c:
 		_check(c.get("shape") == &"coin" and c.faces == ([5, 0] as Array[int]) and c.weights == ([1.0, 1.0] as Array[float])
-			and c.mods == [null, null] and k.get("shape") == &"powder_keg", "table: with TableDie.shape the Coin is N-sized (heads, tails), shape coin")
+			and c.mods == [null, null] and k.get("shape") == &"d6", "table: with TableDie.shape the Coin is N-sized (heads, tails), shape coin")
 	else:
 		_check(c.faces == ([5, 5, 5, 0, 0, 0] as Array[int]) and c.mods.size() == 6 and c.weights == ([1.0, 1.0, 1.0, 1.0, 1.0, 1.0] as Array[float]),
 			"table: no TableDie.shape yet, so the Coin is 6 d6 slots with the same odds")
