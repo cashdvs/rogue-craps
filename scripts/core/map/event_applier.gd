@@ -18,8 +18,23 @@ static func can_choose(choice: EventChoiceData, p: RunProgress, table_ahead: boo
 	return why_not(choice, p, table_ahead) == ""
 
 
+## Should the event screen leave this choice out entirely (Game Designer)?
+## True when a GIVE_DIE effect gives a die shape with enabled = false; no
+## other die is substituted. Hidden choices can't be taken and don't count
+## toward an event being worth offering.
+static func is_hidden(choice: EventChoiceData, p: RunProgress) -> bool:
+	for e in choice.effects:
+		if e.kind == K.GIVE_DIE:
+			var sh := p.shape_data(e.die)
+			if sh != null and not sh.enabled:
+				return true
+	return false
+
+
 ## "" if the choice is allowed, else a short reason for the tooltip.
 static func why_not(choice: EventChoiceData, p: RunProgress, table_ahead: bool = true) -> String:
+	if is_hidden(choice, p):
+		return "Not available yet."
 	var soul_cost: int = 0
 	var ember_cost: int = 0
 	for e in choice.effects:
