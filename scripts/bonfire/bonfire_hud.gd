@@ -71,6 +71,9 @@ var _stamps: Dictionary = {}
 var _pending_stamps: Dictionary = {}
 var _pulse: Array = []
 var _t: float = 0.0
+## Top-left of the THROW / BANK column (1920x1080 design px). Kept clear of
+## the hand (bottom-right) at 16:9, phone landscape and phone portrait.
+const BUTTONS_POS := Vector2(184, 790)
 
 
 func _init() -> void:
@@ -91,10 +94,11 @@ func _init() -> void:
 	card_header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	checklist_panel.add_child(card_header)
 	pot_label = _label(64, Palette.BRASS_HI, Vector2(560, 860), Vector2(800, 80))
-	throw_label = _label(36, Palette.EMBER, Vector2(260, 936), Vector2(1400, 46))
-	notes_label = _label(24, Palette.BONE, Vector2(260, 982), Vector2(1400, 32))
+	# x 520-1400: clear of the bottom-left THROW / BANK column (ends at x 494).
+	throw_label = _label(36, Palette.EMBER, Vector2(520, 936), Vector2(880, 46))
+	notes_label = _label(24, Palette.BONE, Vector2(520, 982), Vector2(880, 32))
 	notes_label.name = "PotNotes"
-	risk_label = _label(30, Palette.BRASS_HI, Vector2(260, 1014), Vector2(1400, 40))
+	risk_label = _label(30, Palette.BRASS_HI, Vector2(520, 1014), Vector2(880, 40))
 	risk_label.name = "RethrowRisk"
 	mult_label = _label(34, Color("#FF2E3E"), Vector2(1260, 880), Vector2(260, 60))
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
@@ -104,7 +108,9 @@ func _init() -> void:
 	callout_label.name = "Callout"
 	callout_label.modulate.a = 0.0
 	var col := VBoxContainer.new()
-	col.position = Vector2(1580, 760)
+	# Bottom-left, beside the Soul meter: the hand of dice sits bottom-right,
+	# and buttons over it ate the grab (QA full run pass 1, M1).
+	col.position = BUTTONS_POS
 	col.add_theme_constant_override("separation", 14)
 	add_child(col)
 	throw_button = _button("THROW  (Space)", 32, Palette.BURGUNDY)
@@ -303,6 +309,8 @@ func _refresh_rules(run: BonfireRun) -> void:
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		line.custom_minimum_size = Vector2(290, 0)
 		row.add_child(line)
+		# Boss sign art (Systems Dev, BossSign): icon + tooltip; no art = this text row.
+		BossSign.decorate_hud_row(row, name_l, line, r.id, r.params)
 		rules_box.add_child(row)
 	rules_panel.reset_size()
 
@@ -686,6 +694,10 @@ func show_end(run: BonfireRun) -> void:
 			end_title.text = "TABLE LOST"
 			end_body.text = "Out of hands with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
 	end_panel.visible = true
+	# A table can end mid-tutorial: the hint panel must not cover the end
+	# panel (#103 N6). stop() also drops the waiting hints, so dismiss()
+	# can't pop the next one over the end panel.
+	tutorial.stop()
 
 
 func _label(px: int, col: Color, pos: Vector2, sz: Vector2) -> Label:

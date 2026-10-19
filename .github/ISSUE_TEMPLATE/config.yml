@@ -6,3 +6,6 @@ contact_links:
   - name: Module ownership map
     url: https://github.com/cashdvs/rogue-craps/blob/main/docs/MODULES.md
     about: Which sub-sections exist, who owns them, and what's unclaimed.
+  - name: Architecture and recipes
+    url: https://github.com/cashdvs/rogue-craps/blob/main/docs/ARCHITECTURE.md
+    about: How the code fits together, who owns what, how to add a die, face mod, event or boss.

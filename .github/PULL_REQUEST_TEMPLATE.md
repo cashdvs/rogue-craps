@@ -1,43 +1,39 @@
-<!-- Thanks for the PR! Keep it small and focused: one issue, one module. See CONTRIBUTING.md / AGENTS.md. -->
+<!-- Keep it small: one issue, one module, about 400 changed lines or less. See CONTRIBUTING.md. -->
 
-## What
+## Summary
 
-<!-- What does this PR change? One or two sentences. -->
-
-## Why
-
-<!-- The problem or issue it solves. Link it: "Closes #123". Cite the design doc section if relevant. -->
+<!-- What changes and why, in 1-3 sentences. Cite the design doc section if relevant (docs/DESIGN_INDEX.md). -->
 
 Closes #
 
-## Module
+## Author / role
 
-<!-- Which feature module from docs/MODULES.md? e.g. betting, soul, shop, map-events, dealer, audio. -->
-<!-- If you touched another module's files, list them and say why. -->
+<!-- Humans: your GitHub handle. Bots (everyone posting as @cashdvs): your role, e.g. "Systems Dev". -->
 
-## Tests
+Module(s): <!-- from docs/MODULES.md, e.g. shop, map-events. Touched another owner's files? List them and why. -->
 
-<!-- Which tests did you add or change? Paste the summary lines from ./run_tests.sh. -->
+## Tests run
+
+<!-- Tests you added or changed, and the summary lines from ./run_tests.sh. -->
 
 ```
-=== N passed, 0 failed ===
+./run_tests.sh   -> all passed
 ```
 
 ## Screenshots / captures
 
-<!-- Required for visual, animation or audio changes (screenshot, GIF, or short video). Delete if not applicable. -->
+<!-- Required for visual, animation or audio changes. Delete if not applicable. -->
 
 ## Checklist
 
-- [ ] `./run_tests.sh` passes locally (Godot 4.7.2)
-- [ ] Logic changes have tests in `tests/test_*.gd`
-- [ ] Changes stay within one module (or the PR explains why not)
-- [ ] Static typing used; comments explain the *why* for beginners
-- [ ] Game logic in `scripts/core/`, kept out of scenes/views
-- [ ] No hard-coded game numbers (tuning lives in `resources/tuning/poc_tuning.tres` / `TuningData`)
-- [ ] Randomness goes through the seeded `DiceRoller` (determinism kept)
-- [ ] No `.godot/` folder, builds or editor settings committed; new `*.uid` / `*.import` files included
-- [ ] `tests/qa_/`: only added checks; no existing check weakened or removed
-- [ ] Didn't edit `docs/DESIGN.md` (open an issue for design changes)
-- [ ] If an AI agent wrote this, a human or the agent reviewed the diff before opening the PR
-- [ ] I agree my contribution is assigned/licensed to Tiny Anvil Games per [LICENSE](../LICENSE)
+- [ ] `./run_tests.sh` passes locally (Godot 4.7.2) and the headless smoke run prints no `SCRIPT ERROR`
+- [ ] Behavior changes have a test in `tests/test_*.gd`; `tests/qa_/` only gained checks
+- [ ] New data, systems or signals are documented in `docs/ARCHITECTURE.md` (or the folder README)
+- [ ] No `.godot/`, builds or editor settings; new `*.uid` / `*.import` files included
+- [ ] If this adds a generated asset, I updated docs/AI_CONTENT_LOG.md
+- [ ] **Escalation:** this PR changes core rules or balance, CI or repo config, dependencies or
+      secrets, adds a file over ~20 MB, or touches more than 2 modules (PM decides; see CONTRIBUTING.md §5)
+- [ ] I agree my contribution is assigned/licensed to Tiny Anvil Games per [LICENSE](https://github.com/cashdvs/rogue-craps/blob/main/LICENSE)
+
+<!-- Bots: keep the next line, with your role. Humans: delete it. -->
+Role: <!-- e.g. Systems Dev -->

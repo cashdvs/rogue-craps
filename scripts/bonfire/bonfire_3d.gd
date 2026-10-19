@@ -841,7 +841,9 @@ func hints_wanted() -> bool:
 	return gs != null and bool(gs.get("tutorial_enabled"))
 
 
-## The run's first table, and it's Table 1 (seeding / TH hints only there).
+## The run's first table (setup.first_table; the sandbox counts as one), and
+## it's Table 1. In a run every goal passes _is_table_one(), so first_table
+## is what keeps the tutorial off the later tables.
 func _is_first_table() -> bool:
 	return setup != null and setup.first_table and _is_table_one()
 
@@ -850,6 +852,7 @@ func _maybe_start_tutorial() -> void:
 	var tut := bhud.tutorial
 	tut.visible = false
 	tut.active = false
+	tut.stopped = false
 	tut.current = &""
 	tut.enabled = hints_wanted()
 	var gs := _settings()
@@ -1440,6 +1443,32 @@ func _take_down() -> String:
 	return ""
 
 
+## Dice come first (QA M1, #103 F1): a press on the dice in the hand is a
+## grab, and a press on a thrown die while picking is a pick, even where a
+## HUD button (THROW / BANK) overlaps them. _input runs before the GUI, so
+## the press (and a grab's drag and release) go straight to the table's
+## normal input and no button ever sees them.
+func _input(event: InputEvent) -> void:
+	var mb := event as InputEventMouseButton
+	var left := mb != null and mb.button_index == MOUSE_BUTTON_LEFT
+	var holding := phase == Phase.HELD and (event is InputEventMouseMotion or (left and not mb.pressed))
+	var on_dice := left and mb.pressed and (hand_grab_at(mb.position) or die_pick_at(mb.position))
+	if holding or on_dice:
+		get_viewport().set_input_as_handled()
+		_unhandled_input(event)
+
+
+## True if a press at screen point p would grab the dice waiting in the hand.
+func hand_grab_at(p: Vector2) -> bool:
+	return phase == Phase.BET and can_throw() == "" and _hand_contains(p)
+
+
+## True if a press at screen point p lands on a thrown die while picking
+## (it pots the die, or shakes it if it can't score).
+func die_pick_at(p: Vector2) -> bool:
+	return phase == Phase.BET and run != null and run.state == BonfireRun.State.PICK and die_at_screen(p) >= 0
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	var tap := event as InputEventScreenTouch
@@ -1556,6 +1585,12 @@ func _bust() -> void:
 
 func _after_hand() -> void:
 	if run.is_over():
+		# Out of hands uncleared: the Soul meter drops by the table's
+		# penalty, like a bust or forfeit (QA M4). A cleared table costs no
+		# Soul here, so nothing burns. Only the part not shown yet burns: a
+		# final-hand bust already burned its Soul in _bust(), and maxi()
+		# keeps this from going negative.
+		_burn_soul(maxi(_soul_shown - run.soul, 0))
 		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER
 		_taunt(&"bonfire_clear" if run.state == BonfireRun.State.CLEARED else &"bonfire_fail")
