@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="1"]
+[ext_resource type="Material" path="res://art/models/dice/materials/die_ink_accent.tres" id="2"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("2")
+shader = ExtResource("1")
+shader_parameter/albedo = Color(0.078431, 0.062745, 0.070588, 1)
+shader_parameter/shadow_color = Color(0.023529, 0.015686, 0.019608, 1)
+shader_parameter/mid_tint = 0.7
+shader_parameter/roughness = 0.2
+shader_parameter/spec_size = 0.9
+shader_parameter/spec_color = Color(0.847059, 0.784314, 0.752941, 1)
+shader_parameter/spec_strength = 0.7

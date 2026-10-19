@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/boards/infernal_pit/materials/ink_table.tres" id="1_tcl6x"]
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/ember_seam.gdshader" id="2_jxerp"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_tcl6x")
+shader = ExtResource("2_jxerp")
+shader_parameter/band_v = 0.125
+shader_parameter/band_half = 0.012
+shader_parameter/push = null
+shader_parameter/groove_color = null
+shader_parameter/ember_color = null
+shader_parameter/core_color = null
+shader_parameter/idle_energy = null
+shader_parameter/pulse_energy = null

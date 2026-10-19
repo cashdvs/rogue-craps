@@ -32,6 +32,9 @@ var _bar: Label
 var _panel_root: CenterContainer
 var _panel_box: VBoxContainer
 var _table: Bonfire3D
+## Map screen: "Quit to title" (asks first; the run is lost).
+var quit_button: Button
+const TITLE_SCENE := "res://scenes/title.tscn"
 
 
 func _ready() -> void:
@@ -67,6 +70,13 @@ func _ready() -> void:
 	_bar.position = Vector2(20, 8)
 	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(_bar)
+	quit_button = RunTheme.button("Quit to title", 20)
+	quit_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	quit_button.offset_left = -240
+	quit_button.offset_right = -20
+	quit_button.offset_top = 8
+	quit_button.pressed.connect(ask_quit)
+	_ui.add_child(quit_button)
 	new_run(run_seed)
 
 
@@ -84,6 +94,7 @@ func refresh() -> void:
 	map_view.visible = run.screen == S.MAP
 	event_view.visible = run.screen == S.EVENT
 	_panel_root.visible = not (map_view.visible or event_view.visible)
+	quit_button.visible = map_view.visible
 	match run.screen:
 		S.MAP:
 			map_view.show_map(run.map, run.boss_name(), _boss_rules())
@@ -138,6 +149,19 @@ func _boss_rules() -> String:
 	if run.boss_twist != null:
 		out.append("Twist: %s - %s" % [run.boss_twist.display_name, run.boss_twist.description])
 	return " / ".join(out)
+
+
+## Confirm before leaving the run for the title screen.
+func ask_quit() -> void:
+	map_view.visible = false
+	quit_button.visible = false
+	_panel_root.visible = true
+	_panel("Quit to title?", ["This run will be lost."],
+		[["Quit to title", quit_to_title], ["Keep playing", refresh]])
+
+
+func quit_to_title() -> void:
+	get_tree().change_scene_to_file(TITLE_SCENE)
 
 
 func _show_table() -> void:
@@ -224,10 +248,11 @@ func _show_shop() -> void:
 	for i in run.shop_mods.size():
 		if run.shop_mods[i] != null:
 			var m := run.shop_mods[i]
-			buttons.append(["%s - from %d Embers (+%d%% per mod on the die)" % [m.display_name, m.price, run_data.mod_price_step_percent], func() -> void:
+			var low := run.cheapest_mod_price(i)
+			buttons.append(["%s - from %d Embers (+%d%% per mod on the die)" % [m.display_name, maxi(low, m.price), run_data.mod_price_step_percent], func() -> void:
 				_pick("Pick a face for the %s" % m.display_name, func(at: Vector2i) -> void:
 					run.buy_mod(i, at)
-					_show_shop()), e < m.price])
+					_show_shop(), func(at: Vector2i) -> bool: return run.can_buy_mod_at(i, at)), low < 0 or e < low])
 	for i in run.shop_seals.size():
 		if run.shop_seals[i] != &"":
 			var id := run.shop_seals[i]
@@ -246,9 +271,9 @@ func _show_shop() -> void:
 	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half."], buttons)
 
 
-func _pick(prompt: String, done: Callable) -> void:
+func _pick(prompt: String, done: Callable, allowed: Callable = Callable()) -> void:
 	var picker := FacePicker.new()
-	picker.build(run.progress, prompt, func(at: Vector2i) -> bool: return run.free_face(at))
+	picker.build(run.progress, prompt, allowed if allowed.is_valid() else func(at: Vector2i) -> bool: return run.free_face(at))
 	picker.picked.connect(done)
 	_panel("Carve", [], [["Back", refresh]], picker)
 

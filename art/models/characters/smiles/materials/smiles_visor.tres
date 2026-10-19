@@ -1,0 +1,40 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/characters/smiles/materials/ink_smiles.tres" id="1_757e0"]
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="2_g1u1l"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_757e0")
+shader = ExtResource("2_g1u1l")
+shader_parameter/albedo = Color(0.23529412, 0.7372549, 0.36078432, 1)
+shader_parameter/shadow_color = Color(0.078431375, 0.3137255, 0.16470589, 1)
+shader_parameter/mid_tint = 0.75
+shader_parameter/wrap = 0.5
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = 1.6
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = null
+shader_parameter/ambient_energy = null
+shader_parameter/spec_size = 0.92
+shader_parameter/spec_color = null
+shader_parameter/spec_strength = 0.4
+shader_parameter/rim_color = Color(0.54901963, 0.9411765, 0.627451, 1)
+shader_parameter/rim_power = null
+shader_parameter/rim_strength = 0.6
+shader_parameter/emission_color = null
+shader_parameter/emission_energy = 0.0
+shader_parameter/roughness = null
+shader_parameter/use_overlay = null
+shader_parameter/overlay_tint = null
+shader_parameter/grime = null
+shader_parameter/grime_color = null
+shader_parameter/flash = null
+shader_parameter/flash_color = null
+shader_parameter/scorch = null
+shader_parameter/chip_mode = null
+shader_parameter/notch_color = null
+shader_parameter/ring_color = null
+shader_parameter/chip_radius = null

@@ -36,13 +36,27 @@ const HINTS := {
 	&"th6_hot": {"text": "Every die scored! All {all} come back, plus {mult} mult.", "anchor": &"mult", "dismiss": [&"thrown"], "timeout": 4.0, "tutorial": true},
 	&"th7_claimed": {"text": "Claimed! Claim every card to clear the table.", "anchor": &"stamped_card", "timeout": 4.0, "tutorial": true},
 	&"th8_points": {"text": "Points turn into Embers after the table. Spend them in shops.", "anchor": &"embers", "timeout": 4.0, "tutorial": true},
-	&"th9_bust": {"text": "Nothing lit, so the hand burned: points and {soul} Soul.", "anchor": &"soul", "timeout": 4.0, "tutorial": true, "any_table": true},
+	&"th9_bust": {"text": "Nothing lit, so you bust: lose the hand's points and {soul} Soul.", "anchor": &"soul", "timeout": 4.0, "tutorial": true, "any_table": true},
 	&"th10_cleared": {"text": "Cleared! Chase the bonus card, or Leave table.", "anchor": &"bonus_leave", "dismiss": [&"leave", &"thrown"], "tutorial": true},
 	&"jit1_last": {"text": "Last hand! Each unclaimed bounty costs {soul} Soul.", "anchor": &"unclaimed_cards", "dismiss": [&"thrown"]},
 	&"jit2_free": {"text": "Nothing lit on a full throw: free rethrow.", "anchor": &"tray", "timeout": 3.0},
 	&"jit3_seal": {"text": "Seals level up a combo: bigger base, bigger mult.", "anchor": &"seal_options", "dismiss": [&"seal_pick"]},
 	&"jit4_wild": {"text": "Wild faces pick their best value for you.", "anchor": &"wild_die", "timeout": 3.0},
 	&"jit5_twist": {"text": "This table has a twist. Check its rule card.", "anchor": &"rules", "dismiss": [&"thrown"]},
+	# Bounty and Seal hints (onboarding_hints_v1.md, Oct 19; just-in-time:
+	# Skip doesn't mark them, only Tutorial hints Off stops them). {soul} =
+	# the real Soul cost at that table. HB1 / HB2 / HB6 (the map's table
+	# preview) and HS3 / HS4 (shop, rewards) are shown by the run screens:
+	# they call request() with these ids; the table wires HB3-HB5 and HS2.
+	&"hb1_bounties": {"text": "Bounties: combos you must pot and bank before hands run out.", "anchor": &"preview_bounties", "dismiss": [&"sit_down"]},
+	&"hb2_cost": {"text": "Each bounty still unclaimed at the end costs {soul} Soul.", "anchor": &"preview_cost", "dismiss": [&"sit_down"]},
+	&"hb3_bonus": {"text": "The bonus card is optional: claim it for extra Embers.", "anchor": &"bonus_card", "dismiss": [&"thrown"], "timeout": 4.0},
+	&"hb4_bigger": {"text": "Bigger combos count too: {combo} claims a {card} card.", "anchor": &"pulsing_card", "dismiss": [&"bank", &"rethrow"]},
+	&"hb5_lost": {"text": "That bust lost your pending bounty; bank sooner to keep it.", "anchor": &"lost_card", "timeout": 4.0},
+	&"hb6_boss": {"text": "Boss bounties work the same, and you get one re-sit.", "anchor": &"preview_rule", "dismiss": [&"sit_down"]},
+	&"hs2_sealed": {"text": "Your Seal boosts this combo: more base and more mult.", "anchor": &"pot_preview", "dismiss": [&"any"], "timeout": 3.0},
+	&"hs3_stack": {"text": "Seals stack: buy the same one again for another level.", "anchor": &"seal_button", "dismiss": [&"leave_shop"]},
+	&"hs4_rare": {"text": "Rare Seals move or add Seal levels; read the card first.", "anchor": &"rare_seal", "dismiss": [&"seal_pick", &"seal_skip"]},
 }
 const NUMBER_WORDS: Array[String] = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
 ## Bubble look (design pt; x ui_pt_px). Text cap ~9 pt, 12 pt Barlow-ish.
@@ -182,9 +196,14 @@ func text_for(id: StringName, ctx: Dictionary = {}) -> String:
 	var h: Dictionary = HINTS[id]
 	var s: String = h.get("touch", h["text"]) if touch else h["text"]
 	var all := int(ctx.get("all", 5))
-	return s.format({"pot": "Tap" if touch else "Click", "n": str(ctx.get("n", 2)), "odds": str(ctx.get("odds", "1 in 3")),
+	s = s.format({"pot": "Tap" if touch else "Click", "n": str(ctx.get("n", 2)), "odds": str(ctx.get("odds", "1 in 3")),
 		"all": NUMBER_WORDS[all] if all >= 0 and all < NUMBER_WORDS.size() else str(all),
-		"mult": str(ctx.get("mult", 1)), "soul": str(ctx.get("soul", 1))})
+		"mult": str(ctx.get("mult", 1)), "soul": str(ctx.get("soul", 1)),
+		"combo": str(ctx.get("combo", "Quads")), "card": str(ctx.get("card_name", "Trips"))})
+	if id == &"hb4_bigger" and bool(ctx.get("run", false)):
+		# "Bigger combos count too: a Run of 4 claims Run of 3."
+		s = "Bigger combos count too: a %s claims %s." % [str(ctx.get("combo", "Run of 4")), str(ctx.get("card_name", "Run of 3"))]
+	return s
 
 
 ## The player did something: closes the hint if that's its dismiss action.
