@@ -39,6 +39,19 @@ const CANDLE_X := 1.135
 const CANDLE_Z: Array[float] = [-0.42, -0.24, 0.24, 0.42]
 const CANDLE_Y := 0.105
 const FACE_OUT := 0.04                        # demon faces pushed out along the corner diagonal
+## Set dressing (detail pass, Oct 19): build_dressing.py pivots (board space) and the ambient spots.
+const PROP_INK := 0.0025                      # prop outline = ~60 % of the dice ink (0.0042)
+const CHAIN_PIVOT := Vector3(-1.203, 0.028, 0.04)
+const BELL_PIVOT := Vector3(-0.205, 0.0987, -0.6529)   # build_dressing.py PIVOTS
+const TAIL_PIVOT := Vector3(-1.26, -0.16, -0.70)      # behind the far-left corner, just outboard of the body
+const TAIL_SCALE := 1.3                               # drawn at the dice's scale, like the trinkets
+const TAIL_JOINT := Vector3(0.0, 0.16, 0.0)
+const EMBERS_BRAZIER := Vector3(0.0, 0.2, -0.77)
+const EMBERS_CAULDRON := Vector3(1.216, 0.215, 0.0)
+const DUST_AT := Vector3(0.0, 0.72, -0.33)
+const DUST_BOX := Vector3(1.1, 0.5, 0.4)
+const BACKDROP_SIZE := Vector2(7.0, 3.2)
+const BACKDROP_AT := Vector3(0.0, -0.9 + 1.6, -2.3)  # card bottom on the room floor (y -0.9)
 
 
 func _initialize() -> void:
@@ -50,6 +63,7 @@ func _initialize() -> void:
 	if phase == "scenes" or phase == "props" or phase == "all":
 		for mobile in [false, true]:
 			_props(mobile)
+			_studs_worn(mobile)
 	if phase == "scenes" or phase == "board" or phase == "all":
 		for mobile in [false, true]:
 			_board(mobile)
@@ -152,6 +166,87 @@ func _materials() -> void:
 	_save(_sm(S + "hearth_sparks.gdshader", {"rise": 0.3, "period": 1.5, "radius": 0.11, "turns": 0.2, "size": 0.014, "drift": 0.06}), M + "sparks_drift.tres")
 	_save(_sm(S + "hearth_sparks.gdshader", {"fill_color": BRASS_HI, "core_energy": 1.8, "rise": 0.34, "period": 1.0,
 		"radius": 0.075, "turns": 1.5, "size": 0.016}), M + "sparks_brass.tres")
+	_dressing_materials(M)
+
+
+## A toon_noir prop material with the thin prop ink (or none).
+func _toon(params: Dictionary, inked: bool = true) -> ShaderMaterial:
+	var m := _sm(TOON, params)
+	if inked:
+		m.next_pass = load(H + "materials/ink_prop.tres")
+	return m
+
+
+## Copy of a toon material's parameters onto another shader (same uniform names), plus extras.
+func _copy_to(shader: String, src: String, extra: Dictionary) -> ShaderMaterial:
+	var o := load(src) as ShaderMaterial
+	var m := _sm(shader, {})
+	for p in o.shader.get_shader_uniform_list():
+		var v: Variant = o.get_shader_parameter(p.name)
+		if v != null:
+			m.set_shader_parameter(p.name, v)
+	for k in extra:
+		m.set_shader_parameter(k, extra[k])
+	return m
+
+
+## The dressing sits outside the lamp cone (the corners, the rail outsides, under the table), where the
+## toon ramp is near black; each prop material carries a faint self-glow (DRESS_GLOW x its own albedo, the
+## candles' bounce) so the clusters read as shapes by candlelight without competing with the felt.
+func _glow(c: Color, k: float) -> Dictionary:
+	return {"emission_color": c, "emission_energy": k}
+
+
+func _dressing_materials(M: String) -> void:
+	_save(_sm("res://shaders/3d/outline.gdshader", {"color": PIT_BLACK, "width": PROP_INK, "mode": 0}), M + "ink_prop.tres")
+	var ink := load(M + "ink_prop.tres")
+	_save(_toon({"albedo": Color("#8C6A2C"), "shadow_color": Color("#2E200C"), "mid_tint": 0.7, "spec_size": 0.92, "spec_strength": 0.55,
+		"spec_color": BRASS_HI, "rim_color": BRASS_HI, "rim_strength": 0.2, "emission_color": Color("#8C6A2C"), "emission_energy": 0.3}), M + "dressing_coin.tres")
+	_save(_toon(_glow(Color("#2A2220"), 0.35).merged({"albedo": Color("#2A2220"), "shadow_color": Color("#0E0B0A"), "mid_tint": 0.7, "spec_size": 0.9, "spec_strength": 0.9,
+		"spec_color": BUTTER, "rim_color": BUTTER, "rim_strength": 0.45, "rim_power": 2.0, "roughness": 0.2})), M + "dressing_glass.tres")
+	# aged bone: darker and yellower than the dice bone (#E8DCC0), so a knucklebone never reads as a die
+	_save(_toon(_glow(Color("#C9B48A"), 0.14).merged({"albedo": Color("#C9B48A"), "shadow_color": Color("#4A3424"), "mid_tint": 0.7, "spec_size": 0.97, "spec_strength": 0.25,
+		"wrap": 0.2})), M + "dressing_bone.tres")
+	_save(_toon(_glow(Color("#8A7650"), 0.14).merged({"albedo": Color("#8A7650"), "shadow_color": Color("#3A2A1C"), "mid_tint": 0.72, "wrap": 0.25})), M + "dressing_paper.tres")
+	_save(_toon(_glow(Color("#6E1A24"), 0.2).merged({"albedo": Color("#6E1A24"), "shadow_color": Color("#2A0A10"), "mid_tint": 0.68, "spec_size": 0.93, "spec_strength": 0.45,
+		"rim_color": EMBER, "rim_strength": 0.1})), M + "dressing_seal.tres")
+	var wax := _copy_toon(M + "candle_wax.tres", {})
+	wax.next_pass = ink
+	_save(wax, M + "dressing_wax.tres")
+	_save(_copy_to(S + "hearth_toon_detail.gdshader", M + "candle_wax.tres", {"albedo": Color("#D8C49A"), "drip_mode": true}), M + "dressing_wax_drip.tres")
+	_save(_toon({"albedo": PIT_BLACK, "shadow_color": PIT_BLACK, "mid_tint": 1.0}, false), M + "dressing_ink.tres")
+	_save(_toon(_glow(Color("#34302E"), 0.45).merged({"albedo": Color("#34302E"), "shadow_color": Color("#0E0D10"), "mid_tint": 0.66, "spec_size": 0.95, "spec_strength": 0.2,
+		"rim_color": EMBER, "rim_strength": 0.12, "roughness": 0.6})), M + "dressing_iron.tres")
+	var bv: Variant = (load(A + "materials/brass.tres") as ShaderMaterial).get_shader_parameter("albedo")
+	var bc: Color = bv if bv != null else Color("#B08D3C")
+	var brass := _copy_toon(A + "materials/brass.tres", _glow(bc, 0.22))
+	brass.next_pass = ink
+	_save(brass, M + "dressing_brass.tres")
+	var worn := _copy_toon(A + "materials/brass.tres", {"albedo": Color("#5E4A26"), "spec_strength": 0.12})
+	worn.next_pass = (load(A + "materials/brass.tres") as ShaderMaterial).next_pass
+	_save(worn, M + "dressing_brass_worn.tres")
+	_save(_toon(_glow(Color("#3B1418"), 0.35).merged({"albedo": Color("#3B1418"), "shadow_color": Color("#140608"), "mid_tint": 0.68, "rim_color": Color("#8A3A40"),
+		"rim_strength": 0.12})), M + "dressing_leather.tres")
+	_save(_toon({"albedo": Color("#0E0B0C"), "shadow_color": Color.BLACK, "grime": 0.5, "grime_color": Color("#060404"), "roughness": 0.9}, false),
+		M + "dressing_floor.tres")
+	var wood := _copy_toon(A + "materials/body_wood.tres", {})
+	wood.next_pass = ink
+	_save(wood, M + "dressing_wood.tres")
+	# the tail is the one ambient beat meant to be caught in the corner of the eye: a stronger glow
+	_save(_toon(_glow(Color("#6E1A24"), 0.55).merged({"albedo": Color("#6E1A24"), "shadow_color": Color("#2A0A10"), "mid_tint": 0.68, "spec_size": 0.95, "spec_strength": 0.2,
+		"rim_color": EMBER, "rim_strength": 0.55, "rim_power": 2.5})), M + "dressing_tail.tres")
+	# Board looks with the dressing on: worn felt overlay, carved + claw-scratched rail leather.
+	_save(_copy_toon(M + "hearth_felt.tres", {"overlay_tex": load(H + "textures/felt_ember_corners_worn.png")}), M + "hearth_felt_worn.tres")
+	var carved := _copy_to(S + "hearth_toon_detail.gdshader", M + "hearth_leather.tres", {"use_carve": true,
+		"carve_tex": load(H + "textures/rail_carve.png"), "carve_normal": 1.0, "carve_cavity": 0.35, "use_scratches": true})
+	carved.next_pass = load(M + "ember_seam.tres")
+	_save(carved, M + "hearth_leather_carved.tres")
+	# Ambient: slow ember motes (diamond sparks) over the brazier and the cauldron, the lamp dust, the backdrop.
+	var sp := S + "hearth_sparks.gdshader"
+	_save(_sm(sp, {"rise": 0.42, "period": 5.5, "radius": 0.07, "turns": 0.15, "drift": 0.07, "size": 0.0085, "core_energy": 1.25}), M + "ember_motes.tres")
+	_save(_sm(sp, {"rise": 0.3, "period": 4.6, "radius": 0.05, "turns": 0.1, "drift": 0.05, "size": 0.0075, "core_energy": 1.2}), M + "ember_motes_small.tres")
+	_save(_sm(S + "hearth_dust.gdshader", {"box": DUST_BOX}), M + "lamp_dust.tres")
+	_save(_sm(S + "hearth_backdrop.gdshader", {"card_size": BACKDROP_SIZE}), M + "backdrop.tres")
 
 
 # --- scene helpers ----------------------------------------------------------------------------
@@ -198,7 +293,7 @@ func _card(parent: Node, name: String, mat: String, h: float, base: Vector3, squ
 
 
 ## Self-animated diamond sparks: n quads in one mesh, COLOR.r = per-spark seed (hearth_sparks.gdshader).
-func _sparks(parent: Node, name: String, mat: String, n: int, pos: Vector3) -> MeshInstance3D:
+func _sparks(parent: Node, name: String, mat: String, n: int, pos: Vector3, aabb: AABB = AABB(Vector3(-0.15, -0.05, -0.15), Vector3(0.3, 0.5, 0.3))) -> MeshInstance3D:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new()
@@ -212,7 +307,7 @@ func _sparks(parent: Node, name: String, mat: String, n: int, pos: Vector3) -> M
 			st.set_uv(Vector2(p.x + 0.5, 0.5 - p.y))
 			st.add_vertex(Vector3(p.x, p.y, 0))
 	var mesh := st.commit()
-	mesh.custom_aabb = AABB(Vector3(-0.15, -0.05, -0.15), Vector3(0.3, 0.5, 0.3))
+	mesh.custom_aabb = aabb
 	var mi := MeshInstance3D.new()
 	mi.name = name
 	mi.mesh = mesh
@@ -391,6 +486,7 @@ func _board(mobile: bool) -> void:
 		c.set("glow_tilt", 16.0 if left else -16.0)
 		c.set("height", heights[i])
 	_animations(hearth)
+	_dressing(board, hearth, mobile)
 	_pack(board, D + "hearth_board%s.tscn" % lod)
 
 
@@ -440,3 +536,202 @@ func _animations(hearth: Node) -> void:
 	lib2.add_animation("seam_pulse", pulse)
 	sp.add_animation_library("", lib2)
 	hearth.add_child(sp)
+
+
+# --- set dressing (detail pass, Oct 19) ---------------------------------------------------------
+
+## Board A's stud ring with a few studs tarnished (dark brass) and a few missing (the leather shows):
+## meshes/trim_studs_worn(_mobile).res, shown as Hearth/Dressing/Studs while Board A's Visual/Trim is hidden.
+func _studs_worn(mobile: bool) -> void:
+	var lod := "_mobile" if mobile else ""
+	var scn := (load(A + "trim_studs%s.glb" % lod) as PackedScene).instantiate()
+	var src := _mesh(scn).mesh as ArrayMesh
+	var arr := src.surface_get_arrays(0)
+	var verts := arr[Mesh.ARRAY_VERTEX] as PackedVector3Array
+	var norms := arr[Mesh.ARRAY_NORMAL] as PackedVector3Array
+	var uvs: Variant = arr[Mesh.ARRAY_TEX_UV]
+	var idx := arr[Mesh.ARRAY_INDEX] as PackedInt32Array
+	# stud centres: greedy clusters of vertices (studs are ~5 cm apart, ~1.4 cm across)
+	var cs: Array[Vector3] = []
+	var cn: Array[int] = []
+	for v in verts:
+		var hit := -1
+		for i in cs.size():
+			if Vector2(cs[i].x / cn[i], cs[i].z / cn[i]).distance_to(Vector2(v.x, v.z)) < 0.012:
+				hit = i
+				break
+		if hit < 0:
+			cs.append(v)
+			cn.append(1)
+		else:
+			cs[hit] += v
+			cn[hit] += 1
+	var centres: Array[Vector3] = []
+	for i in cs.size():
+		centres.append(cs[i] / cn[i])
+	# deterministic picks by perimeter angle; never on the near rail (the dice-side read), spread round the table
+	var order := range(centres.size())
+	order.sort_custom(func(a, b): return atan2(centres[a].z, centres[a].x * 0.55) < atan2(centres[b].z, centres[b].x * 0.55))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 404
+	var state := {}  # stud -> 1 worn, 2 missing
+	var want := [4, 12] if not mobile else [2, 5]
+	var tries := 0
+	while (state.values().count(2) < want[0] or state.values().count(1) < want[1]) and tries < 2000:
+		tries += 1
+		var k: int = order[rng.randi_range(0, order.size() - 1)]
+		if state.has(k) or centres[k].z > 0.6:
+			continue
+		state[k] = 2 if state.values().count(2) < want[0] else 1
+	var st_plain := SurfaceTool.new()
+	var st_worn := SurfaceTool.new()
+	for st in [st_plain, st_worn]:
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for t in range(0, idx.size(), 3):
+		var c := (verts[idx[t]] + verts[idx[t + 1]] + verts[idx[t + 2]]) / 3.0
+		var best := 0
+		var bd := INF
+		for i in centres.size():
+			var dd := Vector2(centres[i].x, centres[i].z).distance_squared_to(Vector2(c.x, c.z))
+			if dd < bd:
+				bd = dd
+				best = i
+		var s: int = state.get(best, 0)
+		if s == 2:
+			continue
+		var st: SurfaceTool = st_worn if s == 1 else st_plain
+		for j in 3:
+			var vi := idx[t + j]
+			st.set_normal(norms[vi])
+			if uvs != null:
+				st.set_uv((uvs as PackedVector2Array)[vi])
+			st.add_vertex(verts[vi])
+	var mesh := ArrayMesh.new()
+	st_plain.commit(mesh)
+	st_worn.commit(mesh)
+	mesh.surface_set_material(0, src.surface_get_material(0))
+	mesh.surface_set_material(1, load(H + "materials/dressing_brass_worn.tres"))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(H + "meshes"))
+	_save(mesh, H + "meshes/trim_studs_worn%s.res" % lod)
+	print("studs%s: %d studs, %d tarnished, %d missing" % [lod, centres.size(), state.values().count(1), state.values().count(2)])
+	scn.free()
+
+
+## Hearth/Dressing: the corner clusters, trinkets, floor + legs + backdrop, the animated chain / bell / tail,
+## the ambient motes and dust, and their 3 small players. Everything is art; the hub exposes the hooks.
+func _dressing(board: Node3D, hearth: Node3D, mobile: bool) -> void:
+	var lod := "_mobile" if mobile else ""
+	var M := H + "materials/"
+	var d := _scripted("Dressing", "hearth_dressing")
+	d.set("felt_plain", load(M + "hearth_felt.tres"))
+	d.set("felt_worn", load(M + "hearth_felt_worn.tres"))
+	d.set("leather_plain", load(M + "hearth_leather.tres"))
+	d.set("leather_carved", load(M + "hearth_leather_carved.tres"))
+	hearth.add_child(d)
+	_inst(H + "dressing_corners%s.glb" % lod, "Corners", d)
+	if not mobile:
+		_inst(H + "dressing_trinkets.glb", "Trinkets", d)
+	_inst(H + "dressing_floor%s.glb" % lod, "Under", d)
+	var studs := MeshInstance3D.new()
+	studs.name = "Studs"
+	studs.mesh = load(H + "meshes/trim_studs_worn%s.res" % lod)
+	d.add_child(studs)
+	for spec in [["Bell", BELL_PIVOT, "dressing_bell"], ["Chain", CHAIN_PIVOT, "dressing_chain"]]:
+		var n := Node3D.new()
+		n.name = spec[0]
+		n.position = spec[1]
+		d.add_child(n)
+		_inst(H + "%s%s.glb" % [spec[2], lod], "Model", n)
+	var tail := Node3D.new()
+	tail.name = "Tail"
+	tail.position = TAIL_PIVOT
+	tail.scale = Vector3.ONE * TAIL_SCALE
+	tail.visible = false
+	d.add_child(tail)
+	var root := Node3D.new()
+	root.name = "Root"
+	tail.add_child(root)
+	_inst(H + "dressing_tail_root%s.glb" % lod, "Model", root)
+	var joint := Node3D.new()
+	joint.name = "Joint"
+	joint.position = TAIL_JOINT
+	root.add_child(joint)
+	var tip := Node3D.new()
+	tip.name = "Tip"
+	joint.add_child(tip)
+	_inst(H + "dressing_tail_tip%s.glb" % lod, "Model", tip)
+	var amb := Node3D.new()
+	amb.name = "Ambient"
+	d.add_child(amb)
+	_sparks(amb, "EmbersBrazier", "ember_motes", 5 if mobile else 7, EMBERS_BRAZIER, AABB(Vector3(-0.25, -0.05, -0.25), Vector3(0.5, 0.6, 0.5)))
+	_sparks(amb, "EmbersCauldron", "ember_motes_small", 2 if mobile else 3, EMBERS_CAULDRON, AABB(Vector3(-0.2, -0.05, -0.2), Vector3(0.4, 0.45, 0.4)))
+	_sparks(amb, "LampDust", "lamp_dust", 8 if mobile else 16, DUST_AT, AABB(-DUST_BOX * 0.6, DUST_BOX * 1.2))
+	var bd := MeshInstance3D.new()
+	bd.name = "Backdrop"
+	var q := QuadMesh.new()
+	q.size = BACKDROP_SIZE
+	bd.mesh = q
+	bd.material_override = load(M + "backdrop.tres")
+	bd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bd.position = BACKDROP_AT
+	d.add_child(bd)
+	# the dressing-on looks are baked into the scene (the script re-applies them on ready / toggle)
+	_mesh(board.get_node("Visual/Floor")).set_surface_override_material(0, load(M + "hearth_felt_worn.tres"))
+	_mesh(board.get_node("Visual/Rails")).set_surface_override_material(0, load(M + "hearth_leather_carved.tres"))
+	(board.get_node("Visual/Trim") as Node3D).visible = false
+	_dressing_clips(d)
+
+
+func _player(d: Node, name: String, clips: Dictionary) -> void:
+	var ap := AnimationPlayer.new()
+	ap.name = name
+	var lib := AnimationLibrary.new()
+	for k in clips:
+		lib.add_animation(k, clips[k])
+	ap.add_animation_library("", lib)
+	d.add_child(ap)
+
+
+## Drawn on twos (discrete keys at 12 fps), keying only the dressing's pose params.
+func _dressing_clips(d: Node) -> void:
+	var reset := _clip(0.001)
+	for p in ["tail_out", "tail_sway", "tail_curl"]:
+		_dtrack(reset, ".:" + p, [[0.0, 0.0]])
+	# Tail peek, 1.8 s: out from under the table in 3 drawings, a 2-bone sway (the tip lags the root,
+	# so it whips), a twitch, then it snaps back under in 2 drawings.
+	var peek := _clip(1.8)
+	var out := [[0.0, 0.0], [STEP, 0.35], [2 * STEP, 0.75], [3 * STEP, 1.0], [19 * STEP, 1.0], [20 * STEP, 0.45], [21 * STEP, 0.0]]
+	_dtrack(peek, ".:tail_out", out)
+	var sway := []
+	var curl := []
+	for k in range(0, 22):
+		var t := k * STEP
+		var a := 0.0
+		var c := 0.0
+		if t > 2.5 * STEP and t < 19.5 * STEP:
+			a = 0.8 * sin(TAU * (t - 3 * STEP) / 0.75)
+			c = 0.9 * sin(TAU * (t - 4 * STEP) / 0.75)
+			if k == 14:  # the twitch
+				c = -1.0
+		sway.append([t, snappedf(a, 0.01)])
+		curl.append([t, snappedf(c, 0.01)])
+	_dtrack(peek, ".:tail_sway", sway)
+	_dtrack(peek, ".:tail_curl", curl)
+	# Scoring started while it is out: whip straight back.
+	var whip := _clip(2 * STEP)
+	_dtrack(whip, ".:tail_out", [[0.0, 0.4], [STEP, 0.0]])
+	_dtrack(whip, ".:tail_sway", [[0.0, 0.0]])
+	_dtrack(whip, ".:tail_curl", [[0.0, -1.0], [STEP, 0.0]])
+	_player(d, "TailPlayer", {"RESET": reset, "tail_peek": peek, "tail_whip": whip})
+	# Chain sway on a rail hit, 0.4 s: a small impulse that settles.
+	var creset := _clip(0.001)
+	_dtrack(creset, ".:chain_swing", [[0.0, 0.0]])
+	var sw := _clip(0.4)
+	_dtrack(sw, ".:chain_swing", [[0.0, 1.0], [STEP, -0.65], [2 * STEP, 0.4], [3 * STEP, -0.22], [4 * STEP, 0.1], [0.4, 0.0]])
+	_player(d, "ChainPlayer", {"RESET": creset, "chain_sway": sw})
+	# Bell rattle (Hot Hand 3+), 0.5 s.
+	var breset := _clip(0.001)
+	_dtrack(breset, ".:bell_shake", [[0.0, 0.0]])
+	var rat := _clip(0.5)
+	_dtrack(rat, ".:bell_shake", [[0.0, 1.0], [STEP, -1.0], [2 * STEP, 0.8], [3 * STEP, -0.7], [4 * STEP, 0.5], [5 * STEP, -0.3], [0.5, 0.0]])
+	_player(d, "BellPlayer", {"RESET": breset, "bell_rattle": rat})

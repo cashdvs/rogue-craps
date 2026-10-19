@@ -1,0 +1,53 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_toon_detail.gdshader" id="1_tx5yl"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_tx5yl")
+shader_parameter/albedo = Color(0.84705883, 0.76862746, 0.6039216, 1)
+shader_parameter/shadow_color = Color(0.43137255, 0.2901961, 0.22745098, 1)
+shader_parameter/mid_tint = 0.74
+shader_parameter/wrap = 0.3
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = 0.9
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = null
+shader_parameter/ambient_energy = null
+shader_parameter/spec_size = 0.97
+shader_parameter/spec_color = null
+shader_parameter/spec_strength = 0.3
+shader_parameter/rim_color = Color(1, 0.9019608, 0.65882355, 1)
+shader_parameter/rim_power = null
+shader_parameter/rim_strength = 0.15
+shader_parameter/emission_color = Color(0.22745098, 0.18039216, 0.14117648, 1)
+shader_parameter/emission_energy = 0.5
+shader_parameter/roughness = null
+shader_parameter/use_overlay = null
+shader_parameter/overlay_tint = null
+shader_parameter/grime = null
+shader_parameter/grime_color = null
+shader_parameter/flash = null
+shader_parameter/flash_color = null
+shader_parameter/scorch = null
+shader_parameter/chip_mode = null
+shader_parameter/notch_color = null
+shader_parameter/ring_color = null
+shader_parameter/chip_radius = null
+shader_parameter/use_carve = null
+shader_parameter/carve_tile_u = null
+shader_parameter/carve_normal = null
+shader_parameter/carve_cavity = null
+shader_parameter/use_scratches = null
+shader_parameter/scratch_u = null
+shader_parameter/scratch_amount = null
+shader_parameter/scratch_lip = null
+shader_parameter/drip_mode = true
+shader_parameter/drip_top = null
+shader_parameter/drip_grow = null
+shader_parameter/drip_period = null
+shader_parameter/drip_scroll = null
+shader_parameter/drip_sheen = null
+shader_parameter/drip_sheen_amount = null

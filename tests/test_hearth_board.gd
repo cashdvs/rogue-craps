@@ -6,6 +6,10 @@
 ## shaders only, no lights / physics, the 15k (PC) / 8k (mobile) budgets, 8 progress candles
 ## (<= 150 tris, one shared material), and the visual hooks + AnimationPlayer clips Godot Dev drives
 ## (including the bust snuff restoring the previous state).
+## Detail pass (Oct 19): the set dressing (Hearth/Dressing) is covered in depth by test_hearth_dressing.gd;
+## here the board-wide rules simply include it (tris = what is drawn: Board A's Visual/Trim is hidden
+## while the dressing's worn studs show; the backdrop card far behind Smiles is the one exemption from
+## the 0.25 m cap).
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_hearth_board.gd
@@ -28,8 +32,12 @@ const TOON := "res://shaders/3d/toon_noir.gdshader"
 const SH := "res://art/models/boards/hearth/shaders/"
 ## Effect shaders (billboard cards / sparks): exempt from the 0.25 m geometry cap.
 ## (hearth_glow = the additive candle glow decal lying on the rail top.)
-const FX_SHADERS: Array[String] = [SH + "hearth_flame_card.gdshader", SH + "hearth_sparks.gdshader", SH + "hearth_glow.gdshader"]
-const PROP_SHADERS: Array[String] = [TOON, SH + "hearth_coals.gdshader", SH + "demon_eye.gdshader"]
+## (hearth_dust = the lamp dust sheet: checked against the game camera in test_hearth_dressing.gd.)
+const FX_SHADERS: Array[String] = [SH + "hearth_flame_card.gdshader", SH + "hearth_sparks.gdshader", SH + "hearth_glow.gdshader", SH + "hearth_dust.gdshader"]
+const PROP_SHADERS: Array[String] = [TOON, SH + "hearth_coals.gdshader", SH + "demon_eye.gdshader", SH + "hearth_toon_detail.gdshader"]
+## The dark backdrop card behind Smiles (out-of-focus far tables): no height cap, must stay far behind him.
+const BACKDROP_SHADER := SH + "hearth_backdrop.gdshader"
+const BACKDROP_MAX_Z := -1.5
 ## Smiles (the dealer) stands STAGE LEFT of the brazier behind the far rail: a centred dealer's face
 ## would sit behind the brazier bowl itself from the game camera. Face sphere (world) used to check
 ## that solid fire never covers his face at any pot step (Art Director, Oct 18).
@@ -108,19 +116,29 @@ func _check_board(mobile: bool) -> void:
 	var fx_ok := true
 	var bad := ""
 	var bad_sh := ""
+	var backdrop_ok := true
 	for mi in meshes:
 		var xf := _xf(board, mi)
 		var top := _top_name(board, mi)
+		var drawn := _drawn(board, mi)
 		for s in mi.mesh.get_surface_count():
 			var mat := mi.material_override if mi.material_override != null else mi.get_active_material(s)
 			var sh := ((mat as ShaderMaterial).shader.resource_path) if mat is ShaderMaterial else "?"
 			var is_fx := FX_SHADERS.has(sh)
-			if not is_fx and not PROP_SHADERS.has(sh):
+			if not is_fx and not PROP_SHADERS.has(sh) and sh != BACKDROP_SHADER:
 				shader_ok = false
 				bad_sh = "%s %s" % [mi.name, sh]
 			var arrays := mi.mesh.surface_get_arrays(s)
 			var idx: Variant = arrays[Mesh.ARRAY_INDEX]
-			tris += ((idx as PackedInt32Array).size() if idx != null else (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
+			if drawn:
+				tris += ((idx as PackedInt32Array).size() if idx != null else (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
+			if sh == BACKDROP_SHADER:
+				for v: Vector3 in arrays[Mesh.ARRAY_VERTEX]:
+					if (xf * v).z > BACKDROP_MAX_Z:
+						backdrop_ok = false
+				continue
+			if sh == SH + "hearth_dust.gdshader":
+				continue  # the lamp dust hangs in the cone; test_hearth_dressing.gd checks it never projects over the felt
 			if is_fx:
 				# effects: the card / spark origin must stand outside the rail line (over the props)
 				if _inside_rail_line(xf.origin) and xf.origin.y > EPS:
@@ -139,11 +157,13 @@ func _check_board(mobile: bool) -> void:
 	_check(height_ok, "%s: all prop geometry under 0.25 m (fire cards excepted)" % label)
 	_check(fx_ok, "%s: fire cards stand over the props, never over the felt" % label)
 	_check(shader_ok, "%s: surfaces use toon_noir or the Hearth toon shaders only %s" % [label, bad_sh])
-	_check(tris <= budget, "%s: %d tris <= %d (all meshes incl. fire cards)" % [label, tris, budget])
+	_check(backdrop_ok, "%s: the backdrop card stands behind z %.1f (far behind Smiles)" % [label, BACKDROP_MAX_Z])
+	_check(tris <= budget, "%s: %d tris <= %d (all drawn meshes incl. fire cards and the set dressing)" % [label, tris, budget])
 	print("  info %s total tris %d" % [label, tris])
 	var felt := _mesh(board.get_node("Visual/Floor"))
 	var fm := felt.get_active_material(0) as ShaderMaterial
-	_check(fm != null and fm.resource_path.ends_with("hearth_felt.tres") and fm.get_shader_parameter("use_overlay") == true, label + ": felt = hearth_felt (Board A felt + ember corner overlay)")
+	_check(fm != null and (fm.resource_path.ends_with("hearth_felt.tres") or fm.resource_path.ends_with("hearth_felt_worn.tres")) and fm.get_shader_parameter("use_overlay") == true,
+		label + ": felt = hearth_felt (Board A felt + ember corner overlay; _worn with the dressing on)")
 	var rails := _mesh(board.get_node("Visual/Rails"))
 	var rm := rails.get_active_material(0) as ShaderMaterial
 	var seam := rm.next_pass as ShaderMaterial if rm != null else null
@@ -355,6 +375,17 @@ func _tree_paths(n: Node, r: Node, out: Array[NodePath] = []) -> Array[NodePath]
 		if c.scene_file_path == "":
 			_tree_paths(c, r, out)
 	return out
+
+
+## Drawn = the node and all its parents up to the board are visible (the hidden Board A trim and the
+## folded-away tail are not drawn).
+func _drawn(board: Node, n: Node) -> bool:
+	var p := n
+	while p != null and p != board:
+		if p is Node3D and not (p as Node3D).visible:
+			return false
+		p = p.get_parent()
+	return true
 
 
 func _scene_of(b: Node, p: String) -> String:

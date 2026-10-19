@@ -1,0 +1,40 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/ink_prop.tres" id="1_8s2a2"]
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="2_j464g"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_8s2a2")
+shader = ExtResource("2_j464g")
+shader_parameter/albedo = Color(0.227451, 0.141176, 0.0862745, 1)
+shader_parameter/shadow_color = Color(0.0784314, 0.0392157, 0.0235294, 1)
+shader_parameter/mid_tint = null
+shader_parameter/wrap = null
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = null
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = null
+shader_parameter/ambient_energy = null
+shader_parameter/spec_size = null
+shader_parameter/spec_color = null
+shader_parameter/spec_strength = null
+shader_parameter/rim_color = null
+shader_parameter/rim_power = null
+shader_parameter/rim_strength = null
+shader_parameter/emission_color = null
+shader_parameter/emission_energy = null
+shader_parameter/roughness = 0.7
+shader_parameter/use_overlay = null
+shader_parameter/overlay_tint = null
+shader_parameter/grime = 0.3
+shader_parameter/grime_color = Color(0.164706, 0.101961, 0.0705882, 1)
+shader_parameter/flash = null
+shader_parameter/flash_color = null
+shader_parameter/scorch = null
+shader_parameter/chip_mode = null
+shader_parameter/notch_color = null
+shader_parameter/ring_color = null
+shader_parameter/chip_radius = null

@@ -1,21 +1,36 @@
-[gd_scene format=3]
+[gd_scene format=4]
 
-[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/felt_floor.glb" id="1_818wf"]
-[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_felt.tres" id="2_6p101"]
-[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/rails.glb" id="3_x7i23"]
-[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_leather.tres" id="4_fwfrr"]
-[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/trim_studs.glb" id="5_psiy1"]
-[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/backboard.glb" id="6_5evva"]
-[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/body_skirt.glb" id="7_pttr3"]
-[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/brazier.tscn" id="8_016od"]
-[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/total_dial.tscn" id="9_x0wrf"]
-[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/cauldron.tscn" id="10_tqlje"]
-[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/demon_face.tscn" id="11_khgkt"]
-[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/corner_cap.tscn" id="12_2pqwl"]
-[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_fx.gd" id="13_p0uud"]
-[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/candle.tscn" id="14_ocvmg"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/felt_floor.glb" id="1_67hxd"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_felt_worn.tres" id="2_1j5du"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/rails.glb" id="3_qph6c"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_leather_carved.tres" id="4_kh0df"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/trim_studs.glb" id="5_5dhdt"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/backboard.glb" id="6_csla1"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/body_skirt.glb" id="7_mct33"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/brazier.tscn" id="8_bpm5w"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/total_dial.tscn" id="9_vvo5f"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/cauldron.tscn" id="10_770uh"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/demon_face.tscn" id="11_hak3m"]
+[ext_resource type="PackedScene" path="res://art/models/boards/infernal_pit/scenes/corner_cap.tscn" id="12_sabne"]
+[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_fx.gd" id="13_guxvj"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/scenes/candle.tscn" id="14_dv5ac"]
+[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_dressing.gd" id="15_qyv6v"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_felt.tres" id="16_w7l6y"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/hearth_leather.tres" id="17_ivto5"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/dressing_corners.glb" id="18_rr0um"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/dressing_trinkets.glb" id="19_i8gak"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/dressing_floor.glb" id="20_dku8f"]
+[ext_resource type="ArrayMesh" path="res://art/models/boards/hearth/meshes/trim_studs_worn.res" id="21_vi0yi"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/dressing_bell.glb" id="22_xjl25"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/dressing_chain.glb" id="23_tldx5"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/dressing_tail_root.glb" id="24_hq40g"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/dressing_tail_tip.glb" id="25_ikleb"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/ember_motes.tres" id="26_edg36"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/ember_motes_small.tres" id="27_7dcdg"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/lamp_dust.tres" id="28_r3t4d"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/backdrop.tres" id="29_fous0"]
 
-[sub_resource type="Animation" id="Animation_8xjk8"]
+[sub_resource type="Animation" id="Animation_v7g40"]
 length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -54,7 +69,7 @@ tracks/2/keys = {
 "values": [0.0]
 }
 
-[sub_resource type="Animation" id="Animation_67hxd"]
+[sub_resource type="Animation" id="Animation_kq5y2"]
 length = 0.6
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -69,7 +84,7 @@ tracks/0/keys = {
 "values": [1.0, 0.8, 0.65, 0.5, 0.35, 0.15, 0.0]
 }
 
-[sub_resource type="Animation" id="Animation_1j5du"]
+[sub_resource type="Animation" id="Animation_04jck"]
 length = 0.75
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -96,14 +111,14 @@ tracks/1/keys = {
 "values": [0.0, 0.01, 0.20600000000000002, 0.402, 0.598, 0.794, 0.99, 0.0]
 }
 
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_qph6c"]
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ghpf2"]
 _data = {
-&"RESET": SubResource("Animation_8xjk8"),
-&"flare": SubResource("Animation_67hxd"),
-&"snuff": SubResource("Animation_1j5du")
+&"RESET": SubResource("Animation_v7g40"),
+&"flare": SubResource("Animation_kq5y2"),
+&"snuff": SubResource("Animation_04jck")
 }
 
-[sub_resource type="Animation" id="Animation_kh0df"]
+[sub_resource type="Animation" id="Animation_o8kgy"]
 length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -118,7 +133,7 @@ tracks/0/keys = {
 "values": [0.0]
 }
 
-[sub_resource type="Animation" id="Animation_5dhdt"]
+[sub_resource type="Animation" id="Animation_j5pgj"]
 length = 0.15
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -133,47 +148,283 @@ tracks/0/keys = {
 "values": [1.0, 0.5, 0.0]
 }
 
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_csla1"]
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_n02uq"]
 _data = {
-&"RESET": SubResource("Animation_kh0df"),
-&"seam_pulse": SubResource("Animation_5dhdt")
+&"RESET": SubResource("Animation_o8kgy"),
+&"seam_pulse": SubResource("Animation_j5pgj")
+}
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_1kg6p"]
+_surfaces = [{
+"aabb": AABB(-0.5, -0.5, 0, 1, 1, 1e-05),
+"attribute_data": PackedByteArray("/gAA/wAAAAAAAIA//gAA/wAAgD8AAIA//gAA/wAAgD8AAAAA/gAA/wAAAAAAAIA//gAA/wAAgD8AAAAA/gAA/wAAAAAAAAAAlQAA/wAAAAAAAIA/lQAA/wAAgD8AAIA/lQAA/wAAgD8AAAAAlQAA/wAAAAAAAIA/lQAA/wAAgD8AAAAAlQAA/wAAAAAAAAAAXQAA/wAAAAAAAIA/XQAA/wAAgD8AAIA/XQAA/wAAgD8AAAAAXQAA/wAAAAAAAIA/XQAA/wAAgD8AAAAAXQAA/wAAAAAAAAAAfQAA/wAAAAAAAIA/fQAA/wAAgD8AAIA/fQAA/wAAgD8AAAAAfQAA/wAAAAAAAIA/fQAA/wAAgD8AAAAAfQAA/wAAAAAAAAAAbQAA/wAAAAAAAIA/bQAA/wAAgD8AAIA/bQAA/wAAgD8AAAAAbQAA/wAAAAAAAIA/bQAA/wAAgD8AAAAAbQAA/wAAAAAAAAAApwAA/wAAAAAAAIA/pwAA/wAAgD8AAIA/pwAA/wAAgD8AAAAApwAA/wAAAAAAAIA/pwAA/wAAgD8AAAAApwAA/wAAAAAAAAAAtgAA/wAAAAAAAIA/tgAA/wAAgD8AAIA/tgAA/wAAgD8AAAAAtgAA/wAAAAAAAIA/tgAA/wAAgD8AAAAAtgAA/wAAAAAAAAAA"),
+"format": 34359738393,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 42,
+"vertex_data": PackedByteArray("AAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAA")
+}]
+custom_aabb = AABB(-0.25, -0.05, -0.25, 0.5, 0.6, 0.5)
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_8cqwl"]
+_surfaces = [{
+"aabb": AABB(-0.5, -0.5, 0, 1, 1, 1e-05),
+"attribute_data": PackedByteArray("pQAA/wAAAAAAAIA/pQAA/wAAgD8AAIA/pQAA/wAAgD8AAAAApQAA/wAAAAAAAIA/pQAA/wAAgD8AAAAApQAA/wAAAAAAAAAA+gAA/wAAAAAAAIA/+gAA/wAAgD8AAIA/+gAA/wAAgD8AAAAA+gAA/wAAAAAAAIA/+gAA/wAAgD8AAAAA+gAA/wAAAAAAAAAAtAAA/wAAAAAAAIA/tAAA/wAAgD8AAIA/tAAA/wAAgD8AAAAAtAAA/wAAAAAAAIA/tAAA/wAAgD8AAAAAtAAA/wAAAAAAAAAA"),
+"format": 34359738393,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 18,
+"vertex_data": PackedByteArray("AAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAA")
+}]
+custom_aabb = AABB(-0.2, -0.05, -0.2, 0.4, 0.45, 0.4)
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_p2dbk"]
+_surfaces = [{
+"aabb": AABB(-0.5, -0.5, 0, 1, 1, 1e-05),
+"attribute_data": PackedByteArray("4wAA/wAAAAAAAIA/4wAA/wAAgD8AAIA/4wAA/wAAgD8AAAAA4wAA/wAAAAAAAIA/4wAA/wAAgD8AAAAA4wAA/wAAAAAAAAAAAwAA/wAAAAAAAIA/AwAA/wAAgD8AAIA/AwAA/wAAgD8AAAAAAwAA/wAAAAAAAIA/AwAA/wAAgD8AAAAAAwAA/wAAAAAAAAAA0wAA/wAAAAAAAIA/0wAA/wAAgD8AAIA/0wAA/wAAgD8AAAAA0wAA/wAAAAAAAIA/0wAA/wAAgD8AAAAA0wAA/wAAAAAAAAAApgAA/wAAAAAAAIA/pgAA/wAAgD8AAIA/pgAA/wAAgD8AAAAApgAA/wAAAAAAAIA/pgAA/wAAgD8AAAAApgAA/wAAAAAAAAAAzQAA/wAAAAAAAIA/zQAA/wAAgD8AAIA/zQAA/wAAgD8AAAAAzQAA/wAAAAAAAIA/zQAA/wAAgD8AAAAAzQAA/wAAAAAAAAAA5gAA/wAAAAAAAIA/5gAA/wAAgD8AAIA/5gAA/wAAgD8AAAAA5gAA/wAAAAAAAIA/5gAA/wAAgD8AAAAA5gAA/wAAAAAAAAAA3wAA/wAAAAAAAIA/3wAA/wAAgD8AAIA/3wAA/wAAgD8AAAAA3wAA/wAAAAAAAIA/3wAA/wAAgD8AAAAA3wAA/wAAAAAAAAAAOwAA/wAAAAAAAIA/OwAA/wAAgD8AAIA/OwAA/wAAgD8AAAAAOwAA/wAAAAAAAIA/OwAA/wAAgD8AAAAAOwAA/wAAAAAAAAAA1wAA/wAAAAAAAIA/1wAA/wAAgD8AAIA/1wAA/wAAgD8AAAAA1wAA/wAAAAAAAIA/1wAA/wAAgD8AAAAA1wAA/wAAAAAAAAAAdAAA/wAAAAAAAIA/dAAA/wAAgD8AAIA/dAAA/wAAgD8AAAAAdAAA/wAAAAAAAIA/dAAA/wAAgD8AAAAAdAAA/wAAAAAAAAAAJwAA/wAAAAAAAIA/JwAA/wAAgD8AAIA/JwAA/wAAgD8AAAAAJwAA/wAAAAAAAIA/JwAA/wAAgD8AAAAAJwAA/wAAAAAAAAAAmwAA/wAAAAAAAIA/mwAA/wAAgD8AAIA/mwAA/wAAgD8AAAAAmwAA/wAAAAAAAIA/mwAA/wAAgD8AAAAAmwAA/wAAAAAAAAAAbAAA/wAAAAAAAIA/bAAA/wAAgD8AAIA/bAAA/wAAgD8AAAAAbAAA/wAAAAAAAIA/bAAA/wAAgD8AAAAAbAAA/wAAAAAAAAAAfQAA/wAAAAAAAIA/fQAA/wAAgD8AAIA/fQAA/wAAgD8AAAAAfQAA/wAAAAAAAIA/fQAA/wAAgD8AAAAAfQAA/wAAAAAAAAAAAgAA/wAAAAAAAIA/AgAA/wAAgD8AAIA/AgAA/wAAgD8AAAAAAgAA/wAAAAAAAIA/AgAA/wAAgD8AAAAAAgAA/wAAAAAAAAAAhwAA/wAAAAAAAIA/hwAA/wAAgD8AAIA/hwAA/wAAgD8AAAAAhwAA/wAAAAAAAIA/hwAA/wAAgD8AAAAAhwAA/wAAAAAAAAAA"),
+"format": 34359738393,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 96,
+"vertex_data": PackedByteArray("AAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAL8AAAAAAAAAPwAAAD8AAAAAAAAAvwAAAD8AAAAA")
+}]
+custom_aabb = AABB(-0.66, -0.3, -0.24000001, 1.32, 0.6, 0.48000002)
+
+[sub_resource type="QuadMesh" id="QuadMesh_whr6m"]
+size = Vector2(7, 3.2)
+
+[sub_resource type="Animation" id="Animation_j75li"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:tail_out")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:tail_sway")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".:tail_curl")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_01yv1"]
+length = 1.8
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:tail_out")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 1.5833334, 1.6666666, 1.75),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.35, 0.75, 1.0, 1.0, 0.45, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:tail_sway")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5, 0.5833333, 0.6666667, 0.75, 0.8333333, 0.9166667, 1, 1.0833334, 1.1666666, 1.25, 1.3333334, 1.4166666, 1.5, 1.5833334, 1.6666666, 1.75),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.0, 0.0, 0.0, 0.51, 0.79, 0.6900000000000001, 0.27, -0.27, -0.6900000000000001, -0.79, -0.51, 0.0, 0.51, 0.79, 0.6900000000000001, 0.27, -0.27, -0.6900000000000001, -0.79, 0.0, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".:tail_curl")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5, 0.5833333, 0.6666667, 0.75, 0.8333333, 0.9166667, 1, 1.0833334, 1.1666666, 1.25, 1.3333334, 1.4166666, 1.5, 1.5833334, 1.6666666, 1.75),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.0, 0.0, -0.58, 0.0, 0.58, 0.89, 0.78, 0.31, -0.31, -0.78, -0.89, -0.58, 0.0, -1.0, 0.89, 0.78, 0.31, -0.31, -0.78, 0.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_nnin7"]
+length = 0.16666666666666666
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:tail_out")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [0.4, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:tail_sway")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".:tail_curl")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.083333336),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [-1.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_j8b8k"]
+_data = {
+&"RESET": SubResource("Animation_j75li"),
+&"tail_peek": SubResource("Animation_01yv1"),
+&"tail_whip": SubResource("Animation_nnin7")
+}
+
+[sub_resource type="Animation" id="Animation_8o6mc"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:chain_swing")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_pm01b"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:chain_swing")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [1.0, -0.65, 0.4, -0.22, 0.1, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_o8wpq"]
+_data = {
+&"RESET": SubResource("Animation_8o6mc"),
+&"chain_sway": SubResource("Animation_pm01b")
+}
+
+[sub_resource type="Animation" id="Animation_j0s87"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:bell_shake")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_yh04n"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:bell_shake")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [1.0, -1.0, 0.8, -0.7, 0.5, -0.3, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_md0ot"]
+_data = {
+&"RESET": SubResource("Animation_j0s87"),
+&"bell_rattle": SubResource("Animation_yh04n")
 }
 
 [node name="Board" type="Node3D" unique_id=474869478]
 
 [node name="Visual" type="Node3D" parent="." unique_id=361490658]
 
-[node name="Floor" parent="Visual" unique_id=383043155 instance=ExtResource("1_818wf")]
+[node name="Floor" parent="Visual" unique_id=383043155 instance=ExtResource("1_67hxd")]
 
-[node name="felt_floor" parent="Visual/Floor" index="0" unique_id=1600232088]
-surface_material_override/0 = ExtResource("2_6p101")
+[node name="felt_floor" parent="Visual/Floor" index="0" unique_id=2117459451]
+surface_material_override/0 = ExtResource("2_1j5du")
 
 [node name="FloorDecal" type="Decal" parent="Visual" unique_id=72240990]
 visible = false
 size = Vector3(0.6, 0.05, 0.6)
 
-[node name="Rails" parent="Visual" unique_id=424586948 instance=ExtResource("3_x7i23")]
+[node name="Rails" parent="Visual" unique_id=424586948 instance=ExtResource("3_qph6c")]
 
-[node name="rails" parent="Visual/Rails" index="0" unique_id=671941426]
-surface_material_override/0 = ExtResource("4_fwfrr")
+[node name="rails" parent="Visual/Rails" index="0" unique_id=1968798467]
+surface_material_override/0 = ExtResource("4_kh0df")
 
-[node name="Trim" parent="Visual" unique_id=977200549 instance=ExtResource("5_psiy1")]
+[node name="Trim" parent="Visual" unique_id=977200549 instance=ExtResource("5_5dhdt")]
+visible = false
 
-[node name="Backboard" parent="Visual" unique_id=25817161 instance=ExtResource("6_5evva")]
+[node name="Backboard" parent="Visual" unique_id=25817161 instance=ExtResource("6_csla1")]
 
-[node name="Body" parent="Visual" unique_id=1570908456 instance=ExtResource("7_pttr3")]
+[node name="Body" parent="Visual" unique_id=1570908456 instance=ExtResource("7_mct33")]
 
 [node name="Anchors" type="Node3D" parent="." unique_id=1690529690]
 
 [node name="TargetPlate" type="Marker3D" parent="Anchors" unique_id=898722290]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, -0.61)
 
-[node name="Plate" parent="Anchors/TargetPlate" unique_id=1380688300 instance=ExtResource("8_016od")]
+[node name="Plate" parent="Anchors/TargetPlate" unique_id=1380688300 instance=ExtResource("8_bpm5w")]
 
 [node name="TotalPlate" type="Marker3D" parent="Anchors" unique_id=85588356]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0.61)
 
-[node name="Plate" parent="Anchors/TotalPlate" unique_id=1644844476 instance=ExtResource("9_x0wrf")]
+[node name="Plate" parent="Anchors/TotalPlate" unique_id=1644844476 instance=ExtResource("9_vvo5f")]
 
 [node name="BurnLine" type="Marker3D" parent="Anchors" unique_id=1254034411]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, -0.4)
@@ -181,30 +432,30 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, -0.4)
 [node name="ChipTray" type="Marker3D" parent="Anchors" unique_id=327466050]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, 0)
 
-[node name="Tray" parent="Anchors/ChipTray" unique_id=726465761 instance=ExtResource("10_tqlje")]
+[node name="Tray" parent="Anchors/ChipTray" unique_id=726465761 instance=ExtResource("10_770uh")]
 
 [node name="Corner_FL" type="Marker3D" parent="Anchors" unique_id=991117630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.11, 0.11, -0.61)
 
-[node name="Cap" parent="Anchors/Corner_FL" unique_id=1713766155 instance=ExtResource("11_khgkt")]
+[node name="Cap" parent="Anchors/Corner_FL" unique_id=1713766155 instance=ExtResource("11_hak3m")]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, -0.02828427, 0, -0.02828427)
 
 [node name="Corner_FR" type="Marker3D" parent="Anchors" unique_id=948355802]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, -0.61)
 
-[node name="Cap" parent="Anchors/Corner_FR" unique_id=193591043 instance=ExtResource("11_khgkt")]
+[node name="Cap" parent="Anchors/Corner_FR" unique_id=1461482546 instance=ExtResource("11_hak3m")]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 0.02828427, 0, -0.02828427)
 
 [node name="Corner_NL" type="Marker3D" parent="Anchors" unique_id=1001027978]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.11, 0.11, 0.61)
 
-[node name="Cap" parent="Anchors/Corner_NL" unique_id=1420687767 instance=ExtResource("12_2pqwl")]
+[node name="Cap" parent="Anchors/Corner_NL" unique_id=1420687767 instance=ExtResource("12_sabne")]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
 
 [node name="Corner_NR" type="Marker3D" parent="Anchors" unique_id=766397107]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, 0.61)
 
-[node name="Cap" parent="Anchors/Corner_NR" unique_id=1421829445 instance=ExtResource("12_2pqwl")]
+[node name="Cap" parent="Anchors/Corner_NR" unique_id=1421829445 instance=ExtResource("12_sabne")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0, 0, 0)
 
 [node name="RailProp_FL" type="Marker3D" parent="Anchors" unique_id=1096058589]
@@ -217,66 +468,142 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.11, -0.61)
 
 [node name="Ambient" type="Node3D" parent="." unique_id=240646792]
 
-[node name="Hearth" type="Node3D" parent="." unique_id=1785980178]
-script = ExtResource("13_p0uud")
+[node name="Hearth" type="Node3D" parent="." unique_id=1969074788]
+script = ExtResource("13_guxvj")
 
-[node name="Candles" type="Node3D" parent="Hearth" unique_id=310904598]
+[node name="Candles" type="Node3D" parent="Hearth" unique_id=1944613502]
 
-[node name="RailLeft" type="Node3D" parent="Hearth/Candles" unique_id=2141484820]
+[node name="RailLeft" type="Node3D" parent="Hearth/Candles" unique_id=513313213]
 
-[node name="Candle1" parent="Hearth/Candles/RailLeft" unique_id=1124958156 instance=ExtResource("14_ocvmg")]
+[node name="Candle1" parent="Hearth/Candles/RailLeft" unique_id=1124958156 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.42)
 glow_tilt = 16.0
 
-[node name="Candle3" parent="Hearth/Candles/RailLeft" unique_id=1985693157 instance=ExtResource("14_ocvmg")]
+[node name="Candle3" parent="Hearth/Candles/RailLeft" unique_id=1863167539 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.24)
 height = 0.92
 spin = 1.4
 glow_tilt = 16.0
 
-[node name="Candle5" parent="Hearth/Candles/RailLeft" unique_id=1323913811 instance=ExtResource("14_ocvmg")]
+[node name="Candle5" parent="Hearth/Candles/RailLeft" unique_id=791423618 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, 0.24)
 height = 1.1
 spin = 2.8
 glow_tilt = 16.0
 
-[node name="Candle7" parent="Hearth/Candles/RailLeft" unique_id=69377503 instance=ExtResource("14_ocvmg")]
+[node name="Candle7" parent="Hearth/Candles/RailLeft" unique_id=991367703 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, 0.42)
 height = 1.04
 spin = 4.199999999999999
 glow_tilt = 16.0
 
-[node name="RailRight" type="Node3D" parent="Hearth/Candles" unique_id=1794895765]
+[node name="RailRight" type="Node3D" parent="Hearth/Candles" unique_id=1410948371]
 
-[node name="Candle2" parent="Hearth/Candles/RailRight" unique_id=1330186689 instance=ExtResource("14_ocvmg")]
+[node name="Candle2" parent="Hearth/Candles/RailRight" unique_id=2090406758 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, -0.42)
 height = 1.12
 spin = 0.7
 glow_tilt = -16.0
 
-[node name="Candle4" parent="Hearth/Candles/RailRight" unique_id=1316589530 instance=ExtResource("14_ocvmg")]
+[node name="Candle4" parent="Hearth/Candles/RailRight" unique_id=426200294 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, -0.24)
 height = 1.06
 spin = 2.0999999999999996
 glow_tilt = -16.0
 
-[node name="Candle6" parent="Hearth/Candles/RailRight" unique_id=1218117486 instance=ExtResource("14_ocvmg")]
+[node name="Candle6" parent="Hearth/Candles/RailRight" unique_id=179955300 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, 0.24)
 height = 0.95
 spin = 3.5
 glow_tilt = -16.0
 
-[node name="Candle8" parent="Hearth/Candles/RailRight" unique_id=2118887428 instance=ExtResource("14_ocvmg")]
+[node name="Candle8" parent="Hearth/Candles/RailRight" unique_id=1938176846 instance=ExtResource("14_dv5ac")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, 0.42)
 height = 0.9
 spin = 4.8999999999999995
 glow_tilt = -16.0
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="Hearth" unique_id=330400567]
-libraries/ = SubResource("AnimationLibrary_qph6c")
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Hearth" unique_id=936890154]
+libraries/ = SubResource("AnimationLibrary_ghpf2")
 
-[node name="SeamPlayer" type="AnimationPlayer" parent="Hearth" unique_id=881023399]
-libraries/ = SubResource("AnimationLibrary_csla1")
+[node name="SeamPlayer" type="AnimationPlayer" parent="Hearth" unique_id=982180965]
+libraries/ = SubResource("AnimationLibrary_n02uq")
+
+[node name="Dressing" type="Node3D" parent="Hearth" unique_id=621103828]
+script = ExtResource("15_qyv6v")
+felt_plain = ExtResource("16_w7l6y")
+felt_worn = ExtResource("2_1j5du")
+leather_plain = ExtResource("17_ivto5")
+leather_carved = ExtResource("4_kh0df")
+
+[node name="Corners" parent="Hearth/Dressing" unique_id=1207354475 instance=ExtResource("18_rr0um")]
+
+[node name="Trinkets" parent="Hearth/Dressing" unique_id=1384828172 instance=ExtResource("19_i8gak")]
+
+[node name="Under" parent="Hearth/Dressing" unique_id=1754836800 instance=ExtResource("20_dku8f")]
+
+[node name="Studs" type="MeshInstance3D" parent="Hearth/Dressing" unique_id=201603175]
+mesh = ExtResource("21_vi0yi")
+
+[node name="Bell" type="Node3D" parent="Hearth/Dressing" unique_id=1010216710]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.205, 0.0987, -0.6529)
+
+[node name="Model" parent="Hearth/Dressing/Bell" unique_id=243477639 instance=ExtResource("22_xjl25")]
+
+[node name="Chain" type="Node3D" parent="Hearth/Dressing" unique_id=1570326572]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.203, 0.028, 0.04)
+
+[node name="Model" parent="Hearth/Dressing/Chain" unique_id=1013269217 instance=ExtResource("23_tldx5")]
+
+[node name="Tail" type="Node3D" parent="Hearth/Dressing" unique_id=1450599232]
+transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, -1.26, -0.16, -0.7)
+visible = false
+
+[node name="Root" type="Node3D" parent="Hearth/Dressing/Tail" unique_id=2088855019]
+
+[node name="Model" parent="Hearth/Dressing/Tail/Root" unique_id=1834227438 instance=ExtResource("24_hq40g")]
+
+[node name="Joint" type="Node3D" parent="Hearth/Dressing/Tail/Root" unique_id=1890592413]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+
+[node name="Tip" type="Node3D" parent="Hearth/Dressing/Tail/Root/Joint" unique_id=1868813967]
+
+[node name="Model" parent="Hearth/Dressing/Tail/Root/Joint/Tip" unique_id=1925249549 instance=ExtResource("25_ikleb")]
+
+[node name="Ambient" type="Node3D" parent="Hearth/Dressing" unique_id=2039838372]
+
+[node name="EmbersBrazier" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=2142224831]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -0.77)
+material_override = ExtResource("26_edg36")
+cast_shadow = 0
+mesh = SubResource("ArrayMesh_1kg6p")
+
+[node name="EmbersCauldron" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=2012205554]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.216, 0.215, 0)
+material_override = ExtResource("27_7dcdg")
+cast_shadow = 0
+mesh = SubResource("ArrayMesh_8cqwl")
+
+[node name="LampDust" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=616763772]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, -0.33)
+material_override = ExtResource("28_r3t4d")
+cast_shadow = 0
+mesh = SubResource("ArrayMesh_p2dbk")
+
+[node name="Backdrop" type="MeshInstance3D" parent="Hearth/Dressing" unique_id=1721856469]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, -2.3)
+material_override = ExtResource("29_fous0")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_whr6m")
+
+[node name="TailPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=212446294]
+libraries/ = SubResource("AnimationLibrary_j8b8k")
+
+[node name="ChainPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=768979591]
+libraries/ = SubResource("AnimationLibrary_o8wpq")
+
+[node name="BellPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=564065325]
+libraries/ = SubResource("AnimationLibrary_md0ot")
 
 [editable path="Visual/Floor"]
 [editable path="Visual/Rails"]
