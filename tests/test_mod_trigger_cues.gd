@@ -175,6 +175,14 @@ func _test_cues() -> void:
 		var noisy := _noisy_frames(s)
 		_check(noisy <= 2, "no fire: %s has %d hiss/crackle frames (<= 2)" % [row, noisy])
 		feats[row] = [_rms_hz(s), _envelope(s, hit_s)]
+	for fl: StringName in ModTriggerSynth.FLAVORS:
+		var wav := ModTriggerSynth.make(StringName("flavor_" + fl))
+		var s := _samples(wav)
+		_check(load("res://audio/sfx/trigger_flavor_%s.wav" % fl) != null and wav.data == ModTriggerSynth.make(StringName("flavor_" + fl)).data, "flavour: %s is baked and stable" % fl)
+		_check(s.size() / SR <= 0.45 and _noisy_frames(s) <= 2, "flavour: %s is short (%.2f s) with no hiss" % [fl, s.size() / SR])
+	for id: StringName in ModTriggerSynth.FLAVOR_OF:
+		var fl: StringName = ModTriggerSynth.FLAVOR_OF[id]
+		_check(ModTriggerSynth.FLAVORS.has(fl) and ModTriggerSynth.FLAVORS[fl][0] == ModTriggerSynth.row_for(id), "flavour: %s -> %s layers on its own row" % [id, fl])
 	var bust := _noisy_frames(_samples(BonfireSynth.make(&"bust")))
 	_check(bust >= 8, "no fire: the detector does catch bust's fizzle (%d frames)" % bust)
 	# Alike = within 0.25 octave of brightness AND within 0.15 of the hit-aligned envelope (scored together).
@@ -193,6 +201,8 @@ func _test_mapping() -> void:
 	var cases := {
 		&"hellfire": &"hellfire_face", &"mirror": &"mirror_copy", &"gilded_payout": &"gilded_payout",
 		&"blank": &"no_score", &"heavy": &"", &"extra": &"", &"not_a_mod": &"generic",
+		&"ferrymans_coin": &"coin_heads_copy", &"coin_tails": &"coin_tails_copy", &"coin_edge": &"", &"coin_alone_tails": &"",
+		&"verdict_20": &"hellfire_face", &"verdict_1": &"blood_face", &"midnight": &"hellfire_face", &"powder_keg": &"twin_face",
 	}
 	for id: StringName in cases:
 		_check(ModTriggerSynth.row_for(id) == cases[id], "map: %s -> %s" % [id, cases[id]])
@@ -205,4 +215,5 @@ func _test_mapping() -> void:
 	_check(ModTriggerSynth.volume_db(2, 1.0) == 0.0 and ModTriggerSynth.volume_db(0, 0.0) == -13.0 and ModTriggerSynth.volume_db(1, 5.0) == -2.0, "volume: tier dB, intensity 0..1 -> -9..0 dB, clamped")
 	var files := ModTriggerSynth.bake_all()
 	var layers := 0
+	layers = ModTriggerSynth.FLAVORS.size()
 	_check(files.size() == ModTriggerSynth.ROWS.size() + layers and files.has("trigger_generic.wav") and files.has("trigger_cluster.wav"), "bake: one file per row (+ flavour layers)")

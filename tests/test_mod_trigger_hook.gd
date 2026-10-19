@@ -93,6 +93,18 @@ func _test_hook() -> void:
 	_check(is_equal_approx(sfx.play_mod_trigger(&"bellows"), 0.25) and sfx.play_mod_trigger(&"bellows") < 0.0, "bellows: a 2nd Bellows at the same Hot Hand plays nothing")
 	sfx._process(1.0)
 	_check(sfx.play_mod_trigger(&"bellows") > 0.0, "bellows: the next Hot Hand plays again")
+	# Pre-carved batch-3 faces: the face-mod row + its flavour layer, on the same hit.
+	sfx.trigger_speed_mode = 0
+	sfx._process(1.0)
+	heard.clear()
+	_check(is_equal_approx(sfx.play_mod_trigger(&"verdict_20"), 0.25), "flavour: Verdict 20 hits with Hellfire (0.25 s)")
+	sfx._process(0.26)
+	_check(heard == [&"trigger_hellfire_face", &"trigger_flavor_verdict"], "flavour: Hellfire cue + the gavel layer (%s)" % [heard])
+	_check(is_equal_approx(_last(sfx).volume_db, -2.0 + ModTriggerSynth.FLAVOR_DB), "flavour: the layer sits 6 dB under the cue")
+	heard.clear()
+	sfx.play_mod_trigger(&"blood_face", -1, 1.0, -1.0, &"verdict")
+	sfx._process(0.3)
+	_check(heard == [&"trigger_blood_face"], "flavour: Verdict 1 (Blood + verdict) has no layer of its own")
 	for p in sfx._trigger_players + sfx._players:
 		p.stop()
 	await create_timer(0.1).timeout
