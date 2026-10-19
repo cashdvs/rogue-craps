@@ -56,8 +56,9 @@ func _test_m3_boss_resit() -> void:
 		run.quick_resolve(false)
 		_check(run.screen == S.RUN_OVER and run.end_reason == &"boss" and run.progress.soul > 0,
 			"M3 [%d]: second miss ends the run on the boss, Soul left (%d/%d)" % [seed_v, run.progress.soul, run.progress.max_soul])
-		_check(RunSummary.title(run) == "The Dealer Wins" and RunSummary.reason_line(run).contains("no re-sits left"),
-			"M3 [%d]: the end screen says the boss won, not 'Soul Burns Out'" % seed_v)
+		_check(RunSummary.title(run) == "The House Wins"
+			and RunSummary.reason_line(run) == "You lost to %s twice, so your run ends on %s." % [run.boss_name(), run.floor_data().display_name],
+			"M3 [%d]: the end screen says the boss won ('The House Wins', strings_v1)" % seed_v)
 		var lines := RunSummary.lines(run)
 		_check(lines.size() == 5 and lines[0].begins_with("Floor reached: 1 of 3") and lines[1] == "Tables cleared: 1"
 			and lines[2] == "Embers earned: %d" % run.progress.embers_earned and lines[3].begins_with("Final bag: Bone")
@@ -69,7 +70,10 @@ func _test_m3_soul_and_won() -> void:
 	_enter(run, NT.TABLE)
 	run.progress.soul = 2
 	run.quick_resolve(false)
-	_check(run.screen == S.RUN_OVER and run.end_reason == &"soul" and RunSummary.title(run) == "Your Soul Burns Out", "M3: Soul at 0 -> 'Your Soul Burns Out'")
+	_check(run.screen == S.RUN_OVER and run.end_reason == &"soul" and RunSummary.title(run) == "Out of Soul"
+		and RunSummary.reason_line(run) == "Your run ends on %s." % run.floor_data().display_name, "M3: Soul at 0 -> 'Out of Soul' / 'Your run ends on {floor}.'")
+	for t: String in RunSummary.TITLES.values():
+		_check(not t in ["The Contract Is Torn", "The Dealer Wins", "Your Soul Burns Out"], "end: old placeholder title '%s' is gone" % t)
 	var e0 := MapRun.new(_data, 1)
 	e0.progress.embers = 0
 	e0.progress.change_embers(10)

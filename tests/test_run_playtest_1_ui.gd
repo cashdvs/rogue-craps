@@ -158,7 +158,7 @@ func _test_end_screen(scene: RunScreen) -> void:
 	scene.run.quick_resolve(false)
 	scene.run.quick_resolve(false)
 	var t := _texts(scene._panel_box)
-	_check(scene.run.screen == S.RUN_OVER and t.has("The Dealer Wins") and not t.has("Your Soul Burns Out"), "end: boss re-sit lost -> 'The Dealer Wins'")
+	_check(scene.run.screen == S.RUN_OVER and t.has("The House Wins") and not t.has("Out of Soul"), "end: boss re-sit lost -> 'The House Wins'")
 	_check(t.has("Seed: 31337") and t.any(func(s: String) -> bool: return s.begins_with("Tables cleared:")), "end: summary with tables cleared and the seed")
 	var names: Array = []
 	for b in _buttons(scene._panel_box):
