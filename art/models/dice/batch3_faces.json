@@ -640,9 +640,9 @@
  },
  "tithe_d10": {
   "aabb": [
-   0.1013,
-   0.0988,
-   0.0971
+   0.0991,
+   0.0966,
+   0.095
   ],
   "dirs": [
    [
@@ -778,20 +778,20 @@
   ],
   "file": "tithe_d10.glb",
   "half_extent_mobile": [
-   0.05086,
-   0.04945,
-   0.04837
+   0.04976,
+   0.04838,
+   0.04732
   ],
   "half_extent_pc": [
-   0.05066,
-   0.04938,
-   0.04856
+   0.04957,
+   0.04832,
+   0.04752
   ],
   "mobile": "tithe_d10_mobile.glb",
   "names": {},
   "read": "face",
-  "rest_volume_cuberoot": 0.0807,
-  "scale": 1.0,
+  "rest_volume_cuberoot": 0.0789,
+  "scale": 0.9784,
   "slots": [
    "tithe_body",
    "tithe_slot"
