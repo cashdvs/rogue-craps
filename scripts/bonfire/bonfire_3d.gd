@@ -170,6 +170,7 @@ func new_run(seed_value: int = -1) -> void:
 	if setup.max_soul > 0:
 		start = mini(start, setup.max_soul)
 	run = BonfireRun.new(bonfire_tuning, setup.goal, start, setup.dice.size())
+	run.seal_steps = setup.seal_steps
 	if setup.max_soul > 0:
 		run.max_soul = setup.max_soul
 	run.owned_dice_count = setup.owned_dice_count if setup.owned_dice_count >= 0 else setup.dice.size()

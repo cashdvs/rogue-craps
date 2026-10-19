@@ -10,8 +10,8 @@ class_name BonfireScoring
 extends RefCounted
 
 
-## Highest face value the table handles (a d20).
-const MAX_FACE: int = 20
+## Highest face value the table handles (a d20; NonStdDice.MAX_FACE).
+const MAX_FACE: int = NonStdDice.MAX_FACE
 
 
 ## How many dice show each value: c[v] for v in 0..MAX_FACE (non-d6 dice,
@@ -185,8 +185,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 		var eff := -1 if no_mods and not (m != null and m.is_curse) else _effect(d)
 		if eff != FaceModData.Effect.WILD and eff != FaceModData.Effect.STEP and cold.has(v):
 			return bad
-		# A face with no number (value 0 or less, e.g. a data Blank) never scores.
-		if v < 1 and eff != FaceModData.Effect.WILD:
+		# A face of value 0 or less (a Blank, the coin's Tails) never scores (§2).
+		if not NonStdDice.scores(v) and eff != FaceModData.Effect.WILD:
 			return bad
 		match eff:
 			FaceModData.Effect.BLANK:
@@ -234,8 +234,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 	# Wild / Step reach (§5): values 1-6, higher only up to the highest face
 	# a die in the tray can show (ctx wild_max, e.g. 8 with a Lantern d8).
 	var top := maxi(int(ctx.get("wild_max", 6)), 6)
-	var step_opts := _step_options(steps, cold, top)
-	for assign in _wild_assignments(wilds, cold, top):
+	var step_opts := NonStdDice.step_options(steps, cold, top)
+	for assign in NonStdDice.wild_assignments(wilds, cold, top):
 		for st: Array in step_opts:
 			var all: Array[int] = vals.duplicate()
 			all.append_array(assign)
@@ -252,8 +252,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 			var stair := stairs * all.size() if c.kind == BonfireCombo.Kind.RUN else 0
 			var a := adds
 			var f := factor
-			var seal_base := 0
-			var seal_up := false
+			# Caltrop / Knucklebone add to these (NonStdDice.apply_special).
+			var acc := {"adds": 0, "seal_base": 0, "seal_up": false}
 			for sp in specials:
 				match sp:
 					&"twin_flame":
@@ -264,17 +264,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 							f *= t.coven_factor
 					&"cracked":
 						f *= t.cracked_factor
-					&"caltrop":
-						if c.kind == BonfireCombo.Kind.RUN:
-							a += t.caltrop_run_mult
-					&"knucklebone":
-						# One level up per pot, however many Knucklebones are in it.
-						if c.kind == BonfireCombo.Kind.N_OF_A_KIND and c.n >= 2 and not seal_up:
-							var steps_by_combo: Dictionary = ctx.get("seal_steps", t.knucklebone_seal_steps)
-							var step: Vector2i = steps_by_combo.get(c.id, Vector2i.ZERO)
-							seal_base += step.x
-							a += step.y
-							seal_up = true
+					&"caltrop", &"knucklebone":
+						NonStdDice.apply_special(sp, c, t, ctx, acc)
 					&"blood_pact":
 						var missing := maxi(int(ctx.get("max_soul", 0)) - int(ctx.get("soul", 0)), 0)
 						a += missing / maxi(t.blood_pact_soul_step, 1)
@@ -282,6 +273,9 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 						var n := int(ctx.get("throw_size", 0))
 						if bool(ctx.get("is_rethrow", false)) and n >= 1 and n <= t.last_breath_max_dice:
 							f *= t.last_breath_factor
+			a += int(acc["adds"])
+			var seal_base: int = acc["seal_base"]
+			var seal_up: bool = acc["seal_up"]
 			var mult := c.mult + mult_bonus + a
 			var pts := floori((c.base + seal_base + stair + sum) * mult * f + 0.000001)
 			var rank := t.combos.find(c)
@@ -302,43 +296,6 @@ static func _close_gap(vals: Array, gap_value: int) -> Array:
 	for v in vals:
 		out.append(int(v) - 1 if gap_value > 0 and int(v) > gap_value else int(v))
 	return out
-
-
-## Every choice of value for each Step face: its value or +-1 (1..top, not
-## cold; top = 6 unless a wider die is in the tray).
-static func _step_options(steps: Array[int], cold: Array, top: int = 6) -> Array:
-	var out: Array = [[]]
-	for v in steps:
-		var next: Array = []
-		for prefix: Array in out:
-			for o in [v, v - 1, v + 1]:
-				if o >= 1 and o <= maxi(top, v) and not cold.has(o):
-					var p := prefix.duplicate()
-					p.append(o)
-					next.append(p)
-		out = next
-	return out
-
-
-## Every multiset of `n` values 1..top not in `cold` (order doesn't matter).
-## top is the Wild cap (§5): 6, or the highest face a die in the tray shows.
-static func _wild_assignments(n: int, cold: Array = [], top: int = 6) -> Array:
-	var out: Array = []
-	var cur: Array[int] = []
-	_assign_rec(n, 1, cur, out, cold, clampi(top, 1, MAX_FACE))
-	return out
-
-
-static func _assign_rec(n: int, from: int, cur: Array[int], out: Array, cold: Array, top: int = 6) -> void:
-	if cur.size() == n:
-		out.append(cur.duplicate())
-		return
-	for v in range(from, top + 1):
-		if cold.has(v):
-			continue
-		cur.append(v)
-		_assign_rec(n, v, cur, out, cold, top)
-		cur.pop_back()
 
 
 ## "(base + faces) x mult = N" for the HUD ("x1.5" shown when a mod factor applies).
@@ -418,7 +375,7 @@ static func plain_values(dice: Array) -> Array[int]:
 				out.append(int(d["value"]))
 				out.append(int(d["value"]))
 			_:
-				if int(d["value"]) >= 1:
+				if NonStdDice.scores(int(d["value"])):
 					out.append(int(d["value"]))
 	return out
 

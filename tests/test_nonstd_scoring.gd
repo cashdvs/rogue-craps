@@ -82,6 +82,9 @@ func _faces_past_six() -> void:
 	check(BonfireScoring.lit_indices([d(0), d(2), d(4)], t) == ([] as Array[int]), "a 0 face never lights")
 	check(BonfireScoring.lit_indices([d(0), d(7), d(3)], t) == ([1] as Array[int]), "a 7 lights next to a 0")
 	check(BonfireScoring.plain_values([d(0), d(9)]) == ([9] as Array[int]), "plain_values skips a 0 face")
+	# PM ruling 4: a face of value 0 OR LESS never scores.
+	check(not sc([d(-1)])["valid"] and not sc([d(-2), d(-2)])["valid"] and not sc([d(0), d(0), d(0)])["valid"], "a face below 1 never scores (alone, as a pair, as trips)")
+	check(not sc([d(0), d(5)])["valid"] and BonfireScoring.plain_values([d(-3), d(2)]) == ([2] as Array[int]), "a 0 / negative face can't ride along in a pot or a bounty")
 
 
 func _free_rethrow() -> void:
@@ -142,7 +145,8 @@ func _caltrop_knucklebone() -> void:
 	check(sc([d(1, null, &"caltrop")])["mult"] == 1, "Caltrop: no bonus on a single")
 	var pair := sc([d(3), d(3)])
 	var kpair := sc([d(3, null, &"knucklebone"), d(3)])
-	var step: Vector2i = t.knucklebone_seal_steps[&"pair"]
+	var rd := load("res://resources/map/bonfire_run.tres") as RunData
+	var step := Vector2i(rd.seal_base_step[&"pair"], rd.seal_mult_step[&"pair"])
 	check(kpair["seal_up"] and kpair["base"] == pair["base"] + step.x and kpair["mult"] == pair["mult"] + step.y, "Knucklebone: a Pair scores one Seal level higher (+5 base, +1 mult)")
 	check(kpair["points"] == (pair["base"] + 5 + 6) * (pair["mult"] + 1), "Knucklebone: Pair 3-3 points")
 	var two := sc([d(3, null, &"knucklebone"), d(3, null, &"knucklebone")])
@@ -153,6 +157,17 @@ func _caltrop_knucklebone() -> void:
 	check(not sc([d(1, null, &"knucklebone")])["seal_up"], "Knucklebone: no level on a single")
 	var custom := sc([d(3, null, &"knucklebone"), d(3)], {"seal_steps": {&"pair": Vector2i(1, 2)}})
 	check(custom["base"] == pair["base"] + 1 and custom["mult"] == pair["mult"] + 2, "Knucklebone: the run can pass its own Seal steps")
+	# PM ruling 3: Pair / Trips / Four / Five of a kind only; never Two Pair or Full House.
+	var tp := sc([d(3, null, &"knucklebone"), d(3), d(5), d(5)])
+	check(tp["combo"] == &"two_pair" and not tp["seal_up"], "Knucklebone: no level on Two Pair")
+	var fh := sc([d(3, null, &"knucklebone"), d(3), d(5), d(5), d(5)])
+	check(fh["combo"] == &"full_house" and not fh["seal_up"], "Knucklebone: no level on a Full House")
+	# The steps are the run's RunData Seal steps, passed through rule_ctx.
+	check(NonStdDice.seal_steps(rd) == NonStdDice.default_seal_steps() and NonStdDice.default_seal_steps()[&"quads"] == Vector2i(rd.seal_base_step[&"quads"], rd.seal_mult_step[&"quads"]),
+		"Knucklebone: steps = RunData seal_base_step / seal_mult_step")
+	var kr := run_with([], [], 2)
+	kr.seal_steps = {&"pair": Vector2i(7, 3)}
+	check(kr.rule_ctx()["seal_steps"] == {&"pair": Vector2i(7, 3)}, "Knucklebone: rule_ctx passes the run's seal_steps")
 
 
 func _ferryman() -> void:
