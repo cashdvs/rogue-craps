@@ -1,7 +1,8 @@
 ## Headless test: the Blender-built special dice (art/models/dice/, build_special_dice.py) match
 ## the face convention the 3D table reads (DieVisual.FACE_AXES + DieVisual.PIPS), are centred and
 ## die-sized, stay on budget, use the toon materials + ink hull, and keep their silhouettes
-## distinct (chips, spikes, beads, chamfer; batch 2: waist, fins, steps, seals, coves, collar). See
+## distinct (chips, spikes, beads, chamfer; batch 2: waist, fins, steps, seals, coves, collars), and keep
+## the reserved UI/role colours off batch-2 bodies (palette: art/concept/special_dice/batch2_palette.md). See
 ## art/models/dice/SPECIAL_DICE.md.
 ##
 ## Run:
@@ -20,13 +21,16 @@ const DICE: Dictionary = {
 	"hellfire_d6": [["hellfire_body", "hellfire_pip", "hellfire_seam"], 0.088, 0.096, "spikes"],
 	"gilded_d6": [["gilded_body", "gilded_pip", "gilded_panel"], 0.084, 0.09, "beads"],
 	# batch 2
-	"twin_flame_d6": [["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft"], 0.08, 0.08, "waist"],
+	"twin_flame_d6": [["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft", "twin_flame_line"], 0.08, 0.08, "waist"],
 	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin"], 0.088, 0.096, "fins"],
 	"bellows_d6": [["bellows_body", "bellows_pip", "bellows_pleat"], 0.08, 0.08, "steps"],
-	"blood_pact_d6": [["blood_pact_body", "blood_pact_pip", "blood_pact_seal"], 0.088, 0.098, "seals"],
+	"blood_pact_d6": [["blood_pact_body", "blood_pact_pip", "blood_pact_seal", "blood_pact_stamp"], 0.088, 0.098, "seals"],
 	"coven_d6": [["coven_body", "coven_pip", "coven_cove"], 0.08, 0.08, "coves"],
-	"last_breath_d6": [["last_breath_body", "last_breath_pip", "last_breath_collar"], 0.08, 0.092, "collar"],
+	"last_breath_d6": [["last_breath_body", "last_breath_pip", "last_breath_collar"], 0.08, 0.092, "collars"],
 }
+const BATCH2: Array[String] = ["twin_flame_d6", "wanderer_d6", "bellows_d6", "blood_pact_d6", "coven_d6", "last_breath_d6"]
+## Reserved for UI / roles, never on a body: Soul cyan, Danger, Satanic violet glow, felt green.
+const RESERVED: Array[Color] = [Color("#4FE6E0"), Color("#FF2E3E"), Color("#9B3DFF"), Color("#123A36"), Color("#0B2724")]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -59,7 +63,7 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 	_check(mi.transform.is_equal_approx(Transform3D.IDENTITY), "%s: mesh at the origin, scale 1" % die)
 	var mesh := mi.mesh
 	var aabb := mesh.get_aabb()
-	_check(aabb.get_center().length() < 0.0015 or (spec[3] == "collar" and absf(aabb.get_center().x) < 0.0005 and absf(aabb.get_center().z) < 0.0005), "%s: centred on the origin (%s)" % [die, aabb.get_center()])
+	_check(aabb.get_center().length() < 0.0015, "%s: centred on the origin (%s)" % [die, aabb.get_center()])
 	var lo := float(spec[1])
 	var hi := float(spec[2])
 	var sized := true
@@ -86,6 +90,20 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 			accent_verts = arrays[Mesh.ARRAY_VERTEX]
 	_check(names == Array(spec[0] as Array, TYPE_STRING, "", null), "%s: material slots %s" % [die, names])
 	_check(toon, "%s: every slot uses a toon shader" % die)
+	if die in BATCH2:
+		var lit := false
+		for s in mesh.get_surface_count():
+			var m := mesh.surface_get_material(s) as ShaderMaterial
+			var e: Variant = m.get_shader_parameter("emission_energy") if m != null else null
+			lit = lit or (e != null and float(e) > 0.0)
+		_check(not lit, "%s: no slot is emissive (fire stays off the dice; Coven has no glow)" % die)
+		var b0 := mesh.surface_get_material(0) as ShaderMaterial
+		var alb: Variant = b0.get_shader_parameter("albedo") if b0 != null else null
+		var far := true
+		if alb != null:
+			for r: Color in RESERVED:
+				far = far and _rgb_dist(alb as Color, r) > 0.12
+		_check(alb != null and far, "%s: body albedo %s stays clear of Soul cyan / Danger / Satanic violet / felt" % [die, alb])
 	var body := mesh.surface_get_material(0) as ShaderMaterial
 	var ink := body.next_pass as ShaderMaterial if body != null else null
 	_check(ink != null and ink.shader.resource_path == OUTLINE_SHADER, "%s: body carries the ink hull" % die)
@@ -221,16 +239,24 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 					concave = true  # a cove point sits inside the corner square, not on a convex bevel
 					break
 			return concave
-		"collar":
-			# A hoop stands proud of the 4 side faces near the +Y end only.
-			var ring := 0
+		"collars":
+			# Two hoops stand proud of the 4 side faces, one near each Y end, and nothing else does.
+			var top := 0
+			var bottom := 0
 			for v in verts:
 				if maxf(absf(v.x), absf(v.z)) > h + 0.002:
-					if v.y < 0.025 or v.y > 0.036:
+					if absf(v.y) < 0.025 or absf(v.y) > 0.036:
 						return false
-					ring += 1
-			return ring >= 16 and accent.size() > 0
+					if v.y > 0.0:
+						top += 1
+					else:
+						bottom += 1
+			return top >= 16 and bottom >= 16 and accent.size() > 0
 	return false
+
+
+func _rgb_dist(a: Color, b: Color) -> float:
+	return Vector3(a.r - b.r, a.g - b.g, a.b - b.b).length()
 
 
 func _nearest(verts: PackedVector3Array, p: Vector3) -> float:

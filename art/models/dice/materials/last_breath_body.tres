@@ -7,8 +7,9 @@
 render_priority = 0
 next_pass = ExtResource("2")
 shader = ExtResource("1")
-shader_parameter/albedo = Color(0.337255, 0.360784, 0.384314, 1)
-shader_parameter/shadow_color = Color(0.101961, 0.109804, 0.125490, 1)
+shader_parameter/albedo = Color(0.482353, 0.678431, 1.000000, 1)
+shader_parameter/shadow_color = Color(0.211765, 0.227451, 0.250980, 1)
 shader_parameter/mid_tint = 0.75
 shader_parameter/wrap = 0.35
 shader_parameter/roughness = 0.9
+shader_parameter/light_gain = 0.296

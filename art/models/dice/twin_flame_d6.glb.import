@@ -56,6 +56,11 @@ _subresources={
 "use_external/fallback_path": "res://art/models/dice/materials/twin_flame_half.tres",
 "use_external/path": "res://art/models/dice/materials/twin_flame_half.tres"
 },
+"twin_flame_line": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/dice/materials/twin_flame_line.tres",
+"use_external/path": "res://art/models/dice/materials/twin_flame_line.tres"
+},
 "twin_flame_pip": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/dice/materials/twin_flame_pip.tres",

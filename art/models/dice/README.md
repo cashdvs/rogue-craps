@@ -27,6 +27,11 @@ the layout is ready for edge wear, grime or a pip atlas.
 ## Special dice
 Ten special dice live next to this one (batch 1: Mirror, Cracked, Hellfire, Gilded; batch 2: Twin Flame, Wanderer,
 Bellows, Blood Pact, Coven, Last Breath). See `SPECIAL_DICE.md`. Source: `src/build_special_dice.py` and `src/write_batch2.py`.
+Batch 2 follows the AD palette (`/workspace/dice/art/concept/special_dice/batch2_palette.md`): Twin Flame bone /
+charcoal with an ember waist line, Wanderer steel blue + brass fins, Bellows tan leather, Blood Pact deep crimson with
+black wax seals (gold stamp), Coven matte dusty plum (no emission), Last Breath pale ash with iron collars on both
+ends. Body albedos are lamp-compensated in `write_batch2.py` (`lamp_comp()`), so the `.tres` hexes differ from the
+swatches on purpose.
 
 ## Special dice (history)
 Special dice will get their own silhouettes and materials rather than reusing this cube; an astragalus
