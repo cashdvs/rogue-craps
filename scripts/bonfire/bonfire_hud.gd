@@ -135,13 +135,21 @@ func _init() -> void:
 var display_hold: Dictionary = {}
 
 
-## The run's Embers before this table (TableSetup.run_embers), so EMBERS
-## shows the player's balance; 0 for the sandbox or without the field.
-func _run_embers() -> int:
+## The Bonfire3D above this HUD, found once in _ready (null standalone).
+var _table: Bonfire3D
+
+
+func _ready() -> void:
 	var n: Node = get_parent()
 	while n != null and not (n is Bonfire3D):
 		n = n.get_parent()
-	var st: TableSetup = (n as Bonfire3D).setup if n != null else null
+	_table = n as Bonfire3D
+
+
+## The run's Embers before this table (TableSetup.run_embers), so EMBERS
+## shows the player's balance; 0 for the sandbox or without the field.
+func _run_embers() -> int:
+	var st: TableSetup = _table.setup if _table != null else null
 	return int(st.get("run_embers")) if st != null and "run_embers" in st else 0
 
 
