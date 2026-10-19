@@ -17,6 +17,7 @@ var _events: Dictionary = {}
 
 func _initialize() -> void:
 	_run = load("res://resources/map/bonfire_run.tres") as RunData
+	_run.max_dice = maxi(_run.max_dice, 7)  # room for _rich()'s sixth die plus one given die (bag cap is 6 in the economy pass)
 	for id in FLOORS:
 		_events[id] = load("res://resources/events/%s.tres" % id) as EventData
 	_test_load()
