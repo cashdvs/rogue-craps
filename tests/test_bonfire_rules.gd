@@ -74,7 +74,17 @@ func _initialize() -> void:
 func _format() -> void:
 	check("rules" in TableSetup.new() and TableSetup.new().rules.is_empty(), "TableSetup.rules exists, empty by default")
 	var built := TableRules.build([rule(&"cold_sixes", {"face": 6}), FakeRuleData.new(), {"id": &"no_such_rule"}])
-	check(built.size() == 3 and built[0] is RuleColdSixes and built[0].display_name == "Cold Sixes" and built[0].description == "6s never light.", "Dictionary entry -> handler with the designer's name + line")
+	check(built.size() == 3 and built[0] is RuleColdSixes and built[0].display_name == "Cold Sixes" and built[0].description == "6s never light, but you get +1 hand.", "Dictionary entry -> handler with the designer's name + line")
+	# Issue #70: Mister Wick under his own name, in cheat red; retuned lines.
+	var wick := TableRules.make(rule(&"mister_wick"))
+	check(wick is RuleColdSixes and wick.display_name == "Mister Wick" and wick.kind == TableRule.Kind.CHEAT, "mister_wick: Cold Sixes handler, own name, a boss cheat")
+	check(wick.description == "Snuffs the sixes: 6s never light. A bust costs 2 Soul." and not wick.can_light(null, 6) and wick.can_light(null, 5), "mister_wick: his line; 6s never light")
+	check(TableRules.make(rule(&"straight_man")).description.contains("runs of 4"), "Straight Man line: runs of 4 count")
+	check(TableRules.make(rule(&"first_throw")).description.contains("first 2 throws"), "First Throw line: the first 2 throws")
+	check(TableRules.make(rule(&"madame_shuffle")).description.contains("random lit die"), "Madame Shuffle line: one random lit die")
+	for id in [&"cold_sixes", &"first_throw", &"greedy_pot", &"cold_hands"]:
+		var tw := TableRules.make(rule(id))
+		check(tw.kind == TableRule.Kind.TWIST and tw.info_line(null).ends_with("+1 hand."), "Elite twist %s: the rules panel line shows +1 hand" % id)
 	check(built[1] is RuleGreedyPot and built[1].display_name == "Greedy Pot (boss text)" and int(built[1].param("min_pot", 2)) == 3, "RunRuleData-style object accepted (its name, line, params)")
 	check(built[2] is RuleLabel, "unknown id is shown only")
 	var with_dice := TableRules.build([rule(&"pit_boss")], [&"mirror", &"cracked", &"mirror", &"coven"])
@@ -130,15 +140,62 @@ func _twists() -> void:
 
 
 func _bosses() -> void:
-	# Madame Shuffle
+	# Madame Shuffle: after the lit check, ONE random lit die is rerolled
+	# (seeded), then the lit check runs again.
+	# [6, 6, 1, 2, 4]: lit = the 6-6 pair and the 1; the 2 and 4 never are.
+	var picked := {}
+	var only_lit := true
+	var one_change := true
+	var others_kept := true
+	for seed_value in 40:
+		var r := run_with([rule(&"madame_shuffle")], [], null, 5, seed_value)
+		r.set_throw([6, 6, 1, 2, 4])
+		var ch := r.last_throw.changes
+		one_change = one_change and ch.size() == 1 and ch[0]["by"] == &"madame_shuffle"
+		if ch.size() == 1:
+			var i := int(ch[0]["index"])
+			picked[i] = true
+			only_lit = only_lit and i <= 2
+			var want: Array[int] = [6, 6, 1, 2, 4]
+			want[i] = int(ch[0]["to"])
+			others_kept = others_kept and r.last_throw.values == want
+	check(one_change, "Madame Shuffle: exactly one reroll per throw")
+	check(only_lit, "Madame Shuffle: only a lit die is rerolled (never the unlit 2 or 4)")
+	check(picked.size() == 3, "Madame Shuffle: the pick is random among the lit dice (%s)" % str(picked.keys()))
+	check(others_kept, "Madame Shuffle: other dice untouched, rerolled value used")
+	# Seed determinism: same seed + throw -> same die, same new face.
+	var ma := run_with([rule(&"madame_shuffle")], [], null, 5, 1234)
+	var mb := run_with([rule(&"madame_shuffle")], [], null, 5, 1234)
+	ma.set_throw([6, 6, 1, 2, 4])
+	mb.set_throw([6, 6, 1, 2, 4])
+	check(ma.last_throw.changes == mb.last_throw.changes and ma.throw_faces == mb.throw_faces, "Madame Shuffle: same seed, same reroll")
+	var same := true
+	for k in 5:
+		same = same and ma.set_throw([5, 1, 3, 3, 3]) == mb.set_throw([5, 1, 3, 3, 3]) and ma.last_throw.changes == mb.last_throw.changes
+	check(same, "Madame Shuffle: a seeded run stays in step throw after throw")
+	# Nothing lit: no reroll, a normal bust.
 	var r := run_with([rule(&"madame_shuffle")])
-	r.set_throw([2, 6, 3, 1, 4])
-	var ch := r.last_throw.changes
-	check(ch.size() == 1 and int(ch[0]["index"]) == 1 and int(ch[0]["from"]) == 6 and ch[0]["by"] == &"madame_shuffle", "Madame Shuffle: the highest die (the 6) is rerolled")
-	check(r.throw_faces[0] == 2 and r.throw_faces[2] == 3 and r.throw_faces[3] == 1 and r.throw_faces[4] == 4 and r.throw_faces[1] == int(ch[0]["to"]), "Madame Shuffle: others untouched, rerolled value used")
-	r = run_with([rule(&"madame_shuffle")])
-	r.set_throw([5, 2, 5, 1, 3])
-	check(int(r.last_throw.changes[0]["index"]) == 0, "Madame Shuffle: ties go to the first die")
+	var hands := r.hands_left
+	check(not r.set_throw([2, 4, 6]) and r.last_throw.changes.is_empty() and r.hands_left == hands - 1, "Madame Shuffle: nothing lit -> no reroll, a bust")
+	# [1, 2, 4] (a 3-die rethrow): only the 1 lights; her reroll re-runs the
+	# lit check: a 1/5 (single), 3 (run) or 2/4 (pair) lights, a 6 busts.
+	var saw_bust := false
+	var saw_lit := false
+	var consistent := true
+	for seed_value in 60:
+		r = run_with([rule(&"madame_shuffle")], [], null, 5, seed_value)
+		hands = r.hands_left
+		var ok := r.set_throw([1, 2, 4])
+		var to := int(r.last_throw.changes[0]["to"]) if r.last_throw.changes.size() == 1 else -1
+		consistent = consistent and int(r.last_throw.changes[0]["index"]) == 0 and ok == (to != 6) and (ok or r.hands_left == hands - 1)
+		saw_bust = saw_bust or not ok
+		saw_lit = saw_lit or ok
+	check(consistent, "Madame Shuffle: the lit check runs again on her reroll")
+	check(saw_bust and saw_lit, "Madame Shuffle: her reroll can bust you (a normal bust) or still light")
+	r = run_with([rule(&"madame_shuffle", {"count": 2})], [], null, 5, 3)
+	r.set_throw([6, 6, 1, 2, 4])
+	var two := r.last_throw.changes
+	check(two.size() == 2 and int(two[0]["index"]) != int(two[1]["index"]), "Madame Shuffle: params.count 2 rerolls two different dice")
 	# Pit Boss
 	r = run_with([rule(&"pit_boss")])
 	var pb: RulePitBoss = r.rules[0]

@@ -55,18 +55,18 @@ func _run() -> void:
 	check(r.soul == 30 and r.max_soul == 30, "starting Soul 50 clamped to max Soul 30 (%d)" % r.soul)
 	check(r.rules.size() == 3 and r.has_rule(&"madame_shuffle") and r.has_rule(&"pit_boss"), "setup.rules -> handlers on the run")
 	var rows := s.bhud.rule_rows()
-	check(s.bhud.rules_panel.visible and rows.size() == 3 and rows[0].begins_with("Madame Shuffle|Rerolls") and rows[2].begins_with("Heavy Burn|"), "HUD lists each rule: name + one line (%s)" % str(rows))
+	check(s.bhud.rules_panel.visible and rows.size() == 3 and rows[0].begins_with("Madame Shuffle|After each throw") and rows[2].begins_with("Heavy Burn|"), "HUD lists each rule: name + one line (%s)" % str(rows))
 	var L := (r.rules[1] as RulePitBoss).locked
 	check(s.felt_label.visible and s.felt_label.text == "LOCKED  %d" % L, "Pit Boss lock on the felt (%s)" % s.felt_label.text)
 	check(rows[1].contains("Locked this hand: %d" % L), "Pit Boss HUD line names the lock")
-	# Madame rerolls the highest die; the die shows the new face.
+	# Madame rerolls one lit die; the die shows the new face.
 	var faces: Array[int] = [1, 2, 3, 4, 6]
 	for i in faces.size():
 		if faces[i] == L:
 			faces[i] = 5 if L != 5 else 1
 	await throw_faces(s, faces)
 	var ch := r.last_throw.changes if r.last_throw != null else []
-	check(ch.size() == 1 and ch[0]["by"] == &"madame_shuffle" and int(ch[0]["index"]) == faces.find(faces.max()), "Madame Shuffle rerolled the highest die on the table")
+	check(ch.size() == 1 and ch[0]["by"] == &"madame_shuffle" and int(ch[0]["from"]) == faces[int(ch[0]["index"])], "Madame Shuffle rerolled one die on the table")
 	if ch.size() == 1 and not r.throw_faces.is_empty():
 		var i := int(ch[0]["index"])
 		check(s.throw_dice[i].shown_value() == r.throw_faces[i], "the rerolled die shows its new face (%d vs %d)" % [s.throw_dice[i].shown_value(), r.throw_faces[i]])
