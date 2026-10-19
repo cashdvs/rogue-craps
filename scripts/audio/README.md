@@ -47,6 +47,64 @@ There are three 3.0 s looping stems, `crowd_low`, `crowd_mid` and `crowd_high`, 
 
 On top of that, `CrowdLayers.volume_db` (default -6 dB) sets the overall crowd level. Changes glide over 0.4 s.
 
+## Mod trigger cues
+
+One short cue per row of the Art Director's trigger FX spec
+(`art/concept/special_dice/trigger_fx_spec.md` §2). Each plays on top of the
+count-up when a face mod or special die fires. The cues are procedural
+(`ModTriggerSynth`), baked to `audio/sfx/trigger_<row>.wav`, and sound
+0.15–0.45 s after their hit. They sit mostly in 1–5 kHz, so they read over
+`score_tick` / `count_tick`, and peak 6 dB under the stingers. Tones use the
+tick scale (C harmonic minor), so overlaps stay consonant. There's no fire on
+any of them, Hellfire included.
+
+```gdscript
+sfx.crowd = crowd                     # once, if there is a crowd: signature hits nudge it
+sfx.trigger_speed_mode = speed_mode   # 0 = 1x, 1 = 2x, 2 = Instant (JuicePlan)
+# At each trigger's FX start, once per trigger, in resolve order. No timers: the hook staggers.
+for trig in fired:
+	var hit_in := sfx.play_mod_trigger(trig.id, trig.tier, intensity)   # seconds to the hit, -1 = silent
+```
+
+**One caller, one owner.** Exactly one place in the game calls `play_mod_trigger` (the feel layer's listener, `TableAudio`). The hook owns everything after that call: stagger, voice cap, cluster, speed modes, the Bellows once-rule and the crowd nudge. The caller doesn't add timers, count voices or call `crowd.nudge()`, or those would happen twice.
+
+- **id:** a spec row id (`&"coin_heads_copy"`) or a mod / die id (`&"mirror"`, `&"hellfire"`). `ModTriggerSynth.ALIASES` maps an id to its default row. Pass the row id when one die has several moments (`kindling_armed` / `kindling_save`, `cracked_mult` / `cracked_shatter`). Unknown ids play `trigger_generic`. `heavy` and `extra` play nothing, and `blank` plays the existing `no_score`.
+- **tier:** `ModTriggerSynth.Tier` MINOR / MAJOR / SIGNATURE is −4 / −2 / 0 dB; −1 uses the row's tier. **intensity** 0..1 trims −9..0 dB.
+- **hit_ms:** the hit frame from the FX start; −1 uses the row's. The hook schedules the file so its transient lands on the hit. If the hit comes sooner than the file's anticipation, the cue starts at once and skips in. Retune `ROWS` without re-baking.
+- **Several per pot:** triggers called at the same moment (one resolve step, e.g. several copy dice on LAND) are staggered 0.08 s apart in call order (`ModTriggerSynth.stagger(k)`, halved at 2x), and the return value includes the stagger, so the FX can use it for its own key hit. Triggers at different moments (each die's pip tick) aren't delayed. At most `MAX_VOICES` (4) cues sound at once, matching the spec's burst cap. The 5th and later play one shared `trigger_cluster` at their hit (the spec's shared pop); the rest are dropped while it's pending. Trigger cues have their own players, so count ticks never cut them off.
+- **Bellows:** `SfxManager.ONCE_ROWS` (`bellows_hot`) play once while one is still sounding, so extra Bellows in the same Hot Hand return −1 (spec §2b: the effect plays once, on the first Bellows).
+- **Crowd:** with `sfx.crowd` set, every SIGNATURE trigger (by its actual tier) nudges the crowd on its hit (`CrowdLayers.nudge()`: +3 dB, back over 0.3 s, only while the crowd plays). It's still public for other uses.
+- **Fast-forward:** set `sfx.trigger_speed_mode` like JuicePlan: 0 = 1x; 1 = 2x (the hit comes at half the time, the cue plays 1.12x up and 2 dB down); 2 = Instant (one `trigger_cluster` per frame, no stagger). A tap-to-skip should stop calling the hook for triggers that haven't started.
+
+| Row (tier, hit) | Cue |
+|---|---|
+| `wild_face` (minor, 167) | a card-shuffle flick into a short crystalline ting bending up (C7) |
+| `ember_pip` (minor, 167) | a warm soft wooden pop + two little ember ticks (B7) |
+| `hellfire_face` (major, 250) | an infernal brass hand-bell clang (E♭6, inharmonic) + a dry bone sting, with a low brass growl |
+| `gilded_payout` (minor, 167) | a bright coin clink + a brass shimmer; a tiny chink into the pile 0.35 s later |
+| `twin_face` (minor, 167) | two quick wooden knocks, the second a frame later and higher |
+| `step_face` (minor, 167) | a soft wooden slide into a click (F6) |
+| `stair_face` (major, 250) | three ascending steps (C–E♭–G), a firm thunk on the last |
+| `kindling_armed` (minor, 167) | a dry twig snap + a papery flick |
+| `kindling_save` (signature, 333) | a reversed thud breathing in, then a wooden knock and a warm C minor chord |
+| `blood_face` (major, 250) | a wet heartbeat (thump-thump) + the Soul motif (hollow ring gliding up, glass drip) |
+| `twin_flame_pair` (minor, 167) | a two-note glass chime, the partner a fifth up one frame later |
+| `coven_set` (major, 250) | three hums converging into one C minor chord + a light bone rattle |
+| `mirror_copy` (major, 250) | a glass shimmer swelling through the hop, a soft knock on the copied face, glass tail |
+| `wanderer_gap` (major, 250) | an airy whistle glide + a brass compass ping (D6) |
+| `bellows_hot` (major, 250) | a leathery reed wheeze, twice, with a wooden creak between (no air hiss) |
+| `last_breath` (signature, 333) | a hushed rising intake, a hollow iron thunk with no ring, a falling exhale tone |
+| `blood_pact` (major, 250) | a wax-seal thud + the Soul motif drawn up + three soft ticks |
+| `cracked_mult` (major, 167) | a ceramic stress creak, a stone tick and ring (A♭6), discrete grit pings (no crackle) |
+| `cracked_shatter` (signature, 250) | ceramic shards + a low thud + a dry trickle of tiny ticks |
+| `generic` | any other id: a plain two-note ding (C6–G6) |
+| `cluster` | the shared pop for the 5th+ trigger and Instant: four quick chimes fanned up over a soft pop |
+
+The heavies differ in envelope as well as pitch: Hellfire's bell clang rings
+on, Last Breath's 80 ms iron thunk stops dead, and Cracked shatter scatters.
+Double hits (Twin, Bellows, and Keg through Twin) are one cue with two
+transients, so they don't use two voices.
+
 ## Timing and fast-forward
 
 - **Normal sequence (≤ 1.2 s):** pips 0.08 s apart → slam → count-up → banner + stinger. In the capture, the stinger lands at about 0.75 s. Its tail can ring past the end of the sequence; don't wait for it before accepting input.
