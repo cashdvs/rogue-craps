@@ -26,9 +26,12 @@ const FPS: float = 12.0
 const SHAPE_SCALE: Array[float] = [1.4, 1.6, 1.8]
 const SPARKS: Array[int] = [4, 6, 8]
 const STUDS: Array[int] = [0, 4, 8]
-## Icon disc diameter per tier in px at 720p (Art Director, v1 review:
-## 28-32 px), scaled with the viewport height.
-const ICON_PX_720: Array[float] = [28.0, 30.0, 32.0]
+## Icon size: one flat 32 px at 720p for every tier, scaled with the
+## viewport height (Art Director sign-off; tier shows by the art's rim studs).
+const ICON_PX_720: float = 32.0
+## Longest a row may run per tier, in 12 fps frames (spec 1.2: minor 0.42 s,
+## major 0.50 s, signature 0.58 s).
+const BUDGET_FRAMES: Array[int] = [5, 6, 7]
 ## The icon pops on the hit frame, holds this long, then fades.
 const ICON_HOLD: float = 0.5
 ## Ring pulse: grows and fades over these frames from the hit (0.25 s).
@@ -70,10 +73,15 @@ const BEATS: Dictionary[StringName, Array] = {
 	&"hop_flip": [[0, 0, 0, 0.88, 1.06, 0], [0, 0, 0, 0.88, 1.06, 0], [0.2, 180, 0, 1.0, 1.0, 0], [0, 360, 0, 1.10, 0.97, 0], [0, 360, 0, 1.0, 1.0, 0]],
 	# Gilded: hit f2, then dip 0.08 and rise (a coin dropping in).
 	&"bob": [[0, 0, 0, 0.88, 1.06, 0], [0, 0, 0, 0.88, 1.06, 0], [0, 0, 0, 1.10, 0.97, 0], [-0.08, 0, 0, 1.0, 1.0, 0], [0, 0, 0, 1.0, 1.0, 0]],
-	# Coin: tossed up, flips end over end twice while spinning, lands flat on
-	# the hit (f4); f5 its face turns (a quarter twist) as the copy arrives.
-	&"spin_flip": [[0, 0, 0, 0.88, 1.06, 0], [0.7, 180, 60, 1.0, 1.0, 0], [1.0, 360, 120, 1.0, 1.0, 0], [0.5, 540, 180, 1.0, 1.0, 0],
-			[0, 720, 180, 1.10, 0.97, 0], [0, 720, 225, 1.0, 1.0, 0], [0, 720, 270, 1.0, 1.0, 0]],
+	# Coin: tossed up, ONE flip end over end while it spins, lands flat on the
+	# hit (f4) a quarter-turn round; the settle frame (f5) snaps it back:
+	# its face turns as the copy arrives. 6 f = 0.50 s (Art Director).
+	&"spin_flip": [[0, 0, 0, 0.88, 1.06, 0], [0.6, 90, 30, 1.0, 1.0, 0], [0.85, 180, 60, 1.0, 1.0, 0], [0.45, 270, 90, 1.0, 1.0, 0],
+			[0, 360, 90, 1.10, 0.97, 0]],
+	# Coin alone: a shorter toss, one flip, lands on f3.
+	&"spin_flip_short": [[0, 0, 0, 0.88, 1.06, 0], [0.45, 120, 30, 1.0, 1.0, 0], [0.3, 240, 60, 1.0, 1.0, 0], [0, 360, 90, 1.10, 0.97, 0]],
+	# Wild (and Lantern 8): squash, then a snap quarter-turn over 2 f, hold.
+	&"snap_spin": [[0, 0, 0, 0.88, 1.06, 0], [0, 0, 0, 0.88, 1.06, 0], [0, 0, 45, 1.10, 0.97, 0], [0, 0, 90, 1.0, 1.0, 0]],
 	# Hellfire: hit f3 with a 1 f up-kick (the gavel tap on Verdict), then
 	# still: no rattle (the v1 rattle read as Cracked breaking).
 	&"jolt": [[0, 0, 0, 0.88, 1.06, 0], [0, 0, 0, 0.88, 1.06, 0], [0, 0, 0, 1.0, 1.0, 0], [0.08, 0, 0, 1.10, 0.97, 0], [0, 0, 0, 1.0, 1.0, 0]],
@@ -85,33 +93,67 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 	# A glass glint streak arcs from the source die (f0-f2) and lands on the
 	# hit with the hop-flip and a pale glass frame flash; a glass pulse.
 	&"mirror_copy": {"tier": MAJOR, "frames": 6, "hit": 3, "anchor": &"LAND", "fx": &"glint", "ring": GLASS,
-			"spark": GLASS, "icon": &"mirror_copy", "beat": &"hop_flip", "glint": [0, 3]},
+			"spark": BRASS_HI, "icon": &"mirror_copy", "beat": &"hop_flip", "glint": [0, 3]},
 	# A gold glow + shine bar on the pip tick, a gold pulse, then the brass
 	# coin hops off the die to the Ember counter (its flip frames).
 	&"gilded_payout": {"tier": MINOR, "frames": 5, "hit": 2, "anchor": &"PIP", "fx": &"gild", "ring": BRASS_HI,
 			"spark": BRASS_HI, "icon": &"gilded_payout", "beat": &"bob", "coin_flight": 0.4},
-	# The coin spin-flips and lands on the hit; then the glint from the
-	# highest die arrives as its face turns (f5).
-	&"coin_heads_copy": {"tier": MAJOR, "frames": 7, "hit": 4, "anchor": &"LAND", "fx": &"coin", "ring": GLASS,
-			"spark": GLASS, "icon": &"coin_heads_copy", "beat": &"spin_flip", "glint": [3, 5]},
+	# The coin tosses, flips once and lands on the hit; then the glint from
+	# the highest die arrives as its face turns (f5). 0.50 s.
+	&"coin_heads_copy": {"tier": MAJOR, "frames": 6, "hit": 4, "anchor": &"LAND", "fx": &"coin", "ring": GLASS,
+			"spark": BRASS, "icon": &"coin_heads_copy", "beat": &"spin_flip", "glint": [3, 5]},
+	# Tails: the same, the glint from the LOWEST die (the game passes it as ctx.source).
+	&"coin_tails_copy": {"tier": MAJOR, "frames": 6, "hit": 4, "anchor": &"LAND", "fx": &"coin", "ring": GLASS,
+			"spark": BRASS, "icon": &"coin_tails_copy", "beat": &"spin_flip", "glint": [3, 5]},
+	# Thrown alone, heads (= 5): no glint, a short flip, a glass pulse.
+	&"coin_alone_heads": {"tier": MINOR, "frames": 5, "hit": 3, "anchor": &"LAND", "fx": &"coin", "ring": GLASS,
+			"spark": BRASS, "icon": &"coin_alone_heads", "beat": &"spin_flip_short"},
+	# Wild Face (and Lantern 8): a bone 4-point sparkle, the snap-spin.
+	&"wild_face": {"tier": MINOR, "frames": 4, "hit": 2, "anchor": &"PIP", "fx": &"sparkle", "ring": BONE,
+			"spark": EMBER_CORE, "icon": &"wild_face", "beat": &"snap_spin"},
 	# Bone needles shoot out and retract, a Hellfire-red silhouette frame
 	# (hex on Verdict / Midnight), an ember-core glow; a bone pulse with an
 	# ember inner pulse; the x1.5 chip.
 	&"hellfire_face": {"tier": MAJOR, "frames": 6, "hit": 3, "anchor": &"PIP", "fx": &"needles", "ring": BONE,
 			"ring2": EMBER_MID, "spark": null, "icon": &"hellfire_face", "beat": &"jolt", "chip": "×1.5"},
 }
-## Table ids -> spec hook ids. TableEvents (#91) sends face-mod ids
-## (FaceModData.id) and special-die / rule ids; the spec names rows by hook.
+## Table / die ids -> row ids. Die ids are Systems Dev's canonical ones
+## (DiceIds, #107, docs/DICE_IDS.md); pre-carved faces use its face keys
+## ("<die_id>_<value>"); the old spellings it lists as aliases, and the
+## Sound Designer's legacy cue ids, still resolve. Pre-carved faces reuse
+## the face-mod row (spec v0.2 reuse rule) with a flavour (FLAVOR_OF).
+## TODO(#107): build the die-id keys from DiceIds.DIE_* / DiceIds.canonical()
+## once this branch carries main (#107 merged after #105 branched off #72);
+## the ids below mirror DiceIds exactly.
 const ALIASES: Dictionary[StringName, StringName] = {
-	&"hellfire": &"hellfire_face", &"gilded": &"gilded_payout", &"mirror": &"mirror_copy",
-	&"coin_heads": &"coin_heads_copy", &"wild": &"wild_face", &"twin": &"twin_face", &"blood": &"blood_face",
-	&"stair": &"stair_face", &"step": &"step_face", &"kindling": &"kindling_armed",
+	# Face mods (FaceModData.id, what #91 sends).
+	&"hellfire": &"hellfire_face", &"gilded": &"gilded_payout", &"wild": &"wild_face", &"twin": &"twin_face",
+	&"blood": &"blood_face", &"stair": &"stair_face", &"step": &"step_face", &"kindling": &"kindling_armed",
+	# Die ids (DiceIds.DIE_*).
+	&"mirror": &"mirror_copy", &"ferryman": &"coin_heads_copy", &"tithe": &"gilded_payout",
+	&"midnight": &"hellfire_face", &"lantern": &"wild_face", &"powder_keg": &"twin_face",
+	&"caltrop": &"caltrop_run", &"knucklebone": &"knucklebone_level",
+	# Face keys (DiceIds.face_key) and coin faces.
+	&"verdict_20": &"hellfire_face", &"verdict_1": &"blood_face", &"midnight_12": &"hellfire_face",
+	&"tithe_10": &"gilded_payout", &"lantern_8": &"wild_face", &"powder_keg_3": &"twin_face",
+	&"ferryman_heads": &"coin_heads_copy", &"ferryman_tails": &"coin_tails_copy",
+	# Old spellings (DiceIds.ALIASES) and legacy cue ids (#98 ModTriggerSynth.ALIASES).
+	&"ferrymans_coin": &"coin_heads_copy", &"ferryman_d2": &"coin_heads_copy", &"coin": &"coin_heads_copy",
+	&"coin_heads": &"coin_heads_copy", &"coin_tails": &"coin_tails_copy", &"coin_alone": &"coin_alone_heads",
+	&"midnight_xii": &"hellfire_face", &"keg_3": &"twin_face",
+}
+## Ids that imply a flavour (the frame shape, and #98's flavour layer).
+const FLAVOR_OF: Dictionary[StringName, StringName] = {
+	&"verdict_20": &"verdict", &"midnight": &"midnight", &"midnight_12": &"midnight", &"midnight_xii": &"midnight",
+	&"tithe": &"tithe", &"tithe_10": &"tithe", &"lantern": &"lantern", &"lantern_8": &"lantern",
+	&"powder_keg": &"keg", &"powder_keg_3": &"keg", &"keg_3": &"keg",
 }
 ## Any other id until its row is built: a plain minor bone ring pop.
 const GENERIC: Dictionary = {"tier": MINOR, "frames": 4, "hit": 2, "anchor": &"PIP", "fx": &"", "ring": BONE,
 		"spark": EMBER_CORE, "icon": &"generic", "beat": &"pop"}
 
 
+## The row for `id` (a row, face-mod, die or face id); GENERIC if not built.
 static func row(id: StringName) -> Dictionary:
 	return ROWS.get(hook(id), GENERIC)
 
@@ -119,6 +161,11 @@ static func row(id: StringName) -> Dictionary:
 ## The spec hook id for a table id (unchanged if it already is one).
 static func hook(id: StringName) -> StringName:
 	return ALIASES.get(id, id)
+
+
+## The flavour `id` implies (e.g. verdict_20 -> verdict), or &"".
+static func flavor_of(id: StringName) -> StringName:
+	return FLAVOR_OF.get(id, &"")
 
 
 ## Seconds from trigger start to the key hit at 1x (f2 167 / f3 250 / f4 333 ms).

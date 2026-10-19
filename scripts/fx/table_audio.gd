@@ -54,6 +54,9 @@ var events: Object
 var calls: Array[String] = []
 ## The table (for speed_mode and BonfireJuice's crowd); set by the parent bind.
 var table: Node
+## The #98 hook's flavour layers (ModTriggerSynth.FLAVORS keys).
+## TODO(#98): read ModTriggerSynth.FLAVORS.keys() once #98 is on main.
+const TRIGGER_FLAVORS: Array[StringName] = [&"verdict", &"midnight", &"tithe", &"keg", &"lantern"]
 var _cleared_played: bool = false
 var _crowd_set: bool = false
 
@@ -68,12 +71,12 @@ func _ready() -> void:
 
 ## Looks up the parent table's `events` and `sfx` (no-op without `events`).
 func _bind_to_parent() -> void:
-	var table := get_parent()
-	if table == null or events != null:
+	var t := get_parent()
+	if t == null or events != null:
 		return
-	var ev: Variant = table.get("events")
-	var s: Variant = table.get("sfx")
-	table = table if table != null else get_parent()
+	table = t
+	var ev: Variant = t.get("events")
+	var s: Variant = t.get("sfx")
 	if ev is Object and s is Node:
 		bind(ev as Object, s as Node)
 
@@ -155,13 +158,16 @@ func _on_table_cleared() -> void:
 ## returned seconds until the audio hit (-1 = silent). The Sound Designer's
 ## hook does the stagger, the 4-voice cap and cluster, speed modes,
 ## Bellows-once and the signature crowd nudge, so none of that is here.
-## ctx: tier (-1 = the row's), intensity (0..1), flavor (e.g. &"verdict").
+## ctx: tier (-1 = the row's), intensity (0..1), flavor (only a real #98
+## flavour, TRIGGER_FLAVORS, is passed on; anything else plays unflavoured).
 func mod_trigger(id: StringName, _die: Variant = null, _anchor: StringName = &"", ctx: Dictionary = {}) -> float:
 	if sfx == null or not sfx.has_method("play_mod_trigger"):
 		return -1.0
 	_sync_trigger_audio()
-	var s := float(sfx.call("play_mod_trigger", id, int(ctx.get("tier", -1)), float(ctx.get("intensity", 1.0)), -1.0,
-			StringName(ctx.get("flavor", &""))))
+	var flavor := StringName(ctx.get("flavor", &""))
+	if not TRIGGER_FLAVORS.has(flavor):
+		flavor = &""
+	var s := float(sfx.call("play_mod_trigger", id, int(ctx.get("tier", -1)), float(ctx.get("intensity", 1.0)), -1.0, flavor))
 	calls.append("mod:%s" % id)
 	return s
 

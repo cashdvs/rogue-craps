@@ -6,7 +6,7 @@
 ## PIP triggers start 2 frames before the die's own count-up pip (spec 1.3,
 ## from the count-up plan), so the f2/f3 hit lands on or just after it.
 ## Prints "SHOT <hook> <start_s> <hit_s> <end_s>" (movie time) for cutting,
-## and writes trig_<hook>_frames.png (f0-f7 strip + a row scaled so the die
+## and writes trig_<hook>_final.png (f0-f7 strip + a row scaled so the die
 ## is 48 px) to --out.
 ##   xvfb-run -a -s "-screen 0 1920x1080x24" godot --path . --rendering-driver vulkan \\
 ##       --resolution 1280x720 --fixed-fps 30 --write-movie /tmp/trig.avi \\
@@ -199,5 +199,5 @@ func _strip(id: StringName, s: Bonfire3D, die: DieVisual) -> void:
 		var sm := cimg.duplicate() as Image
 		sm.resize(maxi(1, int(cimg.get_width() * k)), maxi(1, int(cimg.get_height() * k)), Image.INTERPOLATE_BILINEAR)
 		out.blit_rect(sm, Rect2i(Vector2i.ZERO, sm.get_size()), Vector2i(f * STRIP_CELL, STRIP_CELL))
-	out.save_png(OUT + "trig_%s_frames.png" % id)
-	print("saved %strig_%s_frames.png (die %.0f px, 48 px row x%.2f)" % [OUT, id, px, k])
+	out.save_png(OUT + "trig_%s_final.png" % id)
+	print("saved %strig_%s_final.png (die %.0f px, 48 px row x%.2f)" % [OUT, id, px, k])

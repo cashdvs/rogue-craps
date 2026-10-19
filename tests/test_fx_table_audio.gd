@@ -133,7 +133,6 @@ func _test_stub() -> void:
 	_check(sfx.log.size() == n + 1, "table_started (#91) resets the TABLE CLEARED guard")
 	a.unbind()
 	a.bind(ev, sfx)
-	sfx.log.clear()
 	# Signals the audio layer doesn't use stay silent.
 	sfx.log.clear()
 	ev.emit_signal("dice_settled")

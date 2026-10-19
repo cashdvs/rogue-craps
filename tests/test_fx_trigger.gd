@@ -57,6 +57,13 @@ class StubTable:
 	var juice: Node
 
 
+## A table with the events and sfx nodes TableAudio binds through.
+class EventsTable:
+	extends StubTable
+	var events: Node
+	var sfx: Node
+
+
 func _initialize() -> void:
 	_run.call_deferred()
 
@@ -88,6 +95,14 @@ func _run() -> void:
 	await _test_coin_flight()
 	await _test_listener()
 	_test_table_audio()
+	await _test_table_audio_parent_bind()
+	_test_budgets()
+	_test_aliases()
+	_test_glint_lengths()
+	_test_remap_mid_effect()
+	_test_abort_and_freed_die()
+	_test_restores_exactly()
+	_test_flavor_whitelist()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -143,7 +158,7 @@ func _test_defs() -> void:
 	for id: StringName in TriggerFxDefs.ROWS:
 		pieces[TriggerFxDefs.ROWS[id]["fx"]] = true
 		beats[TriggerFxDefs.ROWS[id]["beat"]] = true
-	_check(pieces.size() == 4 and beats.size() == 4, "the 4 rows each have their own piece and beat (%s / %s)" % [pieces.keys(), beats.keys()])
+	_check(pieces.size() == 5 and beats.size() == 6, "rows read apart: 5 pieces, 6 beats (Coin heads / tails share theirs) (%s / %s)" % [pieces.keys(), beats.keys()])
 	_check(TriggerFxDefs.ROWS[&"gilded_payout"]["ring"] == TriggerFxDefs.BRASS_HI and TriggerFxDefs.ROWS[&"hellfire_face"]["ring"] == TriggerFxDefs.BONE
 			and TriggerFxDefs.ROWS[&"hellfire_face"]["ring2"] == TriggerFxDefs.EMBER_MID and TriggerFxDefs.ROWS[&"mirror_copy"]["ring"] == TriggerFxDefs.GLASS
 			and TriggerFxDefs.ROWS[&"coin_heads_copy"]["ring"] == TriggerFxDefs.GLASS, "ring tints: gold Gilded, bone + ember Hellfire, pale glass Mirror / Coin")
@@ -325,21 +340,21 @@ func _test_links_and_icons() -> void:
 	var m := _die(Vector3(0.2, 0.04, 0))
 	fx.trigger_fx(&"mirror_copy", m, {"source": src})
 	_step(fx, 1.0 / 12.0 + DT)
-	var b: TriggerFx.Burst = fx._live[0]
+	var b: TriggerFxPool.Burst = fx._live[0]
 	var gp := b.glint.global_position
 	_check(b.glint.visible and gp.x > -0.2 and gp.x < 0.2, "Mirror: a glass glint is on its way from the source on f1 (%s)" % gp)
 	_check(gp.y <= 0.04 + 0.0001 and absf(gp.z) > 0.01, "the glint bows sideways along the felt, never up (%s)" % gp)
 	var low := true
 	for u in 11:
-		low = low and fx.glint_point(src.global_position, m.global_position, u / 10.0).y <= 0.04 + 0.0001
+		low = low and TriggerFxLinks.glint_point(src.global_position, m.global_position, u / 10.0, _cam).y <= 0.04 + 0.0001
 	_check(low, "the glint path never rises above the dice")
 	_check(b.glint.mesh.size.x < 0.15, "the glint is a short streak, not a beam (%.3f m)" % b.glint.mesh.size.x)
 	var along := (b.glint.global_basis.x).normalized()
-	var path := (fx.glint_point(src.global_position, m.global_position, 0.4) - fx.glint_point(src.global_position, m.global_position, 0.26)).normalized()
+	var path := (TriggerFxLinks.glint_point(src.global_position, m.global_position, 0.4, _cam) - TriggerFxLinks.glint_point(src.global_position, m.global_position, 0.26, _cam)).normalized()
 	_check(absf(along.dot(_cam.global_basis.z)) < 0.01 and along.dot(path) > 0.5, "the streak faces the camera and lies along its path")
 	_step(fx, 2.0 / 12.0)
-	_check(b.glint.visible and b.glint.global_position.is_equal_approx(m.global_position), "the glint lands on the Mirror on the hit (f3)")
-	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 30.0 * fx._px_scale()) and b.icon.studs == 4, "major icon: 30 px at 720p, 4 studs (%.1f)" % b.icon.diameter)
+	_check(not b.glint.visible and _motes_ok(b, m), "the glint arrives on the hit (f3) as two small motes off the die's top-right corner")
+	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 32.0 * fx.px_scale()) and b.icon.studs == 4, "major icon: 32 px at 720p, 4 studs (%.1f)" % b.icon.diameter)
 	_step(fx, 1.0)
 	fx.trigger_fx(&"coin_heads_copy", m, {"source": src})
 	_step(fx, 2.0 / 12.0 + DT)
@@ -349,12 +364,12 @@ func _test_links_and_icons() -> void:
 	_step(fx, 2.0 / 12.0)
 	_check(b.glint.visible, "Coin: the glint from the highest die arrives after it lands")
 	_step(fx, 1.0 / 12.0)
-	_check(b.glint.visible and b.glint.global_position.is_equal_approx(m.global_position), "Coin: the glint reaches the coin on f5 as its face turns")
+	_check(not b.glint.visible and _motes_ok(b, m), "Coin: the glint reaches the coin on f5 as two motes, off the face")
 	_step(fx, 1.0)
 	fx.trigger_fx(&"gilded_payout", m)
 	_step(fx, 2.0 / 12.0 + DT)
 	b = fx._live[0]
-	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 28.0 * fx._px_scale()) and b.icon.studs == 0, "minor icon pops ON the hit: 28 px at 720p, plain rim")
+	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 32.0 * fx.px_scale()) and b.icon.studs == 0, "minor icon pops ON the hit: 32 px at 720p too, plain rim")
 	_step(fx, 1.0)
 	_free([fx, src, m])
 
@@ -364,7 +379,7 @@ func _test_rows_read_apart() -> void:
 	var d := _die(Vector3(0, 0.04, 0))
 	# Ring: a pulse from the hit that grows and fades within 0.25 s.
 	fx.trigger_fx(&"hellfire_face", d)
-	var b: TriggerFx.Burst = fx._live[0]
+	var b: TriggerFxPool.Burst = fx._live[0]
 	_step(fx, 1.0 / 12.0 + DT)
 	_check(not b.ring.visible, "no static ring during anticipation")
 	_step(fx, 2.0 / 12.0)
@@ -412,7 +427,8 @@ func _test_never_tints_the_die() -> void:
 	var before := _die_look(d)
 	var kids := d.get_child_count()
 	var changed := 0
-	for id: StringName in [&"mirror_copy", &"gilded_payout", &"coin_heads_copy", &"hellfire_face", &"other"]:
+	for id: StringName in [&"mirror_copy", &"gilded_payout", &"coin_heads_copy", &"coin_tails_copy", &"coin_alone_heads",
+			&"hellfire_face", &"wild_face", &"other"]:
 		fx.trigger_fx(id, d, {"source": src})
 		for i in 90:
 			_step(fx, DT)
@@ -488,7 +504,7 @@ func _test_listener() -> void:
 	_check(audio.calls.size() == 1 and float((audio.calls[0][3] as Dictionary)["intensity"]) == 0.5, "intensity passes through to the sound")
 	fx._on_mod_triggered(&"mirror_copy", 1, 0, 1.0, 0, &"LAND", {"source": 1, "flavor": &"verdict"})
 	_step(fx, 0.1)
-	var b: TriggerFx.Burst = fx._live[fx._live.size() - 1]
+	var b: TriggerFxPool.Burst = fx._live[fx._live.size() - 1]
 	_check(b.source == d1 and b.id == &"mirror_copy", "the requested anchor / ctx form works; ctx.source (a die id) becomes the die")
 	_check(audio.calls.size() == 2 and audio.calls[1][2] == &"LAND", "anchor passes to the sound")
 	ev.emit_signal("mod_triggered", &"hellfire_face", 0, 9, 1.0, 0)
@@ -541,3 +557,220 @@ func _test_table_audio() -> void:
 	a.sfx = bare
 	_check(a.mod_trigger(&"mirror_copy") == -1.0, "without play_mod_trigger: -1 (silent), no error")
 	_free([a, sfx, t, crowd, bare, juice])
+
+
+## QA B1: TableAudio as a real child of a table binds to it (table, events,
+## sfx) on its own; nothing sets a.table by hand.
+func _test_table_audio_parent_bind() -> void:
+	var t := EventsTable.new()
+	t.speed_mode = 1
+	t.events = Node.new()
+	t.events.add_user_signal("dice_thrown")
+	t.sfx = StubSfx.new()
+	_world.add_child(t)
+	var a := TableAudio.new()
+	t.add_child(a)
+	await process_frame
+	_check(a.table == t, "TableAudio binds its table through the parent (QA B1)")
+	_check(a.events == t.events and a.sfx == t.sfx, "and the table's events and sfx")
+	a.mod_trigger(&"mirror_copy")
+	_check((t.sfx as StubSfx).trigger_speed_mode == 1, "the parent table's speed reaches the hook")
+	_free([t.events, t.sfx, t])
+
+
+## Art Director: every row fits its tier budget (minor <= 5 f, major <= 6 f,
+## signature <= 7 f at 12 fps) and its beat fits inside the row.
+func _test_budgets() -> void:
+	_check(TriggerFxDefs.BUDGET_FRAMES == [5, 6, 7], "tier budgets: minor 5 f, major 6 f, signature 7 f")
+	var rows := TriggerFxDefs.ROWS.duplicate()
+	rows[&"generic"] = TriggerFxDefs.GENERIC
+	for id: StringName in rows:
+		var r: Dictionary = rows[id]
+		var cap: int = TriggerFxDefs.BUDGET_FRAMES[int(r["tier"])]
+		_check(int(r["frames"]) <= cap, "%s: %d f within its tier budget (%d f)" % [id, int(r["frames"]), cap])
+		_check((TriggerFxDefs.BEATS[r["beat"]] as Array).size() <= int(r["frames"]), "%s: its beat fits the row" % id)
+	_check(TriggerFxDefs.length(&"coin_heads_copy") <= 0.5 + 0.0001, "Coin heads: 0.50 s (major budget)")
+	# ONE flip: the flip angle passes 360 once and the hit frame lands flat.
+	var keys: Array = TriggerFxDefs.BEATS[&"spin_flip"]
+	var flips := 0.0
+	for i in range(1, keys.size()):
+		flips += absf(float(keys[i][1]) - float(keys[i - 1][1]))
+	_check(is_equal_approx(flips, 360.0), "Coin: exactly one flip (%.0f deg)" % flips)
+	var hit_key: Array = TriggerFxDefs.beat_key(&"spin_flip", int(TriggerFxDefs.ROWS[&"coin_heads_copy"]["hit"]))
+	_check(float(hit_key[0]) == 0.0 and is_equal_approx(fmod(float(hit_key[1]), 360.0), 0.0), "Coin: lands flat on the hit (f4)")
+	_check(is_equal_approx(TriggerFxDefs.ICON_PX_720, 32.0), "one flat 32 px icon at 720p, every tier")
+
+
+## QA N3: Systems Dev's DiceIds (#107), their old aliases and the face keys
+## all land on their own rows, not the generic pop.
+func _test_aliases() -> void:
+	var want := {&"coin": &"coin_heads_copy", &"ferrymans_coin": &"coin_heads_copy", &"ferryman": &"coin_heads_copy",
+		&"ferryman_tails": &"coin_tails_copy", &"coin_tails": &"coin_tails_copy", &"coin_alone": &"coin_alone_heads",
+		&"tithe": &"gilded_payout", &"tithe_10": &"gilded_payout", &"midnight": &"hellfire_face", &"midnight_12": &"hellfire_face",
+		&"verdict_20": &"hellfire_face", &"lantern": &"wild_face", &"lantern_8": &"wild_face", &"mirror": &"mirror_copy",
+		&"hellfire": &"hellfire_face", &"gilded": &"gilded_payout", &"wild": &"wild_face"}
+	for id: StringName in want:
+		_check(TriggerFxDefs.hook(id) == want[id] and TriggerFxDefs.ROWS.has(want[id]), "%s plays %s" % [id, want[id]])
+	_check(TriggerFxDefs.flavor_of(&"verdict_20") == &"verdict" and TriggerFxDefs.flavor_of(&"midnight") == &"midnight"
+			and TriggerFxDefs.flavor_of(&"tithe") == &"tithe" and TriggerFxDefs.flavor_of(&"lantern_8") == &"lantern", "die / face ids carry their flavour")
+	var fx := _fx()
+	var d := _die(Vector3(0, 0.04, 0))
+	fx.trigger_fx(&"midnight", d)
+	var b: TriggerFxPool.Burst = fx._live[0]
+	_check(b.id == &"hellfire_face" and b.ctx.get("flavor") == &"midnight", "Midnight plays Hellfire with its flavour")
+	_step(fx, 3.0 / 12.0 + DT)
+	_check(b.frame.material_override.albedo_texture == TriggerShapes.texture(&"frame_hex", TriggerFxDefs.HELLFIRE), "Midnight: the hex frame")
+	_step(fx, 1.0)
+	fx.trigger_fx(&"lantern_8", d)
+	b = fx._live[0]
+	_step(fx, 2.0 / 12.0 + DT)
+	_check(b.id == &"wild_face" and b.card.visible and b.card.material_override.albedo_texture == TriggerShapes.texture(&"spark_diamond", TriggerFxDefs.BONE),
+			"Lantern 8: Wild's bone sparkle on the hit")
+	_step(fx, 1.0)
+	_free([fx, d])
+
+
+## QA B2: the glint is the same short streak for dice 0.30 m and 0.40 m apart
+## and on a diagonal; its basis stays orthonormal (no stretch along a world
+## axis); it follows its arc from the source to the target, bowing sideways
+## along the felt by 0.3 x the distance, never up.
+func _test_glint_lengths() -> void:
+	var fx := _fx()
+	for pair: Array in [[Vector3(-0.15, 0.04, 0), Vector3(0.15, 0.04, 0)], [Vector3(-0.2, 0.04, 0), Vector3(0.2, 0.04, 0)],
+			[Vector3(-0.15, 0.04, -0.15), Vector3(0.15, 0.04, 0.15)]]:
+		var src := _die(pair[0])
+		var m := _die(pair[1])
+		var from: Vector3 = src.global_position
+		var to: Vector3 = m.global_position
+		var dist := from.distance_to(to)
+		fx.trigger_fx(&"mirror_copy", m, {"source": src})
+		var b: TriggerFxPool.Burst = fx._live[0]
+		var lengths: Array[float] = []
+		var on_path := true
+		for f in [1, 2]:
+			_step(fx, 1.0 / 12.0)
+			var gb := b.glint.global_basis
+			lengths.append((b.glint.mesh as QuadMesh).size.x * gb.x.length())
+			_check(absf(gb.x.length() - 1.0) < 0.001 and absf(gb.y.length() - 1.0) < 0.001 and absf(gb.x.dot(gb.y)) < 0.001,
+					"%.2f m apart: the glint basis is orthonormal on f%d" % [dist, f])
+			on_path = on_path and b.glint.global_position.is_equal_approx(TriggerFxLinks.glint_point(from, to, f / 3.0, _cam))
+		var want := m.edge * TriggerFxLinks.STREAK
+		_check(lengths.all(func(x: float) -> bool: return absf(x - want) < 0.001), "%.2f m apart: the streak is %.3f m long every frame (%s)" % [dist, want, str(lengths)])
+		_check(on_path, "%.2f m apart: the glint rides its arc" % dist)
+		var p0 := TriggerFxLinks.glint_point(from, to, 0.0, _cam)
+		var p1 := TriggerFxLinks.glint_point(from, to, 1.0, _cam)
+		var mid := TriggerFxLinks.glint_point(from, to, 0.5, _cam)
+		var bow := mid - (from + to) * 0.5
+		_check(p0.is_equal_approx(from) and p1.is_equal_approx(to), "%.2f m apart: the arc starts on the source and ends on the target" % dist)
+		_check(absf(bow.y) < 0.0001 and absf(bow.length() - 0.3 * dist) < 0.001 and absf(bow.dot(to - from)) < 0.0001,
+				"%.2f m apart: it bows sideways along the felt by 0.3 x the distance (%.3f m)" % [dist, bow.length()])
+		_check(bow.dot(_cam.global_position - (from + to) * 0.5) > 0.0, "%.2f m apart: the bow comes toward the camera" % dist)
+		_step(fx, 1.0)
+		_free([src, m])
+	_free([fx])
+
+
+## QA B4 (qa/pr105_scratch/remap_clobber.gd): the table remaps the faces
+## mid-effect (next throw); the effect must not put back its stale rest.
+func _test_remap_mid_effect() -> void:
+	for wanted_v in [6, 1]:
+		var d := DieVisual.new(0.08)
+		_world.add_child(d)
+		var fx := _fx()
+		var before := d.up_value()
+		var target: int = wanted_v if before != wanted_v else (1 if wanted_v == 6 else 6)
+		fx.trigger_fx(&"hellfire_face", d)
+		for i in 12:
+			fx._process(1.0 / 120.0)
+		d.faces.basis = DieVisual.remap_basis(d.up_value(), target, 0.0)
+		var wanted := d.up_value()
+		var remapped := d.faces.transform
+		for i in 120:
+			fx._process(1.0 / 120.0)
+		_check(wanted == target and d.up_value() == wanted, "remap to %d mid-effect: the die still shows %d after the burst (shows %d)" % [target, wanted, d.up_value()])
+		_check(d.faces.transform.is_equal_approx(remapped), "remap to %d mid-effect: the faces stay exactly where the table put them" % target)
+		_check(fx.live_count() == 0, "and the burst still finishes")
+		_free([fx, d])
+
+
+## QA B4: dice_thrown / table_started end live effects WITHOUT restoring the
+## faces; a freed die ends its effect quietly.
+func _test_abort_and_freed_die() -> void:
+	for sig: StringName in [&"dice_thrown", &"table_started"]:
+		var ev := Node.new()
+		ev.add_user_signal("mod_triggered")
+		ev.add_user_signal(String(sig))
+		var fx := _fx()
+		fx.bind(ev)
+		var d := _die(Vector3(0, 0.04, 0))
+		fx.trigger_fx(&"coin_heads_copy", d)
+		fx.trigger_fx(&"hellfire_face", d)
+		_step(fx, 2.0 / 12.0)
+		var mid := d.faces.transform
+		ev.emit_signal(sig)
+		_check(fx.live_count() == 0 and fx.queued_count() == 0, "%s ends every live and queued effect" % sig)
+		_check(d.faces.transform.is_equal_approx(mid), "%s: the faces are left for the table (no restore)" % sig)
+		_step(fx, 1.0)
+		_check(d.faces.transform.is_equal_approx(mid), "%s: nothing writes the faces afterwards" % sig)
+		_free([fx, ev, d])
+	var fx := _fx()
+	var d := _die(Vector3(0, 0.04, 0))
+	fx.trigger_fx(&"hellfire_face", d)
+	_step(fx, 1.0 / 12.0)
+	d.free()
+	_step(fx, 1.0 / 12.0)
+	_check(fx.live_count() == 0 and fx.pool_size() == TriggerFxDefs.POOL_PC, "a freed die's effect ends and its burst returns to the pool")
+	# QA N5: a delayed (start_s) trigger never fires once the FX node is gone.
+	var ev := Node.new()
+	ev.add_user_signal("triggers_resolved", [{"name": "triggers", "type": TYPE_ARRAY}])
+	var fx2 := _fx()
+	fx2.bind(ev)
+	ev.emit_signal("triggers_resolved", [{"stage": &"scoring", "row_id": &"hellfire", "die_id": 0, "start_s": 0.2}])
+	_check(fx2.find_children("*", "Timer", false, false).size() == 1, "a delayed trigger waits on a child Timer (freed with the FX)")
+	_free([fx, fx2, ev])
+
+
+## QA N6: face-touching effects that finish normally restore the faces
+## exactly (Hellfire's jolt, Mirror's hop-flip, the Coin flips, Wild's snap).
+func _test_restores_exactly() -> void:
+	var fx := _fx()
+	var d := _die(Vector3(0, 0.04, 0), 0.4)
+	var rest := d.faces.transform
+	for id: StringName in [&"hellfire_face", &"mirror_copy", &"gilded_payout", &"coin_heads_copy", &"coin_tails_copy", &"coin_alone_heads", &"wild_face"]:
+		fx.trigger_fx(id, d)
+		var moved := false
+		for i in 120:
+			_step(fx, DT)
+			moved = moved or not d.faces.transform.is_equal_approx(rest)
+		_check(moved, "%s moves the faces while it plays" % id)
+		_check(d.faces.transform == rest, "%s restores the faces exactly when it finishes" % id)
+	_free([fx, d])
+
+
+## QA N4: TableAudio hands play_mod_trigger only real #98 flavours.
+func _test_flavor_whitelist() -> void:
+	var sfx := StubSfx.new()
+	var a := TableAudio.new()
+	a.sfx = sfx
+	for f: StringName in [&"verdict", &"midnight", &"tithe", &"keg", &"lantern"]:
+		a.mod_trigger(&"hellfire_face", null, &"", {"flavor": f})
+	a.mod_trigger(&"mirror_copy", null, &"", {"flavor": &"copies"})
+	a.mod_trigger(&"hellfire_face", null, &"", {"flavor": &"mult_factor"})
+	var got: Array = sfx.calls.map(func(c: Array) -> StringName: return c[4])
+	_check(got == [&"verdict", &"midnight", &"tithe", &"keg", &"lantern", &"", &""], "only #98 flavours pass; #91 effect names play unflavoured (%s)" % str(got))
+	_free([a, sfx])
+
+
+## The arrival motes: two, small, glass, off the die's centre toward its
+## top-right corner on screen (Art Director: never over the face).
+func _motes_ok(b: TriggerFxPool.Burst, die: Node3D) -> bool:
+	var c := _cam.unproject_position(die.global_position)
+	var ok := true
+	for i in 2:
+		var m := b.trail[i]
+		var p := _cam.unproject_position(m.global_position)
+		ok = ok and m.visible and m.material_override.albedo_texture == TriggerShapes.texture(&"spark_dot_soft", TriggerFxDefs.GLASS)
+		ok = ok and (m.mesh as QuadMesh).size.x <= 0.35 * float(die.get("edge")) + 0.0001
+		ok = ok and p.x > c.x and p.y < c.y and m.global_position.distance_to(die.global_position) > 0.5 * float(die.get("edge"))
+	_check(ok, "motes: two small glass dots, offset up-right from the die centre (Art Director)")
+	return ok

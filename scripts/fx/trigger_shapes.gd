@@ -3,7 +3,8 @@
 ## that's missing (tests, or a row whose art isn't in yet).
 ##
 ## texture(id, fill) returns ONE ready card per (shape, tint), cached:
-## - white soft shapes (ring_pulse_soft, radial_glow_soft, glint_streak) are
+## - white soft shapes (ring_pulse_soft, radial_glow_soft, glint_streak,
+##   spark_dot_soft) are
 ##   multiplied by the tint;
 ## - hard shapes (<id>_fill + <id>_outline: needles_radial, spark_diamond,
 ##   shine_bar, frame_square, frame_hex) get the tinted fill composited over
@@ -19,8 +20,8 @@ const SIZE: int = 96
 ## Outline width of the procedural stand-ins, in texture px fractions.
 const OUTLINE: float = 0.07
 const SHAPES: Array[StringName] = [&"ring_pulse_soft", &"radial_glow_soft", &"glint_streak", &"needles_radial",
-		&"spark_diamond", &"shine_bar", &"frame_square", &"frame_hex"]
-const SOFT: Array[StringName] = [&"ring_pulse_soft", &"radial_glow_soft", &"glint_streak"]
+		&"spark_diamond", &"shine_bar", &"frame_square", &"frame_hex", &"spark_dot_soft"]
+const SOFT: Array[StringName] = [&"ring_pulse_soft", &"radial_glow_soft", &"glint_streak", &"spark_dot_soft"]
 
 static var _cache: Dictionary = {}
 
@@ -99,6 +100,8 @@ static func sdf(id: StringName, p: Vector2) -> float:
 			return absf(p.length() - 0.76) - 0.08
 		&"radial_glow_soft":
 			return p.length() - 0.7
+		&"spark_dot_soft":
+			return p.length() - 0.45
 		&"glint_streak":
 			return absf(p.y) * 6.0 + absf(p.x) - 0.9
 		&"needles_radial":

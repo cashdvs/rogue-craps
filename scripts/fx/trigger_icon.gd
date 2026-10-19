@@ -1,7 +1,7 @@
 ## The trigger icon pop (spec 1.5): a Leather disc with a brass rim (rim
 ## studs by tier, a Danger rim + down-tab for costs), an Oxblood outline and
-## a flat 2-tone Bone pictogram. 28 / 30 / 32 px at 720p by tier (Art
-## Director, v1 review). Uses the Art Director's baked icons
+## a flat 2-tone Bone pictogram. A flat 32 px at 720p for every tier
+## (32 x viewport height / 720; the art's rim studs carry the tier). Uses the Art Director's baked icons
 ## (assets/vfx/trigger_fx/icons/icon_<row>.png: disc, rim, studs, glyph,
 ## README option A) when the file exists and the trigger isn't a cost the
 ## art doesn't carry; otherwise the code-drawn stand-in below. The art's
@@ -20,7 +20,7 @@ var studs: int = 0
 ## A cost trigger: Danger rim + a small down tab (the colour-blind cue).
 var cost: bool = false
 ## Disc diameter in px.
-var diameter: float = 28.0
+var diameter: float = 32.0
 ## Flight coin frame: 0 face, 1 tilt, 2 edge.
 var coin_frame: int = 0:
 	set(v):
@@ -37,12 +37,14 @@ const ART_DISC: float = 112.0 / 128.0
 const ART_CENTRE := Vector2(64.0, 62.0) / 128.0
 
 
-## px_scale: viewport height / 720.
+## Shows row icon `icon_id` (a TriggerFxDefs row "icon", or &"brass_coin")
+## with `tier`'s rim studs, at 32 px x px_scale (viewport height / 720);
+## is_cost draws the Danger rim + down tab (code-drawn, the art has none).
 func setup(icon_id: StringName, tier: int, px_scale: float, is_cost: bool = false) -> void:
 	icon = icon_id
 	studs = TriggerFxDefs.STUDS[tier]
 	cost = is_cost
-	diameter = TriggerFxDefs.ICON_PX_720[tier] * px_scale
+	diameter = TriggerFxDefs.ICON_PX_720 * px_scale
 	var path := TriggerFxDefs.ART_DIR + "icons/icon_%s.png" % icon_id
 	_art = load(path) as Texture2D if ResourceLoader.exists(path) and not is_cost else null
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
