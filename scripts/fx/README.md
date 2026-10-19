@@ -45,12 +45,25 @@ godot --headless --path . --script res://tests/test_fx_table_audio.gd
 `trigger_fx.gd` is a child of the 3D table (spec: `art/concept/special_dice/trigger_fx_spec.md` v0.2).
 Entry point: `trigger_fx(&"mirror_copy", die, ctx := {}) -> float` (seconds to the key hit).
 
-- **Grammar** (12 fps on twos): anticipation squash + charge ring → key hit (glow shape, sparks, link)
-  → icon pop → the row's motion beat → settle. Motion goes on the die's `faces` node in world axes and
-  is restored exactly, so the face remap is safe. Glow only: no fire, no lights, sparks never rise.
-- **Rows**: `trigger_fx_defs.gd` (`ROWS`, `BEATS`, `ALIASES` from table ids like `&"hellfire"`).
-  Built: `mirror_copy`, `gilded_payout`, `coin_heads_copy`, `hellfire_face`; others use a generic pop.
-  Shapes are procedural stand-ins (`trigger_shapes.gd`), icons drawn in code (`trigger_icon.gd`).
+- **Grammar** (12 fps on twos): anticipation squash → key hit: a ring **pulse** tinted per row (grows
+  and fades in 0.25 s), the row's own piece, sparks out and down, the icon pops → the row's beat →
+  settle (the icon holds 0.5 s, then fades). Motion goes on the die's `faces` node in world axes and
+  is restored exactly. **Never tints the die body**: no die material is touched and every glow on a die
+  is open in the middle. No fire, no lights, sparks never rise above the die.
+- **Rows** (`trigger_fx_defs.gd`, `ROWS` / `BEATS` / `ALIASES` from table ids like `&"hellfire"`):
+  | row | piece | beat | ring pulse | icon |
+  |---|---|---|---|---|
+  | `mirror_copy` | glass `glint_streak` arcs from the source die (sideways, never up), glass `frame_square` flash on landing | hop-flip (face turn) | pale glass #F2EEE2 | `icon_mirror_copy` |
+  | `gilded_payout` | gold `radial_glow_soft` + `shine_bar` on the pip tick, then the brass coin (face/tilt/edge frames) hops to the Ember counter (`coin_landed`) | bob | gold | `icon_gilded_payout` |
+  | `coin_heads_copy` | spin-flip, lands on the hit, glass glint from the highest die as its face turns | spin-flip | pale glass | `icon_coin_heads_copy` |
+  | `hellfire_face` | bone `needles_radial` out and back, Hellfire-red `frame_square` (`frame_hex` for flavour verdict / midnight), ember-core glow; `chip_x1_5` | jolt (1 f kick, no rattle) | bone + ember | `icon_hellfire_face` |
+  Other rows use a generic pop (`icon_generic`). Icon discs are 28 / 30 / 32 px at 720p by tier.
+- **Art** (Art Director's sheet, `/workspace/dice/art/vfx/trigger_fx/` README; only the files used are
+  copied to `assets/vfx/trigger_fx/`, imported lossless with mipmaps): `icons/icon_<row>.png` (README
+  option A: baked disc + studs + glyph), `shapes/<id>.png` (white soft shapes, tinted) and
+  `shapes/<id>_fill.png` + `_outline.png` (the tinted fill is composited over the fixed oxblood outline
+  into one cached card), plus fixed sprites (`coin_brass_*`, `chip_x1_5/x2/x3`). Adding a row's icon
+  is dropping `icon_<row>.png` in; any missing file falls back to the code stand-in.
 - **Driven by** `table.events.triggers_resolved` (#91: starts each burst at its `start_s`), else
   `mod_triggered` (5 or 7 args). Sound goes through `TableAudio.mod_trigger` and the flash is retimed
   to its return value.
@@ -59,5 +72,5 @@ Entry point: `trigger_fx(&"mirror_copy", die, ctx := {}) -> float` (seconds to t
 
 ```bash
 godot --headless --path . --script res://tests/test_fx_trigger.gd
-# capture (needs a display): tools/capture_trigger_fx.gd, see its header
+# capture (needs a display + PR #102's batch-3 models checked out): tools/capture_trigger_fx.gd, see its header
 ```

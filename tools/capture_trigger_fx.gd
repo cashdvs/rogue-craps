@@ -6,12 +6,19 @@
 ## PIP triggers start 2 frames before the die's own count-up pip (spec 1.3,
 ## from the count-up plan), so the f2/f3 hit lands on or just after it.
 ## Prints "SHOT <hook> <start_s> <hit_s> <end_s>" (movie time) for cutting,
-## and writes trig_<hook>_frames.png (f0-f6 strip + a 48 px row) to --out.
+## and writes trig_<hook>_frames.png (f0-f7 strip + a row scaled so the die
+## is 48 px) to --out.
 ##   xvfb-run -a -s "-screen 0 1920x1080x24" godot --path . --rendering-driver vulkan \\
 ##       --resolution 1280x720 --fixed-fps 30 --write-movie /tmp/trig.avi \\
 ##       --script res://tools/capture_trigger_fx.gd -- --out=/tmp/trigger_fx/
-## The special dice are tinted Bone d6 stand-ins (the Coin and d20 shapes
-## aren't on main yet), and the Mirror's face turn is a flip overlay.
+## The special dice wear their real models, never a tinted body: Mirror and
+## Gilded use the d6 models on main (art/models/dice/*_d6.glb, same face
+## axes as DieVisual, so the pips stay); Ferryman's Coin and Verdict use the
+## batch-3 models from PR #102 (art/models/dice/ferryman_d2.glb,
+## verdict_d20.glb), shown heads / 20 up. #102 isn't in this branch: check
+## its art/models/dice files out into the capture worktree only (see the PR).
+## The rules still roll the d6 under it (the face turns are FX overlays,
+## TODO(tween_to_face)).
 extends SceneTree
 
 const FPS: float = 30.0
@@ -48,14 +55,14 @@ func _run() -> void:
 		if a.begins_with("--out="):
 			OUT = a.trim_prefix("--out=").trim_suffix("/") + "/"
 	DirAccess.make_dir_recursive_absolute(OUT)
-	await _shot(&"mirror_copy", [5, 5, 2, 5], 3, Color("#C9D2D6"), &"LAND", {"source": 1}, [0, 1, 3])
-	await _shot(&"gilded_payout", [4, 4, 6, 2], 1, Color("#C9A24E"), &"PIP", {}, [0, 1])
-	await _shot(&"coin_heads_copy", [6, 3, 2, 6], 3, Color("#8E9196"), &"LAND", {"source": 0}, [0, 3])
-	await _shot(&"hellfire_face", [2, 3, 6, 5], 3, Color("#5A1620"), &"PIP", {"flavor": &"verdict"}, [3])
+	await _shot(&"mirror_copy", [5, 5, 2, 5], 3, "mirror_d6", &"LAND", {"source": 1}, [0, 1, 3])
+	await _shot(&"gilded_payout", [4, 4, 6, 2], 1, "gilded_d6", &"PIP", {}, [0, 1])
+	await _shot(&"coin_heads_copy", [6, 3, 2, 6], 3, "ferryman_d2", &"LAND", {"source": 0}, [0, 3])
+	await _shot(&"hellfire_face", [2, 3, 6, 5], 3, "verdict_d20", &"PIP", {"flavor": &"verdict"}, [3])
 	quit()
 
 
-func _shot(id: StringName, faces: Array, die_i: int, tint: Color, anchor: StringName, ctx: Dictionary, pot: Array) -> void:
+func _shot(id: StringName, faces: Array, die_i: int, model: String, anchor: StringName, ctx: Dictionary, pot: Array) -> void:
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = TableSetup.sandbox(t, faces.size())
@@ -70,13 +77,16 @@ func _shot(id: StringName, faces: Array, die_i: int, tint: Color, anchor: String
 	fx.bind(ev, s)
 	fx.audio = audio
 	var die := s.all_dice[die_i]
-	die.set_look(tint, TriggerFxDefs.BONE if tint.v < 0.5 else Palette.PIT_BLACK, [1, 2, 3, 4, 5, 6])
 	var ff: Array[int] = []
 	ff.assign(faces)
 	s.rig_faces(ff)
+	if model.ends_with("_d6"):
+		_skin_d6(die, model)
 	s.quick_throw()
 	await s.throw_resolved
 	await s.sequence_finished
+	if not model.ends_with("_d6"):
+		_skin_batch3(die, model, s.camera.cam)
 	var start := now()
 	await wait(0.4)
 	var hit_at := [0.0]
@@ -107,13 +117,65 @@ func _shot(id: StringName, faces: Array, die_i: int, tint: Color, anchor: String
 	await wait(0.3)
 
 
-## f0-f6 at the game camera (crops around the die), plus the same frames
+func _model_mesh(model: String) -> MeshInstance3D:
+	var path := "res://art/models/dice/%s.glb" % model
+	if not ResourceLoader.exists(path):
+		push_error("capture: %s missing (check PR #102's art/models/dice out into this worktree)" % path)
+		return null
+	var scene := (load(path) as PackedScene).instantiate()
+	var mi := scene.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
+	var out := MeshInstance3D.new()
+	out.mesh = mi.mesh
+	for i in mi.get_surface_override_material_count():
+		out.set_surface_override_material(i, mi.get_surface_override_material(i))
+	scene.free()
+	return out
+
+
+## Mirror / Gilded: the special d6 model replaces the Bone body (same face
+## axes and pips, so the rules' face shows).
+func _skin_d6(die: DieVisual, model: String) -> void:
+	var m := _model_mesh(model)
+	if m == null:
+		return
+	var body := die.faces.get_node("Body") as MeshInstance3D
+	body.mesh = m.mesh
+	body.material_override = null
+	for i in m.get_surface_override_material_count():
+		body.set_surface_override_material(i, m.get_surface_override_material(i))
+	m.free()
+
+
+## Coin / Verdict: the batch-3 model sits in the faces node (so the FX beat
+## moves it), heads / 20 up with its numeral upright to the camera; the d6
+## body and pips are hidden. The coin rests on the felt (it's 24 mm thick).
+func _skin_batch3(die: DieVisual, model: String, cam: Camera3D) -> void:
+	var m := _model_mesh(model)
+	if m == null:
+		return
+	for c in die.faces.get_children():
+		if c is Node3D:
+			(c as Node3D).visible = false
+	die.faces.add_child(m)
+	# Heads (coin 1) and the 20 both face +Y at rest; turn the numeral's up
+	# (batch3_faces.json) toward the top of the screen.
+	var up := Vector3(0.86603, 0.0, -0.5) if model == "verdict_d20" else Vector3(0, 0, -1)
+	var screen_up := -cam.global_basis.z
+	screen_up.y = 0.0
+	var yaw := atan2(up.x, up.z) - atan2(screen_up.x, screen_up.z)
+	var g := Transform3D(Basis(Vector3.UP, -yaw), die.global_position)
+	if model == "ferryman_d2":
+		g.origin.y = 0.012
+	m.global_transform = g
+
+
+## f0-f7 at the game camera (crops around the die), plus the same frames
 ## scaled so the die is 48 px (spec 0: readable at 48 px).
 func _strip(id: StringName, s: Bonfire3D, die: DieVisual) -> void:
 	var cam := s.camera.cam
 	var t0 := now()
 	var cells: Array[Image] = []
-	for f in 7:
+	for f in 8:
 		while now() < t0 + f / 12.0 - 0.001:
 			await process_frame
 		await RenderingServer.frame_post_draw
@@ -129,7 +191,7 @@ func _strip(id: StringName, s: Bonfire3D, die: DieVisual) -> void:
 	px *= float(root.get_texture().get_image().get_width()) / root.get_visible_rect().size.x
 	var k := 48.0 / maxf(px, 1.0)
 	var small := int(STRIP_CELL * k)
-	var out := Image.create(STRIP_CELL * 7, STRIP_CELL + small, false, Image.FORMAT_RGBA8)
+	var out := Image.create(STRIP_CELL * cells.size(), STRIP_CELL + small, false, Image.FORMAT_RGBA8)
 	out.fill(Color("#0E1414"))
 	for f in cells.size():
 		var cimg := cells[f]

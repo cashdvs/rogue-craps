@@ -4,16 +4,18 @@
 ## returns the seconds until the KEY HIT (the sound sync frame).
 ##
 ## Grammar (spec 1.1), stepped at 12 fps (one frame = 83 ms, toon stutter):
-##   f0-f1 anticipation: squash, a tight charge ring at 0.9x die
-##   key hit (f2/f3/f4 per row): stretch, the glow shape at full size,
-##     diamond sparks, the link beam/arc lands
-##   icon pop: on the hit (minor) or hit + 1 (major / signature)
+##   f0-f1 anticipation: squash (a Mirror / Coin glint may already travel)
+##   key hit (f2/f3/f4 per row): stretch, a ring PULSE (grows and fades in
+##     0.25 s, tinted per row), the row's own piece (glint / gold halo + coin
+##     hop / corner needles), sparks out and down, the icon pops
 ##   motion beat: the row's per-frame keys (TriggerFxDefs.BEATS)
-##   settle: shapes go, the die returns exactly to rest, the icon fades
+##   settle: the die returns exactly to rest; the icon holds 0.5 s and fades
 ## Motion is applied to the die's inner `faces` node in WORLD axes and always
 ## restored to the exact rest transform, so the seeded face remap and the
-## table's own tweens on the die node are never disturbed. Glow only: no fire
-## on dice (spec 0), no real lights (bloom only).
+## table's own tweens on the die node are never disturbed. Glow only, and
+## never on the die body: no material on the die is touched, and every glow
+## card is open in the middle. No fire, no real lights (bloom only), sparks
+## never rise above the die.
 ##
 ## Sound: TableAudio is the only caller of sfx.play_mod_trigger. At a burst's
 ## start this asks `audio.mod_trigger(id, die, anchor, ctx)` and, if the cue
@@ -34,14 +36,20 @@ signal coin_landed(die: Node3D)
 ## One pooled burst: its nodes and its play state.
 class Burst:
 	extends RefCounted
+	## The row's own pieces: card (needles, gold glow), frame (silhouette
+	## frame / shine bar), core (ember-core glow).
 	var card: MeshInstance3D
+	var frame: MeshInstance3D
+	var core: MeshInstance3D
 	var ring: MeshInstance3D
-	var flash: MeshInstance3D
-	var link: MeshInstance3D
+	var ring2: MeshInstance3D
+	## Mirror / Coin: the travelling glass glint and its fading trail.
+	var glint: MeshInstance3D
+	var trail: Array[MeshInstance3D] = []
 	var sparks: Array[MeshInstance3D] = []
-	var arc: Array[MeshInstance3D] = []
 	var icon: TriggerIcon
-	var coin: TriggerIcon
+	var chip: TriggerChip
+	var icon_tw: Tween
 	var id: StringName
 	var row: Dictionary
 	var die: Node3D
@@ -70,6 +78,8 @@ var _queue: Array[Dictionary] = []
 var _seq: int = 0
 var _clock: float = 0.0
 var _next_start: float = 0.0
+## Gilded flight coins (screen space), pre-warmed.
+var _coins: Array[TriggerIcon] = []
 
 
 func _init() -> void:
@@ -85,14 +95,24 @@ func _ready() -> void:
 	var mobile := str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "")) != "forward_plus"
 	for i in TriggerFxDefs.POOL_MOBILE if mobile else TriggerFxDefs.POOL_PC:
 		_pool.append(_make_burst())
+	for i in 4:
+		var c := TriggerIcon.new()
+		c.visible = false
+		icon_layer.add_child(c)
+		_coins.append(c)
 	# Pre-warm every shape texture now, so the first trigger doesn't hitch.
 	var rows: Array[Dictionary] = [TriggerFxDefs.GENERIC]
 	rows.append_array(TriggerFxDefs.ROWS.values())
 	for row in rows:
-		TriggerShapes.texture(row["shape"], row["tint"])
-		TriggerShapes.texture(&"ring", row["tint2"])
-	TriggerShapes.texture(&"diamond", TriggerFxDefs.EMBER_CORE)
-	TriggerShapes.texture(&"flash", TriggerFxDefs.EMBER_CORE)
+		TriggerShapes.texture(&"ring_pulse_soft", row["ring"])
+		if row.get("ring2") is Color:
+			TriggerShapes.texture(&"ring_pulse_soft", row["ring2"])
+		if row.get("spark") is Color:
+			TriggerShapes.texture(&"spark_diamond", row["spark"])
+	for pair: Array in [[&"glint_streak", TriggerFxDefs.GLASS], [&"spark_diamond", TriggerFxDefs.GLASS], [&"frame_square", TriggerFxDefs.GLASS],
+			[&"needles_radial", TriggerFxDefs.BONE], [&"frame_square", TriggerFxDefs.HELLFIRE], [&"frame_hex", TriggerFxDefs.HELLFIRE],
+			[&"radial_glow_soft", TriggerFxDefs.EMBER_CORE], [&"radial_glow_soft", TriggerFxDefs.BRASS_HI], [&"shine_bar", TriggerFxDefs.BRASS_HI]]:
+		TriggerShapes.texture(pair[0], pair[1])
 	_bind_to_parent.call_deferred()
 
 
@@ -306,51 +326,141 @@ func _step(b: Burst, f: int) -> void:
 	var hit_f := int(b.row["hit"])
 	var frames := int(b.row["frames"])
 	var tier := int(b.row["tier"])
-	if f >= frames:
-		_release(b)
-		return
-	if not is_instance_valid(b.die):
+	if f >= frames or not is_instance_valid(b.die):
 		_release(b)
 		return
 	var at := b.die.global_position
 	_motion(b, f, f == frames - 1)
 	var s := b.edge * TriggerFxDefs.SHAPE_SCALE[tier]
-	# Anticipation: the charge ring.
-	if f < hit_f:
-		_show(b.ring, at, b.edge * 0.9 * (1.0 - 0.05 * f), TriggerShapes.texture(&"ring", b.row["tint2"]), 0.8)
-	# Key hit: the glow shape at full size, sparks, the flash on signatures.
-	if f == hit_f:
-		_show(b.card, at, s, TriggerShapes.texture(b.row["shape"], b.row["tint"]), 1.0)
-		if tier >= TriggerFxDefs.MAJOR:
-			_show(b.ring, at, s * 1.1, TriggerShapes.texture(&"ring", b.row["tint2"]), 0.9)
-		else:
-			b.ring.visible = false
-		if tier == TriggerFxDefs.SIGNATURE:
-			_show(b.flash, at, s * 0.9, TriggerShapes.texture(&"flash", TriggerFxDefs.EMBER_CORE), 1.0)
-		hit.emit(b.id, b.die)
-	elif f > hit_f:
-		b.flash.visible = false
-		var k := f - hit_f
-		var shrink := 1.0 - 0.18 * k if b.row["shape"] == &"needles" else 1.0 + 0.06 * k
-		_show(b.card, at, s * shrink, null, 0.5 if f == frames - 1 else 1.0)
-		if b.ring.visible:
-			_show(b.ring, at, s * (1.1 + 0.12 * k), null, maxf(0.0, 0.9 - 0.3 * k))
-	# Sparks fly out from the hit, stepped (reduced motion: none).
+	var k := f - hit_f
+	# The ring pulse (and an inner one a frame later): grows and fades out.
+	_pulse(b.ring, at, s, k, b.row["ring"], 1.0)
+	if b.row.get("ring2") is Color:
+		_pulse(b.ring2, at, s, k - 1, b.row["ring2"], 0.75)
+	_row_fx(b, f, k, at, s)
+	_glint(b, f, at)
+	# Sparks fly out and DOWN from the hit, stepped (reduced motion: none).
+	var spark: Variant = b.row.get("spark")
+	var n := TriggerFxDefs.SPARKS[tier]
 	for i in b.sparks.size():
 		var sp := b.sparks[i]
-		var n := TriggerFxDefs.SPARKS[tier]
-		if f < hit_f or i >= n or reduced:
+		if k < 0 or k > 2 or i >= n or reduced or not spark is Color:
 			sp.visible = false
 			continue
-		# Out and slightly DOWN, never up: rising sparks read as flame (QA).
+		# Rising sparks read as flame (QA): out and slightly down only.
 		var dir := Vector3.RIGHT.rotated(Vector3.UP, TAU * i / n + 0.3)
 		dir = (dir + Vector3(0, -0.2 - 0.15 * absf(sin(i * 2.1)), 0)).normalized()
-		_show(sp, at + dir * b.edge * (0.8 + 0.45 * (f - hit_f)), b.edge * 0.22, TriggerShapes.texture(&"diamond", TriggerFxDefs.EMBER_CORE), 1.0 - 0.25 * (f - hit_f))
-	_link(b, f, hit_f, at)
-	# Icon pop: scale 0 -> 1.25 -> 1.0 over 2 frames, rising 6 pt.
-	var pop_f := hit_f if tier == TriggerFxDefs.MINOR else hit_f + 1
-	if f >= pop_f:
-		_icon(b, f - pop_f)
+		_show(b.sparks[i], at + dir * b.edge * (0.8 + 0.45 * k), b.edge * 0.22, TriggerShapes.texture(&"spark_diamond", spark), 1.0 - 0.3 * k)
+	if k == 0:
+		hit.emit(b.id, b.die)
+	# The icon pops ON the hit (all tiers), then follows the die while live.
+	if k >= 0:
+		_icon(b, k)
+
+
+## A ring pulse frame k (0 = the hit): 1.0x -> 1.8x the shape size, alpha
+## 1 -> 0 over RING_FRAMES. Hidden outside the pulse: never a static ring.
+func _pulse(m: MeshInstance3D, at: Vector3, s: float, k: int, tint: Color, scale: float) -> void:
+	if k < 0 or k >= TriggerFxDefs.RING_FRAMES:
+		m.visible = false
+		return
+	var u := float(k) / TriggerFxDefs.RING_FRAMES
+	_show(m, at, s * scale * (1.0 + 0.8 * u), TriggerShapes.texture(&"ring_pulse_soft", tint), 1.0 - u)
+
+
+## The row's own piece (what tells rows apart at a glance). All of these are
+## depth-tested at the die's centre, so the die covers their middle: they
+## read as a halo / rim around it, never as a tint on the body.
+func _row_fx(b: Burst, f: int, k: int, at: Vector3, s: float) -> void:
+	b.card.visible = false
+	b.frame.visible = false
+	b.core.visible = false
+	match b.row["fx"]:
+		&"gild":  # a gold glow + shine bar on the pip tick (2 f), then the coin hops off
+			if k == 0 or k == 1:
+				var a := 1.0 if k == 0 else 0.45
+				_show(b.card, at, s * (1.9 + 0.2 * k), TriggerShapes.texture(&"radial_glow_soft", TriggerFxDefs.BRASS_HI), a)
+				_show(b.frame, at, s * 1.15, TriggerShapes.texture(&"shine_bar", TriggerFxDefs.BRASS_HI), a)
+			if k == 1 and b.row.has("coin_flight"):
+				_coin_flight(b.die, float(b.row["coin_flight"]) / _speed())
+		&"needles":  # bone needles shoot out (2 f) and retract; red frame; ember core
+			const NEEDLE_SIZE: Array[float] = [1.05, 1.55, 1.25]
+			if k >= 0 and k < NEEDLE_SIZE.size():
+				_show(b.card, at, s * NEEDLE_SIZE[k], TriggerShapes.texture(&"needles_radial", TriggerFxDefs.BONE), 1.0 if k < 2 else 0.7)
+			if k == 0 or k == 1:
+				var hex := StringName(b.ctx.get("flavor", &"")) in [&"verdict", &"midnight"]
+				_show(b.frame, at, s * 0.95, TriggerShapes.texture(&"frame_hex" if hex else &"frame_square", TriggerFxDefs.HELLFIRE), 1.0 if k == 0 else 0.5)
+				_show(b.core, at, s * 1.2, TriggerShapes.texture(&"radial_glow_soft", TriggerFxDefs.EMBER_CORE), 0.9 if k == 0 else 0.4)
+		&"glint":  # Mirror: a pale glass frame flashes as the glint lands
+			if k == 0 or k == 1:
+				_show(b.frame, at, s * 0.95, TriggerShapes.texture(&"frame_square", TriggerFxDefs.GLASS), 1.0 if k == 0 else 0.45)
+
+
+## Mirror / Coin: a glass glint streak travels from ctx.source to the die over
+## the row's glint frames [from, to], lying along its path and bowing
+## sideways across the felt (never up), with two fading diamond dots behind
+## it; on arrival it twinkles on the die as a glass diamond.
+func _glint(b: Burst, f: int, at: Vector3) -> void:
+	b.glint.visible = false
+	for t in b.trail:
+		t.visible = false
+	var g: Variant = b.row.get("glint")
+	if not g is Array:
+		return
+	var f0 := int(g[0])
+	var f1 := int(g[1])
+	if f < f0 or f > f1:
+		return
+	var glass := TriggerFxDefs.GLASS
+	if f == f1 or b.source == null or not is_instance_valid(b.source):
+		if f == f1:
+			_show(b.glint, at, b.edge * 0.9, TriggerShapes.texture(&"spark_diamond", glass), 1.0)
+			_face_camera(b.glint, Vector3.ZERO)
+		return
+	var u := float(f - f0) / float(f1 - f0)
+	var from := b.source.global_position
+	var p := glint_point(from, at, u)
+	_show(b.glint, p, b.edge * 1.6, TriggerShapes.texture(&"glint_streak", glass), 1.0)
+	_face_camera(b.glint, glint_point(from, at, minf(u + 0.05, 1.0)) - glint_point(from, at, maxf(u - 0.05, 0.0)))
+	for i in b.trail.size():
+		var v := u - 0.12 * (i + 1)
+		if v >= 0.0:
+			_show(b.trail[i], glint_point(from, at, v), b.edge * 0.3, TriggerShapes.texture(&"spark_diamond", glass), 0.7 - 0.3 * i)
+
+
+## Orients the (non-billboard) glint quad to face the camera with its x axis
+## along `along` (projected on the screen plane); a zero vector = upright.
+func _face_camera(m: MeshInstance3D, along: Vector3) -> void:
+	var cam := _cam()
+	var z := cam.global_basis.z if cam != null else Vector3.BACK
+	var x := along - z * along.dot(z)
+	if x.length() < 0.00001:
+		x = cam.global_basis.x if cam != null else Vector3.RIGHT
+	x = x.normalized()
+	var y := z.cross(x).normalized()
+	m.global_basis = Basis(x, y, z)
+
+
+## A point on the glint's path at u (0 = source, 1 = target): a sideways bow
+## toward the camera across the felt; height goes straight from one die to
+## the other, so it never rises above the higher one.
+func glint_point(from: Vector3, to: Vector3, u: float) -> Vector3:
+	var d := to - from
+	var side := d.cross(Vector3.UP)
+	side.y = 0.0
+	if side.length() < 0.0001:
+		return from.lerp(to, u)
+	side = side.normalized()
+	var cam := _cam()
+	if cam != null and side.dot(cam.global_position - (from + to) * 0.5) < 0.0:
+		side = -side
+	return from.lerp(to, u) + side * sin(PI * u) * 0.3 * Vector2(d.x, d.z).length()
+
+
+func _cam() -> Camera3D:
+	if camera != null:
+		return camera
+	return get_viewport().get_camera_3d() if is_inside_tree() else null
 
 
 ## The die's motion beat, in world axes, on its inner `faces` node.
@@ -369,48 +479,42 @@ func _motion(b: Burst, f: int, last: bool) -> void:
 	b.faces.transform = Transform3D(local * b.rest.basis, b.rest.origin + B.inverse() * Vector3(jit, float(k[0]) * b.edge, 0))
 
 
-## Mirror: a straight thin bone beam from the source die (grows to the hit).
-## Coin: a swooping arc of diamond sparks from the source down onto the coin.
-func _link(b: Burst, f: int, hit_f: int, at: Vector3) -> void:
-	var link: StringName = b.row["link"]
-	b.link.visible = false
-	for a in b.arc:
-		a.visible = false
-	if link == &"" or b.source == null or not is_instance_valid(b.source) or f > hit_f:
-		return
-	var from := b.source.global_position
-	var grow := clampf(float(f + 1) / float(hit_f + 1), 0.0, 1.0)
-	if link == &"beam":
-		var to := from.lerp(at, grow)
-		var mid := (from + to) * 0.5
-		var len := maxf(from.distance_to(to), 0.001)
-		b.link.visible = true
-		b.link.global_transform = Transform3D(Basis.looking_at((to - from).normalized() if len > 0.002 else Vector3.FORWARD, Vector3.UP).scaled(Vector3(1, 1, len)), mid)
-	elif link == &"arc":
-		# A low swoop (half a die above the higher end), then down onto the coin.
-		var top := (from + at) * 0.5
-		top.y = maxf(from.y, at.y) + b.edge * 0.5
-		for i in b.arc.size():
-			var u := float(i + 1) / float(b.arc.size())
-			if u > grow:
-				continue
-			var p := from.lerp(top, u).lerp(top.lerp(at, u), u)
-			_show(b.arc[i], p, b.edge * 0.25, TriggerShapes.texture(&"diamond", TriggerFxDefs.BRASS_HI), 1.0)
-
-
+## Icon frame k (0 = the hit): pops 1.25 -> 1.0, rising 4 px; holds
+## ICON_HOLD, then fades. The chip (if the row has one) pops a frame later.
 func _icon(b: Burst, k: int) -> void:
 	var ic := b.icon
+	var sc := _px_scale()
 	if k == 0:
-		ic.setup(b.row["icon"], int(b.row["tier"]), _px_per_pt(), bool(b.ctx.get("cost", false)))
+		ic.setup(b.row["icon"], int(b.row["tier"]), sc, bool(b.ctx.get("cost", false)))
 		ic.modulate.a = 1.0
 		ic.visible = true
-	ic.scale = Vector2.ONE * (0.0 if k < 0 else (1.25 if k == 0 else 1.0))
-	ic.position = _icon_pos(b.die, ic.diameter) - Vector2(0, (6.0 if k >= 1 else 3.0) * _px_per_pt())
+		b.chip.visible = false
+		b.chip.modulate.a = 1.0
+		if b.icon_tw != null and b.icon_tw.is_valid():
+			b.icon_tw.kill()
+		b.icon_tw = ic.create_tween().set_ignore_time_scale(true)
+		b.icon_tw.tween_interval(TriggerFxDefs.ICON_HOLD / _speed())
+		b.icon_tw.tween_property(ic, "modulate:a", 0.0, TriggerFxDefs.ICON_FADE / _speed())
+		b.icon_tw.parallel().tween_property(b.chip, "modulate:a", 0.0, TriggerFxDefs.ICON_FADE / _speed())
+		var chip := b.chip
+		b.icon_tw.tween_callback(func() -> void:
+			ic.visible = false
+			chip.visible = false)
+	ic.scale = Vector2.ONE * (1.25 if k == 0 else 1.0)
+	ic.position = _icon_pos(b.die, ic.diameter) - Vector2(0, (4.0 if k >= 1 else 2.0) * sc)
+	var label := String(b.ctx.get("chip", b.row.get("chip", "")))
+	if k >= 1 and label != "":
+		if k == 1:
+			b.chip.setup(label, sc)
+			b.chip.visible = true
+		b.chip.scale = Vector2.ONE * (1.2 if k == 1 else 1.0)
+		b.chip.position = ic.position + Vector2(ic.diameter + 4.0 * sc, (ic.diameter - b.chip.size.y) * 0.5)
 
 
-func _px_per_pt() -> float:
-	var vs := get_viewport().get_visible_rect().size if is_inside_tree() else Vector2(1920, 1080)
-	return maxf(vs.y / 1080.0, 0.75)
+## Viewport height / 720 (icon sizes are authored at 720p).
+func _px_scale() -> float:
+	var vs := get_viewport().get_visible_rect().size if is_inside_tree() else Vector2(1280, 720)
+	return maxf(vs.y / 720.0, 0.6)
 
 
 ## Above the value-tag anchor (die + 0.07 m), clamped to the safe area.
@@ -429,7 +533,7 @@ func _instant(id: StringName, die: Node3D, row: Dictionary, ctx: Dictionary) -> 
 		audio.call("mod_trigger", id, ctx.get("die_id", die), StringName(ctx.get("anchor", row["anchor"])), ctx)
 	var ic := TriggerIcon.new()
 	icon_layer.add_child(ic)
-	ic.setup(row["icon"], int(row["tier"]), _px_per_pt(), bool(ctx.get("cost", false)))
+	ic.setup(row["icon"], int(row["tier"]), _px_scale(), bool(ctx.get("cost", false)))
 	ic.position = _icon_pos(die, ic.diameter)
 	get_tree().create_timer(TriggerFxDefs.INSTANT_ICON, true, false, true).timeout.connect(ic.queue_free)
 
@@ -437,39 +541,51 @@ func _instant(id: StringName, die: Node3D, row: Dictionary, ctx: Dictionary) -> 
 func _release(b: Burst) -> void:
 	if b.faces != null and is_instance_valid(b.faces):
 		b.faces.transform = b.rest
-	for m: MeshInstance3D in [b.card, b.ring, b.flash, b.link] + b.sparks + b.arc:
+	for m: MeshInstance3D in [b.card, b.frame, b.core, b.ring, b.ring2, b.glint] + b.sparks + b.trail:
 		m.visible = false
-	var ic := b.icon
-	if ic.visible:
-		var tw := ic.create_tween().set_ignore_time_scale(true)
-		tw.tween_property(ic, "modulate:a", 0.0, TriggerFxDefs.ICON_FADE / _speed())
-		tw.tween_callback(func() -> void: ic.visible = false)
-	if b.row.has("coin_flight") and is_instance_valid(b.die):
-		_coin_flight(b, float(b.row["coin_flight"]) / _speed())
+	# The icon and chip finish their own hold + fade (started at the pop).
 	_live.erase(b)
 	_pool.append(b)
 	_pump()
 
 
-## Gilded: a flat brass coin flips twice and arcs to the Ember counter;
-## coin_landed fires when it gets there (spec 2a, GD 8.3).
-func _coin_flight(b: Burst, seconds: float) -> void:
-	var c := b.coin
-	var die := b.die
-	c.setup(&"coin", TriggerFxDefs.MINOR, _px_per_pt())
+## Gilded: a small brass coin hops up off the die, flipping, and arcs to the
+## Ember counter; coin_landed fires when it gets there (spec 2a, GD 8.3).
+## Screen space and outside the burst cap, so it reads at any die size.
+func _coin_flight(die: Node3D, seconds: float) -> void:
+	var c: TriggerIcon = null
+	for x in _coins:
+		if not x.visible:
+			c = x
+			break
+	if c == null or reduced or speed_mode >= 2:
+		coin_landed.emit(die)
+		return
+	var sc := _px_scale()
+	c.setup(&"brass_coin", TriggerFxDefs.MINOR, sc)
+	c.coin_frame = 0
 	c.visible = true
 	c.modulate.a = 1.0
 	var vs := get_viewport().get_visible_rect().size
-	var from := _icon_pos(die, c.diameter)
-	var to := pile_screen if pile_screen.x >= 0.0 else Vector2(vs.x - 150.0 * _px_per_pt(), 20.0 * _px_per_pt())
-	if reduced or speed_mode >= 2:
-		c.visible = false
-		coin_landed.emit(die)
-		return
+	var from := vs * 0.5
+	var cam := _cam()
+	if cam != null and is_instance_valid(die):
+		from = cam.unproject_position(die.global_position + Vector3(0, 0.04, 0))
+	from -= Vector2.ONE * c.diameter * 0.5
+	var to := pile_screen if pile_screen.x >= 0.0 else Vector2(vs.x - 150.0 * sc, 20.0 * sc)
+	var hop := 70.0 * sc
+	var sprite := TriggerShapes.fixed("coin_brass_face") != null
+	var seq: Array[int] = [0, 1, 2, 1]
 	var tw := c.create_tween()
 	tw.tween_method(func(u: float) -> void:
-		c.position = from.lerp(to, u) - Vector2(0, sin(u * PI) * 80.0 * _px_per_pt())
-		c.scale = Vector2(absf(cos(u * TAU * 2.0)), 1.0), 0.0, 1.0, seconds)
+		# Up off the die first (a hop), then the long arc to the counter.
+		var e := u * u * (3.0 - 2.0 * u)
+		c.position = from.lerp(to, e) - Vector2(0, sin(minf(u * 1.6, 1.0) * PI * 0.5) * hop * (1.0 - e * 0.6))
+		# Two flips at 12 fps: face, tilt, edge, tilt, face ... (the sprite's
+		# frames; the code stand-in squashes instead).
+		c.coin_frame = seq[int(u * seconds * TriggerFxDefs.FPS) % seq.size()]
+		if not sprite:
+			c.scale = Vector2(maxf(absf(cos(u * TAU * 2.0)), 0.15), 1.0), 0.0, 1.0, seconds)
 	tw.tween_callback(func() -> void:
 		c.visible = false
 		coin_landed.emit(die))
@@ -477,34 +593,28 @@ func _coin_flight(b: Burst, seconds: float) -> void:
 
 func _make_burst() -> Burst:
 	var b := Burst.new()
+	b.core = _card(0)
 	b.card = _card(0)
+	b.frame = _card(0)
 	b.ring = _card(0)
-	b.flash = _card(0)
+	b.ring2 = _card(0)
+	b.glint = _card(2)
+	(b.glint.material_override as StandardMaterial3D).billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
 	for i in 8:
 		b.sparks.append(_card(1))
-	for i in 6:
-		b.arc.append(_card(2))
-	b.link = MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(0.006, 0.006, 1.0)
-	b.link.mesh = box
-	var lm := _mat(2)
-	lm.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
-	lm.albedo_color = TriggerFxDefs.BONE
-	b.link.material_override = lm
-	b.link.visible = false
-	add_child(b.link)
+	for i in 2:
+		b.trail.append(_card(2))
 	b.icon = TriggerIcon.new()
 	b.icon.visible = false
 	icon_layer.add_child(b.icon)
-	b.coin = TriggerIcon.new()
-	b.coin.visible = false
-	icon_layer.add_child(b.coin)
+	b.chip = TriggerChip.new()
+	b.chip.visible = false
+	icon_layer.add_child(b.chip)
 	return b
 
 
 ## A billboard card. priority 0 = glow (depth-tested so the die hides the
-## back half), 1 = sparks, 2 = links (spec 1.6), both without depth test.
+## back half), 1 = sparks, 2 = the glint (spec 1.6), both without depth test.
 func _card(priority: int) -> MeshInstance3D:
 	var m := MeshInstance3D.new()
 	m.mesh = QuadMesh.new()
@@ -527,11 +637,11 @@ func _mat(priority: int) -> StandardMaterial3D:
 	return mat
 
 
-func _show(m: MeshInstance3D, at: Vector3, size: float, tex: Texture2D, alpha: float) -> void:
+func _show(m: MeshInstance3D, at: Vector3, size: float, tex: Texture2D, alpha: float, tint: Color = Color.WHITE) -> void:
 	var mat := m.material_override as StandardMaterial3D
 	if tex != null:
 		mat.albedo_texture = tex
-	mat.albedo_color = Color(1, 1, 1, alpha)
+	mat.albedo_color = Color(tint, alpha)
 	(m.mesh as QuadMesh).size = Vector2.ONE * size
 	m.global_position = at
 	m.visible = alpha > 0.0

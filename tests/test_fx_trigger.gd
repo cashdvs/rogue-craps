@@ -83,6 +83,8 @@ func _run() -> void:
 	_test_audio_sync_and_speed()
 	_test_reduced_and_pool()
 	_test_links_and_icons()
+	_test_rows_read_apart()
+	_test_never_tints_the_die()
 	await _test_coin_flight()
 	await _test_listener()
 	_test_table_audio()
@@ -125,32 +127,72 @@ func _test_defs() -> void:
 		var h := TriggerFxDefs.hit_time(id)
 		_check(h >= 0.15 and h <= 0.45, "%s key hit %.3f s is inside the 0.15-0.45 s cue window" % [id, h])
 		_check(int(r["hit"]) < int(r["frames"]), "%s hits before it ends" % id)
-		for c: Color in [r["tint"], r["tint2"]]:
-			_check(c != Color("#4FE6E0") and c != Color("#FF2E3E"), "%s uses no Soul cyan / Danger (it touches neither)" % id)
+		for c: Variant in [r["ring"], r.get("ring2"), r.get("spark")]:
+			if c is Color:
+				_check(not _cyan_or_violet(c) and c != Color("#FF2E3E"), "%s: no cyan, violet or Danger glow (%s)" % [id, c.to_html()])
 		for w in FIRE_WORDS:
-			_check(not (w in String(r["shape"])) and not (w in String(r["beat"])), "%s: no fire shape or beat" % id)
+			_check(not (w in String(r["fx"])) and not (w in String(r["beat"])), "%s: no fire piece or beat" % id)
 	_check(is_equal_approx(TriggerFxDefs.hit_time(&"gilded_payout"), 2.0 / 12.0), "Gilded (minor) hits on f2 = 167 ms")
 	_check(is_equal_approx(TriggerFxDefs.hit_time(&"mirror_copy"), 3.0 / 12.0) and is_equal_approx(TriggerFxDefs.hit_time(&"hellfire_face"), 3.0 / 12.0), "Mirror / Hellfire (major) hit on f3 = 250 ms")
 	_check(is_equal_approx(TriggerFxDefs.hit_time(&"coin_heads_copy"), 4.0 / 12.0), "Coin heads (major) hits on f4 = 333 ms")
 	_check(is_equal_approx(TriggerFxDefs.length(&"mirror_copy"), 0.5) and TriggerFxDefs.length(&"gilded_payout") <= 0.42, "major 0.50 s, minor <= 0.42 s")
 	_check(TriggerFxDefs.row(&"unknown_row")["icon"] == &"generic", "unknown ids fall back to a generic minor pop")
+	# v2 (Art Director): every row reads apart by its own piece AND beat.
+	var pieces := {}
+	var beats := {}
+	for id: StringName in TriggerFxDefs.ROWS:
+		pieces[TriggerFxDefs.ROWS[id]["fx"]] = true
+		beats[TriggerFxDefs.ROWS[id]["beat"]] = true
+	_check(pieces.size() == 4 and beats.size() == 4, "the 4 rows each have their own piece and beat (%s / %s)" % [pieces.keys(), beats.keys()])
+	_check(TriggerFxDefs.ROWS[&"gilded_payout"]["ring"] == TriggerFxDefs.BRASS_HI and TriggerFxDefs.ROWS[&"hellfire_face"]["ring"] == TriggerFxDefs.BONE
+			and TriggerFxDefs.ROWS[&"hellfire_face"]["ring2"] == TriggerFxDefs.EMBER_MID and TriggerFxDefs.ROWS[&"mirror_copy"]["ring"] == TriggerFxDefs.GLASS
+			and TriggerFxDefs.ROWS[&"coin_heads_copy"]["ring"] == TriggerFxDefs.GLASS, "ring tints: gold Gilded, bone + ember Hellfire, pale glass Mirror / Coin")
+	_check(TriggerFxDefs.GLASS == Color("#F2EEE2") and TriggerFxDefs.GLASS.h < 0.2, "pale glass is the art's warm #F2EEE2, never bluish")
+
+
+## Soul cyan and Satanic violet families (hue 170-200 / 260-300 with colour).
+func _cyan_or_violet(c: Color) -> bool:
+	var h := c.h * 360.0
+	return c.s > 0.12 and ((h >= 165.0 and h <= 205.0) or (h >= 255.0 and h <= 305.0))
 
 
 func _test_shapes() -> void:
 	for id in TriggerShapes.SHAPES:
+		_check(TriggerShapes.is_art(id), "shape %s comes from the Art Director's sheet" % id)
 		var img := TriggerShapes.texture(id, TriggerFxDefs.BONE).get_image()
 		var filled := 0
-		var outline := 0
 		for y in range(0, img.get_height(), 3):
 			for x in range(0, img.get_width(), 3):
-				var c := img.get_pixel(x, y)
-				if c.a > 0.5 and c.is_equal_approx(TriggerFxDefs.OXBLOOD):
-					outline += 1
-				elif c.a > 0.5:
+				if img.get_pixel(x, y).a > 0.3:
 					filled += 1
 		_check(filled > 0, "shape %s has a fill" % id)
-		_check(id == &"flash" or outline > 0, "shape %s has the oxblood outline baked in" % id)
-	_check(TriggerShapes.texture(&"ring", TriggerFxDefs.BONE) == TriggerShapes.texture(&"ring", TriggerFxDefs.BONE), "shape textures are cached")
+		_check(img.has_mipmaps(), "shape %s has mipmaps" % id)
+		if id in [&"ring_pulse_soft", &"needles_radial", &"frame_square", &"frame_hex"]:
+			var c := img.get_pixel(img.get_width() / 2, img.get_height() / 2)
+			_check(c.a < 0.05, "glow %s is open in the middle: it never covers the die body" % id)
+	# Tinting: a white soft shape takes the row colour; hard shapes keep the oxblood outline.
+	var gold := TriggerShapes.texture(&"ring_pulse_soft", TriggerFxDefs.BRASS_HI).get_image()
+	var best := Color(0, 0, 0, 0)
+	for x in gold.get_width():
+		var c := gold.get_pixel(x, gold.get_height() / 2)
+		if c.a > best.a:
+			best = c
+	_check(absf(best.h - TriggerFxDefs.BRASS_HI.h) < 0.03 and best.s > 0.3, "ring_pulse_soft is tinted gold (%s)" % best.to_html())
+	var nd := TriggerShapes.texture(&"needles_radial", TriggerFxDefs.BONE).get_image()
+	var ox := 0
+	for y in nd.get_height():
+		for x in nd.get_width():
+			var c := nd.get_pixel(x, y)
+			if c.a > 0.9 and c.r < 0.35 and c.b < 0.2:
+				ox += 1
+	_check(ox > 0, "needles_radial keeps its oxblood outline behind the bone fill")
+	_check(TriggerShapes.texture(&"ring_pulse_soft", TriggerFxDefs.BONE) == TriggerShapes.texture(&"ring_pulse_soft", TriggerFxDefs.BONE), "shape textures are cached")
+	for n in ["coin_brass_face", "coin_brass_tilt", "coin_brass_edge", "chip_x1_5"]:
+		_check(TriggerShapes.fixed(n) != null, "fixed sprite %s is in the repo" % n)
+	for id: StringName in TriggerFxDefs.ROWS:
+		var icon: StringName = TriggerFxDefs.ROWS[id]["icon"]
+		_check(ResourceLoader.exists(TriggerFxDefs.ART_DIR + "icons/icon_%s.png" % icon), "row %s uses the baked icon icon_%s.png" % [id, icon])
+	_check(TriggerShapes._procedural(&"frame_hex", TriggerFxDefs.BONE).get_width() == TriggerShapes.SIZE, "procedural stand-ins still work if a file is missing")
 
 
 func _test_timing_and_beat() -> void:
@@ -284,23 +326,118 @@ func _test_links_and_icons() -> void:
 	fx.trigger_fx(&"mirror_copy", m, {"source": src})
 	_step(fx, 1.0 / 12.0 + DT)
 	var b: TriggerFx.Burst = fx._live[0]
-	_check(b.link.visible, "Mirror: the beam runs from the source die during anticipation")
-	_step(fx, 0.25)
-	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 28.0 * fx._px_per_pt()) and b.icon.studs == 4, "major icon: 28 pt disc with 4 studs (%.1f)" % b.icon.diameter)
+	var gp := b.glint.global_position
+	_check(b.glint.visible and gp.x > -0.2 and gp.x < 0.2, "Mirror: a glass glint is on its way from the source on f1 (%s)" % gp)
+	_check(gp.y <= 0.04 + 0.0001 and absf(gp.z) > 0.01, "the glint bows sideways along the felt, never up (%s)" % gp)
+	var low := true
+	for u in 11:
+		low = low and fx.glint_point(src.global_position, m.global_position, u / 10.0).y <= 0.04 + 0.0001
+	_check(low, "the glint path never rises above the dice")
+	_check(b.glint.mesh.size.x < 0.15, "the glint is a short streak, not a beam (%.3f m)" % b.glint.mesh.size.x)
+	var along := (b.glint.global_basis.x).normalized()
+	var path := (fx.glint_point(src.global_position, m.global_position, 0.4) - fx.glint_point(src.global_position, m.global_position, 0.26)).normalized()
+	_check(absf(along.dot(_cam.global_basis.z)) < 0.01 and along.dot(path) > 0.5, "the streak faces the camera and lies along its path")
+	_step(fx, 2.0 / 12.0)
+	_check(b.glint.visible and b.glint.global_position.is_equal_approx(m.global_position), "the glint lands on the Mirror on the hit (f3)")
+	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 30.0 * fx._px_scale()) and b.icon.studs == 4, "major icon: 30 px at 720p, 4 studs (%.1f)" % b.icon.diameter)
 	_step(fx, 1.0)
 	fx.trigger_fx(&"coin_heads_copy", m, {"source": src})
 	_step(fx, 2.0 / 12.0 + DT)
 	b = fx._live[0]
-	var shown := b.arc.filter(func(a: MeshInstance3D) -> bool: return a.visible).size()
-	_check(shown > 0 and not b.link.visible, "Coin: a spark arc (not a beam) swoops from the source (%d)" % shown)
-	_check(b.arc.all(func(a: MeshInstance3D) -> bool: return not a.visible or a.global_position.y <= src.global_position.y + 0.08 * 0.5 + 0.001), "the arc stays low (half a die)")
+	_check(not b.glint.visible, "Coin: no glint while it spin-flips")
+	_check(not m.faces.transform.is_equal_approx(b.rest), "Coin: the die is in the air, flipping on f2")
+	_step(fx, 2.0 / 12.0)
+	_check(b.glint.visible, "Coin: the glint from the highest die arrives after it lands")
+	_step(fx, 1.0 / 12.0)
+	_check(b.glint.visible and b.glint.global_position.is_equal_approx(m.global_position), "Coin: the glint reaches the coin on f5 as its face turns")
 	_step(fx, 1.0)
 	fx.trigger_fx(&"gilded_payout", m)
 	_step(fx, 2.0 / 12.0 + DT)
 	b = fx._live[0]
-	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 24.0 * fx._px_per_pt()) and b.icon.studs == 0, "minor icon pops ON the hit: 24 pt, plain rim")
+	_check(b.icon.visible and is_equal_approx(b.icon.diameter, 28.0 * fx._px_scale()) and b.icon.studs == 0, "minor icon pops ON the hit: 28 px at 720p, plain rim")
 	_step(fx, 1.0)
 	_free([fx, src, m])
+
+
+func _test_rows_read_apart() -> void:
+	var fx := _fx()
+	var d := _die(Vector3(0, 0.04, 0))
+	# Ring: a pulse from the hit that grows and fades within 0.25 s.
+	fx.trigger_fx(&"hellfire_face", d)
+	var b: TriggerFx.Burst = fx._live[0]
+	_step(fx, 1.0 / 12.0 + DT)
+	_check(not b.ring.visible, "no static ring during anticipation")
+	_step(fx, 2.0 / 12.0)
+	var r0: float = b.ring.mesh.size.x
+	var a0: float = b.ring.material_override.albedo_color.a
+	_check(b.ring.visible and not b.ring2.visible, "the bone ring pulses on the hit; the ember one a frame later")
+	_check(b.card.visible and b.card.material_override.albedo_texture == TriggerShapes.texture(&"needles_radial", TriggerFxDefs.BONE), "Hellfire: bone needles on the hit")
+	_check(b.frame.visible and b.frame.material_override.albedo_texture == TriggerShapes.texture(&"frame_square", TriggerFxDefs.HELLFIRE), "Hellfire on a d6: a Hellfire-red square frame")
+	_check(b.core.visible, "Hellfire: an ember-core glow")
+	var n0: float = b.card.mesh.size.x
+	_check(b.sparks.all(func(x: MeshInstance3D) -> bool: return not x.visible), "Hellfire: no diamond sparks (no crackle)")
+	_step(fx, 1.0 / 12.0)
+	_check(b.ring.visible and b.ring.mesh.size.x > r0 and b.ring.material_override.albedo_color.a < a0, "the ring grows and fades (%.3f > %.3f)" % [b.ring.mesh.size.x, r0])
+	_check(b.ring2.visible, "the ember inner pulse follows")
+	_check(b.card.mesh.size.x > n0, "the needles shoot out")
+	_check(b.chip.visible and b.chip.text == "×1.5", "Hellfire: the ×1.5 chip pops beside the icon")
+	_step(fx, 1.0 / 12.0)
+	_check(b.card.mesh.size.x < n0 * 1.5 - 0.001, "then retract")
+	_step(fx, 1.0 / 12.0)
+	_check(not b.ring.visible, "the pulse is gone 0.25 s after the hit")
+	_step(fx, 1.0)
+	# Gilded: a gold halo on the pip tick, gold sparks, the gold ring.
+	fx.trigger_fx(&"gilded_payout", d)
+	b = fx._live[0]
+	_step(fx, 2.0 / 12.0 + DT)
+	_check(b.card.visible and b.card.material_override.albedo_texture == TriggerShapes.texture(&"radial_glow_soft", TriggerFxDefs.BRASS_HI)
+			and b.frame.visible, "Gilded: a gold glow + shine bar on the hit")
+	_check(b.ring.material_override.albedo_texture == TriggerShapes.texture(&"ring_pulse_soft", TriggerFxDefs.BRASS_HI), "Gilded: the ring is gold")
+	_check(b.sparks[0].visible and b.sparks[0].material_override.albedo_texture == TriggerShapes.texture(&"spark_diamond", TriggerFxDefs.BRASS_HI), "Gilded: gold sparks")
+	_step(fx, 1.0)
+	fx.trigger_fx(&"hellfire_face", d, {"flavor": &"verdict"})
+	b = fx._live[0]
+	_step(fx, 3.0 / 12.0 + DT)
+	_check(b.frame.material_override.albedo_texture == TriggerShapes.texture(&"frame_hex", TriggerFxDefs.HELLFIRE), "Hellfire on Verdict: the frame is a hex")
+	_step(fx, 1.0)
+	_free([fx, d])
+
+
+## Art Director: never tint the die body (it reads as another die type).
+## Every material and colour on the die stays exactly as it was, every frame.
+func _test_never_tints_the_die() -> void:
+	var fx := _fx()
+	var src := _die(Vector3(-0.2, 0.04, 0))
+	var d := _die(Vector3(0.1, 0.04, 0))
+	var before := _die_look(d)
+	var kids := d.get_child_count()
+	var changed := 0
+	for id: StringName in [&"mirror_copy", &"gilded_payout", &"coin_heads_copy", &"hellfire_face", &"other"]:
+		fx.trigger_fx(id, d, {"source": src})
+		for i in 90:
+			_step(fx, DT)
+			if _die_look(d) != before:
+				changed += 1
+		_step(fx, 0.5)
+	_check(changed == 0, "trigger FX never change the die's albedo, body colour, emission or materials (%d frames changed)" % changed)
+	_check(d.get_child_count() == kids and d.faces.get_child_count() == before["faces_children"], "nothing is parented onto the die")
+	_free([fx, src, d])
+
+
+func _die_look(d: DieVisual) -> Dictionary:
+	var out := {"faces_children": d.faces.get_child_count()}
+	for p: String in ["albedo", "shadow_color", "emission_color", "emission_energy", "mid_tint"]:
+		out[p] = d.body_material.get_shader_parameter(p)
+	var mats: Array = []
+	for m: Node in d.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		mats.append([mi.material_override, mi.get_surface_override_material_count() > 0 and mi.get_surface_override_material(0) != null, mi.transparency])
+		if mi.material_override is StandardMaterial3D:
+			mats.append((mi.material_override as StandardMaterial3D).albedo_color)
+		elif mi.material_override is ShaderMaterial:
+			mats.append((mi.material_override as ShaderMaterial).get_shader_parameter("albedo"))
+	out["mats"] = mats
+	return out
 
 
 func _test_coin_flight() -> void:
@@ -311,8 +448,25 @@ func _test_coin_flight() -> void:
 	fx.trigger_fx(&"gilded_payout", d)
 	_step(fx, 0.6)
 	_check(landed.is_empty(), "Gilded: the coin is still flying when the burst ends")
-	await create_timer(0.6).timeout
+	_check(fx._coins.any(func(c: TriggerIcon) -> bool: return c.visible and c.icon == &"brass_coin"), "Gilded: a brass coin hops off the die")
+	var frames_seen := {}
+	for i in 12:
+		await create_timer(0.025).timeout
+		for c: TriggerIcon in fx._coins:
+			if c.visible:
+				frames_seen[c.coin_frame] = true
+	_check(frames_seen.size() >= 2, "the coin flips through its sprite frames (%s)" % str(frames_seen.keys()))
+	await create_timer(0.3).timeout
 	_check(landed == [d], "Gilded: coin_landed fires when the coin reaches the pile (counter tick)")
+	# The icon pops on the hit, holds about 0.5 s, then fades.
+	fx.trigger_fx(&"mirror_copy", d)
+	_step(fx, 0.25 + DT)
+	var ic: TriggerIcon = fx._live[0].icon
+	_step(fx, 1.0)
+	await create_timer(0.35).timeout
+	_check(ic.visible and ic.modulate.a == 1.0, "the icon still shows 0.35 s after the hit")
+	await create_timer(0.45).timeout
+	_check(not ic.visible, "and is gone by about 0.65 s")
 	_free([fx, d])
 
 
