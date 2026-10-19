@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_demon_face.gd" id="1_nphg5"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/demon_face.glb" id="2_3f4xm"]
+
+[node name="DemonFace" type="Node3D" unique_id=2109930148]
+script = ExtResource("1_nphg5")
+
+[node name="Model" parent="." unique_id=629360388 instance=ExtResource("2_3f4xm")]
