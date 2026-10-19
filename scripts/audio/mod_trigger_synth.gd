@@ -36,6 +36,11 @@ const ROWS: Dictionary[StringName, Array] = {
 	&"bellows_hot": [Tier.MAJOR, 250, 60], &"last_breath": [Tier.SIGNATURE, 333, 300],
 	&"blood_pact": [Tier.MAJOR, 250, 0], &"cracked_mult": [Tier.MAJOR, 167, 60],
 	&"cracked_shatter": [Tier.SIGNATURE, 250, 0],
+	# Batch 3 own rows (spec v0.2 §2c; final rules, nonstandard_dice.md §10). Pre-carved
+	# faces reuse a face-mod row plus a flavour layer (FLAVORS).
+	&"caltrop_run": [Tier.MINOR, 167, 0], &"coin_heads_copy": [Tier.MAJOR, 333, 333],
+	&"coin_tails_copy": [Tier.MAJOR, 333, 333], &"coin_alone_heads": [Tier.MINOR, 250, 200],
+	&"knucklebone_level": [Tier.MAJOR, 250, 0],
 	# Not spec rows: any unknown id, and the shared pop (5+ triggers, Instant).
 	&"generic": [Tier.MINOR, 167, 0], &"cluster": [Tier.MAJOR, 167, 0],
 }
@@ -52,11 +57,34 @@ const ALIASES: Dictionary[StringName, StringName] = {
 	&"twin_flame": &"twin_flame_pair", &"coven": &"coven_set", &"mirror": &"mirror_copy", &"wanderer": &"wanderer_gap",
 	&"bellows": &"bellows_hot", &"cracked": &"cracked_mult",
 	&"blank": &"no_score",
+	&"caltrop": &"caltrop_run", &"ferrymans_coin": &"coin_heads_copy", &"coin": &"coin_heads_copy",
+	&"coin_heads": &"coin_heads_copy", &"coin_tails": &"coin_tails_copy", &"coin_alone": &"coin_alone_heads",
+	&"knucklebone": &"knucklebone_level",
+	# Pre-carved batch-3 faces reuse the face-mod row (spec v0.2 reuse rule).
+	&"lantern": &"wild_face", &"lantern_8": &"wild_face", &"tithe": &"gilded_payout", &"tithe_10": &"gilded_payout",
+	&"midnight": &"hellfire_face", &"midnight_xii": &"hellfire_face", &"verdict_20": &"hellfire_face",
+	&"verdict_1": &"blood_face", &"powder_keg": &"twin_face", &"keg_3": &"twin_face",
 }
 ## No cue: passive, confirmed no FX (spec §2a / §2b).
 const SILENT: Array[StringName] = [
 	&"heavy", &"extra",
+	&"coin_alone_tails", &"coin_edge",  # a Blank face / a physics re-settle (spec v0.2 §2c)
 ]
+## Flavour layers for the pre-carved batch-3 faces: flavour -> [the row it
+## layers on, lead_ms]. One small layer played with that row's cue, its
+## transient on the same hit (spec v0.2 §2 reuse rule: <= 1 sound layer, never
+## a new beat). Other rows ignore the flavour (Verdict 1's Blood has none).
+const FLAVORS: Dictionary[StringName, Array] = {
+	&"verdict": [&"hellfire_face", 0], &"midnight": [&"hellfire_face", 0], &"tithe": [&"gilded_payout", 60],
+	&"keg": [&"twin_face", 0], &"lantern": [&"wild_face", 0],
+}
+## Ids that imply a flavour when the game passes none.
+const FLAVOR_OF: Dictionary[StringName, StringName] = {
+	&"lantern": &"lantern", &"lantern_8": &"lantern", &"tithe": &"tithe", &"tithe_10": &"tithe",
+	&"midnight": &"midnight", &"midnight_xii": &"midnight", &"verdict_20": &"verdict", &"powder_keg": &"keg", &"keg_3": &"keg",
+}
+## A flavour layer plays this far under its row's cue.
+const FLAVOR_DB: float = -6.0
 ## Playback level per tier (dB).
 const TIER_DB: Array[float] = [-4.0, -2.0, 0.0]
 ## Start gap between triggers in one pot (spec §1.3, = the pip gap).
@@ -100,6 +128,8 @@ static func bake_all() -> Dictionary[String, AudioStreamWAV]:
 	var out: Dictionary[String, AudioStreamWAV] = {}
 	for row in ROWS:
 		out["trigger_%s.wav" % row] = make(row)
+	for fl in FLAVORS:
+		out["trigger_flavor_%s.wav" % fl] = make(StringName("flavor_" + fl))
 	return out
 
 
@@ -109,6 +139,8 @@ static func make(row: StringName) -> AudioStreamWAV:
 	_rng.seed = hash(row)
 	var b := _buf(0.3)
 	var h := float(timing(row)[2]) / 1000.0  # the hit inside the file
+	if String(row).begins_with("flavor_"):
+		h = FLAVORS[StringName(String(row).substr(7))][1] / 1000.0
 	var h2: float = h + SECOND_HIT_S.get(row, 0.0)
 	match row:
 		&"wild_face":  # a card-shuffle flick into a short crystalline ting bending up
@@ -249,6 +281,53 @@ static func make(row: StringName) -> AudioStreamWAV:
 				_ring(b, k * 0.014, _rng.randf_range(2500.0, 5000.0), [[1.0, 0.45, 1.0], [1.53, 0.2, 1.3]], 22.0)
 			for k in 6:
 				_click(b, 0.12 + k * 0.045, 0.18 * (1.0 - k * 0.13), 0.9, 900.0)
+		&"caltrop_run":  # a quick run of three iron tinks
+			b = _buf(0.3)
+			for k in 3:
+				_click(b, k * 0.06, 0.5 - k * 0.12, 1.0)
+				_ring(b, k * 0.06, [3135.96, 3322.44, 3951.07][k], [[1.0, 0.7 - k * 0.15, 1.0], [1.41, 0.2, 1.3]], 45.0)
+		&"coin_heads_copy", &"coin_tails_copy":  # a flick ping, a whirring spin that speeds up, a flat landing ring
+			b = _buf(0.6)
+			_ring(b, 0.0, 4186.0, [[1.0, 0.5, 1.0]], 45.0)
+			_whir(b, 0.02, h - 0.02, 2793.83, 14.0, 40.0, 0.22)
+			var land := 2093.0 if row == &"coin_heads_copy" else 1567.98  # tails lands a fourth lower
+			_click(b, h, 0.6, 0.7)
+			_ring(b, h, land, [[1.0, 0.7, 1.0], [2.31, 0.4, 1.2], [4.1, 0.2, 1.6]], 6.0)
+		&"knucklebone_level":  # a dry bone clack + an ascending two-note brass "level up" blip
+			b = _buf(0.4)
+			for k in 2:
+				_click(b, k * 0.018, 0.7, 0.8, 900.0)
+				_ring(b, k * 0.018, 1396.91 * (1.0 + 0.07 * k), [[1.0, 0.5, 1.0]], 150.0)
+			_brass(b, 0.06, 0.08, 783.99, 0.003, 6, 0.35, 0.005, 0.7)
+			_brass(b, 0.14, 0.2, 1046.5, 0.003, 5, 0.4, 0.005, 0.7)
+		&"coin_alone_heads":  # a flick ping, a short one-turn spin, a bright lucky landing ring + a glint
+			b = _buf(0.62)
+			_ring(b, 0.0, 4186.0, [[1.0, 0.5, 1.0]], 45.0)
+			_whir(b, 0.02, h - 0.02, 3135.96, 18.0, 24.0, 0.3)
+			_click(b, h, 0.6, 0.8)
+			_ring(b, h, 2489.02, [[1.0, 0.7, 1.0], [2.31, 0.35, 1.2], [4.1, 0.15, 1.6]], 5.0)
+			_ring(b, h + 0.16, 3951.07, [[1.0, 0.35, 1.0]], 30.0)
+		&"flavor_verdict":  # a small dry wood gavel tap
+			b = _buf(0.2)
+			_click(b, 0.0, 1.0, 0.8, 500.0)
+			_ring(b, 0.0, 783.99, [[1.0, 0.6, 1.0], [1.73, 0.9, 1.2], [2.9, 0.8, 1.5]], 40.0)
+		&"flavor_midnight":  # one soft clock tick, just after the bell
+			b = _buf(0.2)
+			_click(b, 0.1, 0.3, 0.6, 1200.0)
+			_ring(b, 0.1, 2793.83, [[1.0, 0.5, 1.0]], 150.0)
+		&"flavor_tithe":  # a soft wooden slot-clunk just before the clink
+			b = _buf(0.2)
+			_click(b, 0.0, 0.5, 0.2)
+			_thump(b, 0.0, 180.0, 30.0, 0.4)
+			_ring(b, 0.0, 1046.5, [[1.0, 0.5, 1.0], [1.6, 0.35, 1.2]], 60.0)
+		&"flavor_keg":  # a hollow wooden-barrel thump on each of the two ticks (no blast)
+			b = _buf(0.4)
+			for at: float in [0.0, 0.167]:
+				_thump(b, at, 120.0, 22.0, 0.35)
+				_ring(b, at, 392.0, [[1.0, 0.3, 1.0], [2.3, 0.4, 1.3], [4.1, 0.3, 1.6]], 28.0)
+		&"flavor_lantern":  # a faint glass chime under the wild ting
+			b = _buf(0.3)
+			_ring(b, 0.0, 1661.22, [[1.0, 0.6, 1.0], [2.0, 0.3, 1.3], [3.0, 0.2, 1.6]], 12.0)
 		&"cluster":  # the shared pop: a fan of four quick mini chimes over a soft low pop
 			b = _buf(0.4)
 			_thump(b, 0.0, 150.0, 25.0, 0.2)
@@ -350,3 +429,12 @@ static func _add(b: PackedFloat32Array, t: float, v: float) -> void:
 	var i := int(t * MIX_RATE)
 	if i < b.size():
 		b[i] += v
+
+
+## A spinning whirr: a tone fluttering at a rate rising from r0 to r1 per s.
+static func _whir(b: PackedFloat32Array, at: float, len_s: float, hz: float, r0: float, r1: float, amp: float) -> void:
+	var ph := 0.0
+	for j in int(len_s * MIX_RATE):
+		var t := float(j) / MIX_RATE
+		ph += TAU * lerpf(r0, r1, t / len_s) / MIX_RATE
+		_add(b, at + t, sin(TAU * hz * t) * (0.5 + 0.5 * sin(ph)) * amp * minf(t / 0.06, 1.0))
