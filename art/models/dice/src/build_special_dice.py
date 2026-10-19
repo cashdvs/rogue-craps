@@ -431,6 +431,7 @@ def build_gilded():
     boolean(ob, new_obj("panels", pb, [panel_m]))
     a, d = 0.20 * EDGE * 0.5, 0.075 * EDGE
     boolean(ob, cutter_cones(pip_spots(H - depth), a, d, 6, pip_m))
+    clamp_to_box(ob)  # corner beads flattened where they would poke past the 0.08 m box collider (Godot Dev)
     return ob, 28.0
 
 

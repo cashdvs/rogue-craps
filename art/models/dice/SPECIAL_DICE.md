@@ -10,7 +10,7 @@ no gameplay code, colliders, scripts or animations. The Bone d6 (`bone_d6.glb`, 
 | `mirror_d6.glb` | Mirror Die | 1,010 | `mirror_body`, `mirror_pip` | 0.080 |
 | `cracked_d6.glb` | Cracked Die | 1,690 | `cracked_body`, `cracked_pip`, `cracked_crack` | 0.080 |
 | `hellfire_d6.glb` | Hellfire die | 1,762 | `hellfire_body`, `hellfire_pip`, `hellfire_seam` | 0.0832 (spike tips) |
-| `gilded_d6.glb` | Gilded die | 1,650 | `gilded_body`, `gilded_pip`, `gilded_panel` | 0.086-0.088 (beads) |
+| `gilded_d6.glb` | Gilded die | 1,906 | `gilded_body`, `gilded_pip`, `gilded_panel` | 0.0836 (beads trimmed) |
 | `twin_flame_d6.glb` | Twin Flame Die | 1,394 | `twin_flame_body`, `twin_flame_pip`, `twin_flame_half`, `twin_flame_pip_light`, `twin_flame_cleft`, `twin_flame_line` | 0.080 |
 | `wanderer_d6.glb` | Wanderer Die | 1,328 | `wanderer_body`, `wanderer_pip`, `wanderer_fin` | 0.0832 (fin points) |
 | `bellows_d6.glb` | Bellows Die | 1,650 | `bellows_body`, `bellows_pip`, `bellows_pleat` | 0.080 |
@@ -44,7 +44,7 @@ orientation the decoration sinks at most that far into the felt (`tests/test_spe
 |---|---|---|---|
 | Bone, Mirror, Cracked, Twin Flame, Bellows, Coven | 0.0400 | 0 | all cuts, face planes intact |
 | Hellfire | 0.0457 -> 0.0416 | 5.7 -> 1.6 mm | corner spikes shortened (tip length 21 -> ~14 mm) |
-| Gilded | 0.0438 (unchanged) | 3.8 mm | corner beads kept as they are (agreed exception; the test allows 0.044) |
+| Gilded | 0.0438 -> 0.0418 | 3.8 -> 1.8 mm | corner beads (and the edge-middle beads by ~0.2 mm) clamped to the box, flat-topped where they would touch the felt; no exception in the test |
 | Wanderer | 0.0464 -> 0.0416 | 6.4 -> 1.6 mm | rounder edge (0.16 x edge), fins lower and thinner (11.2 -> ~6 mm past the bevel, 3 mm thick), longer along the edge (36 mm) |
 | Blood Pact | 0.0473 -> 0.0418 | 7.3 -> 1.8 mm | seals clamped to the box: the wax presses flat onto the three corner faces, bone stamp on top |
 | Last Breath | 0.0452 -> 0.0416 (x, z) | 5.2 -> 1.6 mm (on a side) | both collars pulled in to 1.6 mm proud of the side faces |
