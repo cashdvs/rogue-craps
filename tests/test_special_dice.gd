@@ -14,19 +14,23 @@ const DIR: String = "res://art/models/dice/"
 const MAX_TRIS: int = 2000
 const TOON_SHADERS: Array[String] = ["res://shaders/3d/toon_noir.gdshader", "res://art/models/dice/shaders/toon_mirror.gdshader"]
 const OUTLINE_SHADER: String = "res://shaders/3d/outline.gdshader"
+## Max |x|, |y|, |z| of any vertex: the 0.08 m box + 2 mm (box-only colliders).
+const MAX_EXTENT: float = 0.042
+## Gilded's corner beads stay as they are (agreed exception; measured 0.0438).
+const GILDED_MAX_EXTENT: float = 0.044
 ## name -> [material slots, min AABB, max AABB, silhouette check]
 const DICE: Dictionary = {
 	"mirror_d6": [["mirror_body", "mirror_pip"], 0.08, 0.08, "chamfer"],
 	"cracked_d6": [["cracked_body", "cracked_pip", "cracked_crack"], 0.08, 0.08, "chips"],
-	"hellfire_d6": [["hellfire_body", "hellfire_pip", "hellfire_seam"], 0.088, 0.096, "spikes"],
+	"hellfire_d6": [["hellfire_body", "hellfire_pip", "hellfire_seam"], 0.082, 0.084, "spikes"],
 	"gilded_d6": [["gilded_body", "gilded_pip", "gilded_panel"], 0.084, 0.09, "beads"],
 	# batch 2
 	"twin_flame_d6": [["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft", "twin_flame_line"], 0.08, 0.08, "waist"],
-	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin"], 0.088, 0.096, "fins"],
+	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin"], 0.082, 0.084, "fins"],
 	"bellows_d6": [["bellows_body", "bellows_pip", "bellows_pleat"], 0.08, 0.08, "steps"],
-	"blood_pact_d6": [["blood_pact_body", "blood_pact_pip", "blood_pact_seal", "blood_pact_stamp"], 0.088, 0.098, "seals"],
+	"blood_pact_d6": [["blood_pact_body", "blood_pact_pip", "blood_pact_seal", "blood_pact_stamp"], 0.082, 0.084, "seals"],
 	"coven_d6": [["coven_body", "coven_pip", "coven_cove"], 0.08, 0.08, "coves"],
-	"last_breath_d6": [["last_breath_body", "last_breath_pip", "last_breath_collar"], 0.08, 0.092, "collars"],
+	"last_breath_d6": [["last_breath_body", "last_breath_pip", "last_breath_collar"], 0.08, 0.084, "collars"],
 }
 const BATCH2: Array[String] = ["twin_flame_d6", "wanderer_d6", "bellows_d6", "blood_pact_d6", "coven_d6", "last_breath_d6"]
 ## Reserved for UI / roles, never on a body: Soul cyan, Danger, Satanic violet glow, felt green.
@@ -70,6 +74,14 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 	for i in 3:
 		sized = sized and aabb.size[i] >= lo - 0.0005 and aabb.size[i] <= hi + 0.0005
 	_check(sized, "%s: AABB %s within %.3f-%.3f m" % [die, aabb.size, lo, hi])
+	# Godot Dev (Oct 19): every die uses the same 0.08 m BoxShape3D, no hulls, so nothing may poke out more than
+	# ~2 mm past a face in any resting orientation. Gilded's corner beads are the one agreed exception.
+	var ext := Vector3.ZERO
+	for s in mesh.get_surface_count():
+		for p: Vector3 in mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+			ext = ext.max(p.abs())
+	var cap: float = GILDED_MAX_EXTENT if die == "gilded_d6" else MAX_EXTENT
+	_check(ext.x <= cap + 1e-5 and ext.y <= cap + 1e-5 and ext.z <= cap + 1e-5, "%s: max extent from the centre %s <= %.4f m per axis (box collider sink <= %.1f mm)" % [die, ext, cap, (cap - edge * 0.5) * 1000.0])
 	var tris := 0
 	var names: Array[String] = []
 	var toon := true
@@ -176,7 +188,7 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 			for c in _corners(h):
 				var hit := false
 				for v in verts:
-					if v.normalized().dot(c.normalized()) > 0.995 and v.length() > h * sqrt(3.0) * 1.05:
+					if v.normalized().dot(c.normalized()) > 0.995 and v.length() > h * sqrt(3.0) * 1.03:
 						hit = true
 						break
 				if not hit:
@@ -201,11 +213,11 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 					return false
 			return _nearest(verts, Vector3(h, h, h)) < 0.012 and accent.size() > 0
 		"fins":
-			# A compass point past the bevel at the middle of all 12 edges.
+			# A compass point past the (sharp-cube) edge at the middle of all 12 edges.
 			for m in _edge_mids(h):
 				var hit := false
 				for v in verts:
-					if v.normalized().dot(m.normalized()) > 0.995 and v.length() > m.length() * 1.06:
+					if v.normalized().dot(m.normalized()) > 0.995 and v.length() > m.length() * 1.01:
 						hit = true
 						break
 				if not hit:
@@ -255,7 +267,7 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 			var top := 0
 			var bottom := 0
 			for v in verts:
-				if maxf(absf(v.x), absf(v.z)) > h + 0.002:
+				if maxf(absf(v.x), absf(v.z)) > h + 0.001:
 					if absf(v.y) < 0.025 or absf(v.y) > 0.036:
 						return false
 					if v.y > 0.0:

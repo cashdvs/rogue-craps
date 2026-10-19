@@ -141,6 +141,35 @@ def boolean(body, cutter, op="DIFFERENCE", use_self=False):
     bpy.data.objects.remove(cutter)
 
 
+BOX_HALF = 0.0418  # every die fits the 0.08 m BoxShape3D: nothing more than ~1.8 mm past a face (Godot Dev, Oct 19)
+
+
+def clamp_to_box(ob, half=BOX_HALF):
+    """Flatten whatever pokes past +-half on any axis (the wax seals press flat where they would touch the felt):
+    bisect the 6 planes, drop the outside, cap each hole and give the cap the material of the faces around it."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    for axis in range(3):
+        for sgn in (1.0, -1.0):
+            co = [0.0, 0.0, 0.0]
+            no = [0.0, 0.0, 0.0]
+            co[axis], no[axis] = sgn * half, sgn
+            if max(v.co[axis] * sgn for v in bm.verts) <= half + 1e-7:
+                continue
+            geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+            res = bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-7, plane_co=co, plane_no=no, clear_outer=True)
+            cut = [e for e in res["geom_cut"] if isinstance(e, bmesh.types.BMEdge) and e.is_boundary]
+            if not cut:
+                continue
+            new = bmesh.ops.holes_fill(bm, edges=cut, sides=0)["faces"]
+            for f in new:
+                mats = [lf.material_index for e in f.edges for lf in e.link_faces if lf is not f]
+                f.material_index = max(set(mats), key=mats.count) if mats else 0
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+
+
 def cutter_caps(spots, a, d, segs, mat, face_h):
     """Spherical-cap pip drills (opening radius a, depth d)."""
     R = (a * a + d * d) / (2.0 * d)
@@ -339,7 +368,7 @@ def build_hellfire():
             for sz in (-1, 1):
                 dvec = Vector((sx, sy, sz)).normalized()
                 base = Vector((sx, sy, sz)) * c + dvec * radius * 0.35
-                tip_len = 0.021
+                tip_len = (BOX_HALF - 0.0002 - base.x * sx) * math.sqrt(3.0)  # tip per axis = BOX_HALF - 0.2 mm
                 res = bmesh.ops.create_cone(sb, cap_ends=True, segments=5, radius1=0.0095, radius2=0.0,
                                             depth=tip_len, matrix=Matrix.Identity(4))
                 bmesh.ops.translate(sb, verts=res["verts"], vec=Vector((0, 0, tip_len * 0.5)))
@@ -359,6 +388,7 @@ def build_hellfire():
     boolean(ob, new_obj("seams", kb, [seam_m]), use_self=True)
     a, d = 0.20 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 10, pip_m, H))
+    clamp_to_box(ob)
     return ob, 30.0
 
 
@@ -497,12 +527,14 @@ def build_wanderer():
     body_m = make_material("wanderer_body", "5C7894", 0.6)
     pip_m = make_material("wanderer_pip", "F2E6C8", 0.6)
     fin_m = make_material("wanderer_fin", "B08D3C", 0.3, 1.0)
-    radius = 0.12 * EDGE
+    radius = 0.16 * EDGE  # a rounder edge leaves the fins more room inside the 0.08 m box
     bm = rounded_cube_bmesh(radius, 2)
     ob = new_obj("WandererD6", bm, [body_m, pip_m, fin_m])
     c = H - radius
     fb = bmesh.new()
-    L, P, T = 0.03, 0.0112, 0.0036
+    L, T = 0.036, 0.003
+    # fin height past the bevel so the tip (incl. half its thickness) stops at BOX_HALF per axis
+    P = (BOX_HALF - 0.0002 - c - T * 0.5 / math.sqrt(2.0)) * math.sqrt(2.0) - radius
     for axis, outv in EDGES:
         o = outv.normalized()
         side = outv.cross(axis).normalized()
@@ -517,6 +549,7 @@ def build_wanderer():
     boolean(ob, new_obj("fins", fb, [fin_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
+    clamp_to_box(ob)
     return ob, 30.0
 
 
@@ -576,6 +609,7 @@ def build_blood_pact():
     boolean(ob, new_obj("stamps", gb, [stamp_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
+    clamp_to_box(ob)  # the seals press flat against the three faces (wax squashed onto the corner)
     return ob, 30.0
 
 
@@ -611,7 +645,8 @@ def build_last_breath():
     radius = 0.14 * EDGE
     bm = rounded_cube_bmesh(radius, 2)
     ob = new_obj("LastBreathD6", bm, [body_m, pip_m, collar_m])
-    a_flat, d_flat = 0.0452, 0.0568
+    a_flat = BOX_HALF - 0.0002  # collar face 1.6 mm proud of the side faces (was 5.2 mm)
+    d_flat = 0.0568 * a_flat / 0.0452
     k = d_flat * math.sqrt(2) - a_flat
     ring = [(a_flat, -k), (a_flat, k), (k, a_flat), (-k, a_flat), (-a_flat, k), (-a_flat, -k), (-k, -a_flat), (k, -a_flat)]
     cb = bmesh.new()
@@ -627,6 +662,7 @@ def build_last_breath():
     boolean(ob, new_obj("collar", cb, [collar_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
+    clamp_to_box(ob)
     return ob, 30.0
 
 
