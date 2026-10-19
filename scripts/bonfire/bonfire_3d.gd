@@ -1496,12 +1496,70 @@ func fit_phone(size: Vector2) -> float:
 	camera.home_pivot = base + Vector3(0, 0, r[0])
 	camera.position = camera.home_pivot
 	camera._apply()
+	_center_portrait(with_dial if phone_dial_visible else must)
 	if felt_combos != null:
 		# The felt combo block, shrunk into this framing (8 pt margins).
 		var view := get_viewport().get_visible_rect().size
 		felt_combos.set_portrait(true, portrait_felt_flipped())
 		felt_combos.fit_portrait_view(camera.cam, view, 8.0 * view.x / maxf(size.x, 1.0))
 	return px
+
+
+## Phone portrait: the slide above only moves the view across the screen
+## (the portrait camera is turned 90 deg), so the table sat high with the
+## dark room under its near rail filling the bottom ~40% of the screen.
+## This pans the view along the screen's up/down axis so the must-see
+## points (pot row, hand) sit centred between the HUD bar and the bottom
+## edge. A pan: dice keep their size.
+func _center_portrait(pts: Array[Vector3]) -> void:
+	var vs := get_viewport().get_visible_rect().size
+	if pts.is_empty() or vs.y <= vs.x:
+		return
+	var top := 0.0
+	if bhud != null:
+		var col := bhud.throw_button.get_parent() as Control
+		top = maxf(col.get_global_rect().end.y, bhud.portrait_goal.get_global_rect().end.y if bhud.portrait_goal.visible else 0.0)
+	var bottom := vs.y - PHONE_EDGE_PX
+	if bottom - top < 100.0:
+		return
+	var base := camera.home_pivot
+	# Which ground axis moves things up / down the screen (X or Z)?
+	var y0 := camera.cam.unproject_position(pts[0]).y
+	var axis := Vector3.RIGHT
+	camera.home_pivot = base + Vector3(0.1, 0, 0)
+	camera.position = camera.home_pivot
+	camera._apply()
+	var dx := absf(camera.cam.unproject_position(pts[0]).y - y0)
+	camera.home_pivot = base + Vector3(0, 0, 0.1)
+	camera.position = camera.home_pivot
+	camera._apply()
+	if absf(camera.cam.unproject_position(pts[0]).y - y0) > dx:
+		axis = Vector3.BACK
+	var best := 0.0
+	var best_err := INF
+	for k in range(-60, 61):
+		var off := k * 0.01
+		camera.home_pivot = base + axis * off
+		camera.position = camera.home_pivot
+		camera._apply()
+		var lo := INF
+		var hi := -INF
+		var inside := true
+		for p in pts:
+			var sp := camera.cam.unproject_position(p)
+			lo = minf(lo, sp.y)
+			hi = maxf(hi, sp.y)
+			if sp.x < 0.0 or sp.x > vs.x:
+				inside = false
+		if not inside or lo < top or hi > bottom:
+			continue
+		var err := absf((lo + hi) * 0.5 - (top + bottom) * 0.5)
+		if err < best_err:
+			best_err = err
+			best = off
+	camera.home_pivot = base + axis * best
+	camera.position = camera.home_pivot
+	camera._apply()
 
 
 ## Phone landscape: the home framing's pitch and tilt, closer in and
