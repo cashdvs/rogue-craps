@@ -34,8 +34,11 @@ var _variants: Dictionary[StringName, Array] = {}
 var _last_variant: Dictionary[StringName, int] = {}
 # die id -> time of its last impact sound (per-die rate limit).
 var _last_impact: Dictionary[int, float] = {}
-## Tests: a fixed clock in seconds for play_impact's rate limit (-1 = real time).
+## Tests: a fixed clock in seconds for play_impact's rate limit (-1 = game clock).
 var impact_clock: float = -1.0
+# Game clock for the rate limit: process time, so it follows Engine.time_scale
+# (slow-mo) and fixed-fps recordings the way the table's contacts do.
+var _game_time: float = 0.0
 
 
 func _ready() -> void:
@@ -50,14 +53,26 @@ func _ready() -> void:
 	_add_throw_events()
 
 
+func _process(delta: float) -> void:
+	_game_time += delta
+
+
 ## Plays an event. pitch: 1.0 = normal. pitch_jitter adds a little random
 ## variation so repeated sounds (chips!) don't sound robotic.
 func play(event: StringName, pitch: float = 1.0, volume_db: float = 0.0, pitch_jitter: float = 0.06) -> void:
 	if not _streams.has(event):
 		push_warning("SfxManager: no sound for event '%s'." % event)
 		return
-	var player := _players[_next]
-	_next = (_next + 1) % _players.size()
+	# Prefer a player that's free, so a quick burst (5 dice landing) doesn't
+	# cut off a longer sound still ringing (the throw tail); when every player
+	# is busy, the oldest one in turn is reused.
+	var idx := _next
+	for k in _players.size():
+		if not _players[(_next + k) % _players.size()].playing:
+			idx = (_next + k) % _players.size()
+			break
+	var player := _players[idx]
+	_next = (idx + 1) % _players.size()
 	var takes := _get_variants(event)
 	player.stream = _streams[event] if takes.is_empty() else takes[pick_variant(event)] as AudioStream
 	player.pitch_scale = maxf(0.05, pitch + _rng.randf_range(-pitch_jitter, pitch_jitter))
@@ -88,7 +103,7 @@ func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bo
 	var p := ThrowSynth.impact_params(kind, speed_mps, material)
 	if p.is_empty():
 		return false
-	var now := Time.get_ticks_usec() / 1e6 if impact_clock < 0.0 else impact_clock
+	var now := _game_time if impact_clock < 0.0 else impact_clock
 	if die_id >= 0:
 		if now - float(_last_impact.get(die_id, -1e9)) < ThrowSynth.IMPACT_MIN_GAP_S:
 			return false
