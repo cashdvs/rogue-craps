@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RunRuleData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="1_bvig"]
+
+[resource]
+script = ExtResource("1_bvig")
+id = &"greedy_pot"
+display_name = "Baron Vig"
+description = "Pot at least 3 dice every throw."
+kind = 1
+params = {
+"min_pot": 3
+}
