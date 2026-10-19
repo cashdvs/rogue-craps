@@ -61,3 +61,19 @@ for part, slots in PARTS.items():
             text = head + text[text.index("[deps]"):]
         open(path, "w").write(text)
         print("wrote", os.path.basename(path))
+
+# Textures: the shaders sample with filter_linear_mipmap, so generate mipmaps, and keep them lossless
+# (detect_3d/compress_to=0, so the editor never switches them to VRAM compression and blurs the flame atlas).
+TEX_SET = {"compress/mode": "0", "mipmaps/generate": "true", "detect_3d/compress_to": "0"}
+TEX = os.path.join(ROOT, "textures")
+for f in sorted(os.listdir(TEX)):
+    if not f.endswith(".png.import"):
+        continue
+    path = os.path.join(TEX, f)
+    lines = open(path).read().split("\n")
+    for i, line in enumerate(lines):
+        key = line.split("=", 1)[0]
+        if key in TEX_SET:
+            lines[i] = key + "=" + TEX_SET[key]
+    open(path, "w").write("\n".join(lines))
+    print("wrote", f)
