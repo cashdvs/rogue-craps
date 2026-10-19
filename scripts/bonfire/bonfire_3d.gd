@@ -632,6 +632,7 @@ func bank() -> Dictionary:
 			_hint(&"th10_cleared", {"card": (run.goal.bonus[0] as BountyData).id})
 		if not run.is_over():
 			_set_why("Table cleared! Chase the bonus with your remaining hands, or Leave table.")
+	_refresh_hud()
 	hand_result.emit(r)
 	await _after_hand()
 	return r
@@ -1469,6 +1470,9 @@ func _bust() -> void:
 	_embers(_dice_center(), 24, 10)
 	_taunt(&"bonfire_bust")
 	_set_why("Nothing caught fire. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
+	# HANDS LEFT etc. now, not after the beat (a final bust ends the table
+	# and the end screen shows over this HUD; QA full run pass 1).
+	_refresh_hud()
 	hand_result.emit(r)
 	await _wait(1.0)
 	await _after_hand()

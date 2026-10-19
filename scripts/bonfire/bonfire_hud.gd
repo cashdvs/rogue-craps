@@ -47,6 +47,10 @@ var leave_button: Button
 ## The "TABLE CLEARED" banner shown at the clearing bank (ClearedBanner).
 var cleared_banner: ClearedBanner
 var throw_button: Button
+## Why the THROW / BANK button is greyed out (QA full run pass 1): a small
+## caption just above THROW (a child of the button, outside the column's
+## layout) plus the buttons' tooltips. Empty while the buttons work.
+var action_reason: Label
 var end_panel: PanelContainer
 var end_title: Label
 var end_body: Label
@@ -107,6 +111,14 @@ func _init() -> void:
 	throw_button.custom_minimum_size = Vector2(310, 84)
 	throw_button.pressed.connect(func() -> void: throw_pressed.emit())
 	col.add_child(throw_button)
+	action_reason = Label.new()
+	action_reason.name = "ActionReason"
+	action_reason.label_settings = Palette.label_settings(20, Palette.BONE, 4, true)
+	action_reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	action_reason.position = Vector2(0, -32)
+	action_reason.size = Vector2(310, 28)
+	action_reason.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	throw_button.add_child(action_reason)
 	bank_button = _button("BANK  (B)", 36, Color("#3C6A34"))
 	bank_button.custom_minimum_size = Vector2(310, 84)
 	bank_button.pressed.connect(func() -> void: bank_pressed.emit())
@@ -225,6 +237,31 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	else:
 		throw_button.disabled = not can_act
 		throw_button.text = "THROW %d  (Space)" % run.cold
+	var why := action_reasons(run, can_act)
+	throw_button.tooltip_text = why["throw"]
+	bank_button.tooltip_text = why["bank"]
+	# The caption names the first greyed-out button's reason while picking.
+	action_reason.text = why["throw"] if why["throw"] != "" else (why["bank"] if picking else "")
+
+
+## Why THROW / BANK can't be pressed right now ({throw, bank}; "" = it can,
+## or the table is busy rolling / counting).
+static func action_reasons(run: BonfireRun, can_act: bool) -> Dictionary:
+	var out := {"throw": "", "bank": ""}
+	if not can_act or run.is_over() or run.forfeited:
+		return out
+	if run.state == BonfireRun.State.PICK:
+		var combo_why := ""
+		if not run.can_continue():
+			combo_why = "Pot a lit die first" if run.potted.is_empty() else "Not a combo yet: pot ONE combo"
+		out["bank"] = combo_why
+		if combo_why != "":
+			out["throw"] = combo_why
+		elif run.is_hot() and not run.hot_hand_allowed():
+			out["throw"] = "No Hot Hand at this table: bank it"
+	else:
+		out["bank"] = "Throw, then pot a combo to bank"
+	return out
 
 
 ## The held pot counts up with the count-up (f = 0..1).

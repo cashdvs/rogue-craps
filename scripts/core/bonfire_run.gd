@@ -493,6 +493,10 @@ func _end_table(st: State) -> void:
 		if soul <= 0:
 			st = State.RUN_OVER
 	embers += converted
+	# The hand is over: its pot was banked or lost, nothing is potted any
+	# more (else hand_pot() shows the last pot twice on the end panel; QA).
+	pot = 0
+	potted.clear()
 	table_summary = {"points_embers": converted, "clear_embers": clear, "timeout_soul": soul_lost, "points": points}
 	state = st
 	table_event.emit(&"table_end", {"state": st})
