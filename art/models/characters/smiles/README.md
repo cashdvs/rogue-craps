@@ -1,0 +1,104 @@
+# Smiles, the imp croupier (dealer)
+
+The dealer from the locked direction (`art/concept/bonfire_table/README.md`, "LOCKED DIRECTION" > Dealer: Smiles,
+ref `dealer_1_smiles.jpg`, `style_guide.md`). He is a gaunt red imp with a huge gold grin, a green visor, a crimson waistcoat
+with brass buttons, a white shirt, black sleeve garters and a bowtie, horns, long pointed ears and big clawed hands.
+He is modelled from the waist up and stands behind the far rail. This is art only: there is no gameplay code and no scripts.
+
+| File | What |
+|---|---|
+| `smiles.glb` / `smiles_mobile.glb` | model + rig + 7 clips (PC / mobile LOD, same skeleton and clips) |
+| `scenes/smiles.tscn` / `smiles_mobile.tscn` | Godot wrapper: glb (editable instance), autoplay `idle`, `HeadTrack`, `HeadAnchor` |
+| `materials/*.tres` | toon_noir per glTF slot + ink hulls (`ink_smiles` 4.8 mm, `ink_smiles_thin` 1.8 mm for teeth / buttons / chip) |
+| `src/build_smiles.py` | Blender 4.5 source: model, rig, poses (2-bone arm IK solved to FK keys), clips, export |
+| `src/make_smiles.gd`, `src/write_imports.py`, `src/rebuild_smiles.sh` | materials, import settings (slot -> .tres, loops), wrapper scenes |
+| `tests/test_smiles.gd` | bones, hierarchy, clips + lengths, hooks, parts, materials, budgets, no scripts / lights |
+
+## Triangles
+
+| Part | PC | Mobile |
+|---|---|---|
+| Smiles_Body (costume, arms, hands) | 3,506 | 1,648 |
+| Smiles_Head (skull, jaw, teeth, eyes, ears, horns, hair) | 2,870 | 1,156 |
+| Smiles_Visor | 550 | 210 |
+| Smiles_Chip (prop) | 120 | 72 |
+| **total** | **7,046** (budget ~6-8k) | **3,086** (budget ~3.5k) |
+
+## Rig (24 bones, every bone rests pointing up, roll 0, so local axes match the parent's)
+
+`root` > `spine` > `chest` > `neck` > `head` > `jaw`, `grin_L`, `grin_R`, `visor`;
+`chest` > `shoulder_L|R` > `upper_arm_L|R` > `forearm_L|R` > `hand_L|R` > `thumb_L|R`, `index_L|R`, `fingers_L|R`
+(middle + ring + pinky as one group); `hand_R` > `chip` (prop bone; scale 0 = palmed).
+
+- Skinning is rigid (one bone per vertex) with ball joints at the elbows and shoulder caps. That is the cheap toon approach and it never needs weight painting.
+- Godot bone space is +Y up and +Z forward, so the face looks down the head bone's +Z.
+- `jaw` +X opens the mouth.
+- `grin_L` / `grin_R` carry the outer teeth. Roll them down for a cracked grin and up for a smug one.
+- `visor` +X tips the brim down (the cheat tell).
+
+**Boss reuse (cheap bosses).** Keep the skeleton and the clips, and swap these parts:
+- **Head:** replace `Smiles_Head` with a new head mesh skinned to `head` / `jaw` / `grin_L|R`. Unused bones are fine.
+- **Hat slot:** `Smiles_Visor`, skinned to `visor`.
+- **Prop slot:** `Smiles_Chip` on `chip`, or add a `BoneAttachment3D` on `chip`.
+- **Costume:** `Smiles_Body`, re-skinned to the same bones.
+
+Hero bosses (including Mister Wick) get their own rigs, per the locked direction.
+
+## Clips (AnimationPlayer in `Model`, 30 fps; every clip keys every bone, so they cross-fade cleanly)
+
+| Clip | Length | Loop | Use |
+|---|---|---|---|
+| `idle` | 3.0 s | yes | rolls a chip over his right knuckles beside his cheek, grin twitch, breath, head sway |
+| `taunt` | 1.4 s | no | on bust: leans in, cackles (jaw chatter, head back), points up at the player |
+| `grudging` | 1.6 s | no | big score (tier 3+): two slow claps, the grin cracks (corners droop) |
+| `cheat` | 1.2 s | no | boss tell: shifty glance, visor tipped down, palms the chip into his left sleeve, smug grin |
+| `deal` | 1.0 s | no | right hand flicks a chip out across the felt |
+| `mc_idle` | 2.4 s | yes | MC variant (boss in the dealer spot, Smiles on the left rail): upright, fist on hip, presenting |
+| `mc_cheer` | 1.2 s | no | MC cheers on bust: both fists pumping, mouth open |
+
+The wrapper autoplays `idle`. For a reaction, call `play("taunt")` then `queue("idle")`, or use a 0.15 s blend.
+Keys are quaternions, so in-betweens take the short path.
+Every clip starts and ends near the base `STAND` pose (MC clips start and end on the MC pose), so cross-fades stay short.
+
+## Hooks for Godot Dev
+
+- `Model/AnimationPlayer`: the clip names above.
+- `Model/Smiles/Skeleton3D/HeadTrack` (`LookAtModifier3D`, bone `head`, forward +Z, yaw limited to ±60°, pitch to ±20°,
+  0.25 s sine ease). It is **off by default** (`influence = 0`). To have him watch the dice:
+  ```gdscript
+  var look := smiles.get_node("Model/Smiles/Skeleton3D/HeadTrack") as LookAtModifier3D
+  look.target_node = look.get_path_to(dice_focus)   # any Node3D that follows the dice
+  look.influence = 0.6                              # blends over the clip's head pose
+  ```
+  Keep influence ≤ ~0.6. At 1.0 the head drops straight at the felt and the visor hides his face from the game camera.
+  The `head_track` capture runs at 0.6. If you drive the bone yourself, the head bone is `head` and the neck is `neck`.
+- `Model/Smiles/Skeleton3D/HeadAnchor` (`BoneAttachment3D` on `head`): the anchor for the speech bubble, like `Dealer3D.head_anchor`.
+
+## Placement (what the captures use; the layout itself is Godot Dev's call)
+
+- **Dealer spot: `(-0.42, -0.47, -0.86)`, facing +Z, stage left of the brazier.**
+  - From the game camera (pitch 55, distance 2.5, FOV 36), only about y 0.04-0.29 is visible at this depth, between the far-rail top and the frame top.
+  - A centred dealer is hidden by the brazier bowl and its fire.
+  - At x -0.42 his face clears all four fire steps. The Hearth test checks a face sphere at (-0.42, 0.2, -0.86).
+  - In the game camera he reads as his head (visor + grin), plus the hands he raises (idle chip, taunt point).
+  - Waist-up only shows in close-ups. See the open questions.
+  - Rail clearance (tested): at this spot every clip keeps the forearms, hands, fingers and chip behind the far rail's outer edge (z -0.70).
+    The only exception is a limb raised over the rail top (y > 0.14), or held above the felt once it is past the rail.
+- **MC spot: `(-1.32, -0.42, -0.30)`, yaw 90°, outside the left rail facing the table.** The same clearance rule applies, against the left rail (x -1.20).
+  - It sits at the left edge of the game frame and outside the table lamp, so he is dim there.
+
+## Captures (`/workspace/dice/art/renders/smiles/`)
+
+- **Stills:**
+  - `smiles_game_camera.png`: full game camera, behind the Hearth far rail.
+  - `smiles_game_zoom.png`: same camera position, zoomed.
+  - `smiles_34.png` / `smiles_front.png`: showcase without the table.
+  - `smiles_34_insitu.png`
+  - `smiles_48.png` + `smiles_48_x6.png`: the 48 px read.
+  - `smiles_mc_game_camera.png`, `smiles_mc_34.png`
+- **MP4s:** `smiles_<clip>.mp4` for all 7 clips, plus `smiles_head_track.mp4`. Left = 3/4 showcase, right = game-camera zoom.
+
+## Rebuild
+
+`art/models/characters/smiles/src/rebuild_smiles.sh` (run from the repo root) does: Blender build -> `make_smiles.gd -- materials` ->
+`write_imports.py` -> `--import` -> `make_smiles.gd -- scenes`. Test: `tests/test_smiles.gd`.
