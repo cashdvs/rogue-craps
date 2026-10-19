@@ -84,12 +84,11 @@ void fragment() {
 	}
 	// Twin Face: unlit inlay (twin_unlit / atlas) when R; when gated lit,
 	// lerp core albedo to near-black so the lamp does not wash the Ember emission.
-	float twin_inlay_w;
-	float twin_halo_w;
-	float twin_gate;
-	twin_mask_sample(UV, world_n, twin_inlay_w, twin_halo_w, twin_gate);
-	float twin_r = texture(twin_mask, UV).r;
-	col = mix(col, twin_unlit.rgb, twin_r);
+	vec4 twin_m = texture(twin_mask, UV);
+	float twin_gate = clamp(settled, 0.0, 1.0) * twin_up_weight(world_n);
+	float twin_inlay_w = twin_m.r * twin_gate;
+	float twin_halo_w = twin_m.g * twin_gate;
+	col = mix(col, twin_unlit.rgb, twin_m.r);
 	col = mix(col, vec3(0.02), twin_inlay_w);
 	if (chip_mode) {
 		float r = length(obj_pos.xz) / chip_radius;

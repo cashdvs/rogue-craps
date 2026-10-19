@@ -1,8 +1,8 @@
 ## Headless test: Twin Face glow mask (Powder Keg Ember glyph).
 ## - GDScript mirror of the up-facing / settled gate matches expectations.
-## - TwinFaceGlow sets `settled` on settle (fade) and clears it on throw.
+## - Include source contains the up-face gate (smoothstep + settled multiply).
+## - TwinFaceGlow sets `settled` on settle (fade) and clears on throw / impact.
 ## - Shader + include + stand-in mask exist; material accepts uniforms.
-## - Colours are Ember / unlit brown — never violet or cyan.
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_fx_twin_face_mask.gd
@@ -32,6 +32,7 @@ func _check(cond: bool, what: String) -> void:
 func _run() -> void:
 	print("=== Dice of the Damned: Twin Face glow mask ===")
 	_test_files()
+	_test_include_gate()
 	_test_up_weight()
 	_test_mask_lit()
 	_test_colours()
@@ -45,27 +46,35 @@ func _test_files() -> void:
 	_check(ResourceLoader.exists(INCLUDE), "twin_face_mask.gdshaderinc exists")
 	_check(ResourceLoader.exists(STANDIN), "stand-in mask PNG exists")
 	_check(ResourceLoader.exists(TOON), "toon_noir.gdshader still present (untouched path)")
+	var sh := load(SHADER) as Shader
+	_check(sh != null, "twin shader loads")
+	if sh != null:
+		var code := sh.code
+		_check("twin_face_mask.gdshaderinc" in code or "twin_up_weight" in code, "twin shader includes / uses mask math")
 	var inc := FileAccess.get_file_as_string(INCLUDE)
 	var mask_line := ""
 	for line in inc.split("\n"):
 		if "uniform sampler2D twin_mask" in line:
 			mask_line = line
 			break
-	_check("hint_default_black" in mask_line and "source_color" not in mask_line, "twin_mask sampler is non-colour (hint_default_black): %s" % mask_line)
+	_check("hint_default_black" in mask_line and "source_color" not in mask_line, "twin_mask sampler is non-colour: %s" % mask_line)
 	_check("up_lo" in inc and "twin_halo_strength" in inc, "include exposes up_lo/up_hi and twin_halo_strength")
-	var sh := load(SHADER) as Shader
-	_check(sh != null, "twin shader loads")
-	if sh != null:
-		var code := sh.code
-		_check("twin_face_mask.gdshaderinc" in code or "twin_up_weight" in code or "twin_mask" in code, "twin shader wires the mask")
-		_check("flame" not in code.to_lower() or true, "no flame path required")
+
+
+## Source-level: removing the up-face gate from the include must fail this test.
+func _test_include_gate() -> void:
+	var inc := FileAccess.get_file_as_string(INCLUDE)
+	_check("smoothstep(up_lo, up_hi," in inc or "smoothstep(up_lo, up_hi, y)" in inc, "include has smoothstep(up_lo, up_hi, …) up ramp")
+	_check("normalize(world_n).y" in inc or "world_n).y" in inc, "include reads world normal .y")
+	_check("settled" in inc and "*" in inc, "include multiplies by settled")
+	# Tighter: the gate line shape from twin_mask_sample.
+	_check("clamp(settled" in inc and "twin_up_weight" in inc, "include gate = settled * twin_up_weight(...)")
 
 
 func _test_up_weight() -> void:
 	_check(is_equal_approx(TwinFaceGlow.up_weight(Vector3.UP), 1.0), "world up → weight 1")
 	_check(TwinFaceGlow.up_weight(Vector3.DOWN) < 0.01, "world down → weight 0 (opposite stave dark)")
 	_check(TwinFaceGlow.up_weight(Vector3.RIGHT) < 0.01, "side normal → weight 0")
-	# Ramp smoothstep(up_lo=0.80, up_hi=0.92, y) on unit normals.
 	var lo: float = TwinFaceGlow.DEFAULT_UP_LO
 	var hi: float = TwinFaceGlow.DEFAULT_UP_HI
 	var y_lo: float = lo
@@ -97,8 +106,6 @@ func _test_colours() -> void:
 	_check(Palette.EMBER.is_equal_approx(Color("#E8622A")), "Palette.EMBER is #E8622A")
 	var u := TwinFaceGlow.DEFAULT_UNLIT
 	_check(u.is_equal_approx(Color("#403440")), "unlit default is #403440 (renders ~#692B16)")
-	# Glow must never be Soul cyan or Satanic violet; unlit #403440 is a cool
-	# wood albedo (renders warm under the lamp) and is allowed.
 	var g := Palette.EMBER
 	_check(not (g.h > 0.45 and g.h < 0.55), "glow not cyan (%s)" % g)
 	_check(not (g.h > 0.70 and g.h < 0.92), "glow not violet (%s)" % g)
@@ -122,33 +129,40 @@ func _test_driver() -> void:
 	_check(is_equal_approx(float(mat.get_shader_parameter(&"up_lo")), 0.80), "bind sets up_lo 0.80")
 	_check(is_equal_approx(float(mat.get_shader_parameter(&"up_hi")), 0.92), "bind sets up_hi 0.92")
 	_check(is_equal_approx(float(mat.get_shader_parameter(&"settled")), 0.0), "starts unsettled")
-	# Fake table.events with the agreed signals.
+	# Fake table.events: real TableEvents.dice_settled() takes no args.
 	var ev := Node.new()
-	ev.add_user_signal("dice_settled", [{"name": "die_id", "type": TYPE_INT}, {"name": "face", "type": TYPE_INT}])
+	ev.add_user_signal("dice_settled")
 	ev.add_user_signal("dice_thrown", [{"name": "flick_speed_px_s", "type": TYPE_FLOAT}])
 	root.add_child(ev)
 	glow.bind_events(ev)
-	ev.emit_signal("dice_settled", 0, 3)
+	ev.emit_signal("dice_settled")
 	_check(is_equal_approx(glow._target, 1.0), "dice_settled aims settled → 1")
-	# Fade-in: wait a bit longer than FADE_IN so _process can catch up headless.
 	await create_timer(TwinFaceGlow.FADE_IN + 0.1, true, false, true).timeout
 	_check(float(mat.get_shader_parameter(&"settled")) > 0.95, "settled fades in to ~1 (%.2f)" % float(mat.get_shader_parameter(&"settled")))
 	ev.emit_signal("dice_thrown", 2000.0)
 	_check(is_equal_approx(float(mat.get_shader_parameter(&"settled")), 0.0), "dice_thrown clears settled immediately")
-	# No events: bind_die fallback.
+	# bind_die: lights on settled, clears on impact (next throw).
 	var die := Node.new()
 	die.add_user_signal("settled", [{"name": "die_id", "type": TYPE_INT}, {"name": "face", "type": TYPE_INT}])
+	die.add_user_signal("impact", [
+		{"name": "die_id", "type": TYPE_INT}, {"name": "surface", "type": TYPE_STRING},
+		{"name": "speed_mps", "type": TYPE_FLOAT}, {"name": "impulse", "type": TYPE_FLOAT},
+		{"name": "other_id", "type": TYPE_INT}, {"name": "material", "type": TYPE_STRING},
+	])
 	root.add_child(die)
 	glow.bind_events(null)
 	glow.bind_die(die)
 	die.emit_signal("settled", 1, 3)
 	_check(is_equal_approx(glow._target, 1.0), "DieVisual.settled fallback aims settled → 1")
-	glow.set_settled(false)
-	_check(is_equal_approx(float(mat.get_shader_parameter(&"settled")), 0.0), "set_settled(false) clears")
-	# Guard: events without signals don't crash.
+	await create_timer(TwinFaceGlow.FADE_IN + 0.1, true, false, true).timeout
+	_check(float(mat.get_shader_parameter(&"settled")) > 0.95, "bind_die settled fades in")
+	die.emit_signal("impact", 1, "felt", 3.5, 0.1, -1, "bone")
+	_check(is_equal_approx(float(mat.get_shader_parameter(&"settled")), 0.0), "bind_die impact clears settled (mid-roll dark)")
+	# Guard: events without signals don't crash and leave settled off.
 	var empty := Node.new()
+	root.add_child(empty)
 	glow.bind_events(empty)
-	_check(true, "bind_events without signals is safe")
+	_check(is_equal_approx(float(mat.get_shader_parameter(&"settled")), 0.0), "bind_events without signals leaves settled off")
 	glow.queue_free()
 	ev.queue_free()
 	die.queue_free()

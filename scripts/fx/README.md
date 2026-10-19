@@ -26,7 +26,7 @@ opposite 3 stave that shares the atlas cell stays dark.
 |---|---|---|---|
 | `twin_mask` | texture | — | UV1, 1024 5×5. **R** = hard glyph inlay, **G** = soft halo (~1.3×, 0 inside glyph), B/A spare. Import **non-colour** / linear + mipmaps (`hint_default_black`, no `source_color`). |
 | `settled` | float 0..1 | `0.0` | Driven by `TwinFaceGlow` (fade-in ~0.12 s). 0 while rolling. |
-| `twin_glow` | colour | `#E8622A` Ember | Lit emission. Never violet/cyan. |
+| `twin_glow` | colour | `#E8622A` Ember | Lit emission. Never violet/cyan. On the keg material, 3D Artist may set **`#D9480F`** (pre-compensated for the Hearth lamp); leave the shader default as Ember. |
 | `twin_strength` | float | **1.6** | Core emission: `glow * strength * R * gate`. |
 | `twin_halo_strength` | float | **1.6** | Halo emission: `glow * halo_strength * G * gate` (albedo untouched). |
 | `twin_unlit` | colour | `#403440` | Unlit inlay albedo (renders ~`#692B16` under the Hearth lamp). Final atlas also paints this. |

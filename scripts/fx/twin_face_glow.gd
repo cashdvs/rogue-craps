@@ -1,17 +1,20 @@
 ## Drives the Twin Face glow mask on a Powder Keg body material
 ## (`shaders/3d/toon_noir_twin.gdshader`). Sets the `settled` uniform with a
-## short fade-in (~0.12 s) when the die lands, and clears it on throw so the
-## Ember glyph stays dark while rolling (Art Director option Cp; 3D Artist
-## hookup). Glow only — never flame; colour is Palette.EMBER via the shader.
+## short fade-in (~0.12 s of real time) when the die lands, and clears it on
+## throw so the Ember glyph stays dark while rolling (Art Director option Cp;
+## 3D Artist hookup). Glow only — never flame; colour is Palette.EMBER via
+## the shader. On the keg material, 3D Artist may set `twin_glow` to
+## `#D9480F` (pre-compensated for the lamp); the default stays Ember.
 ##
 ## Bind a ShaderMaterial, then either:
-## - `bind_events(table.events)` (prefers `dice_settled` / `dice_thrown` when
-##   present; guarded with has_signal), or
-## - `bind_die(die_visual)` using DieVisual.settled / rest as a fallback.
+## - `bind_events(table.events)` (`dice_settled` / `dice_thrown`, guarded with
+##   has_signal), or
+## - `bind_die(die_visual)`: lights on `settled`, clears on the next `impact`
+##   (start of the following throw) so mid-roll never stays lit.
 class_name TwinFaceGlow
 extends Node
 
-## Fade-in length after settle (seconds, ignore_time_scale).
+## Fade-in length after settle (seconds of real time; ignores Engine.time_scale).
 const FADE_IN: float = 0.12
 ## Shader uniform names (must match twin_face_mask.gdshaderinc).
 const PARAM_SETTLED := &"settled"
@@ -41,12 +44,15 @@ var _target: float = 0.0
 var _value: float = 0.0
 var _events: Object
 var _die: Node
-## Optional die_id filter when listening to table.events.dice_settled(die_id,...).
+## Optional DieVisual.die_id filter for bind_die impact/settled. TableEvents
+## `dice_settled` has no die_id (table-wide); this filter is ignored there.
 var die_id: int = -1
+var _last_usec: int = -1
 
 
 func _ready() -> void:
 	set_process(true)
+	_last_usec = Time.get_ticks_usec()
 
 
 ## Points this driver at a toon_noir_twin material and applies Ember defaults.
@@ -76,7 +82,8 @@ func bind_events(ev: Object) -> void:
 		ev.connect(&"dice_thrown", _on_events_thrown)
 
 
-## Fallback when TableEvents isn't on the table: DieVisual.settled / rest.
+## Fallback when TableEvents isn't on the table: DieVisual.settled lights the
+## glow; DieVisual.impact clears it on the next throw so mid-roll stays dark.
 func bind_die(d: Node) -> void:
 	_unbind_die()
 	_die = d
@@ -84,14 +91,8 @@ func bind_die(d: Node) -> void:
 		return
 	if d.has_signal(&"settled"):
 		d.connect(&"settled", _on_die_settled)
-	if d.has_signal(&"rest"):
-		# rest fires at physical stop; we still wait for settled (reveal) to light.
-		pass
 	if d.has_signal(&"impact"):
-		# First impact of a new throw shouldn't light; clear on any fresh motion tip:
-		# Table clears via dice_thrown. Without events, clear when settled face changes
-		# only through set_settled(false) from the owner.
-		pass
+		d.connect(&"impact", _on_die_impact)
 
 
 ## Snap or aim the settled gate. `on` true fades in; false clears immediately
@@ -117,11 +118,17 @@ static func mask_lit(mask_r: float, mask_g: float, settled: float, world_normal:
 	return Vector2(mask_r * gate, mask_g * gate)
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
+	# Real-time step so the fade ignores Engine.time_scale (slow-mo / pause).
+	var now := Time.get_ticks_usec()
+	if _last_usec < 0:
+		_last_usec = now
+	var dt := clampf(float(now - _last_usec) / 1_000_000.0, 0.0, 0.1)
+	_last_usec = now
 	if is_equal_approx(_value, _target):
 		return
 	if _target > _value:
-		var step := delta / FADE_IN if FADE_IN > 0.0 else 1.0
+		var step := dt / FADE_IN if FADE_IN > 0.0 else 1.0
 		_value = minf(_target, _value + step)
 	else:
 		_value = _target
@@ -133,9 +140,8 @@ func _apply() -> void:
 		material.set_shader_parameter(PARAM_SETTLED, _value)
 
 
-func _on_events_settled(id: Variant = null, _face: Variant = null) -> void:
-	if die_id >= 0 and id != null and int(id) != die_id:
-		return
+## TableEvents.dice_settled() has no args (table-wide).
+func _on_events_settled() -> void:
 	set_settled(true)
 
 
@@ -143,8 +149,18 @@ func _on_events_thrown(_flick: Variant = null) -> void:
 	set_settled(false)
 
 
-func _on_die_settled(_id: Variant = null, _face: Variant = null) -> void:
+func _on_die_settled(id: Variant = null, _face: Variant = null) -> void:
+	if die_id >= 0 and id != null and int(id) != die_id:
+		return
 	set_settled(true)
+
+
+## First contact of a new throw: clear so the glyph stays dark mid-roll.
+func _on_die_impact(id: Variant = null, _surface: Variant = null, _speed: Variant = null, _impulse: Variant = null, _other: Variant = null, _material: Variant = null) -> void:
+	if die_id >= 0 and id != null and int(id) != die_id:
+		return
+	if _target > 0.0 or _value > 0.0:
+		set_settled(false)
 
 
 func _unbind_events() -> void:
@@ -164,6 +180,8 @@ func _unbind_die() -> void:
 		return
 	if _die.has_signal(&"settled") and _die.is_connected(&"settled", _on_die_settled):
 		_die.disconnect(&"settled", _on_die_settled)
+	if _die.has_signal(&"impact") and _die.is_connected(&"impact", _on_die_impact):
+		_die.disconnect(&"impact", _on_die_impact)
 	_die = null
 
 

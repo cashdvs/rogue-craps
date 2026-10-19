@@ -112,12 +112,20 @@ func _run() -> void:
 			USE_FINAL = true
 	DirAccess.make_dir_recursive_absolute(OUT)
 	if USE_FINAL:
-		_mask_tex = _load_file_tex(FINAL_MASK)
-		_faces_tex = _load_file_tex(FINAL_FACES)
+		if not FileAccess.file_exists(FINAL_MASK) or not FileAccess.file_exists(FINAL_FACES):
+			_mask_tex = null
+			_faces_tex = null
+		else:
+			_mask_tex = _load_file_tex(FINAL_MASK)
+			_faces_tex = _load_file_tex(FINAL_FACES)
 		if _mask_tex == null or _faces_tex == null:
-			quit(1)
-			return
-		print("using FINAL mask+faces from ", FINAL_DIR)
+			push_warning("capture_twin_mask: --final requested but %s is missing; falling back to stand-in mask" % FINAL_DIR)
+			print("FINAL art missing — using stand-in mask (res://art/fx/twin_face/twin_face_mask_standin.png)")
+			USE_FINAL = false
+			_mask_tex = load("res://art/fx/twin_face/twin_face_mask_standin.png") as Texture2D
+			_faces_tex = null
+		else:
+			print("using FINAL mask+faces from ", FINAL_DIR)
 	else:
 		_mask_tex = load("res://art/fx/twin_face/twin_face_mask_standin.png") as Texture2D
 	var world := Node3D.new()
