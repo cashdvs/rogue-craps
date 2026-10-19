@@ -55,8 +55,11 @@ Every layer plays at `lerp(-14, 0, intensity)` dB and pitch
   brightness (die 1.0, chip 0.8, puck 0.6, rail 0.5, backboard 0.4, felt 0.15).
 - **Takes rotate** (no repeats): felt and die use `dice_hit`, rail and
   backboard `rim_hit`, chip and puck `chip_place`.
-- **Rate limit:** with `die_id >= 0`, one sound per die every 0.04 s
-  (`IMPACT_MIN_GAP_S`). Without a die id there's no limit.
+- **Rate limit:** with `die_id >= 0`, one sound per die every 0.04 s of game
+  time (`IMPACT_MIN_GAP_S`; it follows slow-mo and fixed-fps recordings).
+  Without a die id there's no limit.
+- **Voices:** the pool (12 players) takes a free player first, so a burst of
+  landings doesn't cut off the throw tail while it still rings.
 
 ### Call sites (Table3D, used by Bonfire3D)
 
