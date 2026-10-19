@@ -768,7 +768,13 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	last_values = values
 	var lit := run.lit()
 	throw_resolved.emit(values, lit)
-	if not ok and run.kindling_saved:
+	if not ok and run.free_rethrow:
+		# Nonstandard dice: a full throw that lit nothing is thrown again free.
+		bhud.flash("NOTHING BURNED  FREE THROW", Palette.BONE)
+		_set_why("A full throw can't bust. Throw the %d dice again." % run.cold)
+		_to_hand()
+		phase = Phase.BET
+	elif not ok and run.kindling_saved:
 		# A Kindling face: nothing lit, but no bust. Same dice, throw again.
 		bhud.flash("KINDLING!  NO BUST", Palette.EMBER)
 		sfx.play(&"rim_hit", 1.3, -4.0)

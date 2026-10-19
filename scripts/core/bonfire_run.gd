@@ -60,6 +60,15 @@ var throws_this_hand: int = 0
 var kindling_armed: bool = false
 ## The last landed throw lit nothing but Kindling saved it (no bust).
 var kindling_saved: bool = false
+## The last landed throw was a FULL throw (every die of the handful, with a
+## non-d6 die among them) that lit nothing: thrown again for free, no bust
+## (nonstandard_dice.md §4; with two wide dice in the tray a full throw can
+## light nothing).
+var free_rethrow: bool = false
+## Free rethrows in a row; a handful that can't light at all (e.g. every
+## face Blank) busts after MAX_FREE_RETHROWS instead of looping forever.
+var free_rethrows_in_a_row: int = 0
+const MAX_FREE_RETHROWS: int = 5
 ## TableDie (or null) per die of this throw.
 var throw_table_dice: Array = []
 ## The last landed throw (with the rules' face changes).
@@ -116,6 +125,7 @@ func _start_hand() -> void:
 	pending.clear()
 	throws_this_hand = 0
 	kindling_armed = false
+	free_rethrows_in_a_row = 0
 	hand_combos.clear()
 	throw_table_dice.clear()
 	state = State.AIM
@@ -134,7 +144,7 @@ func mult_bonus() -> int:
 ## What the rules say right now, as BonfireScoring's ctx.
 func rule_ctx() -> Dictionary:
 	var cold_values: Array[int] = []
-	for v in range(1, 7):
+	for v in range(1, BonfireScoring.MAX_FACE + 1):
 		for r in rules:
 			if not r.can_light(self, v):
 				cold_values.append(v)
@@ -151,8 +161,31 @@ func rule_ctx() -> Dictionary:
 	var n := throw_faces.size()
 	return {"cold_values": cold_values, "no_mods": no_mods, "excluded_combos": excluded,
 		"min_dice": mini(min_pot, n) if min_pot > 0 else 1, "soul": soul, "max_soul": max_soul,
-		"throw_size": n, "is_rethrow": throws_this_hand > 1,
+		"throw_size": n, "is_rethrow": throws_this_hand > 1, "wild_max": wild_max(),
 		"blood_cost": func(raw: int) -> int: return soul_cost(raw, &"blood")}
+
+
+## A non-d6 die (coin, d4, d8, ...) is in this throw's tray. The full-throw
+## free rethrow (§4) only applies then: a plain 5d6 throw can't light nothing
+## on its own, so a twist / boss that makes one bust (Cold Sixes, Greedy Pot)
+## keeps doing so. (Scope pending PM's §4 ruling; see the PR.)
+func has_wide_die() -> bool:
+	for td in throw_table_dice:
+		if td != null and (td as TableDie).shape != &"d6":
+			return true
+	return false
+
+
+## The Wild cap (design/nonstandard_dice.md §5): a Wild (or Step) can be
+## 1-6, or higher only up to the highest face a die in this throw's tray can
+## show (a Lantern d8 in the tray: up to 8).
+func wild_max() -> int:
+	var top := 6
+	for td in throw_table_dice:
+		if td != null:
+			for v in (td as TableDie).faces:
+				top = maxi(top, int(v))
+	return mini(top, BonfireScoring.MAX_FACE)
 
 
 func bounties_count() -> bool:
@@ -228,7 +261,20 @@ func land_throw(th: TableThrow) -> bool:
 	var saved := kindling_armed
 	kindling_armed = false
 	kindling_saved = false
+	free_rethrow = false
 	if lit().is_empty():
+		if th.size() >= dice_count and cold >= dice_count and has_wide_die() and free_rethrows_in_a_row < MAX_FREE_RETHROWS:
+			# A full throw can't bust: the same dice again, and it still
+			# counts as this throw (a hand's first throw stays the first).
+			throw_faces.clear()
+			throw_mods.clear()
+			throw_table_dice.clear()
+			throws_this_hand -= 1
+			state = State.AIM
+			free_rethrow = true
+			free_rethrows_in_a_row += 1
+			table_event.emit(&"free_rethrow", {})
+			return false
 		if saved:
 			throw_faces.clear()
 			throw_mods.clear()
@@ -239,6 +285,7 @@ func land_throw(th: TableThrow) -> bool:
 			return false
 		_bust()
 		return false
+	free_rethrows_in_a_row = 0
 	if not tuning.bounty_requires_pot and bounties_count():
 		_add_pending(BonfireScoring.plain_values(throw_dice()))
 	state = State.PICK

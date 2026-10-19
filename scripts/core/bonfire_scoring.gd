@@ -10,10 +10,18 @@ class_name BonfireScoring
 extends RefCounted
 
 
+## Highest face value the table handles (a d20).
+const MAX_FACE: int = 20
+
+
+## How many dice show each value: c[v] for v in 0..MAX_FACE (non-d6 dice,
+## design/nonstandard_dice.md §2: numbers are numbers). Values outside
+## 0..MAX_FACE are clamped there (a data error, never an index error).
 static func _counts(faces: Array) -> Array[int]:
-	var c: Array[int] = [0, 0, 0, 0, 0, 0, 0]
+	var c: Array[int] = []
+	c.resize(MAX_FACE + 1)
 	for f in faces:
-		c[clampi(int(f), 1, 6)] += 1
+		c[clampi(int(f), 0, MAX_FACE)] += 1
 	return c
 
 
@@ -56,7 +64,9 @@ static func _run_gap(faces: Array) -> int:
 static func matches(c: BonfireCombo, faces: Array, gap: bool = false) -> bool:
 	match c.kind:
 		BonfireCombo.Kind.SINGLE:
-			return faces.size() == 1 and c.single_faces.has(int(faces[0]))
+			# Faces above 6 light alone too (§3): (5 + face) x 1 with the
+			# tuning's Single (base 5, mult 1).
+			return faces.size() == 1 and (c.single_faces.has(int(faces[0])) or int(faces[0]) > 6)
 		BonfireCombo.Kind.N_OF_A_KIND:
 			return faces.size() == c.n and _shape(faces) == [c.n]
 		BonfireCombo.Kind.RUN:
@@ -175,6 +185,9 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 		var eff := -1 if no_mods and not (m != null and m.is_curse) else _effect(d)
 		if eff != FaceModData.Effect.WILD and eff != FaceModData.Effect.STEP and cold.has(v):
 			return bad
+		# A face with no number (value 0 or less, e.g. a data Blank) never scores.
+		if v < 1 and eff != FaceModData.Effect.WILD:
+			return bad
 		match eff:
 			FaceModData.Effect.BLANK:
 				return bad
@@ -218,8 +231,11 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 	var gap_ok := specials.has(&"wanderer")
 	var best := bad
 	var best_rank := -1
-	var step_opts := _step_options(steps, cold)
-	for assign in _wild_assignments(wilds, cold):
+	# Wild / Step reach (§5): values 1-6, higher only up to the highest face
+	# a die in the tray can show (ctx wild_max, e.g. 8 with a Lantern d8).
+	var top := maxi(int(ctx.get("wild_max", 6)), 6)
+	var step_opts := _step_options(steps, cold, top)
+	for assign in _wild_assignments(wilds, cold, top):
 		for st: Array in step_opts:
 			var all: Array[int] = vals.duplicate()
 			all.append_array(assign)
@@ -275,14 +291,15 @@ static func _close_gap(vals: Array, gap_value: int) -> Array:
 	return out
 
 
-## Every choice of value for each Step face: its value or +-1 (1-6, not cold).
-static func _step_options(steps: Array[int], cold: Array) -> Array:
+## Every choice of value for each Step face: its value or +-1 (1..top, not
+## cold; top = 6 unless a wider die is in the tray).
+static func _step_options(steps: Array[int], cold: Array, top: int = 6) -> Array:
 	var out: Array = [[]]
 	for v in steps:
 		var next: Array = []
 		for prefix: Array in out:
 			for o in [v, v - 1, v + 1]:
-				if o >= 1 and o <= 6 and not cold.has(o):
+				if o >= 1 and o <= maxi(top, v) and not cold.has(o):
 					var p := prefix.duplicate()
 					p.append(o)
 					next.append(p)
@@ -290,23 +307,24 @@ static func _step_options(steps: Array[int], cold: Array) -> Array:
 	return out
 
 
-## Every multiset of `n` values 1-6 not in `cold` (order doesn't matter).
-static func _wild_assignments(n: int, cold: Array = []) -> Array:
+## Every multiset of `n` values 1..top not in `cold` (order doesn't matter).
+## top is the Wild cap (§5): 6, or the highest face a die in the tray shows.
+static func _wild_assignments(n: int, cold: Array = [], top: int = 6) -> Array:
 	var out: Array = []
 	var cur: Array[int] = []
-	_assign_rec(n, 1, cur, out, cold)
+	_assign_rec(n, 1, cur, out, cold, clampi(top, 1, MAX_FACE))
 	return out
 
 
-static func _assign_rec(n: int, from: int, cur: Array[int], out: Array, cold: Array) -> void:
+static func _assign_rec(n: int, from: int, cur: Array[int], out: Array, cold: Array, top: int = 6) -> void:
 	if cur.size() == n:
 		out.append(cur.duplicate())
 		return
-	for v in range(from, 7):
+	for v in range(from, top + 1):
 		if cold.has(v):
 			continue
 		cur.append(v)
-		_assign_rec(n, v, cur, out, cold)
+		_assign_rec(n, v, cur, out, cold, top)
 		cur.pop_back()
 
 
@@ -387,7 +405,8 @@ static func plain_values(dice: Array) -> Array[int]:
 				out.append(int(d["value"]))
 				out.append(int(d["value"]))
 			_:
-				out.append(int(d["value"]))
+				if int(d["value"]) >= 1:
+					out.append(int(d["value"]))
 	return out
 
 
@@ -398,28 +417,28 @@ static func bounty_contains(b: BountyData, faces: Array) -> bool:
 	var c := _counts(faces)
 	match b.kind:
 		BountyData.Kind.N_OF_A_KIND:
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				if (b.face == 0 or b.face == f) and c[f] >= b.n:
 					return true
 			return false
 		BountyData.Kind.RUN, BountyData.Kind.STRAIGHT_5:
 			var need := 5 if b.kind == BountyData.Kind.STRAIGHT_5 else b.n
 			var run := 0
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				run = run + 1 if c[f] > 0 else 0
 				if run >= need:
 					return true
 			return false
 		BountyData.Kind.TWO_PAIR:
 			var pairs := 0
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				if c[f] >= 2:
 					pairs += 1
 			return pairs >= 2
 		BountyData.Kind.FULL_HOUSE:
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				if c[f] >= 3:
-					for g in range(1, 7):
+					for g in range(1, MAX_FACE + 1):
 						if g != f and c[g] >= 2:
 							return true
 			return false
