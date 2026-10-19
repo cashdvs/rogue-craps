@@ -126,7 +126,7 @@ func _test_table() -> void:
 	d6s.faces = [1, 2, 3] as Array[int]
 	d6s.mods = [null, &"x", null]
 	d6s.weights = [1.0, 1.0, 2.0] as Array[float]
-	p._to_d6_slots(d6s)
+	TableDieSlots.to_d6_slots(d6s)
 	_check(d6s.faces == ([1, 1, 2, 2, 3, 3] as Array[int]) and d6s.mods == [null, null, &"x", &"x", null, null]
 		and d6s.weights == ([1.0, 1.0, 1.0, 1.0, 2.0, 2.0] as Array[float]), "table: 6-slot mapping puts each value's mod and weight on both its slots")
 	var run := MapRun.new(_run, 5)

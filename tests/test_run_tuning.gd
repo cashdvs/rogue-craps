@@ -76,9 +76,9 @@ func _test_tuning_v1() -> void:
 	_check(f3.boss_bounties.is_empty() and f3.boss_min_bounties == 4 and f3.boss_max_bounties == 4 and not f3.boss_adds_twist,
 		"tuning v1: floor 3 boss draws 4 from the floor pool, no twist")
 	var wick: RunRuleData = f3.boss_cheats[0]
-	_check(wick.resource_path.ends_with("mister_wick.tres") and wick.id == &"cold_sixes" and wick.display_name == "Mister Wick"
+	_check(wick.resource_path.ends_with("mister_wick.tres") and wick.id == &"mister_wick" and wick.display_name == "Mister Wick"
 		and wick.kind == RunRuleData.Kind.CHEAT and wick.bust_soul_loss == 2 and str(wick.params) == str({"face": 6}),
-		"tuning v1: Mister Wick is a cold_sixes cheat, face 6, bust costs 2")
+		"tuning v1: Mister Wick is a mister_wick cheat, face 6, bust costs 2")
 	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
 	var ok := true
 	var saw_wick := false
@@ -90,8 +90,8 @@ func _test_tuning_v1() -> void:
 			continue
 		saw_wick = true
 		var ts: TableSetup = run.table_setup().to_table_setup(base)
-		ok = ok and ts.rules.size() == 1 and ts.rules[0]["id"] == &"cold_sixes" and ts.tuning.bust_soul_loss == 2 and run.goal.required.size() == 4
-	_check(saw_wick and ok, "tuning v1: Mister Wick's table is cold_sixes, bust_soul_loss 2, 4 bounties")
+		ok = ok and ts.rules.size() == 1 and ts.rules[0]["id"] == &"mister_wick" and ts.tuning.bust_soul_loss == 2 and run.goal.required.size() == 4
+	_check(saw_wick and ok, "tuning v1: Mister Wick's table is mister_wick, bust_soul_loss 2, 4 bounties")
 	_test_tuning_addendum_2()
 
 
@@ -103,7 +103,7 @@ func _test_tuning_addendum_2() -> void:
 	for r in f3.boss_cheats:
 		ids.append(r.id)
 	_check(f3.boss_cheats.size() == 3 and names == ["mister_wick", "baron_vig", "odds_bodkin"]
-		and ids == [&"cold_sixes", &"greedy_pot", &"first_throw"]
+		and ids == [&"mister_wick", &"baron_vig", &"odds_bodkin"]
 		and f3.boss_cheats[0].display_name == "Mister Wick"
 		and f3.boss_cheats[1].display_name == "Baron Vig"
 		and f3.boss_cheats[2].display_name == "Odds Bodkin",
@@ -156,7 +156,7 @@ func _test_tuning_addendum() -> void:
 	var want_r := {"ashmouth": [-1, "No Hot Hand, and you get one fewer hand."], "cold_sixes": [1, "6s never light. +1 hand."],
 		"first_throw": [1, "Bounties only count on a hand's first 2 throws. +1 hand."],
 		"greedy_pot": [1, "You must pot 2 or more dice per throw. +1 hand."], "cold_hands": [1, "No Hot Hand. +1 hand."],
-		"straight_man": [0, "Runs of 3 don't count."], "bloodletter": [0, "Every Soul cost is doubled: a bust costs 2."],
+		"straight_man": [0, "Runs of 3 don't count."], "bloodletter": [0, "Every Soul cost is doubled."],
 		"madame_shuffle": [0, "Each hand, a 2 or a 4 never lights."]}
 	var rok := true
 	for n in want_r:
