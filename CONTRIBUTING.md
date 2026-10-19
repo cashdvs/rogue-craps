@@ -115,6 +115,11 @@ The team is Cash (owner), a few humans with write access (like Julian) and sever
 - **Bots all post as `@cashdvs`**, so GitHub can't tell them apart. A bot **signs its role** on
   the last line of every PR body and review comment, e.g. `Role: Systems Dev`. Humans just fill
   in the "Author" line of the template.
+- **Never change the shared repo's git config.** Agents share one clone on the studio box
+  (`/workspace/dice/game` and its worktrees share one `.git/config`), so `git config user.name`
+  there changes every agent's author. Commit as `cashdvs <cashdvs@users.noreply.github.com>`
+  (the shared default). If you need a different identity for one command, use
+  `git -c user.name=... -c user.email=... commit`, never `git config` (PM ruling, Oct 19 2026).
 - **Nobody pushes to `main`.** Everything lands through a reviewed PR.
 - **No force-push without approval.** Never force-push `main`, a branch someone else owns, or a
   branch other PRs are stacked on, without PM's OK. Pushed branches are updated by merging `main`

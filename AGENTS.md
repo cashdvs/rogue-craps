@@ -259,6 +259,9 @@ needs it, because it rewrites files in `resources/`.
    never merged with a merge commit. Merge commits are fine inside stacked feature branches
    (merge the base in rather than rebasing a pushed branch others build on); such a PR is
    squashed into `main`. QA merges every PR (see [CONTRIBUTING.md §4](CONTRIBUTING.md)).
+   **Never change the shared repo's git config** (`git config user.*` on the studio box rewrites
+   every agent's author). Commit as `cashdvs`, the shared default; for a one-off identity use
+   `git -c user.name=... -c user.email=...` (see [CONTRIBUTING.md §7](CONTRIBUTING.md)).
 2. **Tests required for logic.** Any change in `scripts/core/` or `scripts/data/` needs new or
    updated checks in `tests/test_*.gd` (follow the existing check pattern in the file you extend,
    e.g. `_check(condition, name)` or `check(...)`, and exit with
