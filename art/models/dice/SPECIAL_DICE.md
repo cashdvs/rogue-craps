@@ -103,10 +103,10 @@ these are flat blades at the edge middles, not cones on the corners. Material (m
 3 / 6 / 9.5 mm), so the outline corners are stepped, not round or chamfered. Material: tan leather #B88A5A, the
 pleat risers dark brown leather #3A2418 (they draw the folds), oxblood #3B0D14 pips. Light-mid value, warm.
 
-**Blood Pact Die** (+1 mult per 5 missing Soul). Silhouette: two black wax seals (a wide disc plus a gold stamp boss)
+**Blood Pact Die** (+1 mult per 5 missing Soul). Silhouette: two black wax seals (a wide disc plus a bone stamp boss)
 pressed onto opposite corners (+,+,+ / -,-,-): two lumps, asymmetric, unlike Gilded's 20 small studs.
 Material (dark, warm): glossy deep crimson #7E1626 (spec + a red rim; far darker than Danger), black wax seals
-#141012 glossy, each pressed with a small brass #B08D3C stamp (`blood_pact_stamp`), bone pips (the signature).
+#141012 glossy, each pressed with a small bone #E8DCC0 stamp (`blood_pact_stamp`, the pips' bone, lamp-tuned), bone pips (the signature).
 
 **Coven Die** (Trips / Full House x2). Silhouette: all 12 edges scooped into concave coves (r 13.6 mm), leaving pointed
 three-way corners. Face-on, the outline is a square with concave corners (cross-like), the inverse of Bone's
@@ -127,9 +127,9 @@ Batch 2 on the **Hearth** board (`showcase_b2.gd`, run in wt-hearth with the dic
 lineup_top.png of all 11, pile_game_cam.png, pile_48px_*.png, dice_48px_strip*.png of all 11, turn_*.png).
 
 ## Open questions (Game Designer / Art Director)
-- Batch 2: the Blood Pact stamps are small brass bosses on the two seal corners only, but brass on corners is the
-  family of the Devilish brass-cap cue; confirm it does not read as a rarity tier. The lamp compensation
-  (`lamp_comp()`) is tuned for the #FFB070 lamp; if the lamp colour changes, re-tune it.
+- Batch 2: the lamp compensation (`lamp_comp()`) is tuned for the #FFB070 lamp; if the lamp colour changes, re-tune it.
+- ~~Batch 2: gold Blood Pact stamps sat close to the Devilish brass-cap cue~~ **Resolved (AD, Oct 18):** the stamps
+  are bone, matching the pips; `tests/test_special_dice.gd` asserts the stamp is not gold/brass.
 - `bonfire_build_content.md` lists **Hellfire** and **Gilded** as *face mods* (Hellfire Face x1.5 mult, Gilded Face
   +1 Ember), not special dice; the 8 special dice there are Mirror, Cracked, Twin Flame, Wanderer, Bellows, Blood
   Pact, Coven, Last Breath. These two were modelled as dice per the request; if they stay face mods, the pip/face

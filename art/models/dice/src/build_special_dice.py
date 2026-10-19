@@ -549,11 +549,11 @@ def build_bellows():
 
 def build_blood_pact():
     """Blood Pact Die: glossy crimson with two blood-black wax seals pressed onto opposite corners (the pact's
-    two parties: a wide black disc with a gold stamp boss); bone pips (the signature)."""
+    two parties: a wide black disc with a bone stamp boss); bone pips (the signature)."""
     body_m = make_material("blood_pact_body", "7E1626", 0.3)
     pip_m = make_material("blood_pact_pip", "E8DCC0", 0.6)
     seal_m = make_material("blood_pact_seal", "141012", 0.2)
-    stamp_m = make_material("blood_pact_stamp", "B08D3C", 0.3, 1.0)
+    stamp_m = make_material("blood_pact_stamp", "E8DCC0", 0.5)
     radius = 0.14 * EDGE
     bm = rounded_cube_bmesh(radius, 2)
     ob = new_obj("BloodPactD6", bm, [body_m, pip_m, seal_m, stamp_m])
@@ -565,7 +565,7 @@ def build_blood_pact():
         dn = dv.normalized()
         corner = dv * c + dn * radius
         rot = Vector((0, 0, 1)).rotation_difference(g2b(dn)).to_matrix().to_4x4()
-        # a pressed black wax seal (a wide flattened disc) with a gold stamp boss in its middle
+        # a pressed black wax seal (a wide flattened disc) with a bone stamp boss in its middle
         res = bmesh.ops.create_uvsphere(sb, u_segments=12, v_segments=6, radius=1.0)
         bmesh.ops.transform(sb, verts=res["verts"], matrix=rot @ Matrix.Diagonal((0.0148, 0.0148, 0.0058, 1.0)))
         bmesh.ops.translate(sb, verts=res["verts"], vec=g2b(corner + dn * 0.0004))
