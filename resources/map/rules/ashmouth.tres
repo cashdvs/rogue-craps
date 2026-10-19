@@ -8,3 +8,4 @@ id = &"ashmouth"
 display_name = "Ashmouth"
 description = "No Hot Hand."
 kind = 1
+effect_group = &"no_hot_hand"

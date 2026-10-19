@@ -23,7 +23,13 @@ func _start_floor(i: int) -> void:
 	map = MapGenerator.generate(floor_data().map, hash([run_seed, i, &"map"]))
 	var rng := _rng(&"boss")
 	boss = _pick_rule(floor_data().boss_cheats, rng)
-	boss_twist = _pick_rule(floor_data().elite_twists, rng) if floor_data().boss_adds_twist else null
+	boss_twist = null
+	if floor_data().boss_adds_twist:
+		var twists: Array[RunRuleData] = []
+		for t in floor_data().elite_twists:
+			if boss == null or not boss.same_effect(t):
+				twists.append(t)
+		boss_twist = _pick_rule(twists, rng)
 	boss_misses = 0
 	progress.next_table_twist = null  # an unplayed event twist expires with the floor
 	_set_screen(Screen.MAP)
@@ -110,8 +116,16 @@ func make_goal(t: NT) -> TableGoal:
 		if not picks.has(b):
 			picks.append(b)
 	g.required = picks
-	if not f.bonus_bounties.is_empty():
-		g.bonus = [f.bonus_bounties[rng.randi_range(0, f.bonus_bounties.size() - 1)]] as Array[BountyData]
+	# The bonus never repeats a required bounty (same combo kind and size).
+	var bonus_pool: Array[BountyData] = []
+	for b in f.bonus_bounties:
+		var dup := false
+		for r in picks:
+			dup = dup or (r.kind == b.kind and r.n == b.n)
+		if not dup:
+			bonus_pool.append(b)
+	if not bonus_pool.is_empty():
+		g.bonus = [bonus_pool[rng.randi_range(0, bonus_pool.size() - 1)]] as Array[BountyData]
 	return g
 
 
@@ -122,6 +136,7 @@ func table_setup() -> RunTableSetup:
 	s.dice = progress.dice.duplicate()
 	s.table_dice = progress.table_dice()
 	s.owned_dice_count = progress.dice.size()
+	s.run_embers = progress.embers
 	s.start_soul = progress.soul
 	s.max_soul = progress.max_soul
 	s.seed_value = hash([run_seed, floor_index, map.current_id, &"table", boss_misses])
@@ -143,19 +158,20 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 	progress.change_embers(embers)
 	progress.record_banks(banked)
 	if progress.is_over():
-		_set_screen(Screen.RUN_OVER)
+		_end(&"soul")
 		return
 	if not cleared:
 		if table_type == NT.BOSS:
 			boss_misses += 1
 			if boss_misses > data.boss_resits:
-				_set_screen(Screen.RUN_OVER)
+				_end(&"boss")
 				return
 			goal = make_goal(NT.BOSS)
 			_set_screen(Screen.TABLE)
 			return
 		_set_screen(Screen.MAP)
 		return
+	tables_cleared += 1
 	if table_type == NT.BOSS:
 		progress.change_embers(data.boss_embers)
 		progress.gain_contract_piece()
@@ -220,7 +236,7 @@ func take_seal(i: int, params: Dictionary = {}) -> bool:
 	dice_options.clear()
 	if table_type == NT.BOSS:
 		if floor_index + 1 >= data.floors.size():
-			_set_screen(Screen.RUN_WON if progress.contract_pieces >= data.contract_pieces_to_win else Screen.RUN_OVER)
+			_end(&"won" if progress.contract_pieces >= data.contract_pieces_to_win else &"contract")
 		else:
 			_start_floor(floor_index + 1)
 		return true
@@ -248,7 +264,15 @@ func choose_event(i: int, picks: Array[Vector2i] = []) -> Array[String]:
 	var lines := EventApplier.apply(event.choices[i], progress, _rng(&"event_fx", i), picks)
 	if not lines.is_empty() and lines[0].begins_with("refused"):
 		return lines
-	_set_screen(Screen.RUN_OVER if progress.is_over() else Screen.MAP)
+	if progress.is_over():
+		_end(&"soul")
+	else:
+		_set_screen(Screen.MAP)
 	return lines
+
+
+func _end(reason: StringName) -> void:
+	end_reason = reason
+	_set_screen(Screen.RUN_WON if reason == &"won" else Screen.RUN_OVER)
 
 

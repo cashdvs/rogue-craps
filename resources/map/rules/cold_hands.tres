@@ -7,3 +7,4 @@ script = ExtResource("1_ir0t1")
 id = &"cold_hands"
 display_name = "Cold Hands"
 description = "No Hot Hand."
+effect_group = &"no_hot_hand"

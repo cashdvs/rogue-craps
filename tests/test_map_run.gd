@@ -57,14 +57,14 @@ func _test_goals() -> void:
 			var g := run.goal
 			var fd: FloorData = _data.floors[f]
 			var n: int = g.required.size()
-			var good: bool = n >= fd.min_bounties and n <= fd.max_bounties and g.hands == fd.hands and g.bonus.size() == 1
+			var good: bool = n >= fd.min_bounties and n <= fd.max_bounties and g.hands == fd.hands and g.bonus.size() <= 1
 			if not fd.featured_bounties.is_empty():
 				var has: bool = false
 				for b in g.required:
 					has = has or fd.featured_bounties.has(b)
 				good = good and has
 			ok[f] = ok[f] and good
-	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, 1 bonus")
+	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, at most 1 bonus")
 	_check(ok[1], "goals: floor 2 has 3-4 incl. Run of 4 or Full House, 5 hands")
 	_check(ok[2], "goals: floor 3 has 4 incl. Quads or Run of 5, 6 hands")
 	var run := MapRun.new(_data, 5)
@@ -313,8 +313,9 @@ func _test_rule_ids() -> void:
 			_enter(run, t)
 			for e: Dictionary in run.table_setup().to_table_setup(base).rules:
 				seen_ids[e["id"]] = true
-				ok = ok and e.keys().size() == 2 and allowed.has(e["id"]) and str(e["params"]) == str(allowed[e["id"]])
-	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} with known ids (%d seen)" % seen_ids.size())
+				var keys_ok: bool = e.keys().size() == 2 or (e.keys().size() == 3 and e.has("description") and not str(e["description"]).contains("{"))
+				ok = ok and keys_ok and allowed.has(e["id"]) and str(e["params"]) == str(allowed[e["id"]])
+	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} (+ a filled-in description for {hands} text) with known ids (%d seen)" % seen_ids.size())
 	var r2 := MapRun.new(_data, 3)
 	r2.progress.add_die(&"cracked")
 	r2.progress.add_die(&"mirror")
