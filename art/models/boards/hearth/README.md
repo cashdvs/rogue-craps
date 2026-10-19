@@ -11,8 +11,8 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 
 | Scene | Use |
 |---|---|
-| `scenes/hearth_board.tscn` | PC board (12,926 tris incl. fire cards; budget 15k) |
-| `scenes/hearth_board_mobile.tscn` | mobile LOD (5,948 tris; budget 8k) |
+| `scenes/hearth_board.tscn` | PC board (12,964 tris incl. fire cards; budget 15k) |
+| `scenes/hearth_board_mobile.tscn` | mobile LOD (5,978 tris; budget 8k) |
 
 ## What goes where
 
@@ -67,15 +67,20 @@ so the board does not depend on the dice fire (fire stays off the dice): `textur
 flare grow + wisp rise). SDF bands: Butter #FFE6A8 core (the only band > 1.0, so the only bloom),
 Ember #E8622A, Hellfire #C8281E, Oxblood #3B0D14 outer outline; 12 fps on twos, random start frame +
 mirror per card, Y-locked billboards, alpha-cut. Sparks are 4-point diamonds (`hearth_sparks.gdshader`,
-self-animated in one mesh, no particle nodes). Candle flame = the tier-1 tongue at ~0.5 scale
-(0.022 m visible). Smoke wisp = `smoke_curl.png`, charcoal #1E1B1A with a Pit Black outline.
+self-animated in one mesh, no particle nodes). Candle flame = the tier-1 tongue at 0.75 scale
+(0.03 m visible). Step 4 = 8 tongues capped at ~0.30 m above the coals with a wider flare (+-0.1 m),
+plus a slow drifting diamond spark field (`sparks_drift.tres`) above the column that fades out. Smoke wisp = `smoke_curl.png`, charcoal #1E1B1A with a Pit Black outline.
 
 ## Other shaders (`shaders/`, all share `hearth_instance.gdshaderinc`: instance `heat`, `level`, `pulse`)
 
 - `ember_seam.gdshader`: the seam is drawn on the existing rail mesh (no new geometry): a next pass
   pushed 0.7 mm out that keeps only a UV.y band (0.125 +- 0.012 = the inner top lip ~8 cm above the felt, clear of the backboard strip,
   all the way round). Pit Black groove edges, Ember fill (`level`), Butter core on `pulse`.
-- `demon_eye.gdshader`: hard radial bands around the two eye centres; 0 charcoal, 1 ember + slit pupil, 2 butter core (blooms), 3 white core.
+- `demon_eye.gdshader`: hard radial bands around the two eye centres; 0 a faint ember smoulder (`idle_energy` 0.9),
+  1 ember + slit pupil, 2 butter core (blooms), 3 white core. Eye area 2x the first pass (0.0163 x 0.0096 m), energies
+  2.4 / 3.2 / 4.5. Readability over carving detail.
+- `hearth_glow.gdshader`: unshaded additive ellipse lying on the rail top under each LIT candle (Ember outer, Butter
+  inner, flicker on twos). A fake glow decal, no light.
 - `hearth_coals.gdshader`: charcoal with stepped ember cracks / butter hot spots, flicker on twos; brighter with the pot step.
 
 ## Triangles
@@ -87,8 +92,23 @@ self-animated in one mesh, no particle nodes). Candle flame = the tier-1 tongue 
 | demon face x2 | 700 x2 | 328 x2 |
 | cauldron + fill | 694 + 60 | 376 + 24 |
 | candle x8 | 130 x8 | 78 x8 |
-| fire cards + sparks (all steps) | ~106 | ~94 |
-| **total** | **12,926** | **5,948** |
+| fire cards + sparks (all steps) | ~128 | ~108 |
+| candle glow decals x8 | 2 x8 | 2 x8 |
+| **total** | **12,964** | **5,978** |
+
+## Art Director revisions (Oct 18, pass 2)
+
+- Candles: flame 0.75 scale; lit wax swaps to `candle_wax_lit.tres` (Butter emissive rim + warm emission); unlit wax
+  keeps a dim emission floor so its silhouette stays visible; additive `Glow` decal under each lit candle (no light).
+  Candle yaw / glow tilt are script exports (`spin`, `glow_tilt`), so the instance roots stay unrotated.
+- Brazier: step-4 column capped at ~0.3 m with a wider flare; drifting diamond sparks above it. Solid fire never
+  covers the dealer's face at any step from the game camera (checked by the test against Smiles' face at
+  x = -0.42, y 0.2, z -0.86; sparks may cross his chest). See the dealer note below.
+- Seam: shows on the far and side rails only. Accepted that the near rail does not show it (AD: no change).
+- Demon faces (FL / FR caps) and the ChipTray cauldron: approved. Eyes bigger and brighter, faint glow at eyes = 0.
+- Felt: `hearth_felt_motif.png` lifts the felt toward the edges / corners (Underfelt-teal edge ramp under the motif)
+  and the felt has a low Underfelt emission floor, so dice never fall into near-black in the vignette.
+- `Hearth/Candles` subtree: approved as is. The Art Director will document it in board_kit.md.
 
 ## Rebuild
 
@@ -104,6 +124,9 @@ props .glb) -> `make_hearth.gd -- materials` -> `write_imports.py` (.glb.import 
 - The demon faces take the `Cap` nodes of Corner_FL / FR (replacing the brass caps there).
 - The cauldron switches on the §8-optional `ChipTray` slot.
 - Fire steps 3-4 rise above 0.25 m (step 4 column top ~0.5 m world). Effects cards, not geometry; all geometry stays under 0.25 m.
-- The far-rail brazier stands where the dealer (Smiles) is planned "behind the far rail"; the step-4 column will overlap the dealer's lower body from the game camera.
+- Dealer placement: from the game camera (pitch 55, distance 2.5, FOV 36) only ~0.03-0.29 m of height is visible
+  above the brazier rim at the dealer's depth (z -0.86), and a centred dealer is hidden by the bowl itself. So
+  Smiles stands **stage left at x ~ -0.42** (head beside the brazier), and only his head / shoulders read in the
+  game camera (spec gap: "waist up" is not visible there; it is in 3/4 and close-ups).
 - The controller scripts (`scripts/*.gd`, `@tool`) are visual-only setters (instance uniforms + visibility); they are additions on top of the art-only Board A rule.
 - Phone portrait framing (CameraRig) crops the far rail as on Board A, so the brazier / goal plaque is off screen in portrait.

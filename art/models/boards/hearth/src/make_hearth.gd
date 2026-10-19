@@ -33,6 +33,8 @@ const STEP := 1.0 / 12.0
 const BOWL := Vector3(0.0, 0.086, -0.16)    # brazier coal-bed top centre
 const NUMBER_ANCHOR := Vector3(0.0, 0.0624, -0.0178)
 const CANDLE_TOP := 0.066
+const EYE_L := Vector3(-0.0166, 0.0616, 0.0181)   # build_hearth.py eye_pos(-1)
+const EYE_SIZE := Vector2(0.0163, 0.0096)          # eye radii x 1.41 = 2x area (Art Director, Oct 18)
 const CANDLE_X := 1.135
 const CANDLE_Z: Array[float] = [-0.42, -0.24, 0.24, 0.42]
 const CANDLE_Y := 0.105
@@ -98,14 +100,26 @@ func _materials() -> void:
 	_save(demon, M + "demon_iron.tres")
 	var wax := _sm(TOON, {"albedo": Color("#E8D6B0"), "shadow_color": Color("#6E4A3A"), "mid_tint": 0.74,
 		"spec_size": 0.97, "spec_strength": 0.3, "wrap": 0.3, "light_gain": 0.9, "rim_color": BUTTER, "rim_strength": 0.15})
+	# Unlit wax keeps a dim visible silhouette in the dark side rails (Art Director, Oct 18).
+	wax.set_shader_parameter("emission_color", Color("#3A2E24"))
+	wax.set_shader_parameter("emission_energy", 0.5)
 	wax.next_pass = ink_trim
 	_save(wax, M + "candle_wax.tres")
+	# Lit wax: same wax + a hot emissive rim (Butter) and an ember-warm body.
+	var wl := _sm(TOON, {"albedo": Color("#E8D6B0"), "shadow_color": Color("#6E4A3A"), "mid_tint": 0.74,
+		"spec_size": 0.97, "spec_strength": 0.3, "wrap": 0.3, "light_gain": 0.9, "rim_color": BUTTER, "rim_strength": 2.2,
+		"rim_power": 1.6, "emission_color": Color("#E8A060"), "emission_energy": 0.45})
+	wl.next_pass = ink_trim
+	_save(wl, M + "candle_wax_lit.tres")
+	_save(_sm(S + "hearth_glow.gdshader", {}), M + "candle_glow.tres")
 	_save(_sm(S + "hearth_coals.gdshader", {"level_max": 4.6, "scale": 38.0}), M + "hearth_coals.tres")
 	_save(_sm(S + "hearth_coals.gdshader", {"level_max": 1.0, "coin_amount": 0.12, "scale": 4.5}), M + "cauldron_coals.tres")
-	_save(_sm(S + "demon_eye.gdshader", {"eye_left": Vector3(-0.0166, 0.0616, 0.0181), "eye_right": Vector3(0.0166, 0.0616, 0.0181)}), M + "demon_eye.tres")
+	_save(_sm(S + "demon_eye.gdshader", {"eye_left": EYE_L, "eye_right": EYE_L * Vector3(-1, 1, 1), "eye_size": EYE_SIZE}), M + "demon_eye.tres")
 	# Felt: Board A's felt + the ember corner motif overlay (no rules text).
 	var felt := _copy_toon(A + "materials/felt.tres", {"use_overlay": true,
-		"overlay_tex": load(H + "textures/felt_ember_corners.png"), "overlay_tint": Color(1, 1, 1, 0.4)})
+		"overlay_tex": load(H + "textures/felt_ember_corners.png"), "overlay_tint": Color(1, 1, 1, 1.0),
+		# edge lift (Art Director, Oct 18): the overlay lifts the edge albedo; this is the floor value
+		"emission_color": Color("#0C2623"), "emission_energy": 1.0})
 	_save(felt, M + "hearth_felt.tres")
 	# Rails: Board A's leather + the ember seam pass + the same ink hull.
 	var seam := _sm(S + "ember_seam.gdshader", {"band_v": 0.125, "band_half": 0.012})
@@ -135,6 +149,7 @@ func _materials() -> void:
 	var cap := smoke.duplicate()
 	_save(_sm(fc, cap), M + "smoke_cap.tres")
 	_save(_sm(S + "hearth_sparks.gdshader", {"rise": 0.2, "period": 0.8, "radius": 0.06, "turns": 0.0, "size": 0.012}), M + "sparks_ember.tres")
+	_save(_sm(S + "hearth_sparks.gdshader", {"rise": 0.3, "period": 1.5, "radius": 0.11, "turns": 0.2, "size": 0.014, "drift": 0.06}), M + "sparks_drift.tres")
 	_save(_sm(S + "hearth_sparks.gdshader", {"fill_color": BRASS_HI, "core_energy": 1.8, "rise": 0.34, "period": 1.0,
 		"radius": 0.075, "turns": 1.5, "size": 0.016}), M + "sparks_brass.tres")
 
@@ -255,14 +270,16 @@ func _props(mobile: bool) -> void:
 	var twist := Node3D.new()
 	twist.name = "Twist"
 	s4.add_child(twist)
-	# The column: 7 tongues in 3 overlapping tiers round a twisting pivot (stepped at 12 fps by the
-	# script), so it reads as one twisting mass: [x, base y, visible h, z].
-	var col := [[-0.05, 0.0, 0.16, 0.01], [0.05, 0.0, 0.15, -0.01], [0.0, 0.0, 0.22, 0.0],
-		[-0.028, 0.09, 0.17, -0.012], [0.03, 0.1, 0.16, 0.012], [0.0, 0.17, 0.15, 0.0], [0.012, 0.25, 0.09, 0.0]]
+	# The column (Art Director, Oct 18): capped at ~0.3 m with a wider flare: 5 tongues across the
+	# bowl, 3 above, round a twisting pivot (stepped at 12 fps by the script): [x, base y, visible h, z].
+	var col := [[-0.085, 0.0, 0.15, 0.01], [0.085, 0.0, 0.14, -0.01], [-0.04, 0.0, 0.2, -0.012], [0.04, 0.0, 0.19, 0.012],
+		[0.0, 0.0, 0.24, 0.0], [-0.05, 0.1, 0.15, 0.0], [0.05, 0.11, 0.14, 0.0], [0.0, 0.16, 0.14, 0.0]]
 	for i in col.size():
 		_card(twist, "Tongue%d" % i, "fire_pillar" + lod, col[i][2], Vector3(col[i][0], col[i][1] - 0.004, col[i][3]))
+	# diamond sparks drifting up out of the column top and fading
+	_sparks(s4, "DriftSparks", "sparks_drift", 6 if mobile else 10, Vector3(0, 0.25, 0))
 	_sparks(s4, "BrassSparks", "sparks_brass", 8 if mobile else 12, Vector3(0, 0.03, 0))
-	_card(s4, "Curl", "smoke_cap", 0.05, Vector3(0.01, 0.335, 0))
+	_card(s4, "Curl", "smoke_cap", 0.045, Vector3(0.01, 0.29, 0))
 	var wisp := _card(bz, "Wisp", "smoke_wisp", 0.07, BOWL + Vector3(0, 0.01, 0))
 	wisp.visible = false
 	_pack(bz, D + "brazier%s.tscn" % lod)
@@ -281,7 +298,18 @@ func _props(mobile: bool) -> void:
 	# Progress candle (all 8 share this scene, mesh and materials).
 	var cd := _scripted("Candle", "hearth_candle")
 	_inst(H + "candle%s.glb" % lod, "Model", cd)
-	var fl := _card(cd, "Flame", "candle_flame" + lod, 0.022, Vector3(0, CANDLE_TOP - 0.0015, 0))
+	var glow := MeshInstance3D.new()
+	glow.name = "Glow"
+	var gq := PlaneMesh.new()
+	gq.size = Vector2(0.07, 0.12)
+	glow.mesh = gq
+	glow.material_override = load(H + "materials/candle_glow.tres")
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	glow.position = Vector3(0, 0.0028, 0)
+	glow.visible = false
+	cd.add_child(glow)
+	# tier-1 tongue at 0.75 scale (Art Director, Oct 18; was 0.5): 0.03 m visible
+	var fl := _card(cd, "Flame", "candle_flame" + lod, 0.03, Vector3(0, CANDLE_TOP - 0.0015, 0))
 	fl.visible = false
 	var w2 := _card(cd, "Wisp", "smoke_wisp_small", 0.026, Vector3(0, CANDLE_TOP + 0.002, 0))
 	w2.visible = false
@@ -359,7 +387,8 @@ func _board(mobile: bool) -> void:
 		var z: float = CANDLE_Z[i / 2]
 		var c := _inst(D + "candle%s.tscn" % lod, "Candle%d" % (i + 1), rows["RailLeft" if left else "RailRight"])
 		c.position = Vector3(-CANDLE_X if left else CANDLE_X, CANDLE_Y, z)
-		c.rotation.y = 0.7 * i
+		c.set("spin", 0.7 * i)
+		c.set("glow_tilt", 16.0 if left else -16.0)
 		c.set("height", heights[i])
 	_animations(hearth)
 	_pack(board, D + "hearth_board%s.tscn" % lod)
