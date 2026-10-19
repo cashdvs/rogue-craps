@@ -1048,6 +1048,10 @@ func _bust() -> void:
 
 func _after_hand() -> void:
 	if run.is_over():
+		# Out of hands uncleared: the Soul meter drops by the table's
+		# penalty, like a bust or forfeit (QA M4). A cleared table costs no
+		# Soul here, so nothing burns.
+		_burn_soul(maxi(_soul_shown - run.soul, 0))
 		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER
 		_taunt(&"bonfire_clear" if run.state == BonfireRun.State.CLEARED else &"bonfire_fail")

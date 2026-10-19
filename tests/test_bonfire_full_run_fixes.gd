@@ -2,6 +2,8 @@
 ##   M2: the tutorial plays on the run's FIRST table only (RunScreen, where
 ##       the table is a child of the current scene), and on the sandbox's
 ##       Table 1; not on later run tables, not in tests / tools.
+##   M4: running out of hands uncleared burns the Soul meter by the table's
+##       penalty; a cleared table burns nothing.
 ##   godot --headless --path . --script res://tests/test_bonfire_full_run_fixes.gd
 extends SceneTree
 
@@ -25,6 +27,7 @@ func check(cond: bool, what: String) -> void:
 
 func _run() -> void:
 	await _m2_tutorial()
+	await _m4_soul_meter()
 	print("test_bonfire_full_run_fixes: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -129,3 +132,58 @@ func _m2_tutorial() -> void:
 	scene.queue_free()
 	await process_frame
 	_restore_settings(old)
+
+
+# --- M4 -----------------------------------------------------------------------------
+
+func _one_hand_table(goal_required: int) -> Bonfire3D:
+	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var setup := TableSetup.sandbox(t, 5)
+	var goal := t.table_goal.duplicate() as TableGoal
+	goal.hands = 1
+	goal.bonus = []
+	goal.required = goal.required.slice(0, goal_required)
+	setup.goal = goal
+	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+	s.setup = setup
+	s.tutorial_override = 0
+	s.test_speed = 10.0
+	root.add_child(s)
+	return s
+
+
+func _m4_soul_meter() -> void:
+	# Lost: bank one single on the last hand with every bounty unticked.
+	var s := _one_hand_table(3)
+	await process_frame
+	var start := s.run.soul
+	s.rig_faces([1, 2, 3, 4, 6] as Array[int])
+	s.quick_throw()
+	await s.sequence_finished
+	s.pick_die(0)
+	await s.bank()
+	var penalty := int(s.run.table_summary.get("timeout_soul", 0))
+	check(s.run.is_over() and s.run.state != BonfireRun.State.CLEARED and penalty == 9, "out of hands uncleared: -9 Soul (got %d)" % penalty)
+	check(s.soul_meter.soul == s.run.soul and s.soul_meter.soul == start - penalty, "the Soul meter drops to %d (shows %d)" % [start - penalty, s.soul_meter.soul])
+	check(s.bhud.end_body.text.contains("Soul %d" % s.soul_meter.soul), "end panel and meter agree")
+	s.queue_free()
+	await process_frame
+	# Cleared on the last hand: no end-of-table Soul cost, nothing burns.
+	s = _one_hand_table(1)
+	await process_frame
+	start = s.run.soul
+	var want: Array[int] = []
+	for v in DiceIcons.pattern(s.run.goal.required[0]):
+		want.append(int(v))
+	while want.size() < 5:
+		want.append(6 if not want.has(6) else 2)
+	s.rig_faces(want)
+	s.quick_throw()
+	await s.sequence_finished
+	for i in DiceIcons.pattern(s.run.goal.required[0]).size():
+		s.pick_die(i)
+	await s.bank()
+	check(s.run.state == BonfireRun.State.CLEARED, "the one-bounty table clears (%s)" % BonfireRun.State.keys()[s.run.state])
+	check(s.run.soul == start and s.soul_meter.soul == start, "cleared: no Soul lost, the meter stays at %d (shows %d)" % [start, s.soul_meter.soul])
+	s.queue_free()
+	await process_frame
