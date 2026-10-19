@@ -135,6 +135,10 @@ var hand_glow: MeshInstance3D
 var puck_body: StaticBody3D
 var bet_body: StaticBody3D
 var hud: CanvasLayer
+## Which renderer the table builds its fog / SSAO for ("" = the one running).
+## Tests set it before add_child to build the Mobile / Compatibility
+## fallbacks headless.
+var render_method: String = ""
 var grade: ColorRect
 var soul_meter: SoulMeter
 var stack: BankrollStack
@@ -162,9 +166,13 @@ var debug_speed: OptionButton
 ## The table's SfxManager. Typed Node so tests can swap in a plain stand-in
 ## (only play() / has_event(), or the play_throw / play_impact hooks).
 var sfx: Node
+## The event surface (TableEvents): plain signals for the VFX / audio side.
+var events: TableEvents
 
 
 func _ready() -> void:
+	events = TableEvents.new()
+	add_child(events)
 	if tuning == null:
 		tuning = TuningData.new()
 	if starting_dice.is_empty():
@@ -178,6 +186,12 @@ func _ready() -> void:
 	gesture = ThrowGesture.new(tuning)
 	sfx = SfxManager.new()
 	add_child(sfx)
+	# Feel layer (scripts/fx/): plays the cues for table.events signals.
+	# A no-op until the TableEvents node (Godot Dev) exists on the table.
+	# Whichever PR adds `events` must also remove the table's direct sfx calls
+	# for throw, impact, hot_hand, no_score, and table_cleared (one-owner rule).
+	add_child(TableAudio.new())
+	add_child(TriggerFx.new())
 	_build_world()
 	_build_hud()
 	_build_end_screen()
@@ -458,14 +472,10 @@ func _build_world() -> void:
 	sim.name = "DiceSim"
 	add_child(sim)
 	sim.setup(tuning)
-	# Throw sound. The Sound Designer's SfxManager.play_throw(flick_speed_px_s)
-	# once it lands on this branch; until then the fixed dice_shake. The speed
-	# is the raw flick in game (canvas) px/s, the same value launch_for() uses.
-	thrown.connect(func(speed: float) -> void:
-		if sfx.has_method("play_throw"):
-			sfx.call("play_throw", speed)
-		else:
-			sfx.play(&"dice_shake"))
+	# The throw sound is played by the feel layer (scripts/fx/table_audio.gd)
+	# from events.dice_thrown; the speed is the raw flick in game (canvas)
+	# px/s, the same value launch_for() uses.
+	thrown.connect(func(speed: float) -> void: events.dice_thrown.emit(speed))
 	_set_dice_count(2)
 
 
@@ -559,14 +569,17 @@ func _make_environment() -> Environment:
 	e.fog_light_color = Color("#0E0B0C")
 	e.fog_density = 0.12
 	e.fog_sky_affect = 0.0
-	e.volumetric_fog_enabled = true
+	# Volumetric fog is Forward+ only; Compatibility (web) and Mobile warn
+	# every table if it's on (QA full run pass 1, Minor 9).
+	e.volumetric_fog_enabled = has_volumetric_fog(render_method)
 	e.volumetric_fog_density = 0.012
 	e.volumetric_fog_albedo = Color("#3A3032")
 	e.volumetric_fog_emission = Color.BLACK
 	e.volumetric_fog_anisotropy = 0.6
 	e.volumetric_fog_length = 12.0
 	e.volumetric_fog_detail_spread = 2.0
-	e.ssao_enabled = true
+	# SSAO: Forward+ only too; Mobile and Compatibility warn (#103 N5).
+	e.ssao_enabled = is_forward_plus(render_method)
 	e.ssao_radius = 0.25
 	e.ssao_intensity = 1.6
 	e.ssao_power = 1.5
@@ -587,27 +600,42 @@ func _make_environment() -> Environment:
 	return e
 
 
+## Is `method` ("" = the renderer running now) Forward+?
+static func is_forward_plus(method: String = "") -> bool:
+	if method == "":
+		method = RenderingServer.get_current_rendering_method()
+	return method == "forward_plus"
+
+
+## Can this renderer draw volumetric fog (FogVolume / FogMaterial)? Only
+## Forward+; the Compatibility renderer can't even compile a fog shader.
+static func has_volumetric_fog(method: String = "") -> bool:
+	return is_forward_plus(method)
+
+
 func _build_fog_and_smoke() -> void:
-	# Smoke swirling in the lamp cone (Forward+ volumetric fog).
-	var fv := FogVolume.new()
-	fv.name = "LampHaze"
-	fv.size = Vector3(1.4, 1.2, 1.4)
-	fv.position = Vector3(0, 0.75, -0.05)
-	var fm := FogMaterial.new()
-	fm.density = 0.04
-	var noise := NoiseTexture3D.new()
-	var fnl := FastNoiseLite.new()
-	fnl.frequency = 0.05
-	noise.noise = fnl
-	noise.width = 32
-	noise.height = 32
-	noise.depth = 32
-	fm.density_texture = noise
-	fv.material = fm
-	add_child(fv)
-	# Fallback cone for renderers without volumetric fog (Mobile/Compatibility).
-	if RenderingServer.get_current_rendering_method() != "forward_plus":
+	if has_volumetric_fog(render_method):
+		# Smoke swirling in the lamp cone (Forward+ volumetric fog).
+		var fv := FogVolume.new()
+		fv.name = "LampHaze"
+		fv.size = Vector3(1.4, 1.2, 1.4)
+		fv.position = Vector3(0, 0.75, -0.05)
+		var fm := FogMaterial.new()
+		fm.density = 0.04
+		var noise := NoiseTexture3D.new()
+		var fnl := FastNoiseLite.new()
+		fnl.frequency = 0.05
+		noise.noise = fnl
+		noise.width = 32
+		noise.height = 32
+		noise.depth = 32
+		fm.density_texture = noise
+		fv.material = fm
+		add_child(fv)
+	else:
+		# Fallback cone for renderers without volumetric fog (Mobile/Compatibility).
 		var cone := MeshInstance3D.new()
+		cone.name = "LampConeFallback"
 		cone.mesh = Toon.cylinder(0.55, 1.0, 24, 0.05)
 		cone.material_override = Toon.fx(Color("#FFB070", 0.05), 1.0, 1, true)
 		cone.position = Vector3(0, 0.85, -0.05)
@@ -1199,6 +1227,7 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 		col = Palette.DANGER
 	sum_text.position = camera.cam.unproject_position(mid + Vector3(0, 0.16, -0.05))
 	sum_text.pop(str(r.total), col, reduced_motion)
+	events.dice_settled.emit()
 	sfx.play(&"dice_settle", 1.0, -3.0)
 	await _wait(maxf(0.6 - tuning.reveal_hold - tuning.sum_pop_delay, 0.05))
 	_set_why(report.explanation)
@@ -1232,27 +1261,50 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 	sequence_finished.emit()
 
 
+## Start poses of the last simulate_throw() (the remap needs them).
+var _last_starts: Array[Transform3D] = []
+
+
+## The physics half of a throw, from the dice where they sit now: the
+## launch for this flick, the start poses (a coin starts at a random point
+## of its flip), each body's shape, then the warped simulation. Returns
+## the recording (also last_recording). Tests and tools call this to run
+## many real throws without the playback.
+func simulate_throw(velocity: Vector2, release_pos: Vector2) -> ThrowRecording:
+	var launch := launch_for(velocity, release_pos)
+	var starts: Array[Transform3D] = []
+	var body_shapes: Array[StringName] = []
+	for i in dice.size():
+		var d := dice[i]
+		var tr := d.global_transform
+		tr.origin.y = maxf(tr.origin.y, tuning.die_size * 0.75)
+		body_shapes.append(d.shape)
+		if d.shape == &"coin":
+			# A coin starts at a random point of its flip (about its spin
+			# axis), so the start pose in the hand can't decide the face.
+			tr = CoinPhysics.random_phase(tr, launch["spin"][i], _fx_rng)
+		starts.append(tr)
+	sim.set_body_shapes(body_shapes)
+	_sync_colliders()
+	_last_starts = starts
+	var rec: ThrowRecording = await sim.simulate(starts, launch["lin"], launch["spin"], _fx_rng.randi())
+	last_recording = rec
+	return rec
+
+
 ## The physical throw shared by both modes: simulate the real dice fast
 ## during the wind-up, remap faces to `values` (seeded), play it back and
 ## settle. Returns once every die shows its value.
 func _throw_dice(values: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
-	# Throw the real physics dice (fast, during the wind-up) and record it.
-	var launch := launch_for(velocity, release_pos)
-	var starts: Array[Transform3D] = []
-	for d in dice:
-		var tr := d.global_transform
-		tr.origin.y = maxf(tr.origin.y, tuning.die_size * 0.75)
-		starts.append(tr)
-	_sync_colliders()
 	_windup()
 	var real_start := Time.get_ticks_msec()
-	var rec: ThrowRecording = await sim.simulate(starts, launch["lin"], launch["spin"], _fx_rng.randi())
-	last_recording = rec
+	var rec := await simulate_throw(velocity, release_pos)
+	var starts := _last_starts
 	# Face remap: pick the inner rotation that puts the wanted face where
 	# the physical top face ended up; blend into it during the first
 	# tumble frames so nothing pops (the dice spin 15-35 rad/s there).
 	for i in dice.size():
-		var want := DieVisual.remap_basis(rec.up_values[i], values[i], _fx_rng.randf_range(0.0, TAU))
+		var want := DieVisual.remap_basis(rec.up_values[i], dice[i].mesh_face(values[i]), _fx_rng.randf_range(0.0, TAU))
 		var visual_now := dice[i].faces.global_transform.basis.orthonormalized()
 		var start_body := starts[i].basis.orthonormalized()
 		_remap_from[i] = (start_body.inverse() * visual_now).get_rotation_quaternion()
@@ -1291,6 +1343,7 @@ func _play_total_roll(values: Array[int], velocity: Vector2, release_pos: Vector
 	camera.follow(mid, tuning.cam_reveal_time)
 	await _wait(tuning.reveal_hold)
 	_punch_dice()
+	events.dice_settled.emit()
 	sfx.play(&"dice_settle", 1.0, -3.0)
 	for i in values.size():
 		var data := _die_data_for(i)
@@ -1380,26 +1433,40 @@ func _on_contact(c: Dictionary) -> void:
 		Fx3D.burst(fx_root, Vector3(at.x, 0.01, at.z), _n(6), [Color("#2E5A54", 0.4), Color("#2E5A54", 0.0)], Vector2(0.05, 0.2), 80.0, -0.5, Vector2(1.0, 2.0), 0.35, 1.0, false)
 
 
-## Impact sound. Uses the Sound Designer's SfxManager.play_impact(kind,
-## speed_mps, material, die_id) once it exists; until then the current SFX
-## events. Already filtered by _on_contact (impact_min_speed floor,
-## impact_min_interval per die).
+## A die hit something (already filtered by _on_contact: impact_min_speed
+## floor, impact_min_interval per die). Rails shake the camera; the impact
+## sound is played by the feel layer (scripts/fx/table_audio.gd) from
+## events.die_impact.
 func _on_die_impact(die_id: int, surface: String, speed_mps: float, _impulse: float, _other_id: int, material: String) -> void:
 	if surface == "rail" or surface == "backboard":
 		_camera_shake(3.0 * clampf(speed_mps / 2.5, 0.0, 1.0), 0.1)
-	if sfx.has_method("play_impact"):
-		sfx.call("play_impact", StringName(surface), speed_mps, StringName(material), die_id)
-		return
-	var strength := clampf(speed_mps / 2.5, 0.0, 1.0)
-	match surface:
-		"rail", "backboard":
-			sfx.play(&"rim_hit", 0.9 + strength * 0.2, -12.0 + strength * 10.0)
-		"die":
-			sfx.play(&"dice_hit", 1.25 + strength * 0.2, -12.0 + strength * 8.0)
-		"chip", "puck":
-			sfx.play(&"chip_place", 0.9 + strength * 0.2, -10.0 + strength * 8.0)
-		_:
-			sfx.play(&"dice_hit", 0.8 + strength * 0.4, -12.0 + strength * 9.0)
+	if events != null:
+		events.die_impact.emit(StringName(surface), speed_mps, StringName(material), event_id(dice[die_id]) if die_id >= 0 and die_id < dice.size() else die_id)
+
+
+## Read-only for listeners (scripts/fx/): the roll speed (0 = 1x, 1 = 2x,
+## 2 = Instant).
+func get_speed_mode() -> int:
+	return speed_mode
+
+
+## Read-only for listeners (scripts/fx/): the reduced-motion setting.
+func is_reduced_motion() -> bool:
+	return reduced_motion
+
+
+## A die's id on the event surface (TableEvents): its place in the starting
+## handful (stays put when the active dice change); else its die_id.
+func event_id(d: DieVisual) -> int:
+	return int(d.get_meta(&"handful_id", d.die_id)) if d != null else -1
+
+
+## The die with this event id (TableEvents), or null.
+func die_by_id(id: int) -> DieVisual:
+	for c in get_children():
+		if c is DieVisual and event_id(c) == id:
+			return c
+	return null
 
 
 func _on_die_settled(_die_id: int, _face: int) -> void:

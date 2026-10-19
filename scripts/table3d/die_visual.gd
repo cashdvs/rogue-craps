@@ -6,8 +6,9 @@
 ##
 ## Face layout (opposite faces sum to 7), in the die's local space:
 ##   +Y = 1, -Y = 6, +X = 2, -X = 5, +Z = 3, -Z = 4
+## (Meshes, face table and pips: DieFaceArt.)
 class_name DieVisual
-extends Node3D
+extends DieFaceArt
 
 ## Audio hooks (the Sound Designer owns what plays; Table3D hooks the
 ## SfxManager to these for now). All are emitted during PLAYBACK, in sync
@@ -21,47 +22,28 @@ extends Node3D
 ## Contacts under tuning.impact_min_speed are silent; throttled per die by
 ## tuning.impact_min_interval.
 signal impact(die_id: int, surface: String, speed_mps: float, impulse: float, other_id: int, material: String)
+
 ## The die is physically at rest (before the reveal).
 signal rest(die_id: int)
+
 ## Once per throw: the die's spin dropped below tuning.tumble_end_rad_s.
 signal tumble_ending(die_id: int, angular_speed: float)
+
 ## The reveal: the die shows `face` (the seeded value).
 signal settled(die_id: int, face: int)
 
 ## What it is made of (from DieData.material), passed in impact.
 var material: String = "bone"
+
 ## 0 or 1: which of the pair this is.
 var die_id: int = 0
 
-const FACE_AXES: Dictionary = {
-	1: Vector3.UP, 6: Vector3.DOWN,
-	2: Vector3.RIGHT, 5: Vector3.LEFT,
-	3: Vector3.BACK, 4: Vector3.FORWARD,
-}
-## Pip spots on a face in "face units" (-0.5..0.5), per value. The spec's
-## fractional positions 0.27 / 0.50 / 0.73 become -0.23 / 0 / +0.23.
-const PIPS: Dictionary = {
-	1: [Vector2(0, 0)],
-	2: [Vector2(-1, -1), Vector2(1, 1)],
-	3: [Vector2(-1, -1), Vector2(0, 0), Vector2(1, 1)],
-	4: [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)],
-	5: [Vector2(-1, -1), Vector2(1, -1), Vector2(0, 0), Vector2(-1, 1), Vector2(1, 1)],
-	6: [Vector2(-1, -1), Vector2(-1, 0), Vector2(-1, 1), Vector2(1, -1), Vector2(1, 0), Vector2(1, 1)],
-}
-const PIP_STEP: float = 0.23
-
-## Edge length in meters.
-var edge: float = 0.08
-## The rotated part (body mesh + pips). Its basis is the "face remap".
-var faces: Node3D
-var body_material: ShaderMaterial
 ## Extra brightness for reduced-motion readability (0..1).
 var highlight: float = 0.0:
 	set(v):
 		highlight = v
 		if body_material != null:
 			body_material.set_shader_parameter("emission_energy", 0.12 * v)
-
 
 func _init(edge_m: float = 0.08) -> void:
 	edge = edge_m
@@ -132,6 +114,7 @@ static func projected_size(cam: Camera3D, xf: Transform3D, edge_m: float) -> Vec
 
 # --- Face math (static: tests use it directly) --------------------------------------
 
+
 ## Which face value points most nearly straight up for a die with basis b.
 static func value_up(b: Basis) -> int:
 	var best := 1
@@ -164,66 +147,84 @@ static func remap_basis(physical_up: int, wanted: int, yaw: float = 0.0) -> Basi
 	return Basis(a_phys, quarter) * r
 
 
+# --- Lit / cold readability state (design section 4, art/ui/readability) -----------
+## The ember colours from the Art Director's die_state_reference.gdshader.
+const EMBER_MID := Color(0.910, 0.384, 0.165)   # #E8622A
+const EMBER_CORE := Color(1.000, 0.902, 0.659)  # #FFE6A8
+const PIP_MID_ENERGY := 0.9    # under the glow threshold: no bloom
+const PIP_CORE_ENERGY := 3.0   # over it: the only part that blooms
+const COLD_PIP_TO_BODY := 0.55
+## Tween times: lighting up is snappy, going cold is a little slower.
+const LIT_TIME := 0.08
+const COLD_TIME := 0.15
+## 0..1: how "lit" (scoring) and how "cold" (not scoring) this die looks.
+var _glow_tween: Tween
+
+
+## Shows the die as lit (scoring), cold (didn't score) or plain (both false).
+## Material only: no lights, no particles. `instant` skips the tween.
+func set_glow_state(lit: bool, cold: bool, instant: bool = false) -> void:
+	var to_lit := 1.0 if lit else 0.0
+	var to_cold := 1.0 if (cold and not lit) else 0.0
+	if _glow_tween != null:
+		_glow_tween.kill()
+		_glow_tween = null
+	var t := LIT_TIME if lit else COLD_TIME
+	if instant or not is_inside_tree():
+		_apply_glow(to_lit, to_cold)
+		return
+	var from_lit := glow_lit
+	var from_cold := glow_cold
+	_glow_tween = create_tween()
+	_glow_tween.tween_method(func(k: float) -> void:
+		_apply_glow(lerpf(from_lit, to_lit, k), lerpf(from_cold, to_cold, k)), 0.0, 1.0, t)
+
+
+## A brighter flare of the lit glow (Hot Hand): the pip cores burn hotter
+## for a moment and the rim brightens (still under the bloom threshold).
+func pulse_glow(seconds: float = 0.6) -> void:
+	if not is_inside_tree():
+		return
+	var tw := create_tween().set_ignore_time_scale(true)
+	tw.tween_method(func(k: float) -> void:
+		glow_boost = sin(k * PI)
+		_apply_glow(glow_lit, glow_cold), 0.0, 1.0, seconds)
+
+
+## 0..1 extra brightness from pulse_glow.
+var glow_boost: float = 0.0
+
+
+## Called by DieFaceArt._add_pips once the pips (and their cores) exist.
+func _apply_glow(lit: float, cold: float) -> void:
+	glow_lit = lit
+	glow_cold = cold
+	body_material.set_shader_parameter("state_rim_energy", 0.85 + 0.13 * glow_boost)
+	body_material.set_shader_parameter("die_lit", lit)
+	body_material.set_shader_parameter("die_cold", cold)
+	if pip_material == null:
+		return
+	# Cold pips are pulled 55% toward the (cold) body colour; lit pips go ember.
+	var body_col: Color = body_material.get_shader_parameter("albedo")
+	var cold_body := Color(body_col.get_luminance(), body_col.get_luminance() * 0.96, body_col.get_luminance() * 0.90) * Color(0.80, 0.78, 0.76)
+	var pip := _pip_color.lerp(cold_body, COLD_PIP_TO_BODY * cold * (1.0 - lit))
+	pip = pip.lerp(EMBER_MID, lit)
+	pip_material.set_shader_parameter("albedo", pip)
+	pip_material.set_shader_parameter("emission_color", EMBER_MID)
+	pip_material.set_shader_parameter("emission_energy", PIP_MID_ENERGY * lit)
+	pip_core_material.set_shader_parameter("energy", PIP_CORE_ENERGY * lit * (1.0 + 0.7 * glow_boost))
+	for c in _pip_cores:
+		c.visible = lit > 0.01
+
+
 # --- Mesh building ---------------------------------------------------------------
-
-## A cube with rounded edges and smooth normals. Each face is a small grid
-## whose outer rows sit on the bevel; pushing those vertices onto a sphere
-## of radius r around the inner box gives the rounded look.
-static func rounded_cube(size: float, radius: float) -> ArrayMesh:
-	var h := size * 0.5
-	var c := h - radius
-	# Grid coordinates across a face: 2 bevel steps on each side.
-	var coords: Array[float] = [-h, -c - radius * tan(PI / 8.0), -c, c, c + radius * tan(PI / 8.0), h]
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var axes: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN, Vector3.BACK, Vector3.FORWARD]
-	for n in axes:
-		var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
-		u = (u - n * u.dot(n)).normalized()
-		var v := n.cross(u)
-		var n_steps := coords.size()
-		var grid: Array[Vector3] = []
-		for j in n_steps:
-			for i in n_steps:
-				grid.append(n * h + u * coords[i] + v * coords[j])
-		for j in n_steps - 1:
-			for i in n_steps - 1:
-				var p00 := grid[j * n_steps + i]
-				var p10 := grid[j * n_steps + i + 1]
-				var p01 := grid[(j + 1) * n_steps + i]
-				var p11 := grid[(j + 1) * n_steps + i + 1]
-				_tri(st, p00, p10, p11, c, radius, n)
-				_tri(st, p00, p11, p01, c, radius, n)
-	st.index()
-	return st.commit()
-
-
-static func _round(p: Vector3, c: float, radius: float) -> Array[Vector3]:
-	var inner := p.clamp(Vector3(-c, -c, -c), Vector3(c, c, c))
-	var dir := (p - inner).normalized()
-	return [inner + dir * radius, dir]
-
-
-static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, d: Vector3, c: float, radius: float, face_n: Vector3) -> void:
-	var pts: Array[Vector3] = [a, b, d]
-	# Godot draws clockwise triangles as front faces (seen from outside).
-	if (b - a).cross(d - a).dot(face_n) > 0.0:
-		pts = [a, d, b]
-	for p in pts:
-		var r := _round(p, c, radius)
-		st.set_normal(r[1])
-		st.add_vertex(r[0])
-
-
-## What each physical face slot (1..6, see FACE_AXES) shows. Default: its own
-## number. A Knucklebone uses [1, 1, 2, 2, 3, 3]: slot 4 shows 2 pips.
-var labels: Array[int] = [1, 2, 3, 4, 5, 6]
-var _pips_root: Node3D
 
 
 ## Restyles the die: body colour, pip colour and the per-slot pip counts.
+## A label list that isn't 6 long (a data mismatch) warns and is padded with
+## the slot's own number / trimmed, so it can never index out of range.
 func set_look(body: Color, pip: Color, slot_labels: Array[int]) -> void:
-	labels = slot_labels.duplicate() if slot_labels.size() == 6 else [1, 2, 3, 4, 5, 6]
+	labels = safe_labels(slot_labels)
 	body_material.set_shader_parameter("albedo", body)
 	body_material.set_shader_parameter("shadow_color", body.darkened(0.55))
 	body_material.set_shader_parameter("emission_color", body)
@@ -231,40 +232,35 @@ func set_look(body: Color, pip: Color, slot_labels: Array[int]) -> void:
 	_add_pips()
 
 
-## The number shown on top (the slot's label).
+## The number shown on top (the slot's label). A coin shows its slot:
+## 1 = heads, 2 = tails.
 func shown_value() -> int:
-	return labels[up_value() - 1]
+	if shape == &"coin":
+		return up_slot()
+	var i := up_value() - 1
+	return labels[i] if i >= 0 and i < labels.size() else up_value()
 
 
-var _pip_color: Color = Palette.PIT_BLACK
+## The face SLOT on top: a d6 face 1..6 (FACE_AXES), a coin 1 (heads, +Y
+## up) or 2 (tails).
+func up_slot() -> int:
+	if shape == &"coin":
+		return CoinPhysics.face_slot(faces.global_transform.basis)
+	return up_value()
 
 
-func _add_pips() -> void:
-	if _pips_root != null:
-		_pips_root.free()
-	_pips_root = Node3D.new()
-	_pips_root.name = "Pips"
-	faces.add_child(_pips_root)
-	var pip_mesh := CylinderMesh.new()
-	var pr := 0.09 * edge
-	pip_mesh.top_radius = pr
-	pip_mesh.bottom_radius = pr * 0.8
-	pip_mesh.height = 0.06 * edge
-	pip_mesh.radial_segments = 12
-	pip_mesh.rings = 1
-	var pip_mat := Toon.mat(_pip_color, Color.BLACK, {"roughness": 0.8, "ambient_energy": 0.1})
-	var h := edge * 0.5
-	for value: int in PIPS:
-		var n := FACE_AXES[value] as Vector3
-		var shown: int = labels[value - 1]
-		var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
-		u = (u - n * u.dot(n)).normalized()
-		var v := n.cross(u)
-		for spot: Vector2 in PIPS[shown]:
-			var mi := MeshInstance3D.new()
-			mi.mesh = pip_mesh
-			mi.material_override = pip_mat
-			# Sunk into the face so only a dark "drilled" disc shows.
-			var pos := n * (h - 0.02 * edge) + u * spot.x * PIP_STEP * edge + v * spot.y * PIP_STEP * edge
-			mi.transform = Transform3D(Basis(u, n, u.cross(n)), pos)
-			_pips_root.add_child(mi)
+## The FACE_AXES id where face `slot` sits on this mesh (what remap_basis
+## needs): itself on a d6 (clamped to 1..6), +Y (1) / -Y (6) on a coin.
+func mesh_face(slot: int) -> int:
+	if shape == &"coin":
+		return CoinPhysics.axis_id(slot)
+	return clampi(slot, 1, 6)
+
+
+## Distance from the centre to the face along FACE_AXES[axis] (decals sit
+## just above it): half the edge on a cube, half the thickness on a coin's
+## round faces.
+func face_half(axis: int) -> float:
+	if shape == &"coin" and (axis == CoinPhysics.AXIS_ID_HEADS or axis == CoinPhysics.AXIS_ID_TAILS):
+		return CoinPhysics.THICKNESS * 0.5
+	return edge * 0.5

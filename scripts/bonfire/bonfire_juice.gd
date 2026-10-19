@@ -219,10 +219,9 @@ func lift(dice: Array[DieVisual], big: bool, speed: float = 1.0) -> void:
 			var tw := d.create_tween().set_ignore_time_scale(true)
 			tw.tween_interval(i * stagger)
 			tw.tween_callback(func() -> void:
+				# The lit look is the dice-state shader (die_lit), not body emission.
 				if table.has_method("_set_lit"):
-					table.call("_set_lit", d, true)
-				d.body_material.set_shader_parameter("emission_color", Palette.EMBER)
-				d.body_material.set_shader_parameter("emission_energy", 0.9))
+					table.call("_set_lit", d, true))
 			tw.tween_property(d, "position", base + Vector3(0, d.edge * 0.45, 0), 0.12 / speed).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 			d.set_meta("juice_rest", base)
 			d.set_meta("juice_tw", tw)
@@ -265,7 +264,6 @@ func drop(dice: Array, immediate: bool = false) -> void:
 			dv.remove_meta("juice_rest")
 			if table.has_method("_set_lit"):
 				table.call("_set_lit", dv, false)
-			dv.body_material.set_shader_parameter("emission_energy", 0.0)
 			if immediate:
 				dv.position = rest
 				continue
@@ -331,8 +329,8 @@ func brazier_column() -> void:
 
 ## Hot Hand: every die flashes to full ember glow with a few spark dots (a
 ## glow pulse, not a flare-up; no fire on dice). fly_start adds the trail.
+## Its sound is played by scripts/fx/table_audio.gd on events.hot_hand.
 func hot_hand(dice: Array[DieVisual]) -> void:
-	sfx(&"hot_hand", 1.0, 0.0, 0.0, &"win_big", 1.1, -4.0)
 	for d in dice:
 		if is_instance_valid(d):
 			DieGlow.hot_hand_pulse(d, table.fx_root, table.reduced_motion)

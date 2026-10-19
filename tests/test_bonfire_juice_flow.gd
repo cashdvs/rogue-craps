@@ -216,7 +216,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(bank_state.size() == 1 and int(bank_state[0][0]) > pts_before and str(bank_state[0][1]).begins_with("points %d " % pts_before),
 		"[%s] bank: points stay at %d on the HUD while the count-up plays (state already %s)" % [tag, pts_before, str(bank_state)])
 	check(s.bhud.points_label.text.begins_with("points %d " % r.points) and s.bhud.coin_label.text == "EMBERS %d" % r.embers, "[%s] bank: points + Embers land after the count-up" % tag)
-	check(b["kind"] == &"bank" and r.state == BonfireRun.State.CLEARED, "[%s] bank clears the table" % tag)
+	check(b["kind"] == &"bank" and r.cleared, "[%s] bank clears the table" % tag)
 	check(s.bhud.has_stamp(&"two_pairs") or s.bhud.has_stamp(&"run_three") or not (b["ticked"] as Array).is_empty() and s.bhud.has_stamp(b["ticked"][0]), "[%s] claimed bounty gets the CLAIMED stamp (%s)" % [tag, str(b["ticked"])])
 	check(j.calls.has("sfx:bank") or j.calls.has("sfx:chip_collect(fb)"), "[%s] bank sound (%s)" % [tag, str(j.calls)])
 	# A click fast-forwards a running count-up.
@@ -277,10 +277,11 @@ func _tutorial_tests(t: BonfireTuning) -> void:
 	s.new_run(5)
 	await process_frame
 	await process_frame
-	check(s.bhud.tutorial.active and s.bhud.tutorial.shown.is_empty(), "Table 1: the tutorial starts (first hint on landing)")
+	check(s.bhud.tutorial.active and s.bhud.tutorial.current == &"th0_throw", "Table 1: the tutorial starts with the throw prompt (TH0)")
 	check(gs.tutorial_seen, "'seen' saved")
 	var cf := ConfigFile.new()
 	check(cf.load(TEST_SETTINGS) == OK and bool(cf.get_value("options", "tutorial_seen", false)), "'seen' persisted to the settings file")
+	check(cf.get_value("options", "hints_seen", {}).has(&"th0_throw"), "the hint's own 'shown' flag persisted (hints_seen)")
 	await create_timer(0.3).timeout
 	s.quick_throw()
 	var res: Array = await s.throw_resolved
@@ -289,14 +290,14 @@ func _tutorial_tests(t: BonfireTuning) -> void:
 	for d in s.throw_dice:
 		faces.append(d.shown_value())
 	var want: Array[int] = t.tutorial_first_throw.duplicate()
-	check(faces == want, "seeded first throw: a pair + a run of 3 (%s)" % str(faces))
-	check(s.bhud.tutorial.current == 0 and s.bhud.tutorial.label.text.begins_with("Glowing dice score"), "hint 1 after the first landing")
-	s.pick_die(0); s.pick_die(1)
-	check(s.bhud.tutorial.current == 1, "hint 2 once the pot is valid")
+	check(faces == want, "seeded first throw: 2-3-4 + 4-4, the 6 cold (%s)" % str(faces))
+	check(s.bhud.tutorial.current == &"th1_lit" and s.bhud.tutorial.label.text.begins_with("Glowing dice can score"), "TH1 after the first landing")
+	s.pick_die(0); s.pick_die(1); s.pick_die(2)
+	check(s.bhud.tutorial.current != &"th1_lit", "potting closes TH1")
 	s.bhud.tutorial.skip()
 	check(not s.bhud.tutorial.active and not s.bhud.tutorial.visible, "SKIP hides the tutorial")
 	s.throw_again()
-	check(not s.bhud.tutorial.visible and s.bhud.tutorial.current == -1 and s.bhud.tutorial.shown.size() == 2, "no more hints after skipping")
+	check(not s.bhud.tutorial.visible and s.bhud.tutorial.current == &"", "no more tutorial hints after skipping")
 	s.new_run(5)
 	await process_frame
 	check(not s.bhud.tutorial.active, "shown once: the next table has no tutorial")

@@ -6,7 +6,7 @@
 script = ExtResource("1_8rrfu")
 id = &"bloodletter"
 display_name = "The Bloodletter"
-description = "Soul costs are doubled, including Blood faces."
+description = "Every Soul cost is doubled."
 kind = 1
 params = {
 "soul_cost_mult": 2

@@ -1,6 +1,8 @@
 ## Bonfire HUD (plain Controls, 1920x1080 design space): Embers / points,
-## hands left, the bounty checklist, the hand's pot with the live combo
-## formula "(base + faces) x mult = N", BANK / THROW and the end screen.
+## hands left, the bounty cards, the hand's pot with the live pot preview
+## "TRIPS: (30+12) x3 = 126", the rethrow risk "Throw 2 cold dice: 1 in 3
+## burns", BANK / THROW and the end screen (how_bonfire_plays.md section 4).
+## The combo table is printed on the felt (FeltComboTable), not here.
 class_name BonfireHud
 extends Control
 
@@ -9,19 +11,46 @@ signal throw_pressed
 signal restart_pressed
 ## Run mode: the end panel's CONTINUE (hand the outcome back to the run).
 signal continue_pressed
+## A cleared table: the player taps Leave table (between hands only).
+signal leave_pressed
 
 var coin_label: Label
 var points_label: Label
-var checklist: VBoxContainer
-var checklist_panel: PanelContainer
+## The bounty cards' home: a 2 x 2 grid of BountyCards in the top-right
+## corner (PC and phone landscape). Hidden in phone portrait, where the goal
+## readout at the top shows the same thing.
+var checklist_panel: Control
+## "CLAIM ALL 3 · 5 hands" over the cards.
+var card_header: Label
+## Bounty id -> a hidden Label with the bounty's mark ("[x] Triple"): the
+## same text the old checklist showed, kept for tests and screen readers.
 var bounty_rows: Dictionary = {}
 var hands_label: Label
 var pot_label: Label
 var throw_label: Label
+## Under the pot preview: what changed the numbers ("Hot Hand +1 mult ·
+## Hellfire x1.5").
+var notes_label: Label
+## The rethrow prompt with the bust risk ("Throw 2 cold dice: 1 in 3 burns").
+var risk_label: Label
+## Set by Bonfire3D before each refresh (it knows which dice will be thrown).
+var rethrow_prompt: String = ""
+## Design px per pt: 2.0 on PC (the Art Director's UI scale), bigger on a
+## phone so the cards keep their 136 x 72 pt size (Bonfire3D sets it).
+var ui_pt_px: float = 2.0
 var mult_label: Label
 var result_label: Label
 var bank_button: Button
+## "LEAVE TABLE": shown between hands once the table is cleared (Bonfire3D
+## decides when; see Bonfire3D.can_leave_now).
+var leave_button: Button
+## The "TABLE CLEARED" banner shown at the clearing bank (ClearedBanner).
+var cleared_banner: ClearedBanner
 var throw_button: Button
+## Why the THROW / BANK button is greyed out (QA full run pass 1): a small
+## caption just above THROW (a child of the button, outside the column's
+## layout) plus the buttons' tooltips. Empty while the buttons work.
+var action_reason: Label
 var end_panel: PanelContainer
 var end_title: Label
 var end_body: Label
@@ -33,17 +62,18 @@ var rules_box: VBoxContainer
 ## Juice / onboarding (bonfire_map_events_juice.md sections 3-4).
 var countup: BonfireCountUp
 var tutorial: BonfireTutorial
-var combo_panel: PanelContainer
-var combo_toggle: Button
-var combo_grid: GridContainer
-## Seal level column (hidden until Seals exist).
-var show_seal_column: bool = false
-## Bounty id -> its card (PanelContainer with icons + the row label).
+## Bounty id -> its BountyCard.
 var bounty_cards: Dictionary = {}
+## Phone portrait only: the goal + bounty readout near the top (see
+## portrait_goal_hud.gd). Hidden on PC and phone landscape.
+var portrait_goal: PortraitGoalHud
 var _stamps: Dictionary = {}
 var _pending_stamps: Dictionary = {}
 var _pulse: Array = []
 var _t: float = 0.0
+## Top-left of the THROW / BANK column (1920x1080 design px). Kept clear of
+## the hand (bottom-right) at 16:9, phone landscape and phone portrait.
+const BUTTONS_POS := Vector2(184, 790)
 
 
 func _init() -> void:
@@ -53,33 +83,60 @@ func _init() -> void:
 	coin_label = _label(40, Palette.EMBER, Vector2(1560, 24), Vector2(340, 50))
 	points_label = _label(26, Palette.BONE, Vector2(1560, 72), Vector2(340, 34))
 	hands_label = _label(30, Palette.BONE, Vector2(1560, 108), Vector2(340, 40))
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.8)))
-	panel.position = Vector2(1580, 160)
-	panel.custom_minimum_size = Vector2(310, 0)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(panel)
-	checklist_panel = panel
-	checklist = VBoxContainer.new()
-	checklist.add_theme_constant_override("separation", 4)
-	panel.add_child(checklist)
-	pot_label = _label(64, Palette.BRASS_HI, Vector2(560, 870), Vector2(800, 80))
-	throw_label = _label(34, Palette.EMBER, Vector2(360, 950), Vector2(1200, 46))
+	checklist_panel = Control.new()
+	checklist_panel.name = "BountyCards"
+	checklist_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(checklist_panel)
+	card_header = Label.new()
+	card_header.name = "CardHeader"
+	card_header.label_settings = Palette.label_settings(30, Palette.BRASS_HI, 6, true)
+	card_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	card_header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	checklist_panel.add_child(card_header)
+	pot_label = _label(64, Palette.BRASS_HI, Vector2(560, 860), Vector2(800, 80))
+	# x 520-1400: clear of the bottom-left THROW / BANK column (ends at x 494).
+	# Heights are the fonts' real line heights, so the three lines stack
+	# without overlapping (930-980, 982-1016, 1018-1060).
+	throw_label = _label(36, Palette.EMBER, Vector2(520, 930), Vector2(880, 50))
+	notes_label = _label(24, Palette.BONE, Vector2(520, 982), Vector2(880, 34))
+	notes_label.name = "PotNotes"
+	risk_label = _label(30, Palette.BRASS_HI, Vector2(520, 1018), Vector2(880, 42))
+	risk_label.name = "RethrowRisk"
 	mult_label = _label(34, Color("#FF2E3E"), Vector2(1260, 880), Vector2(260, 60))
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
 	result_label.modulate.a = 0.0
+	# The refused-die callout ("doesn't score"), placed over the die.
+	callout_label = _label(40, Palette.BONE, Vector2.ZERO, Vector2(420, 56))
+	callout_label.name = "Callout"
+	callout_label.modulate.a = 0.0
 	var col := VBoxContainer.new()
-	col.position = Vector2(1580, 760)
+	# Bottom-left, beside the Soul meter: the hand of dice sits bottom-right,
+	# and buttons over it ate the grab (QA full run pass 1, M1).
+	col.position = BUTTONS_POS
 	col.add_theme_constant_override("separation", 14)
 	add_child(col)
 	throw_button = _button("THROW  (Space)", 32, Palette.BURGUNDY)
 	throw_button.custom_minimum_size = Vector2(310, 84)
 	throw_button.pressed.connect(func() -> void: throw_pressed.emit())
 	col.add_child(throw_button)
+	action_reason = Label.new()
+	action_reason.name = "ActionReason"
+	action_reason.label_settings = Palette.label_settings(20, Palette.BONE, 4, true)
+	action_reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	action_reason.position = Vector2(0, -32)
+	action_reason.size = Vector2(310, 28)
+	action_reason.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	throw_button.add_child(action_reason)
 	bank_button = _button("BANK  (B)", 36, Color("#3C6A34"))
 	bank_button.custom_minimum_size = Vector2(310, 84)
 	bank_button.pressed.connect(func() -> void: bank_pressed.emit())
 	col.add_child(bank_button)
+	leave_button = _button("LEAVE TABLE  (L)", 32, Palette.FELT_DARK)
+	leave_button.name = "LeaveButton"
+	leave_button.custom_minimum_size = Vector2(310, 84)
+	leave_button.visible = false
+	leave_button.pressed.connect(press_leave)
+	col.add_child(leave_button)
 	rules_panel = PanelContainer.new()
 	rules_panel.name = "RulesPanel"
 	rules_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.8)))
@@ -94,6 +151,9 @@ func _init() -> void:
 	rules_box = VBoxContainer.new()
 	rules_box.add_theme_constant_override("separation", 6)
 	rules_panel.add_child(rules_box)
+	# Added before the end panel so the end screen draws over it.
+	portrait_goal = PortraitGoalHud.new()
+	add_child(portrait_goal)
 	end_panel = PanelContainer.new()
 	end_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.94)))
 	end_panel.position = Vector2(560, 300)
@@ -124,7 +184,10 @@ func _init() -> void:
 	countup = BonfireCountUp.new()
 	add_child(countup)
 	move_child(countup, end_panel.get_index())
-	_build_combo_panel()
+	# Over the table, under the end panel and the tutorial.
+	cleared_banner = ClearedBanner.new()
+	add_child(cleared_banner)
+	move_child(cleared_banner, end_panel.get_index())
 	tutorial = BonfireTutorial.new()
 	add_child(tutorial)
 
@@ -135,11 +198,45 @@ func _init() -> void:
 var display_hold: Dictionary = {}
 
 
+## Seconds the "LEAVE?  TAP AGAIN" question waits for the second tap.
+const LEAVE_CONFIRM_S: float = 2.0
+const LEAVE_TEXT := "LEAVE TABLE  (L)"
+const LEAVE_ASK_TEXT := "LEAVE?  TAP AGAIN"
+## When the first tap came (seconds on leave_clock), -1 = not asked.
+var _leave_asked_at: float = -1.0
+## Seconds for the confirm window (tests can swap in a fake clock).
+var leave_clock: Callable = func() -> float: return Time.get_ticks_msec() / 1000.0
+
+
+## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
+## the button into "LEAVE?  TAP AGAIN"; a second one within LEAVE_CONFIRM_S
+## leaves (emits leave_pressed). Otherwise the text goes back.
+func press_leave() -> void:
+	if not leave_button.visible:
+		return
+	var now: float = leave_clock.call()
+	if _leave_asked_at >= 0.0 and now - _leave_asked_at <= LEAVE_CONFIRM_S:
+		_reset_leave_ask()
+		leave_pressed.emit()
+	else:
+		_leave_asked_at = now
+		leave_button.text = LEAVE_ASK_TEXT
+
+
+func _reset_leave_ask() -> void:
+	_leave_asked_at = -1.0
+	leave_button.text = LEAVE_TEXT
+
+
 func refresh(run: BonfireRun, can_act: bool) -> void:
 	coin_label.text = "EMBERS %d" % int(display_hold.get("embers", run.embers))
-	points_label.text = "points %d  (1 Ember / %d)" % [int(display_hold.get("points", run.points)), run.tuning.points_per_ember]
+	# Points are income (section 4): "points 572 → +5 Embers".
+	var pts := int(display_hold.get("points", run.points))
+	points_label.text = "points %d → +%d Embers" % [pts, pts / maxi(run.tuning.points_per_ember, 1)]
 	hands_label.text = "HANDS LEFT %d" % run.hands_left
 	_refresh_checklist(run)
+	portrait_goal.refresh(run)
+	_place_result()
 	_refresh_rules(run)
 	var picking := run.state == BonfireRun.State.PICK
 	if display_hold.has("pot_from"):
@@ -149,16 +246,25 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 		pot_label.text = "POT %d  (+%d)" % [run.pot, run.throw_points()]
 	else:
 		pot_label.text = "POT %d" % run.hand_pot()
+	notes_label.text = ""
+	risk_label.text = ""
 	if picking:
 		var sel := run.selection()
 		if sel["valid"]:
-			throw_label.text = BonfireScoring.formula(sel)
+			# The live pot preview, e.g. "TRIPS: (30+12) x3 = 126", and what
+			# changed it (Hot Hand, Hellfire...), then the rethrow risk.
+			throw_label.text = BonfireScoring.preview(sel)
+			notes_label.text = "  ·  ".join(BonfireScoring.factor_notes(run.selection_faces(), sel, run.tuning, run.mult_bonus(), run.rule_ctx()))
+			risk_label.text = rethrow_prompt
 		elif run.potted.is_empty():
 			throw_label.text = "Click burning dice: pot ONE combo"
 		else:
 			throw_label.text = "not a combo yet..."
-	elif run.forfeited:
+	elif run.forfeited or run.is_over():
 		throw_label.text = ""
+	elif rethrow_prompt != "":
+		# Cold dice waiting to be thrown again: say how risky it is.
+		throw_label.text = rethrow_prompt
 	else:
 		throw_label.text = "Grab the %d dice and flick" % run.cold
 	mult_label.text = ("+%d MULT" % run.mult_bonus()) if run.mult_bonus() > 0 else ""
@@ -169,6 +275,31 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	else:
 		throw_button.disabled = not can_act
 		throw_button.text = "THROW %d  (Space)" % run.cold
+	var why := action_reasons(run, can_act)
+	throw_button.tooltip_text = why["throw"]
+	bank_button.tooltip_text = why["bank"]
+	# The caption names the first greyed-out button's reason while picking.
+	action_reason.text = why["throw"] if why["throw"] != "" else (why["bank"] if picking else "")
+
+
+## Why THROW / BANK can't be pressed right now ({throw, bank}; "" = it can,
+## or the table is busy rolling / counting).
+static func action_reasons(run: BonfireRun, can_act: bool) -> Dictionary:
+	var out := {"throw": "", "bank": ""}
+	if not can_act or run.is_over() or run.forfeited:
+		return out
+	if run.state == BonfireRun.State.PICK:
+		var combo_why := ""
+		if not run.can_continue():
+			combo_why = "Pot a lit die first" if run.potted.is_empty() else "Not a combo yet: pot ONE combo"
+		out["bank"] = combo_why
+		if combo_why != "":
+			out["throw"] = combo_why
+		elif run.is_hot() and not run.hot_hand_allowed():
+			out["throw"] = "No Hot Hand at this table: bank it"
+	else:
+		out["bank"] = "Throw, then pot a combo to bank"
+	return out
 
 
 ## The held pot counts up with the count-up (f = 0..1).
@@ -210,12 +341,16 @@ func _refresh_rules(run: BonfireRun) -> void:
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		line.custom_minimum_size = Vector2(290, 0)
 		row.add_child(line)
+		# Boss sign art (Systems Dev, BossSign): icon + tooltip; no art = this text row.
+		BossSign.decorate_hud_row(row, name_l, line, r.id, r.params)
 		rules_box.add_child(row)
 	rules_panel.reset_size()
 
 
 func _place_rules() -> void:
-	rules_panel.position.y = checklist_panel.position.y + checklist_panel.size.y + 14
+	# Under the bounty cards; where they'd be when hidden (phone portrait).
+	var below := checklist_panel.size.y + 14 if checklist_panel.visible else 0.0
+	rules_panel.position.y = checklist_panel.position.y + below
 
 
 ## Names of the rules the HUD shows (tests).
@@ -227,113 +362,108 @@ func rule_rows() -> Array[String]:
 
 
 func _refresh_checklist(run: BonfireRun) -> void:
-	if bounty_rows.is_empty() or not bounty_rows.has(run.goal.required[0].id) or bounty_rows.size() != run.all_bounties().size():
-		for c in checklist.get_children():
-			c.queue_free()
-		bounty_rows.clear()
-		var title := Label.new()
-		title.text = "%s BOUNTIES" % run.goal.display_name.to_upper()
-		title.label_settings = Palette.label_settings(24, Palette.BRASS_HI, 5, true)
-		checklist.add_child(title)
+	var bounties := run.all_bounties()
+	if bounty_cards.size() != bounties.size() or (not bounties.is_empty() and not bounty_cards.has(bounties[0].id)):
+		for id in bounty_cards:
+			(bounty_cards[id] as Node).queue_free()
 		bounty_cards.clear()
+		bounty_rows.clear()
 		_stamps.clear()
 		_pending_stamps.clear()
-		for b: BountyData in run.all_bounties():
-			# A bounty card: mini dice icons of the pattern + the row text.
-			var card := PanelContainer.new()
-			card.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.FELT_DARK, 0.9), 8, 2, Palette.BRASS))
-			card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var hb := HBoxContainer.new()
-			hb.add_theme_constant_override("separation", 8)
-			card.add_child(hb)
-			var icons := DiceIcons.new()
-			icons.set_values(DiceIcons.pattern(b))
-			hb.add_child(icons)
-			var l := Label.new()
-			l.label_settings = Palette.label_settings(22, Palette.BONE, 4)
-			l.tooltip_text = b.description
-			hb.add_child(l)
-			checklist.add_child(card)
-			bounty_rows[b.id] = l
+		for b: BountyData in bounties:
+			var card := BountyCard.new()
+			card.setup(b, run.goal.bonus.has(b))
+			checklist_panel.add_child(card)
 			bounty_cards[b.id] = card
-	for b: BountyData in run.all_bounties():
+			# The mark text, hidden (tests / accessibility read it).
+			var l := Label.new()
+			l.visible = false
+			card.add_child(l)
+			bounty_rows[b.id] = l
+		_layout_cards()
+	# "CLAIM ALL 3 · 5 hands" (section 4).
+	card_header.text = "CLAIM ALL %d · %d hand%s" % [run.goal.required.size(), run.hands_left, "" if run.hands_left == 1 else "s"]
+	for b: BountyData in bounties:
 		var l: Label = bounty_rows[b.id]
 		var bonus := run.goal.bonus.has(b)
 		var mark := "[x]" if run.is_ticked(b) else ("[?]" if run.is_pending(b) else "[ ]")
 		l.text = "%s %s%s" % [mark, b.display_name, ("  +%d Embers" % b.bonus_embers) if bonus else ""]
-		l.label_settings.font_color = Color("#9FE08A") if run.is_ticked(b) else (Palette.EMBER if run.is_pending(b) else (Palette.BONE if not bonus else Color(Palette.BONE, 0.7)))
-		if not run.is_ticked(b) and _stamps.has(b.id):
-			(_stamps[b.id] as Control).queue_free()
-			_stamps.erase(b.id)
-		if run.is_pending(b) and not _pending_stamps.has(b.id):
-			_pending_stamps[b.id] = _stamp_label(b.id, "PENDING", Color(Palette.EMBER, 0.0), Palette.EMBER, 0.75)
-		elif not run.is_pending(b) and _pending_stamps.has(b.id) and run.is_ticked(b):
-			(_pending_stamps[b.id] as Control).queue_free()
+		var card: BountyCard = bounty_cards[b.id]
+		if run.is_ticked(b):
+			if card.state != "claimed":
+				# Claimed without a bank stamp (e.g. a restored table): no slam.
+				card.set_state("claimed", false)
+			_stamps[b.id] = card
 			_pending_stamps.erase(b.id)
+		elif run.is_pending(b):
+			card.set_state("pending")
+			_pending_stamps[b.id] = card
+			_stamps.erase(b.id)
+		elif not _crumbling.has(b.id) and not _pending_stamps.has(b.id):
+			# (A pending ghost stays until the bust crumbles it.)
+			card.set_state("open")
+			_stamps.erase(b.id)
+
+
+## The cards: 2 per row, right-aligned under the Ember counter. Each card is
+## 136 x 72 pt (ui_pt_px design px per pt).
+func _layout_cards() -> void:
+	var pt := ui_pt_px * card_mult
+	var k := pt / 4.0
+	var w := BountyCard.CARD_SIZE.x * k
+	var h := BountyCard.CARD_SIZE.y * k
+	var gap := 6.0 * pt
+	var row_gap := 9.0 * pt  # room for the CLAIMED wax hanging under a card
+	var header_h := 20.0 * pt
+	# Header: Barlow-ish display caps, ~10 pt cap height.
+	card_header.label_settings.font_size = int(round(14.0 * pt))
+	card_header.position = Vector2.ZERO
+	card_header.size = Vector2(2.0 * w + gap, header_h)
+	var i := 0
+	for id in bounty_cards:
+		var c: BountyCard = bounty_cards[id]
+		c.scale = Vector2.ONE * k
+		c.position = Vector2((i % 2) * (w + gap), header_h + (i / 2) * (h + row_gap))
+		i += 1
+	var rows := (bounty_cards.size() + 1) / 2
+	checklist_panel.position = Vector2(CARDS_RIGHT - 2.0 * w - gap, CARDS_TOP)
+	checklist_panel.size = Vector2(2.0 * w + gap, header_h + rows * (h + row_gap))
+	_place_rules()
+
+
+## The cards' top-right corner (design px): under the Ember / points / hands
+## lines, at the screen's right edge.
+const CARDS_RIGHT := 1906.0
+const CARDS_TOP := 150.0
+
+
+## The design px per pt for this screen (Bonfire3D: 2.0 on PC, more on a
+## phone in landscape so the cards keep their real size).
+##
+## card_mult sizes the bounty cards against that: 1 on PC; a phone in
+## landscape uses less (BonfireHud.PHONE_LANDSCAPE_CARDS) so the 2 x 2 grid
+## stays off the landing zone.
+func set_ui_scale(pt_px: float, cards: float = 1.0) -> void:
+	if is_equal_approx(pt_px, ui_pt_px) and is_equal_approx(cards, card_mult):
+		return
+	ui_pt_px = pt_px
+	card_mult = cards
+	_layout_cards()
+	tutorial.set_ui_scale(pt_px)
+
+
+## Phone landscape: the cards at 0.72 of their PC pt size (9.4 pt title caps),
+## so the grid takes ~24% of the width instead of a third.
+const PHONE_LANDSCAPE_CARDS := 0.72
+var card_mult: float = 1.0
 
 
 # --- Juice / onboarding -------------------------------------------------------------
 
-## The always-visible, collapsible combo reference: combo, base x mult (and a
-## Seal level column, hidden until Seals exist).
-func _build_combo_panel() -> void:
-	combo_panel = PanelContainer.new()
-	combo_panel.name = "ComboPanel"
-	combo_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.8)))
-	combo_panel.position = Vector2(184, 118)
-	combo_panel.mouse_filter = Control.MOUSE_FILTER_PASS
-	add_child(combo_panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
-	combo_panel.add_child(box)
-	combo_toggle = Button.new()
-	combo_toggle.text = "COMBOS  -"
-	combo_toggle.flat = true
-	combo_toggle.add_theme_font_override("font", Palette.display_font())
-	combo_toggle.add_theme_font_size_override("font_size", 22)
-	combo_toggle.add_theme_color_override("font_color", Palette.BRASS_HI)
-	combo_toggle.focus_mode = Control.FOCUS_NONE
-	combo_toggle.pressed.connect(func() -> void: set_combo_panel_open(not combo_grid.visible))
-	box.add_child(combo_toggle)
-	combo_grid = GridContainer.new()
-	combo_grid.add_theme_constant_override("h_separation", 14)
-	box.add_child(combo_grid)
-
-
-func set_combo_panel_open(open: bool) -> void:
-	combo_grid.visible = open
-	combo_toggle.text = "COMBOS  -" if open else "COMBOS  +"
-	combo_panel.reset_size()
-
-
-## Fills the combo panel from the tuning (Seal levels: combo id -> level).
-func set_combos(t: BonfireTuning, seal_levels: Dictionary = {}) -> void:
-	for c in combo_grid.get_children():
-		combo_grid.remove_child(c)
-		c.queue_free()
-	combo_grid.columns = 3 if show_seal_column else 2
-	for i in range(t.combos.size() - 1, -1, -1):
-		var c: BonfireCombo = t.combos[i]
-		var n := Label.new()
-		n.text = c.display_name
-		n.label_settings = Palette.label_settings(19, Palette.BONE, 4)
-		combo_grid.add_child(n)
-		var v := Label.new()
-		v.text = "%d x %d" % [c.base, c.mult]
-		v.label_settings = Palette.label_settings(19, Palette.BRASS_HI, 4)
-		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		combo_grid.add_child(v)
-		if show_seal_column:
-			var sl := Label.new()
-			sl.text = "Lv %d" % int(seal_levels.get(c.id, 1))
-			sl.label_settings = Palette.label_settings(19, Palette.EMBER, 4)
-			combo_grid.add_child(sl)
-	combo_panel.reset_size()
-
-
 ## Pulses the bounty cards in `ids` (the ones the selection could claim).
 func pulse_cards(ids: Array) -> void:
 	_pulse = ids.duplicate()
+	portrait_goal.pulse(ids)
 	for id in bounty_cards:
 		if not _pulse.has(id):
 			(bounty_cards[id] as Control).modulate = Color.WHITE
@@ -344,6 +474,9 @@ func pulsing() -> Array:
 
 
 func _process(delta: float) -> void:
+	# The Leave question times out (or the button went away).
+	if _leave_asked_at >= 0.0 and (not leave_button.visible or float(leave_clock.call()) - _leave_asked_at > LEAVE_CONFIRM_S):
+		_reset_leave_ask()
 	_t += delta / maxf(Engine.time_scale, 0.001)
 	for id in _pulse:
 		var c: Control = bounty_cards.get(id)
@@ -352,52 +485,42 @@ func _process(delta: float) -> void:
 			c.modulate = Color(1.0 + 0.5 * k, 1.0 + 0.25 * k, 1.0, 1.0)
 
 
-func _stamp_label(id: StringName, text: String, fill: Color, ink: Color, alpha: float) -> Label:
-	var card: Control = bounty_cards.get(id)
-	var l := Label.new()
-	l.text = text
-	l.label_settings = Palette.label_settings(15, ink, 3, true)
-	var sb := Palette.ink_box(fill, 8, 3, ink)
-	l.add_theme_stylebox_override("normal", sb)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.modulate.a = alpha
-	l.rotation = -0.12
-	if card != null:
-		# A free layer over the card (the PanelContainer would stretch the
-		# stamp over the text); the stamp sits on the card's right end.
-		var layer := card.get_node_or_null("StampLayer") as Control
-		if layer == null:
-			layer = Control.new()
-			layer.name = "StampLayer"
-			layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(layer)
-		layer.add_child(l)
-		l.anchor_left = 1.0
-		l.anchor_right = 1.0
-		l.offset_left = -86.0
-		l.offset_right = -4.0
-		l.offset_top = -3.0
-		l.offset_bottom = 22.0
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	else:
-		l.position = Vector2(170, 2)
-	return l
-
-
-## The wax "CLAIMED" stamp slams onto a bounty card.
+## A bank claimed bounty `id`: its card's wax CLAIMED seal stamps in (the
+## Art Director's 6-key stamp-in). Several in one bank go one card at a
+## time, 0.12 s apart. In portrait the goal readout gets the stamp instead.
 func stamp_claimed(id: StringName, reduced: bool = false) -> void:
-	if _pending_stamps.has(id):
-		(_pending_stamps[id] as Control).queue_free()
-		_pending_stamps.erase(id)
+	_pending_stamps.erase(id)
+	_crumbling.erase(id)
+	portrait_goal.stamp(id, reduced)
 	if _stamps.has(id):
 		return
-	var l := _stamp_label(id, "CLAIMED", Color("#8E0F1C"), Palette.BRASS_HI, 1.0)
-	_stamps[id] = l
-	if not reduced:
-		l.pivot_offset = Vector2(41, 12)
-		l.scale = Vector2.ONE * 2.2
-		var tw := l.create_tween().set_ignore_time_scale(true)
-		tw.tween_property(l, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var card: BountyCard = bounty_cards.get(id)
+	if card == null:
+		return
+	_stamps[id] = card
+	var now := Time.get_ticks_msec() / 1000.0
+	var delay := 0.0
+	if now - _last_stamp_at < STAMP_STAGGER:
+		_stamp_queue += 1
+		delay = STAMP_STAGGER * _stamp_queue
+	else:
+		_stamp_queue = 0
+	_last_stamp_at = now
+	if reduced:
+		card.set_state("claimed", false)
+	else:
+		card.state = "claimed"
+		card.ghost.visible = false
+		card.pending_label.visible = false
+		card.seal.visible = true
+		card._stamp_in(delay)
+
+
+const STAMP_STAGGER := 0.12
+var _last_stamp_at: float = -10.0
+var _stamp_queue: int = 0
+## Pending cards whose ghost is crumbling (bust), so refresh leaves them be.
+var _crumbling: Dictionary = {}
 
 
 func has_stamp(id: StringName) -> bool:
@@ -408,32 +531,66 @@ func has_pending_stamp(id: StringName) -> bool:
 	return _pending_stamps.has(id)
 
 
-## Bust: the pending stamps crumble into falling shards.
+## Bust: the PENDING ghosts crumble (0.25 s: scale 1 -> 1.1, fade, and a
+## little bone dust), and the cards go back to open.
+## Bounty ids showing a PENDING stamp right now.
+func pending_cards() -> Array:
+	return _pending_stamps.keys()
+
+
 func crumble_pending(reduced: bool = false) -> int:
+	portrait_goal.lost(_pending_stamps.keys())
 	var n := 0
 	for id in _pending_stamps.keys():
-		var st: Control = _pending_stamps[id]
+		var card: BountyCard = _pending_stamps[id]
 		_pending_stamps.erase(id)
 		n += 1
-		if not is_instance_valid(st):
+		if not is_instance_valid(card):
 			continue
-		var at := st.global_position
-		st.queue_free()
 		if reduced:
+			card.set_state("open")
 			continue
-		for k in 4:
-			var shard := ColorRect.new()
-			shard.color = Palette.EMBER
-			shard.size = Vector2(16, 10)
-			shard.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			add_child(shard)
-			shard.global_position = at + Vector2(k * 22, 6)
-			var tw := shard.create_tween().set_ignore_time_scale(true).set_parallel(true)
-			tw.tween_property(shard, "position", shard.position + Vector2(randf_range(-20, 20), 60 + k * 10), 0.45)
-			tw.tween_property(shard, "rotation", randf_range(-2.0, 2.0), 0.45)
-			tw.tween_property(shard, "modulate:a", 0.0, 0.45)
-			tw.chain().tween_callback(shard.queue_free)
+		_crumbling[id] = true
+		card.pending_label.visible = false
+		var g := card.ghost
+		var at := g.global_position + g.size * g.get_global_transform().get_scale() * 0.5
+		var tw := g.create_tween().set_ignore_time_scale(true).set_parallel(true)
+		tw.tween_property(g, "scale", Vector2.ONE * 1.1, 0.25)
+		tw.tween_property(g, "modulate:a", 0.0, 0.25)
+		tw.chain().tween_callback(func() -> void:
+			_crumbling.erase(id)
+			g.scale = Vector2.ONE
+			g.modulate.a = 1.0
+			if card.state == "pending":
+				card.set_state("open"))
+		for k in 6:
+			var dust := ColorRect.new()
+			dust.color = Palette.BONE
+			dust.size = Vector2(8, 8)
+			dust.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(dust)
+			dust.global_position = at + Vector2((k - 2.5) * 14.0, 0)
+			var dt := dust.create_tween().set_ignore_time_scale(true).set_parallel(true)
+			dt.tween_property(dust, "position", dust.position + Vector2(randf_range(-24, 24), 50 + k * 8), 0.45)
+			dt.tween_property(dust, "modulate:a", 0.0, 0.45)
+			dt.chain().tween_callback(dust.queue_free)
 	return n
+
+
+## A die that can't join the combo: a short "doesn't score" callout over it
+## (at `at`, canvas px), which rises a little and fades.
+var callout_label: Label
+
+
+## Pops a short callout ("doesn't score") just above screen point `at`,
+## then fades it out.
+func callout(at: Vector2, text: String = "doesn't score") -> void:
+	callout_label.text = text
+	callout_label.position = at - Vector2(callout_label.size.x * 0.5, callout_label.size.y + 30.0)
+	callout_label.modulate.a = 1.0
+	var tw := callout_label.create_tween().set_ignore_time_scale(true)
+	tw.tween_property(callout_label, "position:y", callout_label.position.y - 24.0, 0.7)
+	tw.parallel().tween_property(callout_label, "modulate:a", 0.0, 0.3).set_delay(0.5)
 
 
 ## Bank: embers fly from the pot into the Ember counter (the pile).
@@ -488,6 +645,27 @@ func flash_ticks(ids: Array) -> void:
 		tw.parallel().tween_property(l, "modulate", Color.WHITE, 0.5)
 
 
+## The banner's text (ClearedBanner.TEXT).
+const CLEARED_TEXT := ClearedBanner.TEXT
+
+
+## The clearing bank (how_bonfire_plays.md §4): "TABLE CLEARED: chase the
+## bonus or Leave table" (ClearedBanner: 1.8 s at 1x, never blocks input).
+## speed: 2.0 at the 2x roll speed; instant: the Instant speed / reduced motion.
+func show_cleared(speed: float = 1.0, instant: bool = false) -> void:
+	cleared_banner.pt_px = ui_pt_px
+	cleared_banner.rest_center = _banner_center()
+	cleared_banner.play(speed, instant)
+
+
+## Where the banner rests: over the upper felt, clear of the BANKED flash.
+func _banner_center() -> Vector2:
+	if portrait_goal.visible:
+		var vs := get_viewport_rect().size
+		return Vector2(960, maxf(vs.y * 0.40, result_label.position.y + 600.0))
+	return Vector2(960, 620)
+
+
 func flash(text: String, col: Color) -> void:
 	result_label.text = text
 	result_label.label_settings.font_color = col
@@ -495,6 +673,34 @@ func flash(text: String, col: Color) -> void:
 	var tw := create_tween()
 	tw.tween_interval(1.0)
 	tw.tween_property(result_label, "modulate:a", 0.0, 0.4)
+
+
+## Phone portrait (the screen is taller than wide): the goal readout at the
+## top replaces the bounty cards, so there is one list; the bank / bust
+## banner moves down under the readout so both stay readable. PC and phone
+## landscape keep the cards and the banner where they were.
+func set_portrait(on: bool) -> void:
+	if on == portrait_goal.visible:
+		return
+	portrait_goal.visible = on
+	checklist_panel.visible = not on
+	_place_rules()
+	_place_result()
+
+
+## The bank / bust banner: under the readout in portrait (its height can
+## change when the goal's rows are built), else at RESULT_Y.
+func _place_result() -> void:
+	if portrait_goal.visible:
+		result_label.position.y = portrait_goal.position.y + portrait_goal.get_combined_minimum_size().y + RESULT_GAP
+	else:
+		result_label.position.y = RESULT_Y
+
+
+## Where the bank / bust banner sits (design px): its usual height, and in
+## portrait this far under the goal readout.
+const RESULT_Y := 380.0
+const RESULT_GAP := 40.0
 
 
 ## Run mode: CONTINUE instead of RESTART on the end panel.
@@ -510,7 +716,12 @@ func show_end(run: BonfireRun) -> void:
 	match run.state:
 		BonfireRun.State.CLEARED:
 			end_title.text = "TABLE CLEARED"
-			end_body.text = "Every bounty banked with %d hands to spare.\n%s\nSoul %d." % [run.hands_left, ember_line, run.soul]
+			var bonus: Array[String] = []
+			for b: BountyData in run.goal.bonus:
+				if run.is_ticked(b):
+					bonus.append("%s +%d" % [b.display_name, b.bonus_embers])
+			end_body.text = "Every required bounty banked%s.\n%s\nSoul %d." % [
+				(" (bonus: %s)" % ", ".join(bonus)) if not bonus.is_empty() else "", ember_line, run.soul]
 		_ when run.forfeited and run.state != BonfireRun.State.RUN_OVER:
 			end_title.text = "TABLE FORFEITED"
 			end_body.text = "You walked away with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
@@ -521,6 +732,10 @@ func show_end(run: BonfireRun) -> void:
 			end_title.text = "TABLE LOST"
 			end_body.text = "Out of hands with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
 	end_panel.visible = true
+	# A table can end mid-tutorial: the hint panel must not cover the end
+	# panel (#103 N6). stop() also drops the waiting hints, so dismiss()
+	# can't pop the next one over the end panel.
+	tutorial.stop()
 
 
 func _label(px: int, col: Color, pos: Vector2, sz: Vector2) -> Label:

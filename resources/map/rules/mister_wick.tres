@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RunRuleData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="1_l3nwq"]
+
+[resource]
+script = ExtResource("1_l3nwq")
+id = &"mister_wick"
+display_name = "Mister Wick"
+description = "Snuffs the sixes: 6s never light. A bust costs 2 Soul."
+kind = 1
+bust_soul_loss = 2
+params = {
+"face": 6
+}

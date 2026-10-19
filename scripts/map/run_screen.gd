@@ -34,6 +34,11 @@ var _panel_box: VBoxContainer
 var _table: Bonfire3D
 ## Map screen: "Quit to title" (asks first; the run is lost).
 var quit_button: Button
+## Boss intro sign (BossSign), or null. Tests / captures read it.
+var boss_sign: TextureRect
+## Tests: treat the window as this many pixels tall when picking @1x / @2x
+## sign art (0 = the real window).
+var sign_px_height: int = 0
 const TITLE_SCENE := "res://scenes/title.tscn"
 
 
@@ -97,9 +102,9 @@ func refresh() -> void:
 	quit_button.visible = map_view.visible
 	match run.screen:
 		S.MAP:
-			map_view.show_map(run.map, run.boss_name(), _boss_rules())
+			map_view.show_map(run.map, run.boss_name(), _boss_rules(), run.pending_twist_note())
 		S.EVENT:
-			event_view.show_event(run.event, run.progress)
+			event_view.show_event(run.event, run.progress, run.table_ahead())
 		S.TABLE:
 			_show_table()
 		S.REWARD:
@@ -181,6 +186,25 @@ func _show_table() -> void:
 		buttons.append(["Stub: clear", func() -> void: run.quick_resolve(true)])
 		buttons.append(["Stub: miss", func() -> void: run.quick_resolve(false)])
 	_panel(g.display_name, lines, buttons)
+	boss_sign = null
+	if run.table_type == NT.BOSS:
+		boss_sign = BossSign.make_sign(run.boss, _px_height(), _layout_width())
+		if boss_sign != null:
+			# The sign is the header: it replaces the boss-name title.
+			var title := _panel_box.get_child(0)
+			_panel_box.remove_child(title)
+			title.queue_free()
+			_panel_box.add_child(boss_sign)
+			_panel_box.move_child(boss_sign, 0)
+
+
+## Window height in pixels (for @1x / @2x sign art).
+func _px_height() -> int:
+	return sign_px_height if sign_px_height > 0 else get_window().size.y
+
+
+func _layout_width() -> float:
+	return get_viewport().get_visible_rect().size.x
 
 
 func stubs_enabled() -> bool:
@@ -194,6 +218,8 @@ func _play_table() -> void:
 	_ui.visible = false
 	add_child(t)
 	t.finished.connect(_on_table_finished)
+	if run.table_type == NT.BOSS:
+		BossSign.attach_to_pause(t.pause_menu, run.boss, _px_height())
 
 
 ## Bonfire3D.finished (CONTINUE on its end panel): apply the outcome, free
@@ -262,13 +288,22 @@ func _show_shop() -> void:
 					_show_shop()
 					return ok), e < run.seal_price(id) or not _seal_possible(id)])
 	for d_i in run.progress.dice.size():
-		var sd := run.progress.special_die(run.progress.dice[d_i].special_id)
+		var sd := run.progress.die_def(d_i)
 		if sd != null and run.progress.sell_value(d_i) > 0:
 			buttons.append(["Sell your %s (+%d Embers)" % [sd.display_name, run.progress.sell_value(d_i)],
 				func() -> void: run.sell_die(d_i); _show_shop()])
-	buttons.append(["Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
+	buttons.append(["Free reroll (%d left)" % run.progress.free_rerolls if run.progress.free_rerolls > 0 else "Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
 	buttons.append(["Leave", func() -> void: run.leave()])
-	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half."], buttons)
+	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half.", "Your dice: " + bag_text()], buttons)
+
+
+## The handful by name and shape, e.g. "Bone, Powder Keg (6 faces), Ferryman's Coin (2 faces), Mirror Die".
+func bag_text() -> String:
+	var names: Array[String] = []
+	for i in run.progress.dice.size():
+		var d := run.progress.dice[i]
+		names.append(run.progress.die_name(i) + ("" if d.shape == DiceIds.DIE_BONE else " (%d faces)" % d.faces.size()))
+	return ", ".join(names)
 
 
 func _pick(prompt: String, done: Callable, allowed: Callable = Callable()) -> void:
@@ -315,7 +350,7 @@ func _on_event_choice(i: int, picks: Array[Vector2i]) -> void:
 	var text := run.event.choices[i].result_text
 	var lines := run.choose_event(i, picks)
 	if run.screen == S.EVENT:
-		event_view.show_event(run.event, run.progress)
+		event_view.show_event(run.event, run.progress, run.table_ahead())
 		return
 	# Show the outcome over the event before going back to the map.
 	map_view.visible = false

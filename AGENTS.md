@@ -4,6 +4,13 @@ This file is for coding agents (and the people driving them) who want to open pu
 against **Dice of the Damned** by **Tiny Anvil Games**. Humans should also read
 [CONTRIBUTING.md](CONTRIBUTING.md). Read this whole file before changing anything.
 
+> **Partly out of date (Oct 2026).** §1, §4, §4a and §6 describe the craps-era proof of concept. The
+> game is now the **Bonfire** dice roguelite (Bonfire tables on a floor map, shop, Embers, dice bag,
+> face mods, events, bosses). For the current game, workflow and file map read
+> [README.md](README.md#start-here), [CONTRIBUTING.md](CONTRIBUTING.md) and
+> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The setup in §2-§3, the conventions in §5 and the
+> PR rules in §7 still apply.
+
 ## 1. Project overview
 
 - **Dice of the Damned** (formerly *The Gambler's Descent*) is a single-player,
@@ -25,7 +32,7 @@ against **Dice of the Damned** by **Tiny Anvil Games**. Humans should also read
 
 | Doc | Why |
 |---|---|
-| [docs/DESIGN.md](docs/DESIGN.md) | Public design summary: pillars, core loop, craps rules, Coin and Soul, table goal, POC scope. |
+| [docs/DESIGN.md](docs/DESIGN.md) | Design overview of Bonfire as it plays now: run, table, shop, dice bag, twists and cheats. |
 | [docs/MODULES.md](docs/MODULES.md) | The feature modules, which files each owns, owners, and how to claim one. |
 | [REVIEWING.md](REVIEWING.md) | What reviewers check on every PR. |
 
@@ -74,14 +81,13 @@ export GODOT=~/tools/godot/godot
 ./run_tests.sh
 
 # 3) Run one test file
-"$GODOT" --headless --path . --script res://tests/test_poc_table.gd
-"$GODOT" --headless --path . --script res://tests/test_table_3d.gd   # 3D table + real physics
+"$GODOT" --headless --path . --script res://tests/test_run_screen.gd
 
-# 4) Play (needs a display). Main scene = the boot splash, which opens the 3D table
-#    ([boot] next_scene in project.godot). Run a table directly to skip the splash:
+# 4) Play (needs a display). Main scene = the studio splash, then the title screen
+#    ([boot] next_scene in project.godot); Play starts a run (scenes/run.tscn). Shortcuts:
 "$GODOT" --path .
-"$GODOT" --path . res://scenes/table_3d.tscn
-"$GODOT" --path . res://scenes/table.tscn
+"$GODOT" --path . res://scenes/run.tscn       # straight to a new run (the map)
+"$GODOT" --path . res://scenes/bonfire.tscn   # one sandbox table, no run
 # Editor
 "$GODOT" --editor --path .
 ```
@@ -206,6 +212,8 @@ Check [docs/MODULES.md](docs/MODULES.md) for where new systems should go.
 - **Comments for beginners.** Studio code is written to be read by people learning Godot. Start
   each script with a `##` doc comment saying what it does and *why*; explain non-obvious rules
   (e.g. cite the design doc section). Keep comments true when you change code.
+- **Newcomer-readable code (Cash's rule):** every public function and signal gets a `##` doc
+  comment, and scripts stay under ~400 lines (split them before they grow past that).
 - **Logic separate from scenes/UI.** Rules and numbers go in `scripts/core/` as `RefCounted`
   classes with no nodes, so they can be unit-tested headless. Views (`scripts/table/`) only
   display state and forward input. Never put a craps rule in a view.
@@ -247,7 +255,13 @@ needs it, because it rewrites files in `resources/`.
 
 1. **Small, focused PRs.** One issue / one module per PR, roughly ≤ 400 changed lines of code
    (generated `.uid`/`.tres`/`.import` excluded). No drive-by refactors or reformatting.
-   Rebase on `main` to update your branch; no merge commits (history is linear).
+   Linear history applies only to `main`: anything landing on `main` is squashed or rebased,
+   never merged with a merge commit. Merge commits are fine inside stacked feature branches
+   (merge the base in rather than rebasing a pushed branch others build on); such a PR is
+   squashed into `main`. QA merges every PR (see [CONTRIBUTING.md §4](CONTRIBUTING.md)).
+   **Never change the shared repo's git config** (`git config user.*` on the studio box rewrites
+   every agent's author). Commit as `cashdvs`, the shared default; for a one-off identity use
+   `git -c user.name=... -c user.email=...` (see [CONTRIBUTING.md §7](CONTRIBUTING.md)).
 2. **Tests required for logic.** Any change in `scripts/core/` or `scripts/data/` needs new or
    updated checks in `tests/test_*.gd` (follow the existing check pattern in the file you extend,
    e.g. `_check(condition, name)` or `check(...)`, and exit with
@@ -256,11 +270,11 @@ needs it, because it rewrites files in `resources/`.
 3. **Stay in your module.** Only touch files owned by the module you're working on
    ([docs/MODULES.md](docs/MODULES.md)). If you must touch another module's files, keep it
    minimal and explain why in the PR. A "module" is a feature module from MODULES.md, not a
-   folder. **`tests/qa_/`** (owned by QA): you may **add** checks, but never weaken or remove
-   existing ones. Don't edit `docs/DESIGN.md` in a feature PR.
+   folder. `tests/qa_/` is QA's: you may add checks, but never loosen, skip or delete an existing one.
+   Don't edit `docs/DESIGN.md` in a feature PR.
 4. **Never commit `.godot/`** (the import cache; it's in `.gitignore`), editor settings, builds,
-   or large binaries. Do commit the `*.uid` files Godot creates next to new scripts, and the
-   `*.import` files next to new assets.
+   or files over ~20 MB (REVIEWING.md §5; smaller art/audio binaries are fine). Do commit the
+   `*.uid` files Godot creates next to new scripts, and the `*.import` files next to new assets.
 5. **Keep seeded determinism** (see §5). If a test depends on randomness, give it a seed.
 6. **Don't change game numbers on your own.** Numbers come from the Game Designer; if you think one
    is wrong, say so in the PR or an issue.
