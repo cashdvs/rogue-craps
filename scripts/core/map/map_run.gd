@@ -119,17 +119,32 @@ func make_goal(t: NT) -> TableGoal:
 		if not picks.has(b):
 			picks.append(b)
 	g.required = picks
-	# The bonus never repeats a required bounty (same combo kind and size).
-	var bonus_pool: Array[BountyData] = []
-	for b in f.bonus_bounties:
-		var dup := false
-		for r in picks:
-			dup = dup or (r.kind == b.kind and r.n == b.n)
-		if not dup:
-			bonus_pool.append(b)
-	if not bonus_pool.is_empty():
-		g.bonus = [bonus_pool[rng.randi_range(0, bonus_pool.size() - 1)]] as Array[BountyData]
+	var bonus := pick_bonus(f.bonus_bounties, picks, rng)
+	if bonus != null:
+		g.bonus = [bonus] as Array[BountyData]
 	return g
+
+
+## The table's bonus bounty (Game Designer, #106): one drawn from `pool`; if
+## it repeats a required bounty (same kind and size), the pool's Full House
+## instead; if Full House is required too (or the pool has none), no bonus.
+static func pick_bonus(pool: Array[BountyData], required: Array[BountyData], rng: RandomNumberGenerator) -> BountyData:
+	if pool.is_empty():
+		return null
+	var b: BountyData = pool[rng.randi_range(0, pool.size() - 1)]
+	if not _repeats(b, required):
+		return b
+	for fh in pool:
+		if fh.kind == BountyData.Kind.FULL_HOUSE:
+			return null if _repeats(fh, required) else fh
+	return null
+
+
+static func _repeats(b: BountyData, required: Array[BountyData]) -> bool:
+	for r in required:
+		if r.kind == b.kind and r.n == b.n:
+			return true
+	return false
 
 
 ## What the table gets for this node (dice, mods, goal, Soul, seed, rules).

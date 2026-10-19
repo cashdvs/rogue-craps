@@ -18,6 +18,7 @@ func _initialize() -> void:
 	_test_m3_boss_resit()
 	_test_m3_soul_and_won()
 	_test_m5_bonus()
+	_test_bonus_fallback()
 	_test_short_table_text()
 	_test_boss_twist()
 	_test_altar()
@@ -160,3 +161,45 @@ func _test_altar() -> void:
 		if not heals_only:
 			ok = ok and EventApplier.why_not(c, full) != "Your Soul is already full."
 	_check(ok, "Altar rule: choices that do more than heal aren't greyed by it")
+
+
+func _bounty(kind: int, n: int, id: StringName) -> BountyData:
+	var b := BountyData.new()
+	b.kind = kind
+	b.n = n
+	b.id = id
+	return b
+
+
+## Game Designer (#106): a bonus that repeats a required bounty falls back
+## to Full House; with Full House required too, there's no bonus.
+func _test_bonus_fallback() -> void:
+	var K := BountyData.Kind
+	var run4 := _bounty(K.RUN, 4, &"bonus_run4")
+	var fh := _bounty(K.FULL_HOUSE, 3, &"bonus_full_house")
+	var pool: Array[BountyData] = [run4, fh]
+	var req_run4: Array[BountyData] = [_bounty(K.RUN, 4, &"run4")]
+	var req_both: Array[BountyData] = [_bounty(K.RUN, 4, &"run4"), _bounty(K.FULL_HOUSE, 3, &"full_house")]
+	var req_none: Array[BountyData] = [_bounty(K.RUN, 3, &"run3")]
+	var only_run4: Array[BountyData] = [run4]
+	var ok_fb := true
+	var ok_none := true
+	var ok_free := true
+	var drew := {}
+	for s in 40:
+		var r := RandomNumberGenerator.new()
+		r.seed = s
+		ok_fb = ok_fb and MapRun.pick_bonus(pool, req_run4, r) == fh
+		r.seed = s
+		ok_none = ok_none and MapRun.pick_bonus(pool, req_both, r) == null
+		r.seed = s
+		var b := MapRun.pick_bonus(pool, req_none, r)
+		ok_free = ok_free and b != null
+		drew[b] = true
+	_check(ok_fb, "bonus: a Run of 4 bonus with Run of 4 required falls back to Full House")
+	_check(ok_none, "bonus: with Run of 4 and Full House required, no bonus")
+	_check(ok_free and drew.size() == 2, "bonus: with no clash both bonuses can be drawn")
+	var r2 := RandomNumberGenerator.new()
+	_check(MapRun.pick_bonus(only_run4, req_run4, r2) == null, "bonus: a clash with no Full House in the pool = no bonus")
+	var empty: Array[BountyData] = []
+	_check(MapRun.pick_bonus(empty, req_none, r2) == null, "bonus: an empty pool = no bonus")
