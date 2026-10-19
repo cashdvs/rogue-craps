@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_coals.gdshader" id="1_qk2kk"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_qk2kk")
+shader_parameter/char_color = null
+shader_parameter/ember_color = null
+shader_parameter/core_color = null
+shader_parameter/brass_color = null
+shader_parameter/coin_amount = null
+shader_parameter/scale = 38.0
+shader_parameter/level_max = 4.6
+shader_parameter/ember_energy = null
+shader_parameter/core_energy = null

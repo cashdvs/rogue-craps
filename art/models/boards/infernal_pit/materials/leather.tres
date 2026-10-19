@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="1"]
+[ext_resource type="Material" path="res://art/models/boards/infernal_pit/materials/ink_table.tres" id="2"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("2")
+shader = ExtResource("1")
+shader_parameter/albedo = Color(0.352941, 0.0862745, 0.12549, 1)
+shader_parameter/shadow_color = Color(0.164706, 0.0392157, 0.0627451, 1)
+shader_parameter/rim_color = Color(0.541176, 0.227451, 0.25098, 1)
+shader_parameter/rim_strength = 0.15
+shader_parameter/roughness = 0.55
+shader_parameter/mid_tint = 0.68
