@@ -1644,18 +1644,24 @@ func _fit_landscape_felt() -> void:
 	if felt_combos == null or camera == null:
 		return
 	var vs := get_viewport().get_visible_rect().size
+	# 16:9 and narrower keep the band exactly as the Art Director drew it.
+	if vs.x <= vs.y * 16.0 / 9.0 + 1.0:
+		felt_combos.set_land_fit(1.0, 0.0)
+		return
 	var margin := 8.0 * ui_pt_px(false)
 	var left := margin
 	if soul_meter != null and soul_meter.is_visible_in_tree():
 		left = soul_meter.get_global_rect().end.x + margin
 	# The band must fit every pose the camera takes in play: home, and the
 	# reveal glide (closer in, pivot slid up to cam_follow_clamp each way).
+	# Home must fit both edges; in the glide only the left end (under the
+	# Soul meter) counts, since the right end just runs off the screen.
 	var c := tuning.cam_follow_clamp
 	var close := minf(tuning.cam_reveal_distance, camera.home_distance)
 	var hp := camera.home_pivot
 	var poses: Array = [[hp, camera.home_distance]]
 	for px: float in [-c, 0.0, c]:
-		for pz: float in [-c, c]:
+		for pz: float in [-c, 0.0, c]:
 			poses.append([Vector3(px, 0.0, pz + hp.z), close])
 	# ok[i] is true while size/slide candidate i fits every pose so far.
 	# Candidates: size 100% down to 70%, slide -0.30..+0.30 m in 5 mm steps.
@@ -1672,7 +1678,8 @@ func _fit_landscape_felt() -> void:
 		camera._apply()
 		for i in ok.size():
 			if ok[i]:
-				ok[i] = felt_combos.land_fits(camera.cam, (100 - i / 121) / 100.0, (i % 121 - 60) * 0.005, left, vs.x - margin)
+				var right := vs.x - margin if pose == poses[0] else INF
+				ok[i] = felt_combos.land_fits(camera.cam, (100 - i / 121) / 100.0, (i % 121 - 60) * 0.005, left, right)
 	camera.position = was_pos
 	camera.distance = was_dist
 	camera.tilt_deg = was_tilt
