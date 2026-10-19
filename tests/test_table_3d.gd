@@ -43,6 +43,7 @@ func _run() -> void:
 	await _test_faces_and_bounds(scene)
 	await _test_audio_hooks(scene)
 	await _test_sfx_hooks(scene)
+	_test_flat_separation(scene)
 	await _test_timing_stats(scene)
 	await _test_real_time_reveal(scene)
 	await _test_speed_modes(scene)
@@ -83,18 +84,22 @@ func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bo
 	calls.append([&"impact", kind, speed_mps, material, die_id])
 	return true
 """
-const SFX_FALLBACK_SRC := """extends SfxManager
+## The no-hooks path: a plain Node with only what that path calls (play,
+## has_event), so it stays hook-free whatever SfxManager grows.
+const SFX_FALLBACK_SRC := """extends Node
 var calls: Array = []
 func play(event: StringName, _pitch: float = 1.0, _volume_db: float = 0.0, _jitter: float = 0.06) -> void:
 	calls.append([&"play", event])
+func has_event(_event: StringName) -> bool:
+	return true
 """
 
 
-func _sfx_stub(src: String) -> SfxManager:
+func _sfx_stub(src: String) -> Node:
 	var gd := GDScript.new()
 	gd.source_code = src
 	gd.reload()
-	var n: SfxManager = gd.new()
+	var n: Node = gd.new()
 	return n
 
 
@@ -138,6 +143,7 @@ func _test_sfx_hooks(s: Table3D) -> void:
 	s._play_t = 2.0
 	s._on_contact({"t": 2.0, "die": 0, "kind": &"backboard", "speed": 2.0, "impulse": 0.01, "other": -1})
 	s._play_t = -1.0
+	check(not fb.has_method("play_throw") and not fb.has_method("play_impact"), "fallback stub has no hooks")
 	check(fb.calls.has([&"play", &"dice_shake"]) and fb.calls.has([&"play", &"rim_hit"]), "fallback: dice_shake and rim_hit without the hooks (%s)" % str(fb.calls))
 	s.sfx = real_sfx
 	# Stale/speculative contacts: a die that rested elsewhere and is thrown
@@ -163,6 +169,34 @@ func _test_sfx_hooks(s: Table3D) -> void:
 	stub.queue_free()
 	fb.queue_free()
 	await process_frame
+
+
+## Flattening at the end of a throw (settle assist / timeout) puts every die
+## on the felt: a die resting on top of another must be moved beside it, not
+## dropped inside it (seen on hard 5-die bonfire throws near the backboard).
+func _test_flat_separation(s: Table3D) -> void:
+	var ds := s.tuning.die_size
+	var lim := Table3DBuilder.FELT_HALF - Vector2.ONE * ds * 0.75
+	var cases := [
+		[Vector3(0.70, ds * 0.5, -0.37), Vector3(0.70, ds * 1.5, -0.37)],  # stacked
+		[Vector3(0.70, ds * 0.5, -0.37), Vector3(0.71, ds * 0.5, -0.37)],  # side by side, overlapping
+		[Vector3(lim.x, ds * 0.5, -lim.y), Vector3(lim.x, ds * 1.5, -lim.y)],  # stacked in the corner
+	]
+	for c: Array in cases:
+		var froms: Array[Transform3D] = []
+		var targets: Array[Transform3D] = []
+		for p: Vector3 in c:
+			froms.append(Transform3D(Basis.IDENTITY, p))
+			targets.append(s.sim._flat(Transform3D(Basis.IDENTITY, p)))
+		var bottom_before := targets[0].origin
+		s.sim._separate(targets, froms)
+		var d := Vector2(targets[0].origin.x - targets[1].origin.x, targets[0].origin.z - targets[1].origin.z).length()
+		var inside := true
+		for tr in targets:
+			inside = inside and absf(tr.origin.x) <= lim.x + 0.0001 and absf(tr.origin.z) <= lim.y + 0.0001
+		check(d >= ds * 0.95 and inside, "flattened dice from %s end apart (%.3f m >= %.3f) inside the rails" % [str(c), d, ds * 0.95])
+		if c[1].y > c[0].y + ds * 0.5 and absf(c[0].x) < lim.x - ds:
+			check(targets[0].origin.is_equal_approx(bottom_before), "the bottom die stays put; the stacked one moves")
 
 
 # --- Pure face math ---------------------------------------------------------------
