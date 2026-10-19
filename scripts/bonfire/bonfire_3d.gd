@@ -620,13 +620,22 @@ func _is_table_one() -> bool:
 func tutorial_wanted() -> bool:
 	if tutorial_override >= 0:
 		return tutorial_override == 1
-	# Only the real game (the table is the current scene), never tests / tools.
-	if get_tree().current_scene != self:
+	# Only the real game, never tests / tools: the table is the current
+	# scene (sandbox) or inside it (a run's RunScreen; QA M2).
+	var scene := get_tree().current_scene
+	if scene == null or not (scene == self or scene.is_ancestor_of(self)):
 		return false
 	var gs := _settings()
-	if gs == null or not _is_table_one():
+	if gs == null or not _is_first_table():
 		return false
 	return bool(gs.get("tutorial_enabled")) and not bool(gs.get("tutorial_seen"))
+
+
+## The run's first table (setup.first_table; the sandbox counts as one), and
+## it's Table 1. In a run every goal passes _is_table_one(), so first_table
+## is what keeps the tutorial off the later tables.
+func _is_first_table() -> bool:
+	return setup != null and setup.first_table and _is_table_one()
 
 
 func _maybe_start_tutorial() -> void:
