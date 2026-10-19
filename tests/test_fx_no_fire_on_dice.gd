@@ -49,6 +49,11 @@ func _test_palette() -> void:
 		_check(c.v >= prev_v - 0.25, "glow tier %d doesn't get darker than the one below" % k)
 		prev_v = c.v
 	_check(DieGlow.TRAIL_LIFE <= 0.3 and DieGlow.HOT_SPARK_LIFE <= 0.3, "trail and Hot Hand sparks fade within 0.3 s")
+	_check(DieGlow.SPARK_DIRECTION.y <= 0.0 and DieGlow.TRAIL_DIRECTION.y <= 0.0, "spark/trail aim down or out, never up")
+	_check(DieGlow.SPARK_SPREAD_DEG <= 90.0 and DieGlow.TRAIL_SPREAD_DEG <= 90.0, "spread ≤ 90° keeps initial velocity.y ≤ 0 with DOWN aim")
+	_check(DieGlow.SPARK_GRAVITY < 0.0 and DieGlow.TRAIL_GRAVITY < 0.0, "spark/trail gravity pulls down")
+	_check(DieGlow.peak_spark_height() <= 0.01, "sparks cannot rise more than 1 cm (peak %.4f)" % DieGlow.peak_spark_height())
+	_check(DieGlow.peak_trail_height() <= 0.01, "ember trail cannot rise more than 1 cm (peak %.4f)" % DieGlow.peak_trail_height())
 
 
 func _words_in(s: String) -> String:
@@ -89,6 +94,9 @@ func _fire_reason(n: Node) -> String:
 		var p := n as CPUParticles3D
 		if p.gravity.y > 0.0:
 			return "%s rises like flame (gravity %.1f)" % [n.name, p.gravity.y]
+		# Aiming up with a wide cone lets sparks climb above the die (flame cue).
+		if p.direction.y > 0.01 and p.spread >= 90.0:
+			return "%s aims up (dir.y=%.2f spread %.0f)" % [n.name, p.direction.y, p.spread]
 		if p.lifetime > 0.5:
 			return "%s lingers %.2f s" % [n.name, p.lifetime]
 	if n is GPUParticles3D:
@@ -157,6 +165,13 @@ func _test_table(fallback: bool) -> void:
 	var before := _snapshot(s)
 	j.calls.clear()
 	j.hot_hand(dice)
+	await process_frame
+	var m0 := dice[0].body_material
+	_check(is_equal_approx(float(m0.get_shader_parameter("rim_strength")), DieGlow.TIER_RIM[3]), "[%s] Hot Hand uses glow tier 3 (rim)" % tag)
+	var eco: Color = m0.get_shader_parameter("emission_color")
+	_check(eco.is_equal_approx(Palette.EMBER), "[%s] Hot Hand emission is ember colour (%s)" % [tag, eco])
+	var halo_hh := dice[0].get_node_or_null(DieGlow.HALO_NAME) as MeshInstance3D
+	_check(halo_hh != null and is_equal_approx((halo_hh.mesh as QuadMesh).size.x, dice[0].edge * DieGlow.TIER_HALO_SIZE[3]), "[%s] Hot Hand halo is tier 3 size" % tag)
 	j.fly_start(dice, 0.3)
 	for i in 4:
 		await create_timer(0.06).timeout

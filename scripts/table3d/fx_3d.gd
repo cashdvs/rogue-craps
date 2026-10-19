@@ -17,7 +17,7 @@ static func _mix_shader() -> Shader:
 
 
 ## A one-shot CPUParticles3D burst. `colors` = start -> end gradient.
-static func burst(parent: Node3D, at: Vector3, amount: int, colors: Array[Color], speed: Vector2, spread_deg: float, gravity: float, size: Vector2, life: float, energy: float = 1.0, additive: bool = true) -> void:
+static func burst(parent: Node3D, at: Vector3, amount: int, colors: Array[Color], speed: Vector2, spread_deg: float, gravity: float, size: Vector2, life: float, energy: float = 1.0, additive: bool = true, direction: Vector3 = Vector3.UP) -> void:
 	if amount <= 0:
 		return
 	var p := CPUParticles3D.new()
@@ -26,7 +26,7 @@ static func burst(parent: Node3D, at: Vector3, amount: int, colors: Array[Color]
 	p.one_shot = true
 	p.explosiveness = 0.95
 	p.lifetime = life
-	p.direction = Vector3.UP
+	p.direction = direction
 	p.spread = spread_deg
 	p.initial_velocity_min = speed.x
 	p.initial_velocity_max = speed.y

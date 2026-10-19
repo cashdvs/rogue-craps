@@ -29,11 +29,24 @@ const TRAIL_STEP: float = 0.045
 const HOT_SPARKS: int = 6
 const HOT_SPARK_LIFE: float = 0.3
 const HOT_PULSE_TIME: float = 0.25
+## Spark / trail aim: DOWN so the cone opens into the felt and sideways.
+## Spread stays under 90° so the worst-case initial velocity.y is ≤ 0 (no
+## rising flame cue above the die). Gravity is strongly negative so dots
+## that skim horizontal still drop within the short life.
+const SPARK_DIRECTION := Vector3.DOWN
+const SPARK_SPREAD_DEG: float = 85.0
+const SPARK_SPEED := Vector2(0.2, 0.5)
+const SPARK_GRAVITY: float = -6.0
+const TRAIL_DIRECTION := Vector3.DOWN
+const TRAIL_SPREAD_DEG: float = 70.0
+const TRAIL_SPEED := Vector2(0.04, 0.12)
+const TRAIL_GRAVITY: float = -4.5
 const HALO_NAME := "GlowHalo"
 
 static var _halo_tex: GradientTexture2D
 
 
+## Warm glow colour for score tier `tier` (0..3). Clamped.
 static func tier_color(tier: int) -> Color:
 	return TIER_COLORS[clampi(tier, 0, TIER_COLORS.size() - 1)]
 
@@ -91,11 +104,11 @@ static func hot_hand_pulse(d: DieVisual, fx_root: Node3D, reduced: bool) -> Twee
 	return tw
 
 
-## A few diamond-ish spark dots that pop out in every direction and FALL
-## (gravity down, so they never read as rising flame).
+## A few diamond-ish spark dots that pop OUT and DOWN (never up): short
+## spark-and-glow streaks, dots and dashes, not a flame tongue above the die.
 static func sparks(parent: Node3D, at: Vector3, amount: int, life: float) -> void:
 	Fx3D.burst(parent, at, amount, [Color("#FFE6A8"), Palette.EMBER, Color(Palette.EMBER, 0.0)],
-			Vector2(0.25, 0.55), 180.0, -2.5, Vector2(0.5, 0.9), life, 1.6)
+			SPARK_SPEED, SPARK_SPREAD_DEG, SPARK_GRAVITY, Vector2(0.5, 0.9), life, 1.6, true, SPARK_DIRECTION)
 
 
 ## Ember trail behind a moving die for `seconds`: every TRAIL_STEP two tiny
@@ -106,7 +119,34 @@ static func ember_trail(d: DieVisual, fx_root: Node3D, seconds: float) -> void:
 		d.get_tree().create_timer(i * TRAIL_STEP, true, false, true).timeout.connect(func() -> void:
 			if is_instance_valid(d) and is_instance_valid(fx_root):
 				Fx3D.burst(fx_root, d.global_position, 2, [Color("#FFE6A8"), Palette.EMBER, Color(Palette.EMBER, 0.0)],
-						Vector2(0.02, 0.08), 180.0, -1.0, Vector2(0.4, 0.8), TRAIL_LIFE, 1.4))
+						TRAIL_SPEED, TRAIL_SPREAD_DEG, TRAIL_GRAVITY, Vector2(0.4, 0.8), TRAIL_LIFE, 1.4, true, TRAIL_DIRECTION))
+
+
+
+## Worst-case metres a spark can rise above its spawn, given the emission
+## cone and gravity. ≤ 0 means dots only fall or skim sideways (Art Director:
+## no flame-shaped rise above the dice).
+static func peak_spark_height() -> float:
+	return _peak_height(SPARK_DIRECTION, SPARK_SPREAD_DEG, SPARK_SPEED.y, SPARK_GRAVITY)
+
+
+static func peak_trail_height() -> float:
+	return _peak_height(TRAIL_DIRECTION, TRAIL_SPREAD_DEG, TRAIL_SPEED.y, TRAIL_GRAVITY)
+
+
+static func _peak_height(direction: Vector3, spread_deg: float, speed_max: float, gravity: float) -> float:
+	var dir := direction.normalized()
+	var alpha := deg_to_rad(spread_deg)
+	# Smallest angle from +Y any unit vector in the cone can have.
+	var angle_from_up := acos(clampf(dir.y, -1.0, 1.0))
+	var min_from_up := maxf(0.0, angle_from_up - alpha)
+	var max_uy := cos(min_from_up)
+	var v0y := speed_max * max_uy
+	if v0y <= 0.0:
+		return 0.0
+	if gravity >= 0.0:
+		return 999.0
+	return (v0y * v0y) / (2.0 * (-gravity))
 
 
 static func _make_halo(d: DieVisual) -> MeshInstance3D:
