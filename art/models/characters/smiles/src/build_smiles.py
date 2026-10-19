@@ -285,8 +285,8 @@ def build_model(arm, mobile):
     visor.ellipsoid(BRIM_C, (BRIM_R[0], BRIM_R[1], 0.0075), "smiles_visor", "visor", seg=(S(20), S(8)), rot=BRIM_ROT)
     K = S(18)
     ring = [BRIM_C + BRIM_ROT @ Vector((BRIM_R[0] * math.cos(2 * math.pi * k / K), BRIM_R[1] * math.sin(2 * math.pi * k / K), 0)) for k in range(K + 1)]
-    visor.tube([(p, 0.0055) for p in ring], "smiles_visor_rim", "visor", seg=4, caps=False)
-    visor.tube([(p, 0.0065) for p in ring], "smiles_glow_rim", "glow_visor", seg=4, caps=False)
+    visor.tube([(p, 0.007) for p in ring], "smiles_visor_rim", "visor", seg=4, caps=False)
+    visor.tube([(p, 0.008) for p in ring], "smiles_glow_rim", "glow_visor", seg=4, caps=False)
     ob_visor = visor.finish(arm)
 
     chip = Part("Smiles_Chip")
