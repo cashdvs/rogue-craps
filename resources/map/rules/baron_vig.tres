@@ -1,6 +1,9 @@
 [gd_resource type="Resource" script_class="RunRuleData" format=3]
 
 [ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="1_bvig"]
+[ext_resource type="Texture2D" uid="uid://dq4tkuc8erj4d" path="res://assets/bosses/floor3/sign_baron_vig@1x.png" id="2_bvs1"]
+[ext_resource type="Texture2D" uid="uid://cboufiy1eaali" path="res://assets/bosses/floor3/sign_baron_vig@2x.png" id="3_bvs2"]
+[ext_resource type="Texture2D" uid="uid://dq2f6ov130gnl" path="res://assets/bosses/floor3/icon_baron_vig_rule_128.png" id="4_bvic"]
 
 [resource]
 script = ExtResource("1_bvig")
@@ -11,3 +14,8 @@ kind = 1
 params = {
 "min_pot": 3
 }
+sign_texture = ExtResource("2_bvs1")
+sign_texture_2x = ExtResource("3_bvs2")
+rule_icon = ExtResource("4_bvic")
+tooltip_text = "POT 3+ DICE EVERY THROW"
+sign_alt_text = "Baron Vig. POT 3+ DICE EVERY THROW. FLOOR 3 · THE HOUSE MINIMUM. Badge: MIN 3."

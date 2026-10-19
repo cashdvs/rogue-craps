@@ -210,6 +210,8 @@ func _refresh_rules(run: BonfireRun) -> void:
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		line.custom_minimum_size = Vector2(290, 0)
 		row.add_child(line)
+		# Boss sign art (Systems Dev, BossSign): icon + tooltip; no art = this text row.
+		BossSign.decorate_hud_row(row, name_l, line, r.id, r.params)
 		rules_box.add_child(row)
 	rules_panel.reset_size()
 
