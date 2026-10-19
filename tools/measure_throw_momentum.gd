@@ -4,15 +4,21 @@
 ## sensitivity, launch_k curve, physics), at soft / medium / hard speeds.
 ## Prints, per flick: window px/s, the flick the game measured (canvas px/s),
 ## k, launch m/s, travel (path length) and the landing distance from the hand.
-## Run with --fixed-fps 60 so the game clock is a steady 60 fps player's
-## (the box renders at ~5 fps; below ~7.5 fps Godot caps a frame's delta at
-## 8 physics steps, which would read every flick ~2.7x too fast).
+## The mouse moves on the real clock, like a hand: flicks are timed on the
+## real clock too (Table3D.flick_time), so this is right at any frame rate
+## (the box renders at ~5 fps). Don't pass --fixed-fps.
 ##   xvfb-run -a -s "-screen 0 1920x1080x24" godot --path . --rendering-driver vulkan \\
-##       --resolution 1280x720 --fixed-fps 60 --script res://tools/measure_throw_momentum.gd
+##       --resolution 1280x720 --script res://tools/measure_throw_momentum.gd
 extends SceneTree
 
-## Window px/s: a soft lob, a medium flick, a hard flick (at 1280x720).
-const SPEEDS := {"soft": 550.0, "medium": 1400.0, "hard": 2800.0}
+## Window px/s: a soft lob, a medium flick, a hard flick, and a harder one
+## still under the curve's cap (at 1280x720 the game reads 1.5x).
+const SPEEDS := {"soft": 550.0, "medium": 1400.0, "hard": 2800.0, "harder": 3600.0, "hard_diag": 2800.0}
+## Flick direction on screen (up-left, toward the backboard). "hard_diag"
+## flicks flatter, along the table, where the far end is farther away.
+const DIR := Vector2(-0.55, -0.83)
+const DIR_DIAG := Vector2(-0.85, -0.53)
+const FLICK_TIME: float = 0.25
 const TRIALS: int = 3
 
 
@@ -40,24 +46,30 @@ func _run() -> void:
 			while s.phase != Table3D.Phase.BET or s.hand_moving():
 				await process_frame
 			var hand := s.camera.cam.unproject_position(Table3D.HAND) * to_win
-			var dir := Vector2(-0.55, -0.83).normalized()
-			_mouse_button(hand, true)
+			var dir := (DIR_DIAG if name == "hard_diag" else DIR).normalized()
+			# Every event is parsed at the same point of a frame and handled
+			# (timestamped) one frame later, like OS input: the lag is equal for
+			# all of them, so the hand's speed is what the game measures.
 			await process_frame
-			var clock0: float = s._input_clock
+			var t0 := Time.get_ticks_usec()
+			_mouse_button(hand, true)
 			var pos := hand
 			var frames := 0
-			var dt := 1.0 / maxf(float(Engine.max_fps if Engine.max_fps > 0 else 60), 1.0)
-			while frames * dt < 0.25:
+			while (Time.get_ticks_usec() - t0) / 1000000.0 < FLICK_TIME:
 				await process_frame
 				frames += 1
-				pos = hand + dir * sp * frames * dt
+				pos = hand + dir * sp * (Time.get_ticks_usec() - t0) / 1000000.0
 				var mm := InputEventMouseMotion.new()
 				mm.position = pos
 				mm.global_position = pos
 				mm.button_mask = MOUSE_BUTTON_MASK_LEFT
 				Input.parse_input_event(mm)
-			print("    clock: input_clock advanced %.3f s for %d frames" % [s._input_clock - clock0, frames])
 			_mouse_button(pos, false)
+			await process_frame
+			await process_frame
+			if s.phase == Table3D.Phase.BET or s.phase == Table3D.Phase.HELD:
+				print("  %-6s %4.0f win px/s -> did not throw (phase %d, %d motion frames)" % [name, sp, s.phase, frames])
+				continue
 			var res: Array = await s.throw_resolved
 			var L := s.last_launch
 			var rec := s.last_recording
@@ -79,10 +91,42 @@ func _run() -> void:
 					walls += 1
 			print("  %-6s %4.0f win px/s -> measured %5.0f canvas px/s  k %.2f  launch %.2f m/s  travel %.2f m  landing %.2f m avg (%.2f max)  backboard hits %d" % [
 				name, sp, float(L["flick"]), float(L["k"]), float(L["speed"]), path, dist, far, walls])
+			# Contact speeds (m/s) the impact SFX would get: each die's first
+			# felt hit (the landing), every rail and backboard hit. Only the
+			# audible ones (>= impact_min_speed), like _on_contact.
+			var floor_v: Array[float] = []
+			var seen := {}
+			var rail_v: Array[float] = []
+			var back_v: Array[float] = []
+			for c: Dictionary in rec.contacts:
+				var v := float(c["speed"])
+				var kind := String(c["kind"])
+				if kind == "felt" and not seen.has(int(c["die"])):
+					seen[int(c["die"])] = true
+					floor_v.append(v)
+				if v < s.tuning.impact_min_speed:
+					continue
+				if kind == "rail":
+					rail_v.append(v)
+				elif kind == "backboard":
+					back_v.append(v)
+			print("         contacts m/s: first floor %s | rail %s | backboard %s" % [_speeds(floor_v), _speeds(rail_v), _speeds(back_v)])
 			await s.sequence_finished
 	s.queue_free()
 	await create_timer(0.2).timeout
 	quit()
+
+
+## "avg / max (n)" over a list of speeds, or "-" when empty.
+func _speeds(v: Array[float]) -> String:
+	if v.is_empty():
+		return "-"
+	var sum := 0.0
+	var top := 0.0
+	for x in v:
+		sum += x
+		top = maxf(top, x)
+	return "%.2f avg / %.2f max (%d)" % [sum / v.size(), top, v.size()]
 
 
 func _mouse_button(p: Vector2, down: bool) -> void:

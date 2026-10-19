@@ -17,6 +17,7 @@ extends SceneTree
 
 var _passed: int = 0
 var _failed: int = 0
+var _clock_t: float = 0.0
 
 
 func _initialize() -> void:
@@ -41,6 +42,7 @@ func _run() -> void:
 	await _test_flick_clock(scene)
 	await _test_faces_and_bounds(scene)
 	await _test_audio_hooks(scene)
+	await _test_sfx_hooks(scene)
 	await _test_timing_stats(scene)
 	await _test_real_time_reveal(scene)
 	await _test_speed_modes(scene)
@@ -64,6 +66,103 @@ func _make_scene() -> Table3D:
 	t.target_bankroll = 1000000
 	s.tuning = t
 	return s
+
+
+## Stand-ins for the Sound Designer's SfxManager hooks (not on this branch
+## yet): play_throw(flick_speed_px_s) -> float and play_impact(kind,
+## speed_mps, material = &"bone", die_id = -1) -> bool. Both log their calls;
+## play() logs the fallback events so we can see which path ran.
+const SFX_STUB_SRC := """extends SfxManager
+var calls: Array = []
+func play(event: StringName, _pitch: float = 1.0, _volume_db: float = 0.0, _jitter: float = 0.06) -> void:
+	calls.append([&"play", event])
+func play_throw(flick_speed_px_s: float) -> float:
+	calls.append([&"throw", flick_speed_px_s])
+	return 0.5
+func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bone", die_id: int = -1) -> bool:
+	calls.append([&"impact", kind, speed_mps, material, die_id])
+	return true
+"""
+const SFX_FALLBACK_SRC := """extends SfxManager
+var calls: Array = []
+func play(event: StringName, _pitch: float = 1.0, _volume_db: float = 0.0, _jitter: float = 0.06) -> void:
+	calls.append([&"play", event])
+"""
+
+
+func _sfx_stub(src: String) -> SfxManager:
+	var gd := GDScript.new()
+	gd.source_code = src
+	gd.reload()
+	var n: SfxManager = gd.new()
+	return n
+
+
+func _test_sfx_hooks(s: Table3D) -> void:
+	var real_sfx := s.sfx
+	var stub := _sfx_stub(SFX_STUB_SRC)
+	s.add_child(stub)
+	s.sfx = stub
+	# Throw: the raw flick speed (game px/s) reaches play_throw, no dice_shake.
+	_bet(s)
+	s.throw(Table3D.QUICK_THROW)
+	await s.sequence_finished
+	var throws: Array = stub.calls.filter(func(e: Array) -> bool: return e[0] == &"throw")
+	check(throws.size() == 1 and is_equal_approx(float(throws[0][1]), Table3D.QUICK_THROW.length()), "play_throw gets the flick speed %.0f px/s once (%s)" % [Table3D.QUICK_THROW.length(), str(throws)])
+	check(not stub.calls.has([&"play", &"dice_shake"]), "play_throw replaces the fixed dice_shake")
+	var impacts: Array = stub.calls.filter(func(e: Array) -> bool: return e[0] == &"impact")
+	check(impacts.size() >= 1, "a real throw calls play_impact (%d)" % impacts.size())
+	var floor_ok := true
+	for e: Array in impacts:
+		if float(e[2]) < s.tuning.impact_min_speed or int(e[4]) < 0 or int(e[4]) >= s.dice.size() or not (e[1] is StringName) or not (e[3] is StringName):
+			floor_ok = false
+	check(floor_ok, "play_impact args: kind/material StringName, speed >= floor, valid die_id")
+	# Contacts: die_id passes through; the 0.3 m/s floor and 0.05 s filter hold.
+	stub.calls.clear()
+	s._last_impact.fill(-1.0)
+	s._play_t = 0.0
+	s._on_contact({"t": 0.0, "die": 1, "kind": &"rail", "speed": s.tuning.impact_min_speed - 0.05, "impulse": 0.001, "other": -1})
+	check(stub.calls.is_empty(), "under-floor contact: no play_impact")
+	s._play_t = 1.0
+	s._on_contact({"t": 1.0, "die": 1, "kind": &"rail", "speed": 2.5, "impulse": 0.01, "other": -1})
+	s._play_t = 1.01
+	s._on_contact({"t": 1.01, "die": 1, "kind": &"felt", "speed": 2.0, "impulse": 0.01, "other": -1})
+	check(stub.calls.size() == 1 and stub.calls[0][1] == &"rail" and is_equal_approx(float(stub.calls[0][2]), 2.5) and stub.calls[0][3] == StringName(s.dice[1].material) and int(stub.calls[0][4]) == 1, "play_impact(&\"rail\", 2.5, material, 1), throttled after (%s)" % str(stub.calls))
+	s._play_t = -1.0
+	# Without the hooks the old events still play.
+	var fb := _sfx_stub(SFX_FALLBACK_SRC)
+	s.add_child(fb)
+	s.sfx = fb
+	s.thrown.emit(1500.0)
+	s._last_impact.fill(-1.0)
+	s._play_t = 2.0
+	s._on_contact({"t": 2.0, "die": 0, "kind": &"backboard", "speed": 2.0, "impulse": 0.01, "other": -1})
+	s._play_t = -1.0
+	check(fb.calls.has([&"play", &"dice_shake"]) and fb.calls.has([&"play", &"rim_hit"]), "fallback: dice_shake and rim_hit without the hooks (%s)" % str(fb.calls))
+	s.sfx = real_sfx
+	# Stale/speculative contacts: a die that rested elsewhere and is thrown
+	# from the hand must not log a phantom hit at release (the previous rest
+	# spot's felt contact, with a nonsense speed of 20-50 m/s).
+	var rest_at: Array[Transform3D] = [Transform3D(Basis.IDENTITY, Vector3(-0.6, 0.041, -0.2)), Transform3D(Basis.IDENTITY, Vector3(-0.3, 0.041, 0.1))]
+	var zero: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+	await s.sim.simulate(rest_at, zero, zero, 7)
+	var tilt := Basis.from_euler(Vector3(0.5, 0.3, 0.7))
+	var from: Array[Transform3D] = [Transform3D(tilt, Vector3(0.75, 0.06, 0.3)), Transform3D(tilt, Vector3(0.9, 0.06, 0.3))]
+	var lin2: Array[Vector3] = [Vector3(-3.0, 1.0, -3.0), Vector3(-3.0, 1.0, -3.0)]
+	var ang2: Array[Vector3] = [Vector3(25.0, 0.0, 15.0), Vector3(-20.0, 10.0, 0.0)]
+	var rec2: ThrowRecording = await s.sim.simulate(from, lin2, ang2, 7)
+	var cap := lin2[0].length() + 30.0 * s.tuning.die_size + 0.5
+	var worst := 0.0
+	var at_release := 0
+	for c: Dictionary in rec2.contacts:
+		worst = maxf(worst, float(c["speed"]))
+		if float(c["t"]) <= 0.0:
+			at_release += 1
+	check(at_release == 0, "no contact logged on the release tick (%d)" % at_release)
+	check(worst <= cap, "contact speeds stay physical: max %.2f m/s <= %.2f" % [worst, cap])
+	stub.queue_free()
+	fb.queue_free()
+	await process_frame
 
 
 # --- Pure face math ---------------------------------------------------------------
@@ -168,6 +267,9 @@ func _test_flick_clock(s: Table3D) -> void:
 ## releases, stepping Table3D._process by hand. Returns true if it threw.
 func _scripted_flick(s: Table3D, fps: float, ts: float, hitch: float, speed: float) -> bool:
 	s.set_process(false)
+	# The flick clock is real (wall) time; here the script's own real_t.
+	_clock_t = 0.0
+	s.flick_clock = func() -> float: return _clock_t
 	Engine.time_scale = ts
 	var hand := s.camera.cam.unproject_position(Table3D.HAND)
 	var dir := Vector2(-0.55, -0.83).normalized()
@@ -184,6 +286,7 @@ func _scripted_flick(s: Table3D, fps: float, ts: float, hitch: float, speed: flo
 		if hitch > 0.0 and real_t + dt >= flick - hitch:
 			dt = flick - real_t  # the release frame is one long hitch
 		real_t += dt
+		_clock_t = real_t
 		s._process(dt * ts)  # the engine passes scaled delta
 		while ev_t <= real_t + 0.00001:
 			var mm := InputEventMouseMotion.new()
@@ -197,6 +300,7 @@ func _scripted_flick(s: Table3D, fps: float, ts: float, hitch: float, speed: flo
 	rel.pressed = false
 	rel.position = hand + dir * speed * real_t
 	s._unhandled_input(rel)
+	s.flick_clock = Callable()
 	s.set_process(true)
 	await process_frame
 	return s.phase != Table3D.Phase.BET and s.phase != Table3D.Phase.HELD

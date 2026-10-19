@@ -106,7 +106,12 @@ var _remap_to: Array[Quaternion] = [Quaternion.IDENTITY, Quaternion.IDENTITY]
 var _last_hover: bool = false
 var _last_impact: Array[float] = [-1.0, -1.0]
 var _rest_sent: Array[bool] = [false, false]
-var _input_clock: float = 0.0
+## Flick timestamps come from the real clock (Time.get_ticks_usec), so a
+## slow frame or a hitch can't inflate the flick speed (the game delta is
+## capped at max_physics_steps_per_frame physics steps below ~7.5 fps).
+## Tests and offline recorders (--fixed-fps) can set a Callable returning
+## seconds to drive their own clock.
+var flick_clock: Callable = Callable()
 var _tumble_sent: Array[bool] = [false, false]
 var running_total: RunningTotal
 var total_hud: RunningTotalHud
@@ -451,7 +456,14 @@ func _build_world() -> void:
 	sim.name = "DiceSim"
 	add_child(sim)
 	sim.setup(tuning)
-	thrown.connect(func(_speed: float) -> void: sfx.play(&"dice_shake"))
+	# Throw sound. The Sound Designer's SfxManager.play_throw(flick_speed_px_s)
+	# once it lands on this branch; until then the fixed dice_shake. The speed
+	# is the raw flick in game (canvas) px/s, the same value launch_for() uses.
+	thrown.connect(func(speed: float) -> void:
+		if sfx.has_method("play_throw"):
+			sfx.call("play_throw", speed)
+		else:
+			sfx.play(&"dice_shake"))
 	_set_dice_count(2)
 
 
@@ -852,7 +864,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif phase == Phase.BET and _pass_contains(p):
 				_add_chip()
 		elif mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and phase == Phase.HELD:
-			var v := gesture.release(p, _input_clock)
+			var v := gesture.release(p, flick_time())
 			phase = Phase.BET
 			throw(v, p, gesture.drag_distance())
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and phase == Phase.BET and _pass_contains(p):
@@ -866,7 +878,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			table.felt_print.pass_hover = hover
 			table.felt_print.refresh()
 		if phase == Phase.HELD:
-			gesture.move(mm.position, _input_clock)
+			gesture.move(mm.position, flick_time())
 		return
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo:
@@ -907,21 +919,25 @@ func _pass_contains(p: Vector2) -> bool:
 	return Table3DBuilder.pass_contains(w.x, w.z)
 
 
+## Seconds on the flick clock (real time unless flick_clock is set).
+func flick_time() -> float:
+	if flick_clock.is_valid():
+		return float(flick_clock.call())
+	return Time.get_ticks_usec() / 1000000.0
+
+
 func _grab(p: Vector2) -> void:
 	var reason := can_throw()
 	if reason != "":
 		_refuse_throw(reason)
 		return
 	phase = Phase.HELD
-	gesture.press(p, _input_clock)
+	gesture.press(p, flick_time())
 	sfx.play(&"dice_grab")
 	_set_why("Flick to throw! (A slow release drops them back in your hand.)")
 
 
 func _process(delta: float) -> void:
-	# Gesture clock: frame time with hit-stop/slow-mo removed (not the wall
-	# clock), so flick speed stays right in recordings and slow frames.
-	_input_clock += delta / maxf(Engine.time_scale, 0.001)
 	_t += delta
 	_hand_shake = maxf(_hand_shake - delta, 0.0)
 	if phase == Phase.HELD:
@@ -1363,12 +1379,14 @@ func _on_contact(c: Dictionary) -> void:
 
 
 ## Impact sound. Uses the Sound Designer's SfxManager.play_impact(kind,
-## speed, material) once it exists; until then the current SFX events.
-func _on_die_impact(_die_id: int, surface: String, speed_mps: float, _impulse: float, _other_id: int, material: String) -> void:
+## speed_mps, material, die_id) once it exists; until then the current SFX
+## events. Already filtered by _on_contact (impact_min_speed floor,
+## impact_min_interval per die).
+func _on_die_impact(die_id: int, surface: String, speed_mps: float, _impulse: float, _other_id: int, material: String) -> void:
 	if surface == "rail" or surface == "backboard":
 		_camera_shake(3.0 * clampf(speed_mps / 2.5, 0.0, 1.0), 0.1)
 	if sfx.has_method("play_impact"):
-		sfx.call("play_impact", surface, speed_mps, material)
+		sfx.call("play_impact", StringName(surface), speed_mps, StringName(material), die_id)
 		return
 	var strength := clampf(speed_mps / 2.5, 0.0, 1.0)
 	match surface:

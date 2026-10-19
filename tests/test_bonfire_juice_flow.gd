@@ -166,7 +166,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 		var p := s.pot_slot(k)
 		on_felt = on_felt and absf(p.z) < Table3DBuilder.FELT_HALF.y - s.tuning.die_size * 0.5 and absf(p.x) < Table3DBuilder.FELT_HALF.x - s.tuning.die_size * 0.5 and is_equal_approx(p.y, s.tuning.die_size * 0.5)
 	check(on_felt, "[%s] all 12 pot slots sit on the felt inside the rails" % tag)
-	var sp := s.camera.cam.unproject_position(s.pot_slot(0) + Vector3(0, 0.3, 0))
+	var sp := s.camera.cam.unproject_position(s.pot_slot(0) + Vector3(0, Bonfire3D.PILLAR_HEIGHT, 0))
 	var vs := s.get_viewport().get_visible_rect().size
 	check(Rect2(Vector2.ZERO, vs).has_point(sp) and sp.y > 80.0, "[%s] the top of a pillar over the pot is on screen (%s)" % [tag, str(sp)])
 	s._sync_colliders()

@@ -373,6 +373,11 @@ func throw_again() -> bool:
 		_refuse(why if why != "" else "Pot at least one burning die first.")
 		return false
 	pot_dice.append_array(potted_now)
+	# Back to the home framing (the reveal left the camera zoomed in on the
+	# dice): the count-up and its fire play on the pot row, and the next
+	# flick starts from the hand. On a portrait phone the pot is otherwise
+	# off-screen for the whole count-up.
+	camera.go_home(tuning.cam_return_time)
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
 	_hold_display(hold)
 	juice.crowd_pot(run.pot)
@@ -1151,10 +1156,42 @@ func fit_phone(size: Vector2) -> float:
 	phone_dial_visible = r[1] >= 0.0
 	if not phone_dial_visible:
 		r = _slide_for(base, must)
+	# Still hugging an edge (under the HUD bar)? Dolly out a little while
+	# the dice stay >= min_die_px.
+	for step in 40:
+		if r[1] >= PHONE_EDGE_PX:
+			break
+		var d := camera.home_distance
+		camera.home_distance = d * 1.03
+		camera.distance = camera.home_distance
+		var r2 := _slide_for(base, with_dial if phone_dial_visible else must)
+		var die_px := _smallest_die_px(must)
+		if r2[1] <= r[1] or die_px < tuning.min_die_px:
+			camera.home_distance = d
+			camera.distance = d
+			break
+		r = r2
+		px = minf(px, die_px)
 	camera.home_pivot = base + Vector3(0, 0, r[0])
 	camera.position = camera.home_pivot
 	camera._apply()
 	return px
+
+
+## How far (px) the pot row / hand points want to stay from the viewport
+## edges on a phone (clear of the HUD bar).
+const PHONE_EDGE_PX: float = 80.0
+
+
+## Smallest on-screen die (px) at the given points, current camera.
+func _smallest_die_px(pts: Array[Vector3]) -> float:
+	camera._apply()
+	var smallest := INF
+	for p in pts:
+		var at := Vector3(p.x, tuning.die_size * 0.5, p.z)
+		var sz := DieVisual.projected_size(camera.cam, Transform3D(Basis.IDENTITY, at), tuning.die_size)
+		smallest = minf(smallest, minf(sz.x, sz.y))
+	return smallest
 
 
 ## Best z offset of the pivot (within +-0.3 m) for the points: [offset, the
