@@ -9,8 +9,10 @@
 ## e.g. Cold Sixes' cold_values or The Straight Man's excluded combos).
 ##
 ## Rules that change faces after the dice settle are listed in `effects`:
-##   {"kind": &"shuffle", "count": k}  Madame Shuffle: the highest die
-##       (ties: the first) is rerolled with its own weights, k times. Exact.
+##   {"kind": &"shuffle", "count": k}  Madame Shuffle: ONE random lit die
+##       (each lit die equally likely) is rerolled with its own weights, k
+##       times, each time picking among the dice lit at that moment (rule
+##       issue #70, RuleMadameShuffle). Exact.
 ##   {"kind": &"mirror"}  Mirror dice copy the NEAREST other die. Where the
 ##       dice will stop isn't known before the throw, so each Mirror is
 ##       counted as copying one of the other dice, each equally likely.
@@ -125,24 +127,31 @@ static func _shuffle(slots: Array[int], left: int, done: Array, e: int, dice: Ar
 		ctx: Dictionary, effects: Array, memo: Dictionary, copied: Array) -> float:
 	if left <= 0:
 		return _burn_after_effects(slots, e + 1, dice, per_die, t, ctx, effects, memo, copied)
-	var best := -1
+	# Which dice light right now (same scoring the table uses)?
+	var sd: Array = []
 	for i in slots.size():
-		if done.has(i):
-			continue
-		if best < 0 or _value(dice, i, slots[i], copied) > _value(dice, best, slots[best], copied):
-			best = i
-	if best < 0:
+		var td: TableDie = dice[i]
+		var copied_here := i < copied.size() and copied[i] != null and int(copied[i]) > 0
+		var m: FaceModData = null if (td == null or copied_here) else td.mod_at(slots[i])
+		sd.append(BonfireScoring.make_die(_value(dice, i, slots[i], copied), m, _special(dice, i)))
+	var choices: Array[int] = []
+	for i in BonfireScoring.lit_indices(sd, t, ctx):
+		if not done.has(i):
+			choices.append(i)
+	if choices.is_empty():
 		return _burn_after_effects(slots, e + 1, dice, per_die, t, ctx, effects, memo, copied)
+	# She picks one of them, each equally likely, and rerolls it.
 	var sum := 0.0
-	var d2 := done.duplicate()
-	d2.append(best)
-	for o: Array in per_die[best]:
-		var s2 := slots.duplicate()
-		s2[best] = int(o[0])
-		var c2 := copied.duplicate()
-		if c2.size() > best:
-			c2[best] = 0
-		sum += float(o[1]) * _shuffle(s2, left - 1, d2, e, dice, per_die, t, ctx, effects, memo, c2)
+	for pick in choices:
+		var d2 := done.duplicate()
+		d2.append(pick)
+		for o: Array in per_die[pick]:
+			var s2 := slots.duplicate()
+			s2[pick] = int(o[0])
+			var c2 := copied.duplicate()
+			if c2.size() > pick:
+				c2[pick] = 0
+			sum += float(o[1]) / float(choices.size()) * _shuffle(s2, left - 1, d2, e, dice, per_die, t, ctx, effects, memo, c2)
 	return sum
 
 

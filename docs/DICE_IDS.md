@@ -16,6 +16,7 @@ Owner: Systems Dev. Adding a die = add it here and in `DiceIds.ALL` in the same 
 - **Die id** = the named gameplay die: `caltrop`, `ferryman`, ... Run data, shop, scoring, audio and VFX use it (`DieShape.id`, `RunDie`, `SfxManager`).
 - All ids are lowercase snake_case. A die id is never also a shape id (so no die called `coin` or `d6`).
 - **Art asset key** = `<die_id>_<shape_id>`: `caltrop_d4`, `ferryman_coin`, `powder_keg_d6`, `mirror_d6` (main's d6 specials already follow this).
+  `DiceIds.canonical()` also accepts a current art key and returns its die id (`ferryman_coin` → `ferryman`, `powder_keg_d6` → `powder_keg`), as well as the old aliases below.
 - **Face key** (pre-carved/special face) = `<die_id>_<value>` in Arabic digits: `verdict_20`, `verdict_1`, `midnight_12`, `tithe_10`, `lantern_8`, `powder_keg_1`…`powder_keg_3`. Coin faces: `ferryman_heads`, `ferryman_tails`.
 - **Audio cue ids:** a **die-specific** cue starts with the die id: `ferryman_heads_copy`, `caltrop_run`, `knucklebone_level`, `powder_keg_3`, `verdict_20_alt`. A **generic or flavour** cue for a die uses `trigger_flavor_<die_id>`: `trigger_flavor_lantern`, `trigger_flavor_tithe`, `trigger_flavor_verdict`, `trigger_flavor_powder_keg`. Cue *files* carry the `trigger_` prefix (`trigger_ferryman_heads_copy.wav`); the id inside the flavour key is always the canonical die id.
 - **Asset-only keys** (`DiceIds.ASSET_ONLY_KEYS`): a few art keys have no die id (retired or showcase models). They are never die ids or aliases; see [Asset-only keys](#asset-only-keys-no-die-id).

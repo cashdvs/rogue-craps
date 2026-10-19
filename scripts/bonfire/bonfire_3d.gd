@@ -72,6 +72,8 @@ var _die_of: Dictionary = {}
 var throw_slots: Array[int] = []
 var _soul_before: int = 0
 var _finished_sent: bool = false
+## events.table_cleared went out for this table (once per table).
+var _cleared_emitted: bool = false
 ## Text on the felt from the rules (e.g. "LOCKED  4").
 var felt_label: Label3D
 ## The combo table on the felt (FeltComboTable).
@@ -89,6 +91,8 @@ var _pip_die: Array[int] = []
 var _juice_tier: int = 0
 ## The pot's face mod ids, per die (&"" = none): mod_triggered.
 var _pip_mods: Array[StringName] = []
+## mod_triggered ctx per die of the pot being counted (see _mod_ctx).
+var _pip_ctx: Array[Dictionary] = []
 ## What the lit dice of this throw could claim (no selection yet).
 var _throw_claims: Array = []
 
@@ -218,6 +222,8 @@ func new_run(seed_value: int = -1) -> void:
 	juice.crowd_start()
 	_soul_before = run.soul
 	_finished_sent = false
+	_cleared_emitted = false
+	events.table_started.emit()
 	bhud.end_panel.visible = false
 	soul_meter.setup(run.soul, run.max_soul)
 	_soul_shown = run.soul
@@ -305,7 +311,7 @@ func leave() -> bool:
 	phase = Phase.OVER
 	for d in all_dice:
 		_set_lit(d, false)
-	events.table_cleared.emit()
+	_emit_table_cleared()
 	_taunt(&"bonfire_clear")
 	_set_why("You left the table. Cleared!")
 	bhud.show_end(run)
@@ -487,15 +493,124 @@ func _hot_hand_moment() -> void:
 		_set_lit(d, false)
 		d.visible = true
 		d.scale = Vector3.ONE
-	events.hot_hand.emit(run.hot_hands)
 	juice.hot_hand(list)
 	bhud.flash("Hot Hand x%d: +%d mult" % [run.hot_hands, run.mult_bonus()], Palette.EMBER)
 	var fly := bonfire_tuning.juice_hot_hand_fly_time if not reduced_motion else 0.22
 	if speed_mode == 2:
 		fly = 0.05
+	var ids: Array = []
+	for d in list:
+		ids.append(event_id(d))
+	var count := run.hot_hands
+	events.hot_hand_fly.emit(ids, fly)
 	juice.fly_start(list, fly)
 	_to_hand(fly)
+	# The Hot Hand sound (scripts/fx/table_audio.gd) is the dice arriving.
+	get_tree().create_timer(fly, true, false, false).timeout.connect(func() -> void: events.hot_hand.emit(count))
 	get_tree().create_timer(fly + 0.05, true, false, false).timeout.connect(func() -> void: juice.fly_stop(list))
+
+
+## mod_triggered / triggers_resolved ctx for a face mod on die `d`.
+func _mod_ctx(fm: FaceModData, d: DieVisual) -> Dictionary:
+	if fm == null:
+		return {}
+	var dir := 1
+	match fm.effect:
+		FaceModData.Effect.BLANK:
+			dir = -1
+		FaceModData.Effect.WILD, FaceModData.Effect.HEAVY, FaceModData.Effect.KINDLING:
+			dir = 0
+	return {"flavor": StringName(String(FaceModData.Effect.keys()[fm.effect]).to_lower()),
+		"target_die": event_id(d) if d != null else -1,
+		"count": 2 if fm.effect == FaceModData.Effect.TWIN else 1, "direction": dir}
+
+
+## TableEvents.triggers_resolved entry.
+func _trigger(stage: StringName, row_id: StringName, die_id: int, anchor: StringName, ctx: Dictionary, start_s: float, tier: int = 0) -> Dictionary:
+	return {"stage": stage, "row_id": row_id, "tier": tier, "die_id": die_id,
+		"intensity": clampf(tier / 4.0, 0.0, 1.0), "anchor": anchor, "ctx": ctx, "start_s": start_s}
+
+
+const _STAGE_ORDER: Array[StringName] = [&"land", &"copies", &"boss", &"lit", &"scoring"]
+
+
+## The settle half of triggers_resolved for a landed throw (land, copies,
+## boss, lit check; see TableEvents). ok = land_throw's result.
+func landing_triggers(th: TableThrow, ok: bool) -> Array:
+	var out: Array = []
+	var by_stage: Dictionary = {&"land": [], &"copies": [], &"boss": [], &"lit": []}
+	for ch: Dictionary in th.changes:
+		var i := int(ch["index"])
+		var by := StringName(ch.get("by", &""))
+		var stage := &"land"
+		if by == &"mirror":
+			stage = &"copies"
+		else:
+			for r in run.rules:
+				if r.id == by and r.kind == TableRule.Kind.CHEAT:
+					stage = &"boss"
+		var d: DieVisual = throw_dice[i] if i < throw_dice.size() else null
+		var target := -1
+		if stage == &"copies" and th.positions.size() == th.size():
+			# The die it copied: the nearest non-Mirror die with that value.
+			var best := INF
+			for j in th.size():
+				if j != i and th.special(j) != &"mirror" and th.values[j] == int(ch["to"]) and th.positions[i].distance_to(th.positions[j]) < best:
+					best = th.positions[i].distance_to(th.positions[j])
+					target = event_id(throw_dice[j]) if j < throw_dice.size() else j
+		(by_stage[stage] as Array).append(_trigger(stage, by, event_id(d) if d != null else i, &"die",
+			{"flavor": stage, "target_die": target, "count": 1, "direction": signi(int(ch["to"]) - int(ch["from"])), "from": int(ch["from"]), "to": int(ch["to"])}, 0.0))
+	var lit_at := 0.0 if th.changes.is_empty() else FLIP_TIME + 0.08
+	if ok:
+		for i in run.throw_faces.size():
+			for r in run.rules:
+				if not r.can_light(run, run.throw_faces[i]):
+					var d: DieVisual = throw_dice[i] if i < throw_dice.size() else null
+					(by_stage[&"lit"] as Array).append(_trigger(&"lit", r.id, event_id(d) if d != null else i, &"die",
+						{"flavor": &"kept_dark", "target_die": event_id(d) if d != null else i, "count": 1, "direction": -1}, lit_at))
+					break
+	else:
+		var ids: Array = []
+		for d in throw_dice:
+			ids.append(event_id(d))
+		var what := &"kindling_saved" if run.kindling_saved else &"bust"
+		(by_stage[&"lit"] as Array).append(_trigger(&"lit", what, -1, &"table",
+			{"flavor": what, "target_die": -1, "count": ids.size(), "direction": 0 if run.kindling_saved else -1, "die_ids": ids}, lit_at))
+	for st: StringName in _STAGE_ORDER:
+		if by_stage.has(st):
+			out.append_array(by_stage[st])
+	return out
+
+
+## The scoring half of triggers_resolved for the pot about to be counted
+## (call after _pip_die / _pip_mods / _pip_ctx / _juice_dice are set): one
+## entry per mod face, in pip order. start_s = pip_s - PIP_LEAD (>= 0).
+func scoring_triggers(n_pips: int, n_extra_chips: int, tier: int) -> Array:
+	var plan := JuicePlan.timeline(n_pips, n_extra_chips, tier, speed_mode, bonfire_tuning)
+	var pips: Array = plan["pips"]
+	var clock := maxf(test_speed, 0.001)
+	var lift_clock := clock * (2.0 if speed_mode == 1 else 1.0) * (20.0 if speed_mode == 2 else 1.0)
+	var stagger := (0.14 if plan["big"] else 0.08) / lift_clock
+	var out: Array = []
+	for i in _pip_die.size():
+		var k: int = _pip_die[i]
+		if k < 0 or k >= _pip_mods.size() or _pip_mods[k] == &"" or (i > 0 and _pip_die[i - 1] == k) or k >= _juice_dice.size():
+			continue
+		var pip_s := float(pips[i]) / clock if i < pips.size() else 0.0
+		var e := _trigger(&"scoring", _pip_mods[k], event_id(_juice_dice[k]), &"pip", _pip_ctx[k] if k < _pip_ctx.size() else {},
+			maxf(pip_s - TableEvents.PIP_LEAD, 0.0), tier)
+		e["pip_s"] = pip_s
+		e["lift_s"] = k * stagger
+		out.append(e)
+	return out
+
+
+## events.table_cleared, once per table (a clear, then Leave, sends one).
+func _emit_table_cleared() -> void:
+	if _cleared_emitted:
+		return
+	_cleared_emitted = true
+	events.table_cleared.emit()
 
 
 ## HUD numbers before a pot is committed (shown until its count-up lands).
@@ -537,14 +652,15 @@ func _start_count_up(sel: Dictionary, dice_list: Array[DieVisual], faces: Array,
 		var n := 2 if m != null and m.effect == FaceModData.Effect.TWIN and not run.rule_ctx()["no_mods"] else 1
 		for j in n:
 			_pip_die.append(k)
-	var plan := JuicePlan.timeline(vals.size(), chips.size() - 1, tier, speed_mode, t)
 	_juice_dice = dice_list.duplicate()
 	_juice_tier = tier
 	_pip_mods.clear()
+	_pip_ctx.clear()
 	var wild := -1
 	for k in faces.size():
 		var fm: FaceModData = (faces[k] as Dictionary).get("mod")
 		_pip_mods.append(fm.id if fm != null and not run.rule_ctx()["no_mods"] else &"")
+		_pip_ctx.append(_mod_ctx(fm, dice_list[k] if k < dice_list.size() else null))
 		if wild < 0 and fm != null and fm.effect == FaceModData.Effect.WILD and not run.rule_ctx()["no_mods"]:
 			wild = k
 	# JIT4 points at the first Wild face (its index in the throw, -1 = none).
@@ -553,7 +669,11 @@ func _start_count_up(sel: Dictionary, dice_list: Array[DieVisual], faces: Array,
 	var ids: Array = []
 	for d in dice_list:
 		ids.append(event_id(d))
-	events.combo_potted.emit(StringName(sel.get("combo", &"")), ids, int(sel["points"]), int(sel.get("mult", 0)))
+	events.combo_potted.emit(StringName(sel.get("combo", &"")), ids, int(sel["points"]), int(sel.get("mult", 0)), tier)
+	# The scoring triggers with their start times, before the count-up is
+	# planned (TableEvents.triggers_resolved).
+	events.triggers_resolved.emit(scoring_triggers(vals.size(), chips.size() - 1, tier))
+	var plan := JuicePlan.timeline(vals.size(), chips.size() - 1, tier, speed_mode, t)
 	juice.lift(_juice_dice, plan["big"], test_speed * (2.0 if speed_mode == 1 else 1.0) * (20.0 if speed_mode == 2 else 1.0))
 	bhud.countup.play({"base": int(sel["base"]), "values": vals, "chips": chips, "points": int(sel["points"]),
 		"name": str(sel["name"]), "score_tier": tier, "banner_tier": JuicePlan.banner_tier(StringName(sel["combo"]), t)},
@@ -565,7 +685,7 @@ func _on_count_pip(i: int) -> void:
 		juice.pip_sound(i)
 	var k: int = _pip_die[i] if i < _pip_die.size() else -1
 	if k >= 0 and k < _pip_mods.size() and _pip_mods[k] != &"" and (i == 0 or _pip_die[i - 1] != k) and k < _juice_dice.size():
-		events.mod_triggered.emit(_pip_mods[k], _juice_tier, event_id(_juice_dice[k]), clampf(_juice_tier / 4.0, 0.0, 1.0), Time.get_ticks_msec())
+		events.mod_triggered.emit(_pip_mods[k], _juice_tier, event_id(_juice_dice[k]), clampf(_juice_tier / 4.0, 0.0, 1.0), Time.get_ticks_msec(), &"pip", _pip_ctx[k] if k < _pip_ctx.size() else {})
 	if k >= 0 and k < _juice_dice.size() and is_instance_valid(_juice_dice[k]):
 		var d := _juice_dice[k]
 		d.body_material.set_shader_parameter("emission_color", Palette.EMBER)
@@ -638,7 +758,7 @@ func bank() -> Dictionary:
 		# The clear moment: Embers locked in, the table stays open (unless
 		# that was the last hand, then it ends right after this).
 		bhud.show_cleared(2.0 if speed_mode == 1 else 1.0, speed_mode == 2 or reduced_motion)
-		events.table_cleared.emit()
+		_emit_table_cleared()
 		_taunt(&"bonfire_clear")
 		if not run.is_over():
 			_set_why("Table cleared! Chase the bonus with your remaining hands, or Leave table.")
@@ -655,8 +775,8 @@ func pick_die(i: int) -> bool:
 		return false
 	if not run.toggle(i):
 		# It bounces back where it was, with a "doesn't score" callout.
+		# Its sound (no_score) is played by scripts/fx/table_audio.gd.
 		events.no_score.emit()
-		sfx.play(&"chip_refuse")
 		refused.emit(i)
 		var d := throw_dice[i]
 		var tw := d.create_tween()
@@ -911,6 +1031,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	th.positions = _felt_pos.duplicate()
 	var ok := run.land_throw(th)
 	_compute_throw_claims()
+	events.triggers_resolved.emit(landing_triggers(th, ok))
 	if not th.changes.is_empty():
 		await _show_face_changes(th)
 		if run.is_over():
@@ -1316,7 +1437,10 @@ func _bust() -> void:
 	_burn_soul(int(r["soul_lost"]))
 	_camera_shake(tuning.shake_craps_px, 0.3)
 	# Flames snuff, dice ash over, the Soul flask cracks, pending stamps crumble.
-	events.bust.emit(int(r["soul_lost"]))
+	var bust_ids: Array = []
+	for d in throw_dice:
+		bust_ids.append(event_id(d))
+	events.bust.emit(int(r["soul_lost"]), bust_ids)
 	juice.bust(throw_dice, reduced_motion)
 	var lost_cards: Array = bhud.pending_cards()
 	bhud.crumble_pending(reduced_motion)

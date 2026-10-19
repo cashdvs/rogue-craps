@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_choice"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_effect"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_event"]
+
+[sub_resource type="Resource" id="fx_tout_a1"]
+script = ExtResource("2_effect")
+kind = 1
+amount = -6
+
+[sub_resource type="Resource" id="fx_tout_a2"]
+script = ExtResource("2_effect")
+kind = 8
+amount = 3
+
+[sub_resource type="Resource" id="ch_tout_a"]
+script = ExtResource("1_choice")
+label = "Tip him: -6 Embers for 3 free shop rerolls."
+result_text = "He winks: 'Ask for the back shelf.'"
+effects = Array[ExtResource("2_effect")]([SubResource("fx_tout_a1"), SubResource("fx_tout_a2")])
+
+[sub_resource type="Resource" id="fx_tout_b1"]
+script = ExtResource("2_effect")
+amount = -4
+
+[sub_resource type="Resource" id="fx_tout_b2"]
+script = ExtResource("2_effect")
+kind = 8
+amount = 3
+
+[sub_resource type="Resource" id="ch_tout_b"]
+script = ExtResource("1_choice")
+label = "Owe him: -4 Soul for 3 free shop rerolls."
+result_text = "He writes your name in a very small book."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_tout_b1"), SubResource("fx_tout_b2")])
+
+[sub_resource type="Resource" id="ch_tout_c"]
+script = ExtResource("1_choice")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_event")
+id = &"tout"
+title = "The Tout"
+body = "A tout swears he can get the shop to show more stock."
+art_note = "A tout in a bowler hat tapping his nose beside the shop's back door."
+floors = Array[int]([2, 3])
+choices = Array[ExtResource("1_choice")]([SubResource("ch_tout_a"), SubResource("ch_tout_b"), SubResource("ch_tout_c")])

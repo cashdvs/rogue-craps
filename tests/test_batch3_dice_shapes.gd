@@ -12,10 +12,11 @@ extends SceneTree
 const DIR: String = "res://art/models/dice/"
 
 ## Size cap for non-d6 dice: max per-axis half-extent from the origin (the centre of mass) is 0.050 m, per PM and
-## Godot Dev (Oct 19). The test allows 0.051 m because the Tithe d10 passes at 0.0507 (~2% over) by PM's ruling.
+## Godot Dev (Oct 19), on the PC mesh, the mobile mesh and a convex hull of the mobile mesh (Godot Dev's collider).
 ## (d6s keep tests/test_special_dice.gd's 0.042 m box cap.)
-const MAX_EXTENT: float = 0.051
-## Scaled to the cap on Oct 19 (Caltrop x0.849, Knucklebone x0.866, Lantern x0.943, PC and mobile alike).
+const MAX_EXTENT: float = 0.050
+## Scaled to the cap on Oct 19 (Caltrop x0.849, Knucklebone x0.866, Lantern x0.943, PC and mobile alike; the Tithe
+## x0.978 to 0.0498 m is checked by MAX_EXTENT).
 const CAPPED: Dictionary = {"caltrop_d4": 0.050, "knucklebone_talus": 0.050, "lantern_d8": 0.050}
 ## Godot Dev builds every non-d6 hull from the *mobile* mesh: its extents must match the PC visual within 0.5 mm.
 const HULL_TOL: float = 0.0005
@@ -159,13 +160,15 @@ func _check_extents(die: String, spec: Dictionary) -> void:
 	var e_mob := _half_extents(_all_verts(mob))
 	for pair: Array in [[e_pc, "PC"], [e_mob, "mobile"]]:
 		var m := _max_abs(pair[0])
-		_check(m <= MAX_EXTENT + 1e-5, "%s (%s): max per-axis half-extent %.4f m <= %.3f (0.050 m cap; Tithe passes at 0.0507 by PM's ruling)" % [die, pair[1], m, MAX_EXTENT])
+		_check(m <= MAX_EXTENT + 1e-5, "%s (%s): max per-axis half-extent %.4f m <= %.3f (0.050 m cap)" % [die, pair[1], m, MAX_EXTENT])
 		if CAPPED.has(die):
 			_check(m <= float(CAPPED[die]) + 1e-5, "%s (%s): scaled to the cap, half-extent %.4f m <= %.3f" % [die, pair[1], m, CAPPED[die]])
 	var cm := _centroid(mob)
 	_check(cm.length() < 0.0005, "%s (mobile): centre of mass within 0.5 mm of the origin (%s), so a hull from it spins true" % [die, cm])
 	var hull := mob.create_convex_shape(true, false) as ConvexPolygonShape3D
 	var e_hull := _half_extents(hull.points)
+	var mh := _max_abs(e_hull)
+	_check(mh <= MAX_EXTENT + 1e-5, "%s (hull of mobile): max per-axis half-extent %.4f m <= %.3f (0.050 m cap)" % [die, mh, MAX_EXTENT])
 	var worst := 0.0
 	var worst_h := 0.0
 	for i in 6:
