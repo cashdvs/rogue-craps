@@ -85,19 +85,26 @@ templates → stamp the version → `--import` (fails on script errors) → `--e
 version, commit and Godot version.
 
 Not yet: an upload to Steam (SteamPipe `steamcmd` with a `ContentBuilder` depot script). That needs
-the app id, depot ids and a builder account secret in GitHub. See issue "SteamPipe upload job".
+the app id, depot ids and a builder account secret in GitHub. Tracked in [#86](https://github.com/cashdvs/rogue-craps/issues/86).
 
 ## 4. Export templates in CI: done
 
 Templates must match the engine build exactly (`4.7.2.stable`). CI downloads
 `Godot_v4.7.2-stable_export_templates.tpz` (~1.3 GB) once, keeps only `version.txt` and the x86_64 Windows
 and Linux templates (~360 MB) in `~/.local/share/godot/export_templates/4.7.2.stable/`, and caches that
-folder under the key `godot-templates-4.7.2-stable-win64-linux64`. **Bumping Godot means bumping
+folder under the key `godot-templates-4.7.2-stable-win64-linux64-v2`. **Bumping Godot means bumping
 `GODOT_VERSION` in both `ci.yml` and `export.yml` together.**
+
+**Checksums:** on a cache miss, both the editor download (`ci.yml` and `export.yml`) and the templates
+download (`export.yml`) are checked against `SHA512-SUMS.txt` from the same Godot release before they
+are unpacked. A file that is missing from the list, or whose SHA-512 doesn't match, fails the job. A
+cache hit skips the download and the check. The editor key is
+`godot-<version>-stable-linux-x86_64-v2` and must stay identical in both workflows so they share one
+cached editor; bump the `-vN` suffix on all three keys together to force a cold, re-verified download.
 
 ## 5. Version string: partial
 
-- **Source of truth:** `project.godot` `application/config/version="0.1.0"` (added in this PR).
+- **Source of truth:** `project.godot` `application/config/version="0.1.0"` (added in #73).
   Bump it by hand for releases (`x.y.z`).
 - **CI stamp:** `export.yml` rewrites it in the runner's checkout to `x.y.z.<run number>` before
   exporting. Windows file and product versions must be numeric `a.b.c.d`, so the commit SHA goes into

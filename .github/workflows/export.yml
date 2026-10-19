@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.GODOT_DIR }}
-          key: godot-${{ env.GODOT_VERSION }}-stable-linux-x86_64
+          key: godot-${{ env.GODOT_VERSION }}-stable-linux-x86_64-v2
 
       - name: Download Godot ${{ env.GODOT_VERSION }} (headless Linux)
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -71,7 +71,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
-          key: godot-templates-${{ env.GODOT_VERSION }}-stable-win64-linux64
+          key: godot-templates-${{ env.GODOT_VERSION }}-stable-win64-linux64-v2
 
       - name: Download export templates ${{ env.GODOT_VERSION }}
         if: steps.cache-templates.outputs.cache-hit != 'true'
