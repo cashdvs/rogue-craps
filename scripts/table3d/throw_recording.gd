@@ -61,6 +61,26 @@ func count() -> int:
 	return frames.size()
 
 
+## Sizes every per-die array for `n` dice.
+func init(n: int) -> void:
+	frames = []
+	rest_t = []
+	tumble_end_t = []
+	tumble_end_speed = []
+	up_values = []
+	for i in n:
+		frames.append([])
+		rest_t.append(-1.0)
+		tumble_end_t.append(-1.0)
+		tumble_end_speed.append(0.0)
+		up_values.append(1)
+
+
+## How many dice this throw had.
+func count() -> int:
+	return frames.size()
+
+
 func duration() -> float:
 	if frames.is_empty():
 		return 0.0
