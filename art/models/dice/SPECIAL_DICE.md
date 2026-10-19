@@ -9,17 +9,18 @@ no gameplay code, colliders, scripts or animations. The Bone d6 (`bone_d6.glb`, 
 | `bone_d6.glb` | Bone (reused) | 1,988 | `bone_body`, `bone_pip` | 0.080 |
 | `mirror_d6.glb` | Mirror Die | 1,010 | `mirror_body`, `mirror_pip` | 0.080 |
 | `cracked_d6.glb` | Cracked Die | 1,690 | `cracked_body`, `cracked_pip`, `cracked_crack` | 0.080 |
-| `hellfire_d6.glb` | Hellfire die | 1,762 | `hellfire_body`, `hellfire_pip`, `hellfire_seam` | 0.0832 (spike tips) |
-| `gilded_d6.glb` | Gilded die | 1,906 | `gilded_body`, `gilded_pip`, `gilded_panel` | 0.0836 (beads trimmed) |
+| `hellfire_d6.glb` | Hellfire die | 1,964 | `hellfire_body`, `hellfire_pip`, `hellfire_seam`, `hellfire_spike` | 0.086 (needle spike tips, 1.08x) |
+| `gilded_d6.glb` | Gilded die | 1,906 | `gilded_body`, `gilded_pip`, `gilded_panel`, `gilded_bead` | 0.0836 (beads trimmed) |
 | `twin_flame_d6.glb` | Twin Flame Die | 1,394 | `twin_flame_body`, `twin_flame_pip`, `twin_flame_half`, `twin_flame_pip_light`, `twin_flame_cleft`, `twin_flame_line` | 0.080 |
-| `wanderer_d6.glb` | Wanderer Die | 1,328 | `wanderer_body`, `wanderer_pip`, `wanderer_fin` | 0.0832 (fin points) |
+| `wanderer_d6.glb` | Wanderer Die | 1,808 | `wanderer_body`, `wanderer_pip`, `wanderer_fin` | 0.0861 (tapered fin tips, 1.08x) |
 | `bellows_d6.glb` | Bellows Die | 1,650 | `bellows_body`, `bellows_pip`, `bellows_pleat` | 0.080 |
-| `blood_pact_d6.glb` | Blood Pact Die | 1,482 | `blood_pact_body`, `blood_pact_pip`, `blood_pact_seal`, `blood_pact_stamp` | 0.0836 (seals) |
+| `blood_pact_d6.glb` | Blood Pact Die | 1,706 | `blood_pact_body`, `blood_pact_pip`, `blood_pact_seal`, `blood_pact_stamp` | 0.0836 (seals) |
 | `coven_d6.glb` | Coven Die | 958 | `coven_body`, `coven_pip`, `coven_cove` | 0.080 |
 | `last_breath_d6.glb` | Last Breath Die | 1,272 | `last_breath_body`, `last_breath_pip`, `last_breath_collar` | 0.0832 x 0.080 x 0.0832 (collars, centred) |
 
 Each `.glb.import` maps the slots to `materials/<slot>.tres` (like the Bone d6). Body slots carry the shared ink hull
-(`die_ink_outline.tres`, `outline.gdshader` mode 1, 0.0042 m) as `next_pass`. Everything uses
+(`die_ink_outline.tres`, `outline.gdshader` mode 1, 0.0042 m) as `next_pass`; the fin-read accents (spikes, beads,
+fins, seals, collars) carry a thinner hull of their own (`die_ink_accent.tres`, same shader, 0.0022 m). Everything uses
 `shaders/3d/toon_noir.gdshader` except the Mirror body, which uses `shaders/toon_mirror.gdshader` (below).
 Rebuild: `blender -b --factory-startup --python art/models/dice/src/build_special_dice.py -- [mirror_d6 ...]`
 (Blender 4.5 LTS). Batch-2 materials and import slot mapping: `python3 art/models/dice/src/write_batch2.py --imports`
@@ -37,18 +38,37 @@ Rebuild: `blender -b --factory-startup --python art/models/dice/src/build_specia
 ## Colliders (for the dev; not in the assets): box only
 Godot Dev (Oct 19): every die uses the same `BoxShape3D` 0.08 m (`TuningData.die_size`), no convex hulls. The
 meshes are trimmed to fit it: nothing pokes out more than ~1.8 mm past a face on any axis, so in any resting
-orientation the decoration sinks at most that far into the felt (`tests/test_special_dice.gd` asserts max |x|, |y|,
-|z| <= 0.042 m per die). `build_special_dice.py` does this with `BOX_HALF = 0.0418` and `clamp_to_box()`.
+orientation the decoration sinks at most that far into the felt. **Felt-sink ruling (Godot Dev, Oct 19):** Hellfire
+and Wanderer may reach 1.08x (max 0.0432 m per axis, ~3 mm) because their spikes / fins taper to thin tips, so
+what sinks is a sliver; every other die stays at 0.042 m or less. `build_special_dice.py`: `VISUAL_EXTENT_SCALE =
+1.045` (0.0418 m, the default) and `EXTENT_SCALE = {"hellfire_d6": 1.08, "wanderer_d6": 1.08}` set the per-die
+`BOX_HALF` that the builders and `clamp_to_box()` use. `tests/test_special_dice.gd` asserts the per-die caps (0.0432
+for those two, 0.042 for the rest) and that only tapered tips pass 0.042 m (every such vertex within 5 mm of a tip).
 
 | Die | Max extent per axis (before -> after) | Box sink (before -> after) | How |
 |---|---|---|---|
 | Bone, Mirror, Cracked, Twin Flame, Bellows, Coven | 0.0400 | 0 | all cuts, face planes intact |
-| Hellfire | 0.0457 -> 0.0416 | 5.7 -> 1.6 mm | corner spikes shortened (tip length 21 -> ~14 mm) |
+| Hellfire | 0.0457 -> 0.0416 -> **0.0430** | 5.7 -> 1.6 -> 3.0 mm (needle tip only) | corner spikes shortened, then (fin read) re-made as bone needles: 8.4 mm base necking to 2 mm and a point, so only the last ~1.7 mm of each needle passes 0.042 m |
 | Gilded | 0.0438 -> 0.0418 | 3.8 -> 1.8 mm | corner beads (and the edge-middle beads by ~0.2 mm) clamped to the box, flat-topped where they would touch the felt; no exception in the test |
-| Wanderer | 0.0464 -> 0.0416 | 6.4 -> 1.6 mm | rounder edge (0.16 x edge), fins lower and thinner (11.2 -> ~6 mm past the bevel, 3 mm thick), longer along the edge (36 mm) |
+| Wanderer | 0.0464 -> 0.0416 -> **0.0431** | 6.4 -> 1.6 -> 3.1 mm (fin tips only) | rounder edge (0.16 x edge); (fin read) fins ~9 mm past the bevel, 40 mm along the edge, 5 mm thick at the root, necking to a 0.6 mm tip, so only the top ~4.6 mm of each blade passes 0.042 m |
 | Blood Pact | 0.0473 -> 0.0418 | 7.3 -> 1.8 mm | seals clamped to the box: the wax presses flat onto the three corner faces, bone stamp on top |
 | Last Breath | 0.0452 -> 0.0416 (x, z) | 5.2 -> 1.6 mm (on a side) | both collars pulled in to 1.6 mm proud of the side faces |
 Trimmed renders for the AD (box colliders on every die): `/workspace/dice/captures/dice_showcase/trimmed/`.
+
+## Fin read (AD, Oct 19): contrast pass on the five shaped dice
+The trim made the decoration nearly vanish in a pile, so the parts that make each silhouette are now **full-value
+bone or bright brass against the body, with their own ink hull** (`die_ink_accent.tres`), lamp-tuned with
+`write_batch2.py`'s `lamp_comp()` like the stamps (`BONE_FULL` / `BRASS_FULL`). Bodies, pips and the reserved-colour
+rules are unchanged (`batch2_palette.md`).
+| Die | Part | Was | Now |
+|---|---|---|---|
+| Hellfire | 8 corner spikes | charcoal body material | `hellfire_spike`: bone #E8DCC0 needles (bone, not brass: no Devilish corner-cap cue), 1.08x |
+| Gilded | 20 beads | body brass | `gilded_bead`: polished bright brass #E2C06A on the tarnished body |
+| Wanderer | 12 fins | brass #B08D3C at 0.8 gain (sank into the lit steel) | bright brass #E2C06A, thicker root, tapered tips, 1.08x |
+| Blood Pact | 2 seals | black wax disc + small bone boss | a full-value bone disc (r 8.4 mm) pressed in a black wax ring (palette: black wax + bone stamp, still not gold) |
+| Last Breath | 2 collars | dark iron #34302E (lost in the ink line) | bright brass bands (**palette change for AD sign-off**: `batch2_palette.md` lists dark iron) |
+Renders: `/workspace/dice/captures/dice_showcase/fin_read/` (48 px before/after strip, a box-to-box pile and a pot row
+at the game camera, native + x4; tool `/workspace/dice/art/source/dice_showcase_tools/fin_read.gd`).
 
 ## The dice (silhouette first, then material)
 **Mirror Die** (Mirror: copies the nearest die's face). Silhouette: a faceted 2-plane chamfer (bevel 0.24 x edge, flat
@@ -66,7 +86,7 @@ stepped, irregular break, cut as deep as the pips allow). Material: aged bone #D
 faces, always clear of the pips (the generator routes them, seed 1666). Pips: Pit Black like Bone. The cracks
 and the shatter clip (`art/vfx/bonfire` "cracked_shatter") tell the same story.
 
-**Hellfire die**. Silhouette: a tighter-bevelled (0.10 x edge) heavy block with a short 5-sided spike on all 8 corners,
+**Hellfire die**. Silhouette: a tighter-bevelled (0.10 x edge) heavy block with a 5-sided bone needle spike on all 8 corners,
 the spikiest outline of the set. Material: charred charcoal #1E1B1A (Pit Black shadow, a thin ember rim), an
 ember #E8622A seam glowing along the middle of all 12 edge bevels (emission 1.25), ember pips with emission 1.6
 (they bloom). Spikes on all 8 corners (not horns on the top 2) so it doesn't borrow the Satanic/Mischievous
@@ -97,10 +117,10 @@ thin ember #E8622A line (`twin_flame_line`, 3.2 mm, not emissive, low light gain
 the seam. Pips flip colour with the half: Pit Black on bone, bone on charcoal (`twin_flame_pip_light`). The centre
 pips of the 1 and 3 sit on the seam, so they are split light and dark: twins.
 
-**Wanderer Die** (runs may skip one value). Silhouette: a compass point (a flat brass fin, ~6 mm past the rounded edge, trimmed for the box collider) on the middle
+**Wanderer Die** (runs may skip one value). Silhouette: a compass point (a flat bright-brass fin, ~9 mm past the rounded edge, tapering to a thin tip for the box collider) on the middle
 of all 12 edges, so from any side the outline is an 8-pointed star (a compass rose). Unlike the Hellfire spikes,
 these are flat blades at the edge middles, not cones on the corners. Material (mid value, cool): steel blue #5C7894
-(desaturated, well clear of Soul cyan), brass #B08D3C fins (metallic spec), cream #F2E6C8 pips.
+(desaturated, well clear of Soul cyan), bright brass #E2C06A fins (metallic spec, inked), cream #F2E6C8 pips.
 
 **Bellows Die** (Hot Hands +2 mult). Silhouette: every edge folded into a 3-step staircase (accordion pleats, steps
 3 / 6 / 9.5 mm), so the outline corners are stepped, not round or chamfered. Material: tan leather #B88A5A, the
@@ -109,7 +129,7 @@ pleat risers dark brown leather #3A2418 (they draw the folds), oxblood #3B0D14 p
 **Blood Pact Die** (+1 mult per 5 missing Soul). Silhouette: two black wax seals (a wide disc plus a bone stamp boss)
 pressed onto opposite corners (+,+,+ / -,-,-): two lumps, asymmetric, unlike Gilded's 20 small studs.
 Material (dark, warm): glossy deep crimson #7E1626 (spec + a red rim; far darker than Danger), black wax seals
-#141012 glossy, each pressed with a small bone #E8DCC0 stamp (`blood_pact_stamp`, the pips' bone, lamp-tuned), bone pips (the signature).
+#141012 glossy, each pressed flat with a wide bone #E8DCC0 stamp (`blood_pact_stamp`, the pips' bone at full value, inked) inside a black wax ring, bone pips (the signature).
 
 **Coven Die** (Trips / Full House x2). Silhouette: all 12 edges scooped into concave coves (r 13.6 mm), leaving pointed
 three-way corners. Face-on, the outline is a square with concave corners (cross-like), the inverse of Bone's
@@ -119,7 +139,7 @@ Satanic violet), matte wax-pale coves #D9CBA8 that draw a lattice around the fac
 **Last Breath Die** (x3 when potted from a 1-2 die rethrow). Silhouette: a stone urn block with a dark iron collar
 hoop (1.6 mm proud, trimmed for the box collider) round BOTH ends, outside the side pips, so it reads as a banded urn from any side and stays
 centred and symmetric (see colliders). Material (light, cool): pale ash stone #9AA0A6 (lamp-compensated so it reads
-grey, not Bone), dark iron #34302E collars (spec, rim), charcoal #2A2426 pips.
+grey, not Bone), bright brass #E2C06A collars (fin read, Oct 19; were dark iron #34302E), charcoal #2A2426 pips.
 
 ## Showcase
 Rendered outside the repo (`/workspace/dice/art/source/dice_showcase_tools/showcase.gd`), real Jolt physics on

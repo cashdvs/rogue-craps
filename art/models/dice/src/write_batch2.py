@@ -1,7 +1,8 @@
-"""Batch-2 special dice: writes the toon materials (materials/<slot>.tres) and maps each .glb's material slots
+"""Batch-2 special dice (plus the batch-1 contrast-pass accents: Hellfire spikes, Gilded beads): writes the toon materials (materials/<slot>.tres) and maps each .glb's material slots
 onto them in its .glb.import (run `godot --headless --import` once first so the .import files exist).
     python3 art/models/dice/src/write_batch2.py [--imports]
-Body slots get the shared ink hull (die_ink_outline.tres) as next_pass, like batch 1."""
+Body slots get the shared ink hull (die_ink_outline.tres) as next_pass, like batch 1, and so do the fin-read accents
+(AD, Oct 19: spikes, beads, fins, seals + stamps, collars), so they keep an ink line of their own at 48 px."""
 import os
 import re
 import sys
@@ -9,6 +10,9 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TOON = "res://shaders/3d/toon_noir.gdshader"
 INK = "res://art/models/dice/materials/die_ink_outline.tres"
+# thinner ink hull for the fin-read accents: the body's 4.2 mm hull would swallow a 1 cm fin at 48 px
+INK_ACCENT = "res://art/models/dice/materials/die_ink_accent.tres"
+INK_ACCENT_W = 0.0022
 
 
 def col(h, a=1.0):
@@ -51,6 +55,11 @@ def lamp_comp(target, s=0.7, v=1.3):
 
 # slot -> (params, inked). Palette: art/concept/special_dice/batch2_palette.md (AD, Oct 18): spread hue AND value
 # under the warm lamp; never Soul cyan, Danger #FF2E3E, the Satanic violet glow or felt green on a body.
+# Fin-read contrast pass (AD, Oct 19): the decoration that defines the silhouette is bone or bright brass at FULL value
+# against its body (lamp-tuned like the stamps so it lands near the swatch instead of clipping), and inked.
+BONE_FULL = {**PIP_BONE, **lamp_comp("#E8DCC0", s=0.3, v=1.5), "roughness": 0.5, **BONE_SPEC}
+BRASS_FULL = {"shadow_color": "#4A3410", "mid_tint": 0.82, "wrap": 0.45, "roughness": 0.25, **lamp_comp("#E2C06A", s=0.3, v=1.8),
+              "spec_size": 0.9, "spec_color": "#FFF0C8", "spec_strength": 0.8}
 CREAM = {"albedo": "#F2E6C8", "shadow_color": "#7E7058", "mid_tint": 0.8, "wrap": 0.4, "roughness": 0.6}
 MATS = {
     # Twin Flame: bone half / charcoal half (max value split), thin ember line at the waist, pips flip per half
@@ -66,8 +75,7 @@ MATS = {
     "wanderer_body": ({"albedo": "#5C7894", "shadow_color": "#1C2632", "mid_tint": 0.74, "wrap": 0.3, "roughness": 0.6, **lamp_comp("#5C7894"),
                        "spec_size": 0.985, "spec_color": "#D8E0E8", "spec_strength": 0.25}, True),
     "wanderer_pip": (CREAM, False),
-    "wanderer_fin": ({"albedo": "#B08D3C", "shadow_color": "#3B2A10", "mid_tint": 0.72, "wrap": 0.25, "roughness": 0.3,
-                      "spec_size": 0.9, "spec_color": "#E2C06A", "spec_strength": 0.8, "light_gain": 0.8}, False),
+    "wanderer_fin": (BRASS_FULL, "accent"),  # bright brass at full value (was #B08D3C at 0.8 gain: it sank into the lamp-lit body)
     # Bellows: warm tan leather, dark brown pleats, oxblood pips
     "bellows_body": ({"albedo": "#B88A5A", "shadow_color": "#46291A", "mid_tint": 0.72, "wrap": 0.3, "roughness": 0.75, **lamp_comp("#B88A5A"),
                       "spec_size": 0.975, "spec_color": "#E8C8A0", "spec_strength": 0.2}, True),
@@ -78,10 +86,11 @@ MATS = {
                          "spec_size": 0.975, "spec_color": "#FFD6D0", "spec_strength": 0.6, "rim_color": "#C83848", "rim_strength": 0.2, "rim_power": 3.0}, True),
     "blood_pact_pip": (PIP_BONE, False),
     "blood_pact_seal": ({"albedo": "#141012", "shadow_color": "#060405", "mid_tint": 0.7, "roughness": 0.2,
-                         "spec_size": 0.9, "spec_color": "#D8C8C0", "spec_strength": 0.7}, False),
+                         "spec_size": 0.9, "spec_color": "#D8C8C0", "spec_strength": 0.7}, "accent"),  # black wax ring, inked
     # bone stamps (AD, Oct 18: bone, not gold, so nothing on the corners reads as the Devilish brass cue); the
     # same bone as the pips, lamp-tuned so the raised boss reads bone rather than clipping to the lamp's orange-white
-    "blood_pact_stamp": ({**PIP_BONE, **lamp_comp("#E8DCC0", s=0.3, v=1.5), "roughness": 0.5, **BONE_SPEC}, False),
+    # Fin read (AD, Oct 19): the boss is widened to most of the seal, so each seal reads as a full-value bone disc
+    "blood_pact_stamp": (BONE_FULL, "accent"),
     # Coven: matte dusty plum, NO glow / emission, bone pips (wax-pale coves keep the scooped edges reading)
     "coven_body": ({"albedo": "#6E4A6E", "shadow_color": "#241626", "mid_tint": 0.74, "wrap": 0.3, "roughness": 0.95, **lamp_comp("#6E4A6E", v=1.2)}, True),
     "coven_pip": (PIP_BONE, False),
@@ -89,8 +98,13 @@ MATS = {
     # Last Breath: pale cool ash stone, dark iron collars on both ends, charcoal pips
     "last_breath_body": ({"albedo": "#9AA0A6", "shadow_color": "#363A40", "mid_tint": 0.75, "wrap": 0.35, "roughness": 0.9, **lamp_comp("#9AA0A6", s=0.8)}, True),
     "last_breath_pip": ({"albedo": "#2A2426", "shadow_color": "#0A0809", "roughness": 0.8, "ambient_energy": 0.1, "light_gain": 0.45}, False),
-    "last_breath_collar": ({"albedo": "#34302E", "shadow_color": "#0E1414", "mid_tint": 0.7, "roughness": 0.4, **lamp_comp("#34302E", s=0.8, v=1.0),
-                            "spec_size": 0.9, "spec_color": "#C8C0B8", "spec_strength": 0.6, "rim_color": "#8A847E", "rim_strength": 0.3, "rim_power": 3.0}, False),
+    # Fin read (AD, Oct 19): collars go bright brass at full value (were dark iron #34302E, which vanished into the
+    # ink line 1.6 mm proud of the pale stone); warm brass bands on the cool ash keep the banded-urn read
+    "last_breath_collar": (BRASS_FULL, "accent"),
+    # batch-1 fin-read accents: Hellfire's corner spikes in bone (not brass: no Devilish corner-cap cue), Gilded's
+    # studs polished bright brass on the tarnished body
+    "hellfire_spike": (BONE_FULL, "accent"),
+    "gilded_bead": (BRASS_FULL, "accent"),
 }
 DICE = {
     "twin_flame_d6": ["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft", "twin_flame_line"],
@@ -99,6 +113,8 @@ DICE = {
     "blood_pact_d6": ["blood_pact_body", "blood_pact_pip", "blood_pact_seal", "blood_pact_stamp"],
     "coven_d6": ["coven_body", "coven_pip", "coven_cove"],
     "last_breath_d6": ["last_breath_body", "last_breath_pip", "last_breath_collar"],
+    "hellfire_d6": ["hellfire_body", "hellfire_pip", "hellfire_seam", "hellfire_spike"],
+    "gilded_d6": ["gilded_body", "gilded_pip", "gilded_panel", "gilded_bead"],
 }
 
 
@@ -106,7 +122,7 @@ def write_tres(name, params, inked):
     lines = ['[gd_resource type="ShaderMaterial" load_steps=%d format=3]' % (3 if inked else 2), "",
              '[ext_resource type="Shader" path="%s" id="1"]' % TOON]
     if inked:
-        lines.append('[ext_resource type="Material" path="%s" id="2"]' % INK)
+        lines.append('[ext_resource type="Material" path="%s" id="2"]' % (INK_ACCENT if inked == "accent" else INK))
     lines += ["", "[resource]", "render_priority = 0"]
     if inked:
         lines.append('next_pass = ExtResource("2")')
@@ -134,7 +150,15 @@ def write_import(die, slots):
         f.write(text)
 
 
+def write_accent_ink():
+    with open(os.path.join(ROOT, "materials", "die_ink_accent.tres"), "w") as f:
+        f.write('[gd_resource type="ShaderMaterial" load_steps=2 format=3]\n\n[ext_resource type="Shader" path="res://shaders/3d/outline.gdshader" id="1"]\n\n'
+                '[resource]\nrender_priority = 0\nshader = ExtResource("1")\nshader_parameter/color = Color(0.054902, 0.0784314, 0.0784314, 1)\n'
+                'shader_parameter/width = %g\nshader_parameter/mode = 1\n' % INK_ACCENT_W)
+
+
 if __name__ == "__main__":
+    write_accent_ink()
     for n, (p, ink) in MATS.items():
         write_tres(n, p, ink)
     print("wrote %d materials" % len(MATS))

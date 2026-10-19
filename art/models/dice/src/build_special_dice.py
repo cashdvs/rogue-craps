@@ -141,12 +141,19 @@ def boolean(body, cutter, op="DIFFERENCE", use_self=False):
     bpy.data.objects.remove(cutter)
 
 
-BOX_HALF = 0.0418  # every die fits the 0.08 m BoxShape3D: nothing more than ~1.8 mm past a face (Godot Dev, Oct 19)
+# Visual mesh extent vs the 0.08 m BoxShape3D every die uses (Godot Dev, Oct 19). The collider never changes; this is
+# how far the decoration may poke past the face planes, as a scale of the half edge (max |x|, |y|, |z| = H * scale).
+# Default 1.045 (0.0418 m, <= 1.8 mm into the felt); Hellfire's spikes and Wanderer's fins may go to 1.08 (0.0432 m,
+# Godot Dev's felt-sink ruling) because they taper to thin tips, so what sinks is a sliver.
+VISUAL_EXTENT_SCALE = 1.045
+EXTENT_SCALE = {"hellfire_d6": 1.08, "wanderer_d6": 1.08}
+BOX_HALF = H * VISUAL_EXTENT_SCALE  # set per die by main() before its builder runs
 
 
-def clamp_to_box(ob, half=BOX_HALF):
+def clamp_to_box(ob, half=None):
     """Flatten whatever pokes past +-half on any axis (the wax seals press flat where they would touch the felt):
     bisect the 6 planes, drop the outside, cap each hole and give the cap the material of the faces around it."""
+    half = BOX_HALF if half is None else half
     bm = bmesh.new()
     bm.from_mesh(ob.data)
     for axis in range(3):
@@ -351,16 +358,46 @@ def build_cracked():
     return ob, 30.0
 
 
+# (fraction of the length, radius m): base -> neck -> needle tip
+SPIKE_PROFILE = [(0.0, 0.0084), (0.42, 0.0050), (0.72, 0.0020), (1.0, 0.0)]  # rings stay inside the face planes; only the needle passes them
+
+
+def spike(bm, base, d, length, profile, segs):
+    """A segs-sided spike from `base` along unit `d` (Godot), radius following `profile`, closed at both ends."""
+    d = Vector(d).normalized()
+    a = d.cross(Vector((0, 1, 0)) if abs(d.y) < 0.9 else Vector((1, 0, 0))).normalized()
+    b = d.cross(a)
+    rings = []
+    tip = None
+    for f, r in profile:
+        p = base + d * length * f
+        if r <= 0.0:
+            tip = bm.verts.new(g2b(p))
+            continue
+        rings.append([bm.verts.new(g2b(p + (a * math.cos(k * math.tau / segs) + b * math.sin(k * math.tau / segs)) * r))
+                      for k in range(segs)])
+    fs = [bm.faces.new(rings[0][::-1])]
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(segs):
+            j = (k + 1) % segs
+            fs.append(bm.faces.new((r0[k], r0[j], r1[j], r1[k])))
+    for k in range(segs):
+        fs.append(bm.faces.new((rings[-1][k], rings[-1][(k + 1) % segs], tip)))
+    bmesh.ops.recalc_face_normals(bm, faces=fs)
+
+
 def build_hellfire():
-    """Hellfire Die: charred charcoal block (tighter bevel, heavier read) with a short spike
-    on all 8 corners and an ember seam glowing along all 12 edges; ember pips."""
+    """Hellfire Die: charred charcoal block (tighter bevel, heavier read) with a bone spike on all 8 corners,
+    tapering to a needle tip, and an ember seam glowing along all 12 edges; ember pips."""
     body_m = make_material("hellfire_body", "1E1B1A", 0.9)
     pip_m = make_material("hellfire_pip", "E8622A", 0.6)
     seam_m = make_material("hellfire_seam", "E8622A", 0.6)
+    spike_m = make_material("hellfire_spike", "E8DCC0", 0.5)
     radius = 0.10 * EDGE
     bm = rounded_cube_bmesh(radius, 2)
-    ob = new_obj("HellfireD6", bm, [body_m, pip_m, seam_m])
-    # Spikes: 5-sided pyramids along the corner diagonals, union'd (one hull).
+    ob = new_obj("HellfireD6", bm, [body_m, pip_m, seam_m, spike_m])
+    # Spikes: 5-sided, along the corner diagonals, union'd (one hull). A stout base that necks in to a needle, so
+    # the part past the face planes (what can sink into the felt on the box collider) is a thin sliver.
     sb = bmesh.new()
     c = H - radius
     for sx in (-1, 1):
@@ -369,13 +406,8 @@ def build_hellfire():
                 dvec = Vector((sx, sy, sz)).normalized()
                 base = Vector((sx, sy, sz)) * c + dvec * radius * 0.35
                 tip_len = (BOX_HALF - 0.0002 - base.x * sx) * math.sqrt(3.0)  # tip per axis = BOX_HALF - 0.2 mm
-                res = bmesh.ops.create_cone(sb, cap_ends=True, segments=5, radius1=0.0095, radius2=0.0,
-                                            depth=tip_len, matrix=Matrix.Identity(4))
-                bmesh.ops.translate(sb, verts=res["verts"], vec=Vector((0, 0, tip_len * 0.5)))
-                rot = Vector((0, 0, 1)).rotation_difference(g2b(dvec)).to_matrix().to_4x4()
-                bmesh.ops.transform(sb, verts=res["verts"], matrix=rot)
-                bmesh.ops.translate(sb, verts=res["verts"], vec=g2b(base))
-    boolean(ob, new_obj("spikes", sb, [body_m]), op="UNION", use_self=True)
+                spike(sb, base, dvec, tip_len, SPIKE_PROFILE, 5)
+    boolean(ob, new_obj("spikes", sb, [spike_m]), op="UNION", use_self=True)
     # Seams: a square groove along the middle of each edge bevel, stopping short of the spikes.
     kb = bmesh.new()
     for axis in (Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))):
@@ -399,9 +431,10 @@ def build_gilded():
     body_m = make_material("gilded_body", "B08D3C", 0.3, 1.0)
     pip_m = make_material("gilded_pip", "C8281E", 0.1)
     panel_m = make_material("gilded_panel", "7A5E26", 0.5, 1.0)
+    bead_m = make_material("gilded_bead", "E2C06A", 0.25, 1.0)  # polished bright brass studs on the tarnished body
     radius = 0.12 * EDGE
     bm = rounded_cube_bmesh(radius, 2)
-    ob = new_obj("GildedD6", bm, [body_m, pip_m, panel_m])
+    ob = new_obj("GildedD6", bm, [body_m, pip_m, panel_m, bead_m])
     c = H - radius
     # Beads (union): corners + edge middles, on the bevel surface.
     bb = bmesh.new()
@@ -418,7 +451,7 @@ def build_gilded():
                 outv = others[0] * s1 + others[1] * s2
                 res = bmesh.ops.create_uvsphere(bb, u_segments=5, v_segments=3, radius=0.0042)
                 bmesh.ops.translate(bb, verts=res["verts"], vec=g2b(outv * c + outv.normalized() * (radius + 0.0008)))
-    boolean(ob, new_obj("beads", bb, [body_m]), op="UNION", use_self=True)
+    boolean(ob, new_obj("beads", bb, [bead_m]), op="UNION", use_self=True)
     # Recessed panels.
     depth = 0.0016
     pb = bmesh.new()
@@ -523,8 +556,8 @@ def build_twin_flame():
 
 
 def build_wanderer():
-    """Wanderer Die: a steel-blue block with a compass point on the middle of every edge (12 brass fins), so the
-    outline is an 8-pointed star from any side; cream pips."""
+    """Wanderer Die: a steel-blue block with a compass point on the middle of every edge (12 bright brass fins
+    tapering to thin tips), so the outline is an 8-pointed star from any side; cream pips."""
     body_m = make_material("wanderer_body", "5C7894", 0.6)
     pip_m = make_material("wanderer_pip", "F2E6C8", 0.6)
     fin_m = make_material("wanderer_fin", "B08D3C", 0.3, 1.0)
@@ -533,20 +566,26 @@ def build_wanderer():
     ob = new_obj("WandererD6", bm, [body_m, pip_m, fin_m])
     c = H - radius
     fb = bmesh.new()
-    L, T = 0.036, 0.003
-    # fin height past the bevel so the tip (incl. half its thickness) stops at BOX_HALF per axis
-    P = (BOX_HALF - 0.0002 - c - T * 0.5 / math.sqrt(2.0)) * math.sqrt(2.0) - radius
+    L, T, T_TIP = 0.040, 0.005, 0.0006  # 5 mm at the root: a fin seen edge-on (along its diagonal) still shows ~3 px of brass
+    # outward reach of the fin tip from the edge line, so the tip (incl. half its thickness) stops 0.2 mm inside
+    # BOX_HALF per axis; the blade necks in towards it, so what can sink into the felt is a thin sliver
+    rt = (BOX_HALF - 0.0002 - c - T_TIP * 0.5 / math.sqrt(2.0)) * math.sqrt(2.0)
+    rise = rt - radius
+    # (along the edge, out from the edge line, thickness): half-profile from the base corner to the tip
+    half = [(L * 0.5, radius - 0.004, T), (L * 0.3, radius + rise * 0.35, T), (L * 0.15, radius + rise * 0.7, T * 0.8),
+            (L * 0.05, radius + rise * 0.92, T * 0.45)]
+    prof = half + [(0.0, rt, T_TIP)] + [(-u, r, t) for (u, r, t) in reversed(half)]
     for axis, outv in EDGES:
         o = outv.normalized()
         side = outv.cross(axis).normalized()
-        m = outv * c + o * (radius - 0.004)
-        tri = [m - axis * L * 0.5, m + axis * L * 0.5, m + o * (P + 0.004)]
-        vs = [[fb.verts.new(g2b(q + side * T * 0.5 * k)) for q in tri] for k in (-1, 1)]
-        fb.faces.new(vs[0][::-1])
-        fb.faces.new(vs[1])
-        for i in range(3):
-            j = (i + 1) % 3
-            fb.faces.new((vs[0][i], vs[0][j], vs[1][j], vs[1][i]))
+        e = outv * c
+        vs = [[fb.verts.new(g2b(e + axis * u + o * r + side * t * 0.5 * k)) for (u, r, t) in prof] for k in (-1, 1)]
+        fs = [fb.faces.new(vs[0][::-1]), fb.faces.new(vs[1])]
+        n = len(prof)
+        for i in range(n):
+            j = (i + 1) % n
+            fs.append(fb.faces.new((vs[0][i], vs[0][j], vs[1][j], vs[1][i])))
+        bmesh.ops.recalc_face_normals(fb, faces=fs)
     boolean(ob, new_obj("fins", fb, [fin_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
@@ -581,6 +620,9 @@ def build_bellows():
     return ob, 30.0
 
 
+STAMP_R = 0.0084  # bone disc radius round the corner diagonal; the rest of the pressed seal is the black wax ring
+
+
 def build_blood_pact():
     """Blood Pact Die: glossy crimson with two blood-black wax seals pressed onto opposite corners (the pact's
     two parties: a wide black disc with a bone stamp boss); bone pips (the signature)."""
@@ -604,13 +646,33 @@ def build_blood_pact():
         bmesh.ops.transform(sb, verts=res["verts"], matrix=rot @ Matrix.Diagonal((0.0148, 0.0148, 0.0058, 1.0)))
         bmesh.ops.translate(sb, verts=res["verts"], vec=g2b(corner + dn * 0.0004))
         res = bmesh.ops.create_uvsphere(gb, u_segments=10, v_segments=5, radius=1.0)
-        bmesh.ops.transform(gb, verts=res["verts"], matrix=rot @ Matrix.Diagonal((0.0072, 0.0072, 0.0056, 1.0)))
+        bmesh.ops.transform(gb, verts=res["verts"], matrix=rot @ Matrix.Diagonal((0.0108, 0.0108, 0.0056, 1.0)))  # a wide bone boss: most of the seal reads bone, a black wax ring round it
         bmesh.ops.translate(gb, verts=res["verts"], vec=g2b(corner + dn * 0.0042))
     boolean(ob, new_obj("seals", sb, [seal_m]), op="UNION", use_self=True)
     boolean(ob, new_obj("stamps", gb, [stamp_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
     clamp_to_box(ob)  # the seals press flat against the three faces (wax squashed onto the corner)
+    # The flat pressed tops (the caps clamp_to_box left on the three corner faces) become a full-value bone disc in
+    # a black wax ring: cut the caps along an 8-sided prism of radius STAMP_R round the corner diagonal, the inside
+    # is the bone stamp, the outside the wax (fin read, AD Oct 19)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    for sgn in (1, -1):
+        dn = g2b(Vector((sgn, sgn, sgn)).normalized())
+        w0 = dn.cross(Vector((0, 0, 1))).normalized()
+        for k in range(8):
+            w = Matrix.Rotation(k * math.tau / 8, 3, dn) @ w0
+            caps = [f for f in bm.faces if f.material_index in (2, 3) and f.calc_center_median().dot(dn) > 0]
+            geom = list({e for f in caps for e in f.edges}) + list({v for f in caps for v in f.verts}) + caps
+            bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-7, plane_co=w * STAMP_R, plane_no=w)
+    for f in bm.faces:
+        if f.material_index in (2, 3):
+            c = f.calc_center_median()
+            dn = g2b(Vector((1, 1, 1)).normalized()) * (1 if c.dot(g2b(Vector((1, 1, 1)))) > 0 else -1)
+            f.material_index = 3 if (c - dn * c.dot(dn)).length < STAMP_R else 2
+    bm.to_mesh(ob.data)
+    bm.free()
     return ob, 30.0
 
 
@@ -680,13 +742,16 @@ def main():
         out_dir = os.path.abspath(argv.pop(0))
     names = argv or list(BUILDERS)
     os.makedirs(out_dir, exist_ok=True)
+    global BOX_HALF
     for name in names:
         bpy.ops.wm.read_factory_settings(use_empty=True)
+        BOX_HALF = H * EXTENT_SCALE.get(name, VISUAL_EXTENT_SCALE)
         ob, sharp = BUILDERS[name]()
         tris = finish(ob, sharp)
         path = export(ob, name, out_dir)
         dims = [round(x, 4) for x in ob.dimensions]
-        print("BUILT %s tris=%d verts=%d dims=%s -> %s" % (name, tris, len(ob.data.vertices), dims, path))
+        ext = [round(max(abs(v.co[i]) for v in ob.data.vertices), 4) for i in range(3)]
+        print("BUILT %s tris=%d verts=%d dims=%s max_extent=%s cap=%.4f -> %s" % (name, tris, len(ob.data.vertices), dims, ext, BOX_HALF, path))
         if os.environ.get("DICE_SAVE_BLEND"):
             bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.environ["DICE_SAVE_BLEND"], name + ".blend"))
 

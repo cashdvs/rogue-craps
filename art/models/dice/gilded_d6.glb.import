@@ -41,6 +41,11 @@ materials/extract_format=0
 materials/extract_path=""
 _subresources={
 "materials": {
+"gilded_bead": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/dice/materials/gilded_bead.tres",
+"use_external/path": "res://art/models/dice/materials/gilded_bead.tres"
+},
 "gilded_body": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/dice/materials/gilded_body.tres",
