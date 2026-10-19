@@ -41,7 +41,7 @@ func _test_basics() -> void:
 	_check(p.soul == 35 and p.max_soul == 35 and p.embers == 0 and p.dice.size() == 5, "start: Soul 35/35, 0 Embers, 5 dice")
 	_check(p.change_soul(5) == 0 and p.change_soul(-10) == -10 and p.soul == 25, "soul: clamped to max")
 	_check(p.change_embers(-3) == 0 and p.change_embers(7) == 7, "embers: never below 0")
-	_check(p.add_die(&"coven") and p.add_die(&"extra") and not p.add_die(&"mirror") and p.dice.size() == 7, "dice: max 7")
+	_check(p.add_die(&"coven") and not p.add_die(&"extra") and p.dice.size() == _run.max_dice and _run.max_dice == 6, "dice: max 6 (economy v1 P2)")
 	var ended: Array[bool] = [false]
 	p.run_ended.connect(func() -> void: ended[0] = true)
 	_check(p.change_soul(-99) == -25 and p.is_over() and ended[0], "soul: 0 ends the run")
@@ -158,7 +158,9 @@ func _test_table_dice() -> void:
 	for d in _run.special_dice:
 		all_defined = all_defined and d.faces == ([1, 2, 3, 4, 5, 6] as Array[int]) and d.weights.is_empty()
 	_check(_run.special_dice.size() == 9 and all_defined, "special dice: plain Bone 1-6, equal weights (GD spec)")
-	var q := RunProgress.new(_run)
+	var roomy := _run.duplicate() as RunData
+	roomy.max_dice = 7
+	var q := RunProgress.new(roomy)
 	q.add_die(&"cracked")
 	q.add_die(&"cracked")
 	var ids: Array[StringName] = []

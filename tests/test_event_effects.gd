@@ -94,8 +94,9 @@ func _test_give_die() -> void:
 	var n := p.dice.size()
 	_apply(&"mirror", p)
 	_check(p.dice.size() == n + 1 and p.dice[n].special_id == &"mirror", "give die: a Mirror Die joins the bag")
-	_apply(&"bone", p)
-	_check(p.dice.size() == n + 2 and p.dice[n + 1].special_id == &"" and p.dice[n + 1].shape == &"d6" and p.die_name(n + 1) == "Bone",
+	var b := RunProgress.new(_run)
+	_apply(&"bone", b)
+	_check(b.dice.size() == n + 1 and b.dice[n].special_id == &"" and b.dice[n].shape == &"d6" and b.die_name(n) == "Bone",
 		"give die: an empty die id gives a plain Bone")
 	_check(p.dice.size() == _run.max_dice, "give die: bag now full (%d)" % _run.max_dice)
 	_check(EventApplier.why_not(_ch(&"mirror"), p) == "Your bag is full (%d dice)." % _run.max_dice, "give die: full bag greys the choice")
@@ -129,12 +130,11 @@ func _test_sell_die() -> void:
 	_check(q.dice.size() == 5 and q.embers == e1 + 2, "sell die: a plain die sells for 0 (+ bonus); any die may be picked")
 	var r := RunProgress.new(_run)
 	r.add_die(&"mirror")
-	r.add_die(&"cracked")
 	var before: Array = []
 	for d in r.dice:
 		before.append(d.id)
 	_apply(&"sell_random", r, [], 4)
-	_check(r.dice.size() == 6 and EventApplier.picks_needed(_ch(&"sell_random")) == 0, "sell die: RANDOM needs no pick and removes one die")
+	_check(r.dice.size() == 5 and EventApplier.picks_needed(_ch(&"sell_random")) == 0, "sell die: RANDOM needs no pick and removes one die")
 	var a := RunProgress.new(_run)
 	a.add_die(&"mirror")
 	var two := EventChoiceData.new()

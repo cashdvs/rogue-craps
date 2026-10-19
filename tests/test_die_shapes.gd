@@ -62,7 +62,9 @@ func _test_data() -> void:
 
 
 func _test_dice() -> void:
-	var p := RunProgress.new(_run)
+	var roomy := _run.duplicate() as RunData
+	roomy.max_dice = 7
+	var p := RunProgress.new(roomy)
 	_check(p.add_die(&"powder_keg") and p.add_die(&"coin"), "dice: buy a Powder Keg and a Coin")
 	var keg := p.dice[5]
 	var coin := p.dice[6]
@@ -76,7 +78,7 @@ func _test_dice() -> void:
 	_check(p.mod_price(twin, 5) == plain_price, "mods: pre-carved faces don't count toward the +50% step (§5/§10 silent)")
 	p.set_face(5, 0, &"wild")
 	_check(p.mod_price(twin, 5) == plain_price * 3 / 2, "mods: a carved face does (+50% per mod, §5)")
-	var run := MapRun.new(_run, 3)
+	var run := MapRun.new(roomy, 3)
 	run.progress.add_die(&"coin")
 	_check(run.free_face(Vector2i(5, 1)) and not run.free_face(Vector2i(5, 2)), "picks: a Coin has faces 0-1 only")
 	_check(EventApplier.pick_ok(_add_fx(), run.progress, Vector2i(5, 0)) and not EventApplier.pick_ok(_add_fx(), run.progress, Vector2i(5, 4)),

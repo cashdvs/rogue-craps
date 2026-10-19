@@ -50,5 +50,6 @@ events = Array[ExtResource("1_qfvd1")]([ExtResource("2_bkp6x"), ExtResource("3_0
 special_dice = Array[ExtResource("13_w0480")]([ExtResource("14_267f4"), ExtResource("15_74278"), ExtResource("16_bkp6x"), ExtResource("17_0yela"), ExtResource("18_cxvay"), ExtResource("19_dvrif"), ExtResource("20_0oyw3"), ExtResource("21_8vtvu"), ExtResource("22_frdgj")])
 shapes = Array[ExtResource("23_84bl2")]([ExtResource("24_6p377"), ExtResource("25_6p377"), ExtResource("26_y772n"), ExtResource("27_lhefe"), ExtResource("28_lou2q"), ExtResource("29_eg7w8"), ExtResource("30_fhwbh"), ExtResource("31_k3ad0"), ExtResource("32_0ssle")])
 face_mods = Array[ExtResource("7_xs4v5")]([ExtResource("2_riil2"), ExtResource("3_vphwc"), ExtResource("4_txop1"), ExtResource("5_ln2yo"), ExtResource("6_eldjo"), ExtResource("7_qfvd1"), ExtResource("9_vphwc"), ExtResource("10_txop1"), ExtResource("10_o6wbp"), ExtResource("8_riil2")])
+max_dice = 6
 shop_seal_step = 2
 reroll_step = 2

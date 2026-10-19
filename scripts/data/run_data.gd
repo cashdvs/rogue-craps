@@ -10,7 +10,8 @@ extends Resource
 @export var max_soul: int = 35
 @export var starting_soul: int = 35
 @export var starting_embers: int = 0
-## Handful: 5 dice to start, max 7 (build content).
+## Handful: 5 dice to start, max 6 (economy_balance_v1 P2; was 7). Every bag-full
+## check (shop, Elite reward, event give_die, "Your dice" panel) reads max_dice.
 @export var starting_dice: int = 5
 @export var max_dice: int = 7
 

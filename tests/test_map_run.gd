@@ -318,13 +318,12 @@ func _test_rule_ids() -> void:
 	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} (+ a filled-in description for {hands} text) with known ids (%d seen)" % seen_ids.size())
 	var r2 := MapRun.new(_data, 3)
 	r2.progress.add_die(&"cracked")
-	r2.progress.add_die(&"mirror")
 	_enter(r2, NT.TABLE)
 	var st := r2.table_setup()
 	st.table_dice.resize(5)
 	var ts := st.to_table_setup(base)
-	_check(st.owned_dice_count == 7 and ts.owned_dice_count == 7 and ts.dice.size() == 5,
-		"setup: owned_dice_count = every die owned (7), even with 5 brought to the table")
+	_check(st.owned_dice_count == 6 and ts.owned_dice_count == 6 and ts.dice.size() == 5,
+		"setup: owned_dice_count = every die owned (6), even with 5 brought to the table")
 
 
 func _test_full_run() -> void:

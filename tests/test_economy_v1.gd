@@ -23,6 +23,7 @@ func _initialize() -> void:
 	_tuning = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	_test_points_cap()
 	_test_prices()
+	_test_bag_cap()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_data = null
 	_tuning = null
@@ -101,3 +102,45 @@ func _test_prices() -> void:
 	_check(run.reroll_price() == 3 and run.shop_reroll() and run.reroll_price() == 5, "P6: reroll 3, then 5")
 	run.shop_seals = [&"pair", &"trips"] as Array[StringName]
 	_check(run.buy_seal(0) and run.seal_price(&"trips") == 7, "P6: Seal 5, then 7")
+
+
+# --- P2: bag cap 6, read from data everywhere ---
+
+## A Gravedigger-style event choice that gives `die`.
+func _give_choice(die: StringName) -> EventChoiceData:
+	var e := EventEffectData.new()
+	e.kind = EventEffectData.Kind.GIVE_DIE
+	e.die = die
+	var c := EventChoiceData.new()
+	c.effects = [e] as Array[EventEffectData]
+	return c
+
+
+func _test_bag_cap() -> void:
+	_check(_data.max_dice == 6, "P2 data: max_dice 6 (bonfire_run.tres)")
+	var give := _give_choice(&"mirror")
+	var p := RunProgress.new(_data)
+	_check(EventApplier.why_not(give, p) == "" and p.add_die(&"coven"), "P2: room for a 6th die")
+	_check(not p.can_add_die() and not p.add_die(&"extra") and p.dice.size() == 6, "P2: no 7th die")
+	_check(EventApplier.why_not(give, p) == "Your bag is full (6 dice).", "P2: event give_die greys out at 6")
+	var run := MapRun.new(_data, 4)
+	run.progress.add_die(&"coven")
+	_check(_enter(run, NT.SHOP), "shop: entered")
+	run.progress.embers = 500
+	_check(not run.buy_die(0) and run.progress.embers == 500 and run.progress.dice.size() == 6, "P2: the shop won't sell a 7th die")
+	run.screen = MapRun.Screen.REWARD
+	run.dice_options = [_data.special_dice[0]] as Array[SpecialDieData]
+	_check(not run.take_die(0) and run.progress.dice.size() == 6, "P2: an Elite die reward is refused on a full bag")
+	# Nothing hard-codes the cap: a 7-die RunData allows a 7th everywhere.
+	var roomy := _data.duplicate() as RunData
+	roomy.max_dice = 7
+	var q := RunProgress.new(roomy)
+	q.add_die(&"coven")
+	_check(EventApplier.why_not(give, q) == "" and q.add_die(&"extra") and q.dice.size() == 7, "P2: the cap is max_dice, not a constant")
+	var panel := DicePanel.new()
+	panel.build(p, {})
+	var titled := false
+	for l in panel.find_children("*", "Label", true, false):
+		titled = titled or (l as Label).text == "Your dice · 6/6"
+	_check(titled, "P2: the Your dice panel reads 6/6")
+	panel.free()
