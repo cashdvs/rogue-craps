@@ -252,6 +252,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 			var stair := stairs * all.size() if c.kind == BonfireCombo.Kind.RUN else 0
 			var a := adds
 			var f := factor
+			var seal_base := 0
+			var seal_up := false
 			for sp in specials:
 				match sp:
 					&"twin_flame":
@@ -262,6 +264,17 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 							f *= t.coven_factor
 					&"cracked":
 						f *= t.cracked_factor
+					&"caltrop":
+						if c.kind == BonfireCombo.Kind.RUN:
+							a += t.caltrop_run_mult
+					&"knucklebone":
+						# One level up per pot, however many Knucklebones are in it.
+						if c.kind == BonfireCombo.Kind.N_OF_A_KIND and c.n >= 2 and not seal_up:
+							var steps_by_combo: Dictionary = ctx.get("seal_steps", t.knucklebone_seal_steps)
+							var step: Vector2i = steps_by_combo.get(c.id, Vector2i.ZERO)
+							seal_base += step.x
+							a += step.y
+							seal_up = true
 					&"blood_pact":
 						var missing := maxi(int(ctx.get("max_soul", 0)) - int(ctx.get("soul", 0)), 0)
 						a += missing / maxi(t.blood_pact_soul_step, 1)
@@ -270,12 +283,12 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 						if bool(ctx.get("is_rethrow", false)) and n >= 1 and n <= t.last_breath_max_dice:
 							f *= t.last_breath_factor
 			var mult := c.mult + mult_bonus + a
-			var pts := floori((c.base + stair + sum) * mult * f + 0.000001)
+			var pts := floori((c.base + seal_base + stair + sum) * mult * f + 0.000001)
 			var rank := t.combos.find(c)
 			var gv := _run_gap(all) if c.kind == BonfireCombo.Kind.RUN and gap_ok else 0
 			if pts > int(best["points"]) or (pts == int(best["points"]) and rank > best_rank) or not best["valid"]:
 				best = {"valid": true, "all_used": true, "points": pts, "combo": c.id, "name": c.display_name,
-					"base": c.base + stair, "stair": stair, "faces_sum": sum, "mult": mult, "adds": a, "factor": f,
+					"base": c.base + seal_base + stair, "stair": stair, "seal_up": seal_up, "faces_sum": sum, "mult": mult, "adds": a, "factor": f,
 					"values": all, "soul_cost": soul_cost, "embers": embers, "kindling": kindling, "specials": specials,
 					"gapped": gv > 0, "bounty_values": _close_gap(all, gv), "blood_refused": blood_refused}
 				best_rank = rank

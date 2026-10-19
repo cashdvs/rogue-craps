@@ -3,6 +3,9 @@
 ##      ((5 + face) x 1), runs and sets work past 6, a 0 face never lights,
 ##   §4 a FULL throw that lights nothing is thrown again for free,
 ##   §5 Wild / Step reach above 6 only up to the tray's highest face,
+##   §10 Caltrop (+2 mult on a run), Knucklebone (a set scores one Seal level
+##      higher), Ferryman's Coin (Heads copies the highest, Tails the lowest,
+##      alone Heads 5 / Tails Blank). (Mister Wick etc.: PR #99.)
 ##   godot --headless --path . --script res://tests/test_nonstd_scoring.gd
 extends SceneTree
 
@@ -60,6 +63,8 @@ func _initialize() -> void:
 	_faces_past_six()
 	_free_rethrow()
 	_wild_cap()
+	_caltrop_knucklebone()
+	_ferryman()
 	print("test_nonstd_scoring: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -129,3 +134,75 @@ func _wild_cap() -> void:
 	check(r.wild_max() == 8 and int(r.rule_ctx()["wild_max"]) == 8, "run wild_max: 8 with a d8 in the tray")
 	check((r.rule_ctx()["cold_values"] as Array).is_empty(), "no cold values without rules")
 
+func _caltrop_knucklebone() -> void:
+	var plain_run := sc([d(1), d(2), d(3)])
+	var cal_run := sc([d(1, null, &"caltrop"), d(2), d(3)])
+	check(cal_run["mult"] == plain_run["mult"] + t.caltrop_run_mult and t.caltrop_run_mult == 2, "Caltrop: a run containing it gets +2 mult")
+	check(sc([d(4, null, &"caltrop"), d(4)])["mult"] == sc([d(4), d(4)])["mult"], "Caltrop: no bonus on a set")
+	check(sc([d(1, null, &"caltrop")])["mult"] == 1, "Caltrop: no bonus on a single")
+	var pair := sc([d(3), d(3)])
+	var kpair := sc([d(3, null, &"knucklebone"), d(3)])
+	var step: Vector2i = t.knucklebone_seal_steps[&"pair"]
+	check(kpair["seal_up"] and kpair["base"] == pair["base"] + step.x and kpair["mult"] == pair["mult"] + step.y, "Knucklebone: a Pair scores one Seal level higher (+5 base, +1 mult)")
+	check(kpair["points"] == (pair["base"] + 5 + 6) * (pair["mult"] + 1), "Knucklebone: Pair 3-3 points")
+	var two := sc([d(3, null, &"knucklebone"), d(3, null, &"knucklebone")])
+	check(two["points"] == kpair["points"], "Knucklebone: two in one pot is still one level")
+	var trips := sc([d(6, null, &"knucklebone"), d(6), d(6)])
+	check(trips["combo"] == &"trips" and trips["mult"] == sc([d(6), d(6), d(6)])["mult"] + 1 and trips["base"] == sc([d(6), d(6), d(6)])["base"] + 15, "Knucklebone: Trips +15 base +1 mult")
+	check(not sc([d(1, null, &"knucklebone"), d(2), d(3)])["seal_up"], "Knucklebone: no level on a run")
+	check(not sc([d(1, null, &"knucklebone")])["seal_up"], "Knucklebone: no level on a single")
+	var custom := sc([d(3, null, &"knucklebone"), d(3)], {"seal_steps": {&"pair": Vector2i(1, 2)}})
+	check(custom["base"] == pair["base"] + 1 and custom["mult"] == pair["mult"] + 2, "Knucklebone: the run can pass its own Seal steps")
+
+
+func _ferryman() -> void:
+	check(TableRules.build([], [&"ferryman"])[0] is DieFerryman, "ferryman special -> DieFerryman handler")
+	# Heads (landed 5 = slot 1) copies the highest non-copy die.
+	var r := run_with([], [&"ferryman"], 3)
+	var th := TableThrow.make([5, 2, 4] as Array[int], [], [coin(), plain(), plain()])
+	r.land_throw(th)
+	check(r.throw_faces == ([4, 2, 4] as Array[int]) and th.changes[0]["by"] == &"ferryman", "Heads copies the highest die (4)")
+	check(th.slots[0] == 1, "Heads keeps its landed slot (1)")
+	# Tails (landed 0 = slot 2) copies the lowest.
+	r = run_with([], [&"ferryman"], 3)
+	th = TableThrow.make([0, 2, 4] as Array[int], [], [coin(), plain(), plain()])
+	r.land_throw(th)
+	check(r.throw_faces == ([2, 2, 4] as Array[int]) and th.slots[0] == 2, "Tails copies the lowest die (2), keeps slot 2")
+	r.toggle(0)
+	r.toggle(1)
+	check(r.selection()["combo"] == &"pair", "the copy is a natural face (2-2 Pair)")
+	# Other copy dice are never targets.
+	r = run_with([], [&"mirror", &"ferryman"], 3)
+	th = TableThrow.make([5, 6, 2] as Array[int], [], [coin(), special_die(&"mirror"), plain()])
+	th.positions = [Vector3.ZERO, Vector3(0.1, 0, 0), Vector3(0.3, 0, 0)] as Array[Vector3]
+	r.land_throw(th)
+	check(r.throw_faces == ([2, 2, 2] as Array[int]), "Heads skips the Mirror's 6 (copies 2); the Mirror skips the coin")
+	r = run_with([], [&"ferryman"], 4)
+	th = TableThrow.make([5, 0, 3, 6] as Array[int], [], [coin(), coin(), plain(), plain()])
+	r.land_throw(th)
+	check(r.throw_faces == ([6, 3, 3, 6] as Array[int]), "two coins: Heads -> 6, Tails -> 3 (never each other)")
+	# The copy keeps the coin's own face mod.
+	var hot := coin()
+	hot.mods[0] = M.hellfire
+	r = run_with([], [&"ferryman"], 2)
+	th = TableThrow.make([5, 3] as Array[int], [hot.mod_at(1), null], [hot, plain()])
+	r.land_throw(th)
+	check(r.throw_faces == ([3, 3] as Array[int]) and r.throw_mods[0] == M.hellfire, "the copy keeps the coin's carved mod (Hellfire 3)")
+	# Thrown alone (here: a 1-die rethrow out of a 3-die hand).
+	r = run_with([], [&"ferryman"], 3)
+	th = TableThrow.make([5] as Array[int], [], [coin()])
+	check(r.land_throw(th) and r.throw_faces == ([5] as Array[int]), "alone: Heads = 5 and lights")
+	r = run_with([], [&"ferryman"], 3)
+	var hands := r.hands_left
+	th = TableThrow.make([0] as Array[int], [], [coin()])
+	check(not r.land_throw(th) and r.hands_left == hands - 1, "alone: Tails = Blank, a bust")
+	check((th.mods[0] as FaceModData).effect == FaceModData.Effect.BLANK, "alone: Tails face turned Blank")
+	# A full 1-die handful of just the coin: Tails is a full throw -> free.
+	r = run_with([], [&"ferryman"], 1)
+	th = TableThrow.make([0] as Array[int], [], [coin()])
+	check(not r.land_throw(th) and r.free_rethrow, "a lone coin as the whole handful: Tails is a free rethrow")
+	# Order: the copy happens before the boss's lit check (Cold Sixes).
+	r = run_with([{"id": &"cold_sixes", "params": {}}], [&"ferryman"], 5)
+	th = TableThrow.make([5, 6, 1] as Array[int], [], [coin(), plain(), plain()])
+	r.land_throw(th)
+	check(r.throw_faces.size() == 3 and r.throw_faces[0] == 6 and r.lit() == ([2] as Array[int]), "Heads copies the 6, then Cold Sixes keeps it from lighting")
