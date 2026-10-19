@@ -177,7 +177,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(solid == s.pot_dice.size() and solid == 3, "[%s] one solid collider per potted die (%d)" % [tag, solid])
 	check(s.bhud.countup.total_label.text == "126" and s.bhud.countup.banner_label.text == "TRIPS!", "[%s] count-up lands on 126 with the Trips banner" % tag)
 	check(has_prefix(j.calls, "fb:lift") or has_prefix(j.calls, "art:lift"), "[%s] dice lift (%s)" % [tag, str(j.calls)])
-	check(has_prefix(j.calls, "fb:fire") or has_prefix(j.calls, "art:fire"), "[%s] flames on the pot" % tag)
+	check(has_prefix(j.calls, "fx:glow_") and not has_prefix(j.calls, "fb:fire") and not has_prefix(j.calls, "art:fire"), "[%s] the pot GLOWS (no fire on dice) (%s)" % [tag, str(j.calls)])
 	check(j.calls.has("sfx:mult_slam") or j.calls.has("sfx:dice_drop(fb)"), "[%s] slam sound hook" % tag)
 	await create_timer(0.3).timeout
 	# Bust: snuff, ash, flask crack, the pending Triple stamp crumbles.
@@ -191,7 +191,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	await s.sequence_finished
 	await create_timer(0.3).timeout
 	check(j.calls.has("sfx:soul_flask_crack") or j.calls.has("sfx:soul_burn(fb)"), "[%s] Soul flask crack sound after the bust (%s)" % [tag, str(j.calls)])
-	# Hot Hand: all dice ignite, banner, fly back with fire.
+	# Hot Hand: all dice glow, banner, fly back with ember trails.
 	res = await throw_faces(s, [3, 3, 3, 5, 5] as Array[int])
 	await s.sequence_finished
 	for i in 5:
@@ -200,7 +200,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(s.throw_again() and s.dice.size() == 5 and s.pot_dice.is_empty(), "[%s] Hot Hand still scoops all 5 back at once" % tag)
 	await s.bhud.countup.finished
 	await process_frame
-	check(has_prefix(j.calls, "fb:hot_hand") or has_prefix(j.calls, "art:hot_hand"), "[%s] Hot Hand ignite (%s)" % [tag, str(j.calls)])
+	check(j.calls.has("fx:hot_hand_glow") and j.calls.has("fx:ember_trail") and not has_prefix(j.calls, "art:fire_trail"), "[%s] Hot Hand glow pulse + ember trail, no fire (%s)" % [tag, str(j.calls)])
 	check(s.bhud.result_label.text.begins_with("Hot Hand"), "[%s] Hot Hand banner (%s)" % [tag, s.bhud.result_label.text])
 	await create_timer(0.6).timeout
 	# Bank: count-up, embers flow, CLAIMED stamps.
