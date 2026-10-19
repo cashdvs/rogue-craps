@@ -83,18 +83,22 @@ func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bo
 	calls.append([&"impact", kind, speed_mps, material, die_id])
 	return true
 """
-const SFX_FALLBACK_SRC := """extends SfxManager
+## The no-hooks path: a plain Node with only what that path calls (play,
+## has_event), so it stays hook-free whatever SfxManager grows.
+const SFX_FALLBACK_SRC := """extends Node
 var calls: Array = []
 func play(event: StringName, _pitch: float = 1.0, _volume_db: float = 0.0, _jitter: float = 0.06) -> void:
 	calls.append([&"play", event])
+func has_event(_event: StringName) -> bool:
+	return true
 """
 
 
-func _sfx_stub(src: String) -> SfxManager:
+func _sfx_stub(src: String) -> Node:
 	var gd := GDScript.new()
 	gd.source_code = src
 	gd.reload()
-	var n: SfxManager = gd.new()
+	var n: Node = gd.new()
 	return n
 
 
@@ -138,6 +142,7 @@ func _test_sfx_hooks(s: Table3D) -> void:
 	s._play_t = 2.0
 	s._on_contact({"t": 2.0, "die": 0, "kind": &"backboard", "speed": 2.0, "impulse": 0.01, "other": -1})
 	s._play_t = -1.0
+	check(not fb.has_method("play_throw") and not fb.has_method("play_impact"), "fallback stub has no hooks")
 	check(fb.calls.has([&"play", &"dice_shake"]) and fb.calls.has([&"play", &"rim_hit"]), "fallback: dice_shake and rim_hit without the hooks (%s)" % str(fb.calls))
 	s.sfx = real_sfx
 	# Stale/speculative contacts: a die that rested elsewhere and is thrown

@@ -159,7 +159,9 @@ var debug_a: SpinBox
 var debug_b: SpinBox
 var debug_reduced: CheckBox
 var debug_speed: OptionButton
-var sfx: SfxManager
+## The table's SfxManager. Typed Node so tests can swap in a plain stand-in
+## (only play() / has_event(), or the play_throw / play_impact hooks).
+var sfx: Node
 
 
 func _ready() -> void:
