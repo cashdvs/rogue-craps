@@ -15,8 +15,8 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 
 | Scene | Use |
 |---|---|
-| `scenes/hearth_board.tscn` | PC board (12,964 tris incl. fire cards; budget 15k) |
-| `scenes/hearth_board_mobile.tscn` | mobile LOD (5,978 tris; budget 8k) |
+| `scenes/hearth_board.tscn` | PC board (14,910 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
+| `scenes/hearth_board_mobile.tscn` | mobile LOD (6,968 drawn, dressing on, tail out; 5,856 off; budget 8k) |
 
 ## What goes where
 
@@ -114,12 +114,96 @@ plus a slow drifting diamond spark field (`sparks_drift.tres`) above the column 
   and the felt has a low Underfelt emission floor, so dice never fall into near-black in the vignette.
 - `Hearth/Candles` subtree: approved as is. The Art Director will document it in board_kit.md.
 
+## Set dressing + ambient motion (detail pass, Oct 19)
+
+Spec: `art/concept/bonfire_table/hearth_detail_pass.md`. Everything lives under `Hearth/Dressing`
+(`scripts/hearth_dressing.gd`), built by `src/build_dressing.py` (Blender) + `make_hearth.gd`. Art only:
+no gameplay code, no lights, no physics. The play area stays clean (the tests check every vertex, at
+rest and over every clip frame).
+
+| Node / look | Content |
+|---|---|
+| `Corners` (dressing_corners*.glb) | one tight, tall cluster per corner (v2): FL coin tower + short stack + cracked shot glass (PC); FR a contract with a wax seal draped over the far rail with knucklebones + a finger bone on it (aged bone #C9B48A, never the dice bone); NR half-melted stub + coin stack; a warm light-pool decal on the rail top under each cluster (`dressing_pool`, `shaders/hearth_pool.gdshader`, additive, ~25-35 % value); wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
+| `Trinkets` (PC only) | horned skull ashtray (the tall end of the FR cluster), leather dice cup + coin stack (the NL cluster) |
+| `Bell` | Smiles' brass service bell in the FR cluster (v2: dark base plate, brass dome, plunger + round knob). Moved from beside Smiles (x -0.205): it never clashed with his clips, but it sat on the brazier read on screen (`tests/test_hearth_dealer_clear.gd`) |
+| `Chain` | chain + padlock hanging down the left rail's outer face (sways on a rail hit) |
+| `Tail` (Root / Joint / Tip) | a burgundy devil tail with a spade, behind the far-left corner; hidden unless peeking |
+| `Under` | the room floor (y -0.9), 4 turned legs on ball-and-claw feet (claws on the near legs), a heavy chain on the floor; PC adds 2 dropped coins + 2 dice at the screen edges |
+| `Studs` | Board A's stud ring with 12 tarnished / 4 missing (mobile 5 / 2), never on the near rail; Board A's `Visual/Trim` is hidden while it shows |
+| `Ambient` | ember motes over the brazier (7 / 5) and the cauldron (3 / 2), lamp dust (16 / 8) high in the far half of the cone |
+| `Backdrop` | an unshaded card at z -2.3: out-of-focus far casino tables and lamp cones, max ~1 % linear value |
+| felt | `hearth_felt_worn.tres` (`textures/felt_ember_corners_worn.png`): scuff arc, two broad broken scorch rings, two pocks (right half), an old wax stain (right rail); <= 12 % value shift, landing centre and both combo-table strips (landscape near edge, portrait left edge) untouched, nothing pip-shaped or bone-coloured |
+| rails | `hearth_leather_carved.tres` (`shaders/hearth_toon_detail.gdshader` + `textures/rail_carve.png`, `src/make_rail_carve.py`): v2 puts it where the camera looks: flame-tongue scrollwork on the top face running between the studs, an imp face on the front face below the stud row, 2.4 mm normal map + deeper cavity + a brass edge highlight on the raised parts (B channel), 22 tiles on the near and side rails (off on the far rail), plus two claw marks at the near corners. AD finishing (Oct 19): the near rail only is dimmed (`carve_dim` 0.85: carving brass x 0.85; `carve_edge_dim` 0.15: relief edges 15 % darker; `carve_rim_dim` 1.0: no fresnel rim glint on the relief edges; near-rail U span `carve_dim_u`) so the dressing-added p99 is <= 60 % of the dice value (59 % PC / 57 % phone); the brass total plate '14' stays the brightest brass (both checked by the test); the side rails and props are unchanged |
+
+Props are drawn at the dice's scale (the 0.08 m dice on a 2 m felt), use the prop ink `ink_prop.tres`
+(0.0025 = 60 % of the dice outline) and carry a faint self-glow of their own albedo: the dressing sits
+outside the lamp cone, where the toon ramp is black, and reads by "candlelight". v2: the prop materials are
+`hearth_toon_detail` with a thin unlit warm rim (`rim_emit`, Ember or brass, grazing edges only) to cut them
+off the black backdrop; the tail's rim is Ember on its top edge only (`rim_emit_up`), 22 deg of hue and well
+under the brightness of Danger red. Ceiling: glow + rim <= 60 % of the dice value, nothing more saturated
+than Ember (checked per material by the test). No fire on dice, no occult symbols, no Soul cyan / Danger red.
+
+### Hooks (on the `Hearth` hub; forwarded to `Hearth/Dressing`)
+
+```gdscript
+fx.dressing = true|false  # everything on / exactly the pre-pass board (felt, leather, Board A studs)
+fx.ambient = true|false   # ambient motion (motes, dust, tail peeks, chain, bell); off for reduced motion
+fx.scoring = true|false   # while a score shows: the tail whips back if out and does not peek again until false
+fx.rail_hit(strength)     # a die hit a rail: ChainPlayer "chain_sway" (0.4 s), amplitude x strength (0.2-1.5)
+fx.bell_ring()            # Smiles' bell rattles (BellPlayer "bell_rattle", 0.5 s); fx.eyes reaching 3 calls it
+# Dressing.set_next_peek(seconds) schedules the next tail peek (renders / tests); peek_min / peek_max = 8 / 15 s
+```
+
+Gameplay never has to call anything: with no hooks the tail still peeks every 8-15 s. Godot Dev may wire
+`rail_hit` to the die-rail contact signal and `scoring` to the score display; no gameplay code was changed.
+
+| Player / clip | Length | Keys (on twos) |
+|---|---|---|
+| `TailPlayer/tail_peek` | 1.8 s | `tail_out` 0 -> 1 in 3 drawings, a 2-bone sway + a twitch, back in 2 drawings |
+| `TailPlayer/tail_whip` | 0.17 s | straight back under (scoring) |
+| `ChainPlayer/chain_sway` | 0.4 s | `chain_swing` 1, -0.65, 0.4, -0.22, 0.1, 0 |
+| `BellPlayer/bell_rattle` | 0.5 s | `bell_shake` +-1 decaying |
+
+The clips key only the pose params (`tail_out / tail_sway / tail_curl / chain_swing / bell_shake`).
+
+### Triangles (dressing)
+
+| Part | PC | Mobile |
+|---|---|---|
+| corners (incl. 4 / 3 light pools, 6 tris each) | 790 | 484 |
+| trinkets | 248 | - |
+| chain + padlock | 217 | 163 |
+| bell | 180 | 133 |
+| floor, legs, floor chain (+ coins, dice on PC) | 564 | 242 |
+| tail (root + tip) | 78 | 64 |
+| **dressing props (corners .. tail)** | **2,077** | **1,086** |
+| worn studs (replace Board A's trim ring, 1,440 / 108; 4 / 2 studs missing) | 1,397 | 102 |
+| motes + dust / backdrop | 52 / 2 | 30 / 2 |
+| **board drawn, dressing on, tail out** | **14,910** | **6,968** |
+
+How the numbers relate: the props alone are **2,077 PC / 1,086 mobile**. The `Hearth/Dressing` subtree that
+`test_hearth_dressing.gd` prints ("dressing 3,450 / 1,156") is measured with the tail folded away and also holds
+the worn studs and the motes / dust / backdrop: 2,077 - 78 tail + 1,397 + 54 = 3,450 (mobile 1,086 - 64 + 102 + 32
+= 1,156). Board drawn with the dressing on and the tail out = 14,910 / 6,968 (off: 12,822 / 5,856, exactly the
+pre-pass board). `test_hearth_board.gd` counts every mesh incl. all fire steps: 14,922 / 6,974. Budgets 15k / 8k.
+
+Renders: `/workspace/dice/art/renders/hearth/detail_pass/` (v1) and `detail_pass/v2/` (team render folder, not in
+the repo), made with `src/render_detail.gd` (stills, 48 px read test, ambient frames; usage in its header). Tests: `tests/test_hearth_dressing.gd` (budget, clearance,
+toggle, clips), `tests/test_hearth_dressing_looks.gd` (felt wear + combo strips, inks, colours, unlit ceiling, tail rim,
+near-rail carving vs the total plate), `tests/test_hearth_dealer_clear.gd` (the near-dealer
+dressing vs every Smiles clip at the dealer spot: no intersection, the bell >= 85 % visible from the PC and phone
+game cameras, never over the brazier read on screen; Smiles is CPU-skinned so it runs headless) and
+`tests/test_hearth_board.gd` + `tests/test_hearth_board_fx.gd`.
+
 ## Rebuild
 
 `art/models/boards/hearth/src/rebuild_hearth.sh` (from the repo root): `build_hearth.py` (Blender 4.5,
 props .glb) -> `make_hearth.gd -- materials` -> `write_imports.py` (.glb.import slot -> .tres) ->
-`--import` -> `make_hearth.gd -- props` -> `make_hearth.gd -- board`. Textures: `make_flame_atlas.py`,
-`make_felt_motif.py`. Test: `tests/test_hearth_board.gd`.
+`--import` -> `make_hearth.gd -- props` -> `make_hearth.gd -- board`; the detail pass adds `build_dressing.py`
+(Blender, imports `build_hearth.py`) before the imports. Textures: `make_flame_atlas.py`, `make_felt_motif.py`
+(also the worn overlay), `make_rail_carve.py`. Tests: `tests/test_hearth_board.gd`, `tests/test_hearth_board_fx.gd`, `tests/test_hearth_dressing.gd`,
+`tests/test_hearth_dressing_looks.gd`, `tests/test_hearth_dealer_clear.gd`. Renders: `src/render_detail.gd` (not part of
+the rebuild; needs Vulkan, see its header).
 
 ## Notes / spec gaps
 
@@ -133,4 +217,7 @@ props .glb) -> `make_hearth.gd -- materials` -> `write_imports.py` (.glb.import 
   Smiles stands **stage left at x ~ -0.42** (head beside the brazier), and only his head / shoulders read in the
   game camera (spec gap: "waist up" is not visible there; it is in 3/4 and close-ups).
 - The controller scripts (`scripts/*.gd`, `@tool`) are visual-only setters (instance uniforms + visibility); they are additions on top of the art-only Board A rule.
+- Follow-up (QA on #111): `src/make_hearth.gd` (763 lines) and `src/build_dressing.py` (583) are over the ~400-line
+  guideline; split them (e.g. make_hearth: materials / props / board / dressing; build_dressing: corners / under /
+  chain + bell + tail) in a later art-only PR, rebuilding to byte-identical .glb / .tres.
 - Phone portrait framing (CameraRig) crops the far rail as on Board A, so the brazier / goal plaque is off screen in portrait.

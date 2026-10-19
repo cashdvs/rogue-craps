@@ -89,7 +89,8 @@ def build_games(GAMES_RATIO, track_em, gap_ratio):
   mc=((mmin[0]+mmax[0])/2,(mmin[1]+mmax[1])/2); gc=((gmin[0]+gmax[0])/2,(gmin[1]+gmax[1])/2)
   WM="".join(f'<path d="{d}"/>' for d in MAIN+GAMES)
   tb_top=mmin[1]; tb_bot=gmax[1]; tb_h=tb_bot-tb_top; tb_mid=(tb_top+tb_bot)/2
-build_games(0.40, 0.42, 0.30)    # GAMES cap = 40% of TINY ANVIL cap, spaced caps, gap 0.30 cap
+GAMES_CAP, GAMES_TRACK_EM, GAMES_GAP = 0.52, 0.36, 0.30   # v1.1 (2026-10-19): GAMES cap 52% of TINY ANVIL cap (was 40% / +0.42 em), spaced caps, gap 0.30 cap
+build_games(GAMES_CAP, GAMES_TRACK_EM, GAMES_GAP)
 WW=1200.0; ws=WW/(mmax[0]-mmin[0])   # TINY ANVIL line = 1200 px at 2x
 def vb_of(lo,hi,p=6): return (lo[0]-p,lo[1]-p,hi[0]-lo[0]+2*p,hi[1]-lo[1]+2*p)
 def paths_svg(ps,color,vb): return svg_doc(vb,"".join(f'<path d="{d}" fill="{color}"/>' for d in ps))
@@ -101,7 +102,7 @@ for cname,c in (("cream",CREAM),("charcoal",CHAR)):
     vb=vb_of(mmin,mmax); svg=paths_svg(MAIN,c,vb); save_svg(f"wordmark_main_{cname}",svg); render(svg,vb,ws,f"wordmark_main_{cname}",{"center":mc})
     vb=vb_of(gmin,gmax); svg=paths_svg(GAMES,c,vb); save_svg(f"wordmark_games_{cname}",svg); render(svg,vb,ws,f"wordmark_games_{cname}",{"center":gc})
 meta["_wordmark_geometry"]={"games_center_offset_from_main_center_px_2x":[round((gc[0]-mc[0])*ws,1),round((gc[1]-mc[1])*ws,1)],
-  "games_cap_ratio":0.40,"main_line_width_px_2x":WW}
+  "games_cap_ratio":GAMES_CAP,"games_track_em":GAMES_TRACK_EM,"games_width_ratio":round((gmax[0]-gmin[0])/(mmax[0]-mmin[0]),3),"main_line_width_px_2x":WW}
 WM="".join(f'<path d="{d}"/>' for d in MAIN+GAMES)
 tb_top=mmin[1]; tb_bot=gmax[1]; tb_h=tb_bot-tb_top; tb_mid=(tb_top+tb_bot)/2
 
