@@ -51,6 +51,11 @@ _subresources={
 "use_external/fallback_path": "res://art/models/dice/materials/wanderer_fin.tres",
 "use_external/path": "res://art/models/dice/materials/wanderer_fin.tres"
 },
+"wanderer_fin_tip": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/dice/materials/wanderer_fin_tip.tres",
+"use_external/path": "res://art/models/dice/materials/wanderer_fin_tip.tres"
+},
 "wanderer_pip": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/dice/materials/wanderer_pip.tres",

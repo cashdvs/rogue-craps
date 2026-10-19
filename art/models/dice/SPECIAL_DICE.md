@@ -12,7 +12,7 @@ no gameplay code, colliders, scripts or animations. The Bone d6 (`bone_d6.glb`, 
 | `hellfire_d6.glb` | Hellfire die | 1,964 | `hellfire_body`, `hellfire_pip`, `hellfire_seam`, `hellfire_spike` | 0.086 (needle spike tips, 1.08x) |
 | `gilded_d6.glb` | Gilded die | 1,906 | `gilded_body`, `gilded_pip`, `gilded_panel`, `gilded_bead` | 0.0836 (beads trimmed) |
 | `twin_flame_d6.glb` | Twin Flame Die | 1,394 | `twin_flame_body`, `twin_flame_pip`, `twin_flame_half`, `twin_flame_pip_light`, `twin_flame_cleft`, `twin_flame_line` | 0.080 |
-| `wanderer_d6.glb` | Wanderer Die | 1,808 | `wanderer_body`, `wanderer_pip`, `wanderer_fin` | 0.0861 (tapered fin tips, 1.08x) |
+| `wanderer_d6.glb` | Wanderer Die | 1,600 | `wanderer_body`, `wanderer_pip`, `wanderer_fin`, `wanderer_fin_tip` | 0.086 (8 corner blades, brass tips, 1.08x) |
 | `bellows_d6.glb` | Bellows Die | 1,650 | `bellows_body`, `bellows_pip`, `bellows_pleat` | 0.080 |
 | `blood_pact_d6.glb` | Blood Pact Die | 1,706 | `blood_pact_body`, `blood_pact_pip`, `blood_pact_seal`, `blood_pact_stamp` | 0.0836 (seals) |
 | `coven_d6.glb` | Coven Die | 958 | `coven_body`, `coven_pip`, `coven_cove` | 0.080 |
@@ -44,13 +44,14 @@ what sinks is a sliver; every other die stays at 0.042 m or less. `build_special
 1.045` (0.0418 m, the default) and `EXTENT_SCALE = {"hellfire_d6": 1.08, "wanderer_d6": 1.08}` set the per-die
 `BOX_HALF` that the builders and `clamp_to_box()` use. `tests/test_special_dice.gd` asserts the per-die caps (0.0432
 for those two, 0.042 for the rest) and that only tapered tips pass 0.042 m (every such vertex within 5 mm of a tip).
+Revision (AD, Oct 19): Wanderer's 12 edge fins became 8 corner blades; the sliver rule and cap are unchanged.
 
 | Die | Max extent per axis (before -> after) | Box sink (before -> after) | How |
 |---|---|---|---|
 | Bone, Mirror, Cracked, Twin Flame, Bellows, Coven | 0.0400 | 0 | all cuts, face planes intact |
 | Hellfire | 0.0457 -> 0.0416 -> **0.0430** | 5.7 -> 1.6 -> 3.0 mm (needle tip only) | corner spikes shortened, then (fin read) re-made as bone needles: 8.4 mm base necking to 2 mm and a point, so only the last ~1.7 mm of each needle passes 0.042 m |
 | Gilded | 0.0438 -> 0.0418 | 3.8 -> 1.8 mm | corner beads (and the edge-middle beads by ~0.2 mm) clamped to the box, flat-topped where they would touch the felt; no exception in the test |
-| Wanderer | 0.0464 -> 0.0416 -> **0.0431** | 6.4 -> 1.6 -> 3.1 mm (fin tips only) | rounder edge (0.16 x edge); (fin read) fins ~9 mm past the bevel, 40 mm along the edge, 5 mm thick at the root, necking to a 0.6 mm tip, so only the top ~4.6 mm of each blade passes 0.042 m |
+| Wanderer | 0.0464 -> 0.0416 -> **0.0430** | 6.4 -> 1.6 -> 3.0 mm (blade points only) | rounder edge (0.16 x edge); (fin read v2) 8 corner blades, diamond section 22 x 16 mm at the root necking to 6 x 5 mm and a point; only the last ~4 mm (the brass tip) passes 0.042 m |
 | Blood Pact | 0.0473 -> 0.0418 | 7.3 -> 1.8 mm | seals clamped to the box: the wax presses flat onto the three corner faces, bone stamp on top |
 | Last Breath | 0.0452 -> 0.0416 (x, z) | 5.2 -> 1.6 mm (on a side) | both collars pulled in to 1.6 mm proud of the side faces |
 Trimmed renders for the AD (box colliders on every die): `/workspace/dice/captures/dice_showcase/trimmed/`.
@@ -64,11 +65,15 @@ rules are unchanged (`batch2_palette.md`).
 |---|---|---|---|
 | Hellfire | 8 corner spikes | charcoal body material | `hellfire_spike`: bone #E8DCC0 needles (bone, not brass: no Devilish corner-cap cue), 1.08x |
 | Gilded | 20 beads | body brass | `gilded_bead`: polished bright brass #E2C06A on the tarnished body |
-| Wanderer | 12 fins | brass #B08D3C at 0.8 gain (sank into the lit steel) | bright brass #E2C06A, thicker root, tapered tips, 1.08x |
+| Wanderer | fins | 12 edge fins, brass #B08D3C at 0.8 gain (sank into the lit steel) | **v2 (value flipped):** 8 fatter corner blades in dark iron (`wanderer_fin`, `IRON_DARK`, reads ~22% value, inked), each ending in a small bright brass tip (`wanderer_fin_tip`, `BRASS_FULL`, not inked: a 2.2 mm hull would eat a 4 mm glint), 1.08x |
 | Blood Pact | 2 seals | black wax disc + small bone boss | a full-value bone disc (r 8.4 mm) pressed in a black wax ring (palette: black wax + bone stamp, still not gold) |
-| Last Breath | 2 collars | dark iron #34302E (lost in the ink line) | bright brass bands (**palette change for AD sign-off**: `batch2_palette.md` lists dark iron) |
+| Last Breath | 2 collars | dark iron #34302E, no ink of their own | **v2:** dark iron again (`IRON_DARK`: #34302E lamp-compensated, reads ~22% value under the lamp; per palette) with the accent ink hull. (bda2bc4's bright brass was not approved.) |
+`tests/test_special_dice.gd` checks each part's rule: bright (bone / brass: value >= 0.85, low saturation) for the
+spikes, beads, stamps and Wanderer's tips; dark iron for the collars and Wanderer's blades, both as stored and as lit
+by the lamp (sRGB value 0.18-0.27); an ink hull on every part except the brass tips; the brass tips at all 8 corners.
 Renders: `/workspace/dice/captures/dice_showcase/fin_read/` (48 px before/after strip, a box-to-box pile and a pot row
-at the game camera, native + x4; tool `/workspace/dice/art/source/dice_showcase_tools/fin_read.gd`).
+at the game camera, native + x4; tool `/workspace/dice/art/source/dice_showcase_tools/fin_read.gd`); v2 (Wanderer +
+Last Breath, bda2bc4 vs now): `fin_read/v2/`.
 
 ## The dice (silhouette first, then material)
 **Mirror Die** (Mirror: copies the nearest die's face). Silhouette: a faceted 2-plane chamfer (bevel 0.24 x edge, flat
@@ -100,7 +105,7 @@ darker panel (#6B5A34) framed by the raised bright rim: the filigree frame. Pips
 ## Batch 2 (silhouette first, then material)
 Plain Bone faces 1-6 on all six (same pip layout / face axes as above). No fire shapes, no emission on any of them,
 and no rarity cue: no brass corner caps (Devilish) and no horns (Mischievous / Satanic). Each takes a silhouette
-family none of the others use: pinched waist, edge points, stepped edges, two corner seals, concave edges, collars.
+family none of the others use: pinched waist, corner blades (Wanderer: flat, dark, brass-tipped; Hellfire has round bone needles), stepped edges, two corner seals, concave edges, collars.
 
 **Palette** (AD, Oct 18, `/workspace/dice/art/concept/special_dice/batch2_palette.md`): spread hue AND value under the
 warm lamp so no two neighbours merge at 48 px. Never Soul cyan #4FE6E0, Danger #FF2E3E, the Satanic violet glow or
@@ -117,10 +122,10 @@ thin ember #E8622A line (`twin_flame_line`, 3.2 mm, not emissive, low light gain
 the seam. Pips flip colour with the half: Pit Black on bone, bone on charcoal (`twin_flame_pip_light`). The centre
 pips of the 1 and 3 sit on the seam, so they are split light and dark: twins.
 
-**Wanderer Die** (runs may skip one value). Silhouette: a compass point (a flat bright-brass fin, ~9 mm past the rounded edge, tapering to a thin tip for the box collider) on the middle
-of all 12 edges, so from any side the outline is an 8-pointed star (a compass rose). Unlike the Hellfire spikes,
-these are flat blades at the edge middles, not cones on the corners. Material (mid value, cool): steel blue #5C7894
-(desaturated, well clear of Soul cyan), bright brass #E2C06A fins (metallic spec, inked), cream #F2E6C8 pips.
+**Wanderer Die** (runs may skip one value). Silhouette: a compass point on each of the 8 corners: a flat dark-iron
+blade (diamond section, wide in the plane of the corner diagonal and the die's Y axis) tapering to a small bright
+brass tip, 1.08x for the box collider. Unlike Hellfire's round bone needles, these are flat, dark and brass-tipped. Material (mid value, cool): steel blue #5C7894
+(desaturated, well clear of Soul cyan), dark iron #34302E blades (lamp-compensated, ~22% value as lit, inked) with bright brass #E2C06A tips, cream #F2E6C8 pips.
 
 **Bellows Die** (Hot Hands +2 mult). Silhouette: every edge folded into a 3-step staircase (accordion pleats, steps
 3 / 6 / 9.5 mm), so the outline corners are stepped, not round or chamfered. Material: tan leather #B88A5A, the
@@ -139,7 +144,7 @@ Satanic violet), matte wax-pale coves #D9CBA8 that draw a lattice around the fac
 **Last Breath Die** (x3 when potted from a 1-2 die rethrow). Silhouette: a stone urn block with a dark iron collar
 hoop (1.6 mm proud, trimmed for the box collider) round BOTH ends, outside the side pips, so it reads as a banded urn from any side and stays
 centred and symmetric (see colliders). Material (light, cool): pale ash stone #9AA0A6 (lamp-compensated so it reads
-grey, not Bone), bright brass #E2C06A collars (fin read, Oct 19; were dark iron #34302E), charcoal #2A2426 pips.
+grey, not Bone), dark iron #34302E collars (lamp-compensated, ~22% value as lit, with their own ink hull), charcoal #2A2426 pips.
 
 ## Showcase
 Rendered outside the repo (`/workspace/dice/art/source/dice_showcase_tools/showcase.gd`), real Jolt physics on
