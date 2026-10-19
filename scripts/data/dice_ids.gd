@@ -17,6 +17,7 @@ extends RefCounted
 
 # --- Shape ids -------------------------------------------------------------
 const SHAPE_COIN: StringName = &"coin"
+## Valid shape (#61); no die uses it today. Powder Keg is SHAPE_D6.
 const SHAPE_D3: StringName = &"d3"
 const SHAPE_D4: StringName = &"d4"
 const SHAPE_D6: StringName = &"d6"
@@ -72,7 +73,8 @@ const ALL: Dictionary = {
 	DIE_MIDNIGHT: {"shape": SHAPE_D12, "name": "Midnight"},
 	DIE_VERDICT: {"shape": SHAPE_D20, "name": "Verdict"},
 	DIE_FERRYMAN: {"shape": SHAPE_COIN, "name": "Ferryman's Coin"},
-	DIE_POWDER_KEG: {"shape": SHAPE_D3, "name": "Powder Keg"},
+	# Body is a d6 printed 1-1-2-2-3-3; "d3" is display-only. Art key powder_keg_d6.
+	DIE_POWDER_KEG: {"shape": SHAPE_D6, "name": "Powder Keg"},
 	DIE_KNUCKLEBONE: {"shape": SHAPE_TALUS, "name": "Knucklebone"},
 }
 
