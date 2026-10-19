@@ -165,6 +165,22 @@ func buy_seal(i: int, params: Dictionary = {}) -> bool:
 	return true
 
 
+## Soul Draught price (P3): shop_soul_price + shop_soul_step per Draught
+## bought this run.
+func soul_price() -> int:
+	return data.shop_soul_price + data.shop_soul_step * soul_draughts_bought
+
+
+## Buy a Soul Draught: +shop_soul_amount max Soul and heal as much (any
+## number per visit; each raises the next price).
+func buy_soul() -> bool:
+	if data.shop_soul_amount <= 0 or not _pay(soul_price()):
+		return false
+	soul_draughts_bought += 1
+	progress.change_max_soul(data.shop_soul_amount)
+	return true
+
+
 ## Sell a special die from the handful for half its price (floor; a 0-Ember
 ## sale still sells). True whenever the die left the handful.
 func sell_die(die_i: int) -> bool:

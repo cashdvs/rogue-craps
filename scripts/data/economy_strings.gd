@@ -15,3 +15,8 @@ static func table_points_embers(t: BonfireTuning) -> String:
 	if t.points_embers_cap <= 0:
 		return "Points: 1 Ember per %d." % t.points_per_ember
 	return TABLE_POINTS_EMBERS % [t.points_per_ember, t.points_embers_cap]
+
+
+## strings_v1 shop_soul_button (P3): "Soul Draught: +4 max Soul, heals 4. 12 Embers".
+static func shop_soul_button(amount: int, price: int) -> String:
+	return "Soul Draught: +%d max Soul, heals %d. %d Embers" % [amount, amount, price]

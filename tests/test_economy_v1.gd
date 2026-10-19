@@ -24,6 +24,8 @@ func _initialize() -> void:
 	_test_points_cap()
 	_test_prices()
 	_test_bag_cap()
+	_test_soul_draught()
+	await _test_shop_ui()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_data = null
 	_tuning = null
@@ -144,3 +146,64 @@ func _test_bag_cap() -> void:
 		titled = titled or (l as Label).text == "Your dice · 6/6"
 	_check(titled, "P2: the Your dice panel reads 6/6")
 	panel.free()
+
+
+# --- P3: Soul Draught ---
+
+func _test_soul_draught() -> void:
+	_check(_data.shop_soul_amount == 4 and _data.shop_soul_price == 12 and _data.shop_soul_step == 4, "P3 data: +4 max Soul for 12, +4 per buy")
+	var run := MapRun.new(_data, 5)
+	_check(_enter(run, NT.SHOP), "shop: entered")
+	run.progress.embers = 11
+	_check(run.soul_price() == 12 and not run.buy_soul() and run.progress.max_soul == 35, "P3: 11 Embers can't buy a 12-Ember Draught")
+	run.progress.embers = 100
+	run.progress.change_soul(-15)
+	_check(run.buy_soul() and run.progress.max_soul == 39 and run.progress.soul == 24 and run.progress.embers == 88, "P3: +4 max Soul and heals 4 (20 -> 24), for 12")
+	_check(run.soul_price() == 16 and run.buy_soul() and run.progress.embers == 72 and run.soul_price() == 20, "P3: 12, 16, 20 (any number per visit)")
+	run.leave()
+	_check(_enter(run, NT.SHOP) and run.soul_price() == 20, "P3: the price rises per Draught bought this run, not per visit")
+	run.progress.change_soul(100)
+	_check(run.buy_soul() and run.progress.max_soul == 47 and run.progress.soul == 47, "P3: at full Soul it still raises and heals to the new max")
+	run.screen = MapRun.Screen.MAP
+	run.progress.embers = 100
+	_check(not run.buy_soul() and run.progress.embers == 100, "P3: only in the shop")
+
+
+# --- Shop UI: final prices on the buttons ---
+
+func _ui_buttons(node: Node, out: Array[Button] = []) -> Array[Button]:
+	for c in node.get_children():
+		if c is Button:
+			out.append(c)
+		_ui_buttons(c, out)
+	return out
+
+
+func _ui_button(scene: RunScreen, prefix: String) -> Button:
+	for b in _ui_buttons(scene._panel_box):
+		if b.text.begins_with(prefix):
+			return b
+	return null
+
+
+func _test_shop_ui() -> void:
+	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
+	scene.run_seed = 21
+	root.add_child(scene)
+	await process_frame
+	var run := scene.run
+	_enter(run, NT.SHOP)
+	await process_frame
+	run.progress.embers = 11
+	scene._show_shop()
+	var soul := _ui_button(scene, "Soul Draught")
+	_check(soul != null and soul.text == "Soul Draught: +4 max Soul, heals 4. 12 Embers" and soul.disabled, "P3 UI: shop_soul_button, greyed when short")
+	run.progress.embers = 40
+	scene._show_shop()
+	soul = _ui_button(scene, "Soul Draught")
+	soul.pressed.emit()
+	await process_frame
+	soul = _ui_button(scene, "Soul Draught")
+	_check(run.progress.max_soul == 39 and soul != null and soul.text.ends_with("16 Embers"), "P3 UI: buying shows the next price (16)")
+	scene.queue_free()
+	await process_frame

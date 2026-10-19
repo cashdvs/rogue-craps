@@ -87,3 +87,9 @@ extends Resource
 @export var shop_seal_step: int = 1
 @export var reroll_base: int = 3
 @export var reroll_step: int = 1
+## Soul Draught, in every shop (economy_balance_v1 P3): +shop_soul_amount max
+## Soul (also heals that much) for shop_soul_price Embers, + shop_soul_step
+## per Draught bought this run (12, 16, 20...). Same rate as the Toll Keeper.
+@export var shop_soul_amount: int = 4
+@export var shop_soul_price: int = 12
+@export var shop_soul_step: int = 4

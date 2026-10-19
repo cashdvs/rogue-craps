@@ -49,6 +49,8 @@ var shop_seals_bought: int = 0
 var shop_rerolls: int = 0
 ## Free (event) rerolls spent this shop visit; only seeds the new stock.
 var shop_free_rerolls: int = 0
+## Soul Draughts bought this run (never reset: the price rises per run).
+var soul_draughts_bought: int = 0
 ## Rest: the face mod the free carve offers.
 var rest_mod: FaceModData
 
