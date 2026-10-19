@@ -6,6 +6,12 @@
 ## The one-shots go through SfxManager like every other event. The crowd
 ## stems are loops, so they get their own players: see CrowdLayers. Hook names
 ## and parameters are listed in scripts/audio/README.md.
+##
+## Core-loop cues (rev 2, PM Oct 19): hot_hand, bust, bank and bounty_claimed
+## are revisions of the first versions (see REVISED); table_cleared and
+## no_score are new. Rule: no fire on the dice. Dice sounds (hot_hand,
+## no_score) are bone, felt and wood only; fire/ember texture is only on bust
+## and in bank's embers.
 class_name BonfireSynth
 extends RefCounted
 
@@ -16,7 +22,20 @@ const EVENTS: Array[StringName] = [
 	&"score_tick", &"count_tick", &"mult_slam", &"combo_banner",
 	&"stinger_ember", &"stinger_flames", &"stinger_inferno", &"stinger_pillar",
 	&"hot_hand", &"bank", &"bounty_claimed", &"bust", &"soul_flask_crack",
+	&"table_cleared", &"no_score",
 ]
+
+## Cues revised in rev 2 and what changed (README and SOURCES.md list them too).
+const REVISED: Dictionary[StringName, String] = {
+	&"hot_hand": "all 5 dice clack back into the hand (bone, felt, wood); was a fire ignition + crowd roar",
+	&"bust": "a fizzle/burn: hissing sizzle that dies out, ash puff, low thud at +0.28 s; was a flame snuff",
+	&"bank": "register + points flowing as ember tinks into the pile; was register + random ember pops",
+	&"bounty_claimed": "a wax CLAIMED stamp: wooden handle knock, wax press, sticky lift; was a soft thump",
+}
+## New in rev 2.
+const ADDED: Array[StringName] = [&"table_cleared", &"no_score"]
+## Dice cues: must never carry fire (crackle, hiss, whoosh). Tested.
+const DICE_CUES: Array[StringName] = [&"hot_hand", &"no_score"]
 
 ## Score tier -> stinger: 0 = under 100 (ember sparks), 1 = 100-299 (flames),
 ## 2 = 300-999 (inferno), 3 = 1000+ (pillar of fire, slow-mo, crowd roar).
@@ -37,7 +56,8 @@ const TICK_SCALE: Array[int] = [0, 2, 3, 5, 7, 8, 11, 12, 14, 15, 17, 19]
 const LEVELS: Dictionary[StringName, float] = {
 	&"score_tick": 0.6, &"count_tick": 0.35, &"mult_slam": 0.9, &"combo_banner": 0.45,
 	&"stinger_ember": 0.6, &"stinger_flames": 0.72, &"stinger_inferno": 0.85, &"stinger_pillar": 0.9,
-	&"hot_hand": 0.85, &"bank": 0.8, &"bounty_claimed": 0.75, &"bust": 0.85, &"soul_flask_crack": 0.75,
+	&"hot_hand": 0.8, &"bank": 0.8, &"bounty_claimed": 0.8, &"bust": 0.85, &"soul_flask_crack": 0.75,
+	&"table_cleared": 0.9, &"no_score": 0.45,
 	&"crowd_low": 0.35, &"crowd_mid": 0.45, &"crowd_high": 0.55,
 }
 
@@ -89,14 +109,18 @@ static func make(event: StringName) -> AudioStreamWAV:
 			s = _mix([_chord(1.1, [130.81, 196.0, 261.63, 311.13], 6.0), _roar(1.1, 0.25, 0.008), _thump(1.1, 48.0, 0.9)], [0.8, 0.6, 0.8])
 		&"stinger_pillar":
 			s = _mix([_thump(1.9, 42.0, 1.4), _roar(1.9, 0.45, 0.01), _chord(1.9, [65.41, 130.81, 155.56, 196.0, 261.63], 4.0), _crowd(1.9, 26, 500.0, 2400.0, 0.5)], [0.9, 0.6, 0.6, 0.7])
-		&"hot_hand":
-			s = _mix([_flare(1.3, 0.0, 0.18), _thump(1.3, 80.0, 0.5), _crackle(1.3, 0.01), _crowd(1.3, 24, 500.0, 2200.0, 0.55)], [0.9, 0.7, 0.4, 0.8])
+		&"hot_hand":  # rev 2: dice return (no fire)
+			s = _dice_return(0.6)
 		&"bank":
 			s = _bank(0.95)
-		&"bounty_claimed":
-			s = _stamp(0.3)
-		&"bust":
-			s = _mix([_snuff(1.0), _delay(_thump(0.72, 50.0, 0.7), 0.28)], [0.8, 1.0])
+		&"bounty_claimed":  # rev 2
+			s = _stamp(0.4)
+		&"bust":  # rev 2: fizzle/burn
+			s = _mix([_fizzle(1.0), _delay(_thump(0.72, 50.0, 0.7), 0.28)], [0.9, 1.0])
+		&"table_cleared":  # new
+			s = _mix([_notes(0.3, [392.0, 493.88, 587.33], 0.06, 4), _delay(_chord(1.1, [261.63, 311.13, 392.0, 523.25, 783.99], 3.0), 0.2), _delay(_thump(0.9, 55.0, 0.9), 0.2), _delay(_bell(1.0, 1567.98), 0.22)], [0.8, 1.0, 0.8, 0.35])
+		&"no_score":  # new
+			s = _no_score(0.3)
 		&"soul_flask_crack":
 			s = _flask(0.85)
 		&"crowd_low":
@@ -293,39 +317,107 @@ static func _bank(seconds: float) -> PackedFloat32Array:
 			bell *= minf(u2 * 800.0, 1.0)
 		hum += TAU * 55.0 / MIX_RATE
 		var growl := (sin(hum) + 0.5 * sin(hum * 2.0) + 0.3 * sin(hum * 3.0)) * minf(t * 6.0, 1.0) * exp(-t * 2.5) * 0.25
-		var ember := _rng.randf_range(-1.0, 1.0) * 0.7 if _rng.randf() < 0.003 * minf(t * 4.0, 1.0) else 0.0
-		buf[i] = clacks + slide + bell * 0.45 + growl + ember
+		buf[i] = clacks + slide + bell * 0.45 + growl
+	# rev 2: the points flow into the pile as 9 ember tinks, quick then thinning.
+	for k in 9:
+		var at := 0.24 + 0.6 * pow(k / 9.0, 1.5)
+		_add_tap(buf, at, _rng.randf_range(2600.0, 3600.0), 0.22 * (1.0 - k * 0.07), 160.0, 0.2)
 	return _fade_tail(buf, 0.15)
 
 
-## A wax-seal stamp: a soft pressed thump, a squishy low-mid squelch and a
-## paper slap on top.
+## rev 2: the wax CLAIMED stamp: a wooden handle knock, the stamp pressing
+## into thick wax (a low squelch that drops in pitch) with a paper slap, then
+## the stamp lifting off with a small sticky "tk".
 static func _stamp(seconds: float) -> PackedFloat32Array:
 	var buf := _buffer(seconds)
 	var lp := 0.0
 	var phase := 0.0
 	for i in buf.size():
 		var t := float(i) / MIX_RATE
-		phase += TAU * 115.0 * (1.0 + 0.6 * exp(-t * 50.0)) / MIX_RATE
-		var thump := sin(phase) * minf(t * 500.0, 1.0) * exp(-t * 22.0)
-		lp += (_rng.randf_range(-1.0, 1.0) - lp) * 0.12
-		var squelch := lp * exp(-t * 28.0) * (1.0 + 0.5 * sin(TAU * 38.0 * t)) * 1.4
-		var slap := _rng.randf_range(-1.0, 1.0) * exp(-t * 400.0) * 0.5
-		buf[i] = thump + squelch + slap
+		var knock := (sin(TAU * 230.0 * t) + 0.6 * sin(TAU * 365.0 * t)) * exp(-t * 45.0) * 0.5
+		phase += TAU * lerpf(150.0, 85.0, minf(t / 0.12, 1.0)) / MIX_RATE
+		var press := sin(phase) * minf(t * 400.0, 1.0) * exp(-t * 18.0)
+		lp += (_rng.randf_range(-1.0, 1.0) - lp) * 0.1
+		var squelch := lp * clampf((t - 0.01) * 60.0, 0.0, 1.0) * exp(-t * 20.0) * 1.6
+		var slap := _rng.randf_range(-1.0, 1.0) * exp(-t * 500.0) * 0.45
+		buf[i] = knock + press + squelch + slap
+	_add_tap(buf, 0.21, 2200.0, 0.25, 260.0, 0.6)
 	return _fade_tail(buf, 0.05)
 
 
-## Flames snuffed out: a roar whose filter closes and fades over ~0.35 s,
-## ending in a soft "fff" puff.
-static func _snuff(seconds: float) -> PackedFloat32Array:
+## rev 2 bust: a fizzle/burn. Bright hiss with sizzle pops that dies out and
+## darkens over ~0.6 s (the fire going out on the felt), then a soft ash puff.
+static func _fizzle(seconds: float) -> PackedFloat32Array:
 	var buf := _buffer(seconds)
 	var lp := 0.0
+	var lp2 := 0.0
 	for i in buf.size():
 		var t := float(i) / MIX_RATE
-		var k := clampf(t / 0.35, 0.0, 1.0)
-		lp += (_rng.randf_range(-1.0, 1.0) - lp) * lerpf(0.4, 0.015, k)
-		buf[i] = lp * (1.0 - k * 0.85) * exp(-t * 3.0) * 1.5
+		var k := clampf(t / 0.6, 0.0, 1.0)
+		var n := _rng.randf_range(-1.0, 1.0)
+		lp += (n - lp) * lerpf(0.9, 0.08, k)
+		var hiss := (lp - lp2) * (1.0 - k) * (0.7 + 0.3 * sin(TAU * 23.0 * t))
+		lp2 += (lp - lp2) * 0.05
+		var pop := n * 1.2 if _rng.randf() < 0.004 * (1.0 - k) else 0.0
+		var puff := lp2 * clampf((t - 0.3) * 30.0, 0.0, 1.0) * exp(-maxf(t - 0.3, 0.0) * 9.0) * 3.0
+		buf[i] = hiss * 1.4 + pop + puff
 	return _fade_tail(buf, 0.2)
+
+
+## rev 2 hot_hand: all 5 dice come back into the hand. Five bone clacks
+## landing in the palm (quick, slightly rising), a felt-soft palm catch under
+## the first, the cupped hand closing like a wooden knock, two settle ticks.
+static func _dice_return(seconds: float) -> PackedFloat32Array:
+	var buf := _buffer(seconds)
+	var at := 0.0
+	for d in 5:
+		_add_tap(buf, at, 1000.0 + d * 90.0 + _rng.randf_range(-60.0, 60.0), 0.9 - d * 0.08, 110.0, 0.5)
+		at += _rng.randf_range(0.032, 0.048)
+	var phase := 0.0
+	for i in int(0.25 * MIX_RATE):
+		var t := float(i) / MIX_RATE
+		phase += TAU * 140.0 * (1.0 + 0.4 * exp(-t * 40.0)) / MIX_RATE
+		buf[i] += sin(phase) * minf(t * 900.0, 1.0) * exp(-t * 30.0) * 0.45
+		var u := t - (at + 0.03)
+		if u >= 0.0:
+			buf[i] += (sin(TAU * 260.0 * u) + 0.6 * sin(TAU * 410.0 * u)) * exp(-u * 30.0) * 0.6
+	_add_tap(buf, at + 0.12, 1500.0, 0.3, 160.0, 0.3)
+	_add_tap(buf, at + 0.17, 1350.0, 0.18, 160.0, 0.3)
+	return _fade_tail(buf, 0.05)
+
+
+## new no_score: a die that doesn't score bounces back on the felt, a dull
+## bone tap, then two smaller, lower ones (a soft "nope", no fire).
+static func _no_score(seconds: float) -> PackedFloat32Array:
+	var buf := _buffer(seconds)
+	for b: Array in [[0.0, 760.0, 1.0], [0.1, 690.0, 0.5], [0.165, 640.0, 0.22]]:
+		_add_tap(buf, b[0], b[1], b[2], 140.0, 0.15)
+	for i in int(0.12 * MIX_RATE):
+		var t := float(i) / MIX_RATE
+		buf[i] += sin(TAU * 120.0 * t) * minf(t * 900.0, 1.0) * exp(-t * 40.0) * 0.5
+	return _fade_tail(buf, 0.04)
+
+
+## A struck bell partial set (the table_cleared shimmer).
+static func _bell(seconds: float, hz: float) -> PackedFloat32Array:
+	var buf := _buffer(seconds)
+	for i in buf.size():
+		var t := float(i) / MIX_RATE
+		buf[i] = (sin(TAU * hz * t) + 0.5 * sin(TAU * hz * 2.76 * t) + 0.25 * sin(TAU * hz * 5.4 * t)) * minf(t * 600.0, 1.0) * exp(-t * 4.0)
+	return _fade_tail(buf, 0.1)
+
+
+## Adds one bone/wood tap at `at` s: a short click (bright by `click` 0..1),
+## a tone at hz and a duller overtone, decaying at `damp` per second.
+static func _add_tap(buf: PackedFloat32Array, at: float, hz: float, amp: float, damp: float, click: float) -> void:
+	var start := int(at * MIX_RATE)
+	for j in range(int(0.08 * MIX_RATE)):
+		if start + j >= buf.size():
+			return
+		var t := float(j) / MIX_RATE
+		var v := _rng.randf_range(-1.0, 1.0) * exp(-t * 400.0) * click
+		v += (sin(TAU * hz * t) + 0.35 * sin(TAU * hz * 2.31 * t) * exp(-t * 80.0)) * exp(-t * damp)
+		buf[start + j] += v * amp
 
 
 ## The Soul flask cracking: three glass crackles with a short glassy ring,
