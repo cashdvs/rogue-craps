@@ -19,6 +19,12 @@ extends Resource
 @export var events: Array[EventData] = []
 ## Special dice the Shop and Elite rewards offer (SpecialDieData resources).
 @export var special_dice: Array[SpecialDieData] = []
+## Die shapes (design/nonstandard_dice.md): d6 (the default) plus Coin, d3,
+## d4, d8, d10, d12, d20, each with its price and an `enabled` flag.
+@export var shapes: Array[DieShape] = []
+## Chance a dice offer (shop slot or Elite reward) is a shaped die instead of
+## a special die (Game Designer: about 1 in 4). Enabled shapes share it equally.
+@export var shape_offer_chance: float = 0.25
 ## Face mods the Shop and Rest offer (FaceModData resources).
 @export var face_mods: Array[FaceModData] = []
 ## Each face mod costs this % more per mod already on that die (GD: +50%).

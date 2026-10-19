@@ -262,13 +262,22 @@ func _show_shop() -> void:
 					_show_shop()
 					return ok), e < run.seal_price(id) or not _seal_possible(id)])
 	for d_i in run.progress.dice.size():
-		var sd := run.progress.special_die(run.progress.dice[d_i].special_id)
+		var sd := run.progress.die_def(d_i)
 		if sd != null and run.progress.sell_value(d_i) > 0:
 			buttons.append(["Sell your %s (+%d Embers)" % [sd.display_name, run.progress.sell_value(d_i)],
 				func() -> void: run.sell_die(d_i); _show_shop()])
 	buttons.append(["Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
 	buttons.append(["Leave", func() -> void: run.leave()])
-	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half."], buttons)
+	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half.", "Your dice: " + bag_text()], buttons)
+
+
+## The handful by name and shape, e.g. "Bone, Bone, Coin (2 faces), Mirror Die".
+func bag_text() -> String:
+	var names: Array[String] = []
+	for i in run.progress.dice.size():
+		var d := run.progress.dice[i]
+		names.append(run.progress.die_name(i) + ("" if d.shape == &"d6" else " (%d faces)" % d.faces.size()))
+	return ", ".join(names)
 
 
 func _pick(prompt: String, done: Callable, allowed: Callable = Callable()) -> void:

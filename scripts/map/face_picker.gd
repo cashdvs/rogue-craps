@@ -14,13 +14,15 @@ func build(progress: RunProgress, prompt: String, allowed: Callable) -> void:
 	for d in progress.dice.size():
 		var row := HBoxContainer.new()
 		var die := progress.dice[d]
-		var name: String = "Die %d%s" % [d + 1, "" if die.special_id == &"" else " (%s)" % die.special_id]
+		var name: String = "Die %d (%s)" % [d + 1, progress.die_name(d)]
+		var def := progress.die_def(d)
 		var l := RunTheme.label(name, 20)
 		l.custom_minimum_size.x = 190
 		row.add_child(l)
-		for f in 6:
+		for f in die.faces.size():
 			var mod: StringName = die.faces[f]
-			var b := RunTheme.button(str(f + 1) if mod == &"" else String(mod).capitalize(), 18)
+			var value: int = def.faces[f] if def != null and f < def.faces.size() else f + 1
+			var b := RunTheme.button(str(value) if mod == &"" else String(mod).capitalize(), 18)
 			b.custom_minimum_size = Vector2(92, 40)
 			var at := Vector2i(d, f)
 			b.disabled = not bool(allowed.call(at))

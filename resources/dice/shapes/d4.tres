@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_oshw5"]
+
+[resource]
+script = ExtResource("1_oshw5")
+id = &"d4"
+display_name = "d4"
+description = "Faces 1-4: dense low values."
+faces = Array[int]([1, 2, 3, 4])

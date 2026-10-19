@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_6dpjw"]
+
+[resource]
+script = ExtResource("1_6dpjw")
+id = &"d10"
+display_name = "d10"
+description = "Faces 1-10: high-run reach, big single pots."
+price = 18
+faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])

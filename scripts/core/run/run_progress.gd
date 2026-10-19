@@ -69,6 +69,30 @@ func special_die(id: StringName) -> SpecialDieData:
 	return null
 
 
+func shape_data(id: StringName) -> DieShape:
+	for s in data.shapes:
+		if s.id == id:
+			return s
+	return null
+
+
+## What die i is, for prices and names: its special die, else its shape
+## (null for a plain d6).
+func die_def(die_i: int) -> SpecialDieData:
+	if die_i < 0 or die_i >= dice.size():
+		return null
+	var d := dice[die_i]
+	if d.special_id != &"":
+		return special_die(d.special_id)
+	return shape_data(d.shape) if d.shape != &"d6" else null
+
+
+## "Bone", "Mirror Die", "Coin", ...
+func die_name(die_i: int) -> String:
+	var def := die_def(die_i)
+	return def.display_name if def != null else "Bone"
+
+
 ## Price of `mod` on die i: +mod_price_step_percent per mod already on it.
 func mod_price(mod: FaceModData, die_i: int) -> int:
 	var n: int = 0
@@ -79,7 +103,7 @@ func mod_price(mod: FaceModData, die_i: int) -> int:
 
 ## Embers a die sells for (special dice: half their price; plain dice: 0).
 func sell_value(die_i: int) -> int:
-	var d := special_die(dice[die_i].special_id) if die_i >= 0 and die_i < dice.size() else null
+	var d := die_def(die_i)
 	return d.price * data.die_sell_percent / 100 if d != null else 0
 
 
@@ -94,17 +118,21 @@ func sell_die(die_i: int) -> int:
 	return v
 
 
+## Add a die by offer id: a special die id, or a die shape id (a plain die
+## of that shape, e.g. &"coin").
 func add_die(special: StringName) -> bool:
 	if not can_add_die():
 		return false
-	dice.append(_new_die(special))
+	var sh := shape_data(special)
+	dice.append(_new_die(&"", sh.id, sh.face_count()) if sh != null and special != &"d6" else _new_die(special if special != &"d6" else &""))
 	changed.emit()
 	return true
 
 
-func _new_die(special: StringName) -> RunDie:
-	var d := RunDie.new(special)
-	d.id = StringName("%s_%d" % [special if special != &"" else &"bone", _next_die_id])
+func _new_die(special: StringName, shape_id: StringName = &"d6", face_count: int = 6) -> RunDie:
+	var d := RunDie.new(special, shape_id, face_count)
+	var kind: StringName = special if special != &"" else (shape_id if shape_id != &"d6" else &"bone")
+	d.id = StringName("%s_%d" % [kind, _next_die_id])
 	_next_die_id += 1
 	return d
 
@@ -259,12 +287,21 @@ func table_dice() -> Array[TableDie]:
 	var out: Array[TableDie] = []
 	for d in dice:
 		var sd := special_die(d.special_id)
-		var td := TableDie.from_mod_ids(d.faces, lib, sd.id if sd != null else &"bone",
-			sd.display_name if sd != null else "Bone", sd.id if sd != null else &"")
+		var sh := shape_data(d.shape) if d.shape != &"d6" else null
+		var def: SpecialDieData = sd if sd != null else sh
+		var td := TableDie.from_mod_ids(d.faces, lib, def.id if def != null else &"bone",
+			def.display_name if def != null else "Bone", sd.id if sd != null else &"")
 		td.run_die_id = d.id
-		if sd != null:
-			td.faces = sd.faces.duplicate()
-			td.weights = sd.weights.duplicate()
+		if def != null:
+			td.faces = def.faces.duplicate()
+			td.weights = def.weights.duplicate()
+		# N-sided: faces / weights / mods sized to the shape (TableDie.shape
+		# arrives with Godot Dev's shape commit; until then the table plays d6).
+		td.mods.resize(td.faces.size())
+		for i in td.faces.size():
+			td.mods[i] = _mod_from(lib, d.faces[i] if i < d.faces.size() else &"")
+		if "shape" in td:
+			td.set("shape", d.shape)
 		var heavy := false
 		for m in td.mods:
 			heavy = heavy or (m != null and (m as FaceModData).effect == FaceModData.Effect.HEAVY)
@@ -279,6 +316,15 @@ func table_dice() -> Array[TableDie]:
 					td.weights[i] *= data.heavy_weight
 		out.append(td)
 	return out
+
+
+func _mod_from(lib: Array, id: StringName) -> FaceModData:
+	if id == &"":
+		return null
+	for m in lib:
+		if m != null and (m as FaceModData).id == id:
+			return m
+	return null
 
 
 ## A copy of `base` with Seal levels added to each combo's base and mult

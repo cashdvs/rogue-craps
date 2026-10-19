@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_a7d5e"]
+
+[resource]
+script = ExtResource("1_a7d5e")
+enabled = true
+id = &"d3"
+display_name = "d3"
+description = "A d6 printed 1-1-2-2-3-3: a set-maker."
+faces = Array[int]([1, 2, 3])

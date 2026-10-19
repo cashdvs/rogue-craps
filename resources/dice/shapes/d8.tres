@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_pd1tg"]
+
+[resource]
+script = ExtResource("1_pd1tg")
+id = &"d8"
+display_name = "d8"
+description = "Faces 1-8: extends runs; 7 and 8 light alone."
+faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8])

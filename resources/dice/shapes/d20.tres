@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_unrns"]
+
+[resource]
+script = ExtResource("1_unrns")
+id = &"d20"
+display_name = "d20"
+description = "Faces 1-20: almost never busts, almost never makes a set."
+price = 24
+faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
