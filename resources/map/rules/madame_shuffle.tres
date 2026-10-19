@@ -6,8 +6,8 @@
 script = ExtResource("1_c6st5")
 id = &"pit_boss"
 display_name = "Madame Shuffle"
-description = "Each hand she locks a middle face (2, 3 or 4); it never lights."
+description = "Each hand, a 2 or a 4 never lights."
 kind = 1
 params = {
-"faces": [2, 3, 4]
+"faces": [2, 4]
 }

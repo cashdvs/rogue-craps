@@ -296,7 +296,7 @@ func _test_rule_ids() -> void:
 	var allowed := {}
 	for pair in [[&"cold_sixes", {"face": 6}], [&"first_throw", {"throws": 2}], [&"first_throw", {"throws": 1}],
 			[&"greedy_pot", {"min_pot": 2}], [&"greedy_pot", {"min_pot": 3}],
-			[&"cold_hands", {}], [&"pit_boss", {"faces": [1, 2, 3, 4, 5, 6]}], [&"pit_boss", {"faces": [2, 3, 4]}],
+			[&"cold_hands", {}], [&"pit_boss", {"faces": [2, 3, 4, 5, 6]}], [&"pit_boss", {"faces": [2, 4]}],
 			[&"ashmouth", {}], [&"straight_man", {"min_run": 4}], [&"collector", {"throws": 1}], [&"bloodletter", {"soul_cost_mult": 2}]]:
 		if not allowed.has(pair[0]):
 			allowed[pair[0]] = []

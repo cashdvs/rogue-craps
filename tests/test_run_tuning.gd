@@ -153,11 +153,11 @@ func _test_tuning_addendum() -> void:
 		want.sort()
 		ok = ok and ids == want
 	_check(ok, "addendum: floor 2 boss draws Run of 4, the 3 commons and Two Pair x2")
-	var want_r := {"ashmouth": [-1, "No Hot Hand. 5 hands."], "cold_sixes": [1, "6s never light. +1 hand."],
+	var want_r := {"ashmouth": [-1, "No Hot Hand, and you get one fewer hand."], "cold_sixes": [1, "6s never light. +1 hand."],
 		"first_throw": [1, "Bounties only count on a hand's first 2 throws. +1 hand."],
 		"greedy_pot": [1, "You must pot 2 or more dice per throw. +1 hand."], "cold_hands": [1, "No Hot Hand. +1 hand."],
 		"straight_man": [0, "Runs of 3 don't count."], "bloodletter": [0, "Every Soul cost is doubled: a bust costs 2."],
-		"madame_shuffle": [0, "Each hand she locks a middle face (2, 3 or 4); it never lights."]}
+		"madame_shuffle": [0, "Each hand, a 2 or a 4 never lights."]}
 	var rok := true
 	for n in want_r:
 		var r: RunRuleData = load("res://resources/map/rules/%s.tres" % n)
@@ -166,8 +166,8 @@ func _test_tuning_addendum() -> void:
 			print("  rule mismatch: ", n)
 	_check(rok, "addendum: rule hands_delta and descriptions")
 	var ms: RunRuleData = load("res://resources/map/rules/madame_shuffle.tres")
-	_check(ms.id == &"pit_boss" and ms.display_name == "Madame Shuffle" and ms.kind == RunRuleData.Kind.CHEAT and str(ms.params) == str({"faces": [2, 3, 4]}),
-		"addendum: Madame Shuffle is an interim pit_boss on faces 2-4")
+	_check(ms.id == &"pit_boss" and ms.display_name == "Madame Shuffle" and ms.kind == RunRuleData.Kind.CHEAT and str(ms.params) == str({"faces": [2, 4]}),
+		"addendum: Madame Shuffle is an interim pit_boss on faces 2 and 4")
 	var fs: RunRuleData = load("res://resources/map/rules/first_throw.tres")
 	var sm: RunRuleData = load("res://resources/map/rules/straight_man.tres")
 	_check(str(fs.params) == str({"throws": 2}) and str(sm.params) == str({"min_run": 4}), "addendum: First Throw 2 throws, Straight Man min_run 4")
@@ -181,4 +181,30 @@ func _test_tuning_addendum() -> void:
 		hok = hok and run.goal.hands == want_h
 		for e: Dictionary in ts.rules:
 			hok = hok and not (e["params"] as Dictionary).has("hands_delta")
-	_check(hok, "addendum: hands_delta applies run-side (Ashmouth boss 5 hands), never in table params")
+	_check(hok, "addendum: hands_delta applies run-side (Ashmouth boss 6 hands), never in table params")
+	_test_tuning_addendum_3()
+
+
+## run_tuning_v1 addendum 3 (M7): Floor 1 boss hands 7, Pit Boss faces 2-6.
+func _test_tuning_addendum_3() -> void:
+	var f1: FloorData = _data.floors[0]
+	_check(f1.boss_hands == 7 and f1.boss_min_bounties == 3 and f1.boss_max_bounties == 3,
+		"addendum 3: Floor 1 boss_hands 7, still 3 bounties")
+	var pb: RunRuleData = load("res://resources/map/rules/pit_boss.tres")
+	_check(pb.id == &"pit_boss" and str(pb.params) == str({"faces": [2, 3, 4, 5, 6]})
+		and pb.description == "Each hand, one number from 2 to 6 never lights.",
+		"addendum 3: Pit Boss face pool is 2-6")
+	var hok := true
+	var saw_ash := false
+	var saw_other := false
+	for s in 40:
+		var run := MapRun.new(_data, s)
+		_enter(run, NT.BOSS)
+		var want_h: int = 6 if run.boss.id == &"ashmouth" else 7
+		hok = hok and run.goal.hands == want_h and run.goal.hands == f1.boss_hands + run.rules[0].hands_delta
+		if run.boss.id == &"ashmouth":
+			saw_ash = true
+		else:
+			saw_other = true
+	_check(saw_ash and saw_other and hok,
+		"addendum 3: Floor 1 Ashmouth boss tables have 6 hands, Pit Boss / Madame have 7")

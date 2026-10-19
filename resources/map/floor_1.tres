@@ -60,3 +60,4 @@ elite_twists = Array[ExtResource("2_oylsk")]([ExtResource("6_gyj2w"), ExtResourc
 boss_cheats = Array[ExtResource("2_oylsk")]([ExtResource("3_bkmlj"), ExtResource("4_glvm3"), ExtResource("5_j5j6r")])
 boss_min_bounties = 3
 boss_max_bounties = 3
+boss_hands = 7
