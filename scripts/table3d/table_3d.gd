@@ -559,7 +559,9 @@ func _make_environment() -> Environment:
 	e.fog_light_color = Color("#0E0B0C")
 	e.fog_density = 0.12
 	e.fog_sky_affect = 0.0
-	e.volumetric_fog_enabled = true
+	# Volumetric fog is Forward+ only; Compatibility (web) and Mobile warn
+	# every table if it's on (QA full run pass 1, Minor 9).
+	e.volumetric_fog_enabled = has_volumetric_fog()
 	e.volumetric_fog_density = 0.012
 	e.volumetric_fog_albedo = Color("#3A3032")
 	e.volumetric_fog_emission = Color.BLACK
@@ -587,26 +589,33 @@ func _make_environment() -> Environment:
 	return e
 
 
+## Can this renderer draw volumetric fog (FogVolume / FogMaterial)? Only
+## Forward+; the Compatibility renderer can't even compile a fog shader.
+static func has_volumetric_fog() -> bool:
+	return RenderingServer.get_current_rendering_method() == "forward_plus"
+
+
 func _build_fog_and_smoke() -> void:
-	# Smoke swirling in the lamp cone (Forward+ volumetric fog).
-	var fv := FogVolume.new()
-	fv.name = "LampHaze"
-	fv.size = Vector3(1.4, 1.2, 1.4)
-	fv.position = Vector3(0, 0.75, -0.05)
-	var fm := FogMaterial.new()
-	fm.density = 0.04
-	var noise := NoiseTexture3D.new()
-	var fnl := FastNoiseLite.new()
-	fnl.frequency = 0.05
-	noise.noise = fnl
-	noise.width = 32
-	noise.height = 32
-	noise.depth = 32
-	fm.density_texture = noise
-	fv.material = fm
-	add_child(fv)
-	# Fallback cone for renderers without volumetric fog (Mobile/Compatibility).
-	if RenderingServer.get_current_rendering_method() != "forward_plus":
+	if has_volumetric_fog():
+		# Smoke swirling in the lamp cone (Forward+ volumetric fog).
+		var fv := FogVolume.new()
+		fv.name = "LampHaze"
+		fv.size = Vector3(1.4, 1.2, 1.4)
+		fv.position = Vector3(0, 0.75, -0.05)
+		var fm := FogMaterial.new()
+		fm.density = 0.04
+		var noise := NoiseTexture3D.new()
+		var fnl := FastNoiseLite.new()
+		fnl.frequency = 0.05
+		noise.noise = fnl
+		noise.width = 32
+		noise.height = 32
+		noise.depth = 32
+		fm.density_texture = noise
+		fv.material = fm
+		add_child(fv)
+	else:
+		# Fallback cone for renderers without volumetric fog (Mobile/Compatibility).
 		var cone := MeshInstance3D.new()
 		cone.mesh = Toon.cylinder(0.55, 1.0, 24, 0.05)
 		cone.material_override = Toon.fx(Color("#FFB070", 0.05), 1.0, 1, true)
