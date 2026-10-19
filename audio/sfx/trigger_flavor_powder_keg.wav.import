@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://css6x855bexbr"
-path="res://.godot/imported/trigger_flavor_keg.wav-e2e2f8293eb3d1b7d6b4558c49e926b8.sample"
+path="res://.godot/imported/trigger_flavor_powder_keg.wav-c8404783c3d57af95c2a4b38fda2904c.sample"
 
 [deps]
 
-source_file="res://audio/sfx/trigger_flavor_keg.wav"
-dest_files=["res://.godot/imported/trigger_flavor_keg.wav-e2e2f8293eb3d1b7d6b4558c49e926b8.sample"]
+source_file="res://audio/sfx/trigger_flavor_powder_keg.wav"
+dest_files=["res://.godot/imported/trigger_flavor_powder_keg.wav-c8404783c3d57af95c2a4b38fda2904c.sample"]
 
 [params]
 

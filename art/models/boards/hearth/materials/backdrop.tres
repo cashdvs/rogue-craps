@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_backdrop.gdshader" id="1_1blxy"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_1blxy")
+shader_parameter/base_color = null
+shader_parameter/table_color = null
+shader_parameter/rail_color = null
+shader_parameter/lamp_color = null
+shader_parameter/max_value = null
+shader_parameter/blur = null
+shader_parameter/card_size = Vector2(7, 3.2)
+shader_parameter/floor_v = null

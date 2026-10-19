@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://d05jslrms7u5e"
-path="res://.godot/imported/trigger_coin_tails_copy.wav-8d1becd47588d410896c81fcd0ddee8c.sample"
+path="res://.godot/imported/trigger_ferryman_tails_copy.wav-bec296d683324c6c8dfbaf62d731b223.sample"
 
 [deps]
 
-source_file="res://audio/sfx/trigger_coin_tails_copy.wav"
-dest_files=["res://.godot/imported/trigger_coin_tails_copy.wav-8d1becd47588d410896c81fcd0ddee8c.sample"]
+source_file="res://audio/sfx/trigger_ferryman_tails_copy.wav"
+dest_files=["res://.godot/imported/trigger_ferryman_tails_copy.wav-bec296d683324c6c8dfbaf62d731b223.sample"]
 
 [params]
 
