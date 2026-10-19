@@ -216,7 +216,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(bank_state.size() == 1 and int(bank_state[0][0]) > pts_before and str(bank_state[0][1]).begins_with("points %d " % pts_before),
 		"[%s] bank: points stay at %d on the HUD while the count-up plays (state already %s)" % [tag, pts_before, str(bank_state)])
 	check(s.bhud.points_label.text.begins_with("points %d " % r.points) and s.bhud.coin_label.text == "EMBERS %d" % r.embers, "[%s] bank: points + Embers land after the count-up" % tag)
-	check(b["kind"] == &"bank" and r.state == BonfireRun.State.CLEARED, "[%s] bank clears the table" % tag)
+	check(b["kind"] == &"bank" and r.cleared, "[%s] bank clears the table" % tag)
 	check(s.bhud.has_stamp(&"two_pairs") or s.bhud.has_stamp(&"run_three") or not (b["ticked"] as Array).is_empty() and s.bhud.has_stamp(b["ticked"][0]), "[%s] claimed bounty gets the CLAIMED stamp (%s)" % [tag, str(b["ticked"])])
 	check(j.calls.has("sfx:bank") or j.calls.has("sfx:chip_collect(fb)"), "[%s] bank sound (%s)" % [tag, str(j.calls)])
 	# A click fast-forwards a running count-up.

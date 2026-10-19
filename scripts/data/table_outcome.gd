@@ -24,7 +24,9 @@ var shattered_dice: Array[StringName] = []
 
 static func from_run(r: BonfireRun, soul_before: int) -> TableOutcome:
 	var o := TableOutcome.new()
-	o.cleared = r.state == BonfireRun.State.CLEARED
+	# Cleared stays true once the table was cleared, even if a later chase
+	# bust ended the run (BonfireRun.cleared).
+	o.cleared = r.cleared
 	o.forfeited = r.forfeited
 	o.soul_after = r.soul
 	o.soul_delta = r.soul - soul_before
