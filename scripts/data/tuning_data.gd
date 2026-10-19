@@ -235,7 +235,17 @@ extends Resource
 
 @export_group("3D throw timing (design doc 5b: one throw every 2-3 s)")
 ## Pace target: MEDIAN time from release to the dice at rest (seconds).
+## Since design/bonfire_map_events_juice.md section 7 this covers soft and
+## medium throws only (flick <= settle_split_px_s); hard throws get the two
+## targets below.
 @export var settle_target: float = 0.9
+## Section 7: the flick speed (game px/s, the value the throw curve reads)
+## splitting soft/medium throws (settle_target) from hard ones.
+@export var settle_split_px_s: float = 2200.0
+## Section 7: hard throws (> settle_split_px_s): MEDIAN release -> rest.
+@export var settle_target_hard: float = 1.3
+## Section 7: hard throws: 95th percentile release -> rest (long tails).
+@export var settle_p95_hard: float = 1.8
 ## Settle assist: a die still moving this long after release is eased
 ## (smoothly, no snap) flat onto its face; the face remap makes that the
 ## seeded face.

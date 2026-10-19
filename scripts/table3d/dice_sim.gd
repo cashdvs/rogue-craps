@@ -193,6 +193,8 @@ func _assist() -> void:
 	_rec.assisted = true
 	var dur := maxf(end_time() - _t, 0.06)
 	var steps := maxi(int(ceil(dur / _rec.dt)), 2)
+	var froms: Array[Transform3D] = []
+	var targets: Array[Transform3D] = []
 	for i in active:
 		var b := bodies[i]
 		var from := b.global_transform.orthonormalized()
@@ -201,7 +203,13 @@ func _assist() -> void:
 			_rec.assisted_dice += 1
 			_rest_since[i] = -1.0
 		var drift := Vector3(b.linear_velocity.x, 0.0, b.linear_velocity.z) * minf(dur, 0.25) * 0.5
-		var target := _flat(Transform3D(from.basis, from.origin + drift))
+		froms.append(from)
+		targets.append(_flat(Transform3D(from.basis, from.origin + drift)))
+	_separate(targets, froms)
+	for i in active:
+		var b := bodies[i]
+		var from := froms[i]
+		var target := targets[i]
 		var qa := from.basis.get_rotation_quaternion()
 		var qb := target.basis.get_rotation_quaternion()
 		for k in steps:
@@ -249,9 +257,16 @@ func _finish(already_flat: bool = false) -> void:
 	Engine.max_physics_steps_per_frame = _saved_steps
 	# Guarantee: end exactly flat on the felt with a short settle (normally
 	# a fraction of a degree; the fallback for a throw that timed out).
+	var lasts: Array[Transform3D] = []
+	var targets: Array[Transform3D] = []
 	for i in active:
-		var last := bodies[i].global_transform.orthonormalized()
-		var target := _flat(last)
+		lasts.append(bodies[i].global_transform.orthonormalized())
+		targets.append(_flat(lasts[i]))
+	if not already_flat:
+		_separate(targets, lasts)
+	for i in active:
+		var last := lasts[i]
+		var target := targets[i]
 		var room := maxi(int((end_time() - _t) / _rec.dt), 1)
 		var steps := mini(12, room) if last.basis.get_rotation_quaternion().angle_to(target.basis.get_rotation_quaternion()) > 0.02 else 1
 		if already_flat:
@@ -279,6 +294,41 @@ func _finish(already_flat: bool = false) -> void:
 		while f.size() < n:
 			f.append(f[f.size() - 1])
 	finished.emit(_rec)
+
+
+## Flattening drops every die onto the felt, so a die that came to rest on
+## top of (or leaning on) another would land inside it. Push overlapping
+## targets apart on the felt (the higher die, the one that was stacked,
+## moves; otherwise both), staying inside the rails.
+func _separate(targets: Array[Transform3D], from: Array[Transform3D]) -> void:
+	var min_d := tuning.die_size * 1.05
+	var lim := Table3DBuilder.FELT_HALF - Vector2.ONE * tuning.die_size * 0.75
+	for it in 16:
+		var moved := false
+		for i in targets.size():
+			for j in range(i + 1, targets.size()):
+				var a := Vector2(targets[i].origin.x, targets[i].origin.z)
+				var c := Vector2(targets[j].origin.x, targets[j].origin.z)
+				var d := a.distance_to(c)
+				if d >= min_d:
+					continue
+				var dir := (a - c) / d if d > 0.0001 else Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU))
+				var push := min_d - d + 0.001
+				var wi := 0.5
+				if it < 8:  # later rounds split evenly (gets out of corners)
+					if from[i].origin.y > from[j].origin.y + tuning.die_size * 0.3:
+						wi = 1.0
+					elif from[j].origin.y > from[i].origin.y + tuning.die_size * 0.3:
+						wi = 0.0
+				a += dir * push * wi
+				c -= dir * push * (1.0 - wi)
+				a = Vector2(clampf(a.x, -lim.x, lim.x), clampf(a.y, -lim.y, lim.y))
+				c = Vector2(clampf(c.x, -lim.x, lim.x), clampf(c.y, -lim.y, lim.y))
+				targets[i].origin = Vector3(a.x, targets[i].origin.y, a.y)
+				targets[j].origin = Vector3(c.x, targets[j].origin.y, c.y)
+				moved = true
+		if not moved:
+			return
 
 
 ## The nearest orientation that sits perfectly flat, resting on the felt,

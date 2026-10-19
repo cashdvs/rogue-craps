@@ -5,6 +5,11 @@
 ##   godot --headless --path . --script res://tests/test_bonfire_scene.gd
 extends SceneTree
 
+## Settle samples (section 7): soft/medium flicks and hard flicks. 40 hard
+## throws make the nearest-rank p95 the 38th of 40, not just the max.
+const N_SOFT: int = 16
+const N_HARD: int = 40
+
 var _passed: int = 0
 var _failed: int = 0
 
@@ -19,6 +24,21 @@ func check(cond: bool, what: String) -> void:
 	else:
 		_failed += 1
 		print("FAIL  ", what)
+
+
+## Median of a sorted list.
+func _median(v: Array[float]) -> float:
+	if v.is_empty():
+		return INF
+	var m := v.size() / 2
+	return v[m] if v.size() % 2 == 1 else (v[m - 1] + v[m]) * 0.5
+
+
+## Nearest-rank 95th percentile of a sorted list.
+func _p95(v: Array[float]) -> float:
+	if v.is_empty():
+		return INF
+	return v[clampi(ceili(0.95 * v.size()) - 1, 0, v.size() - 1)]
 
 
 func throw_faces(s: Bonfire3D, faces: Array[int]) -> Array:
@@ -52,15 +72,31 @@ func _run() -> void:
 	var bad := 0
 	var overlap := 0
 	var spread_sum := 0.0
+	# Settle targets (design/bonfire_map_events_juice.md section 7): soft and
+	# medium flicks (<= settle_split_px_s) median <= settle_target; hard flicks
+	# (up to the top of the curve) median <= settle_target_hard and p95 <=
+	# settle_p95_hard, over enough hard throws for a p95 to mean something.
+	var split := s.tuning.settle_split_px_s
+	var speeds: Array[float] = []
+	for k in N_SOFT:
+		speeds.append(rng.randf_range(s.tuning.min_throw_speed * 1.1, split))
+	for k in N_HARD:
+		speeds.append(rng.randf_range(split + 1.0, t.flick_speed_max))
 	var durations: Array[float] = []
-	var n := 12
+	var soft_d: Array[float] = []
+	var hard_d: Array[float] = []
+	var n := speeds.size()
 	for k in n:
-		var v := Vector2.from_angle(rng.randf_range(-PI * 0.9, -PI * 0.3)) * rng.randf_range(s.tuning.min_throw_speed * 1.1, s.tuning.max_throw_speed)
+		var v := Vector2.from_angle(rng.randf_range(-PI * 0.9, -PI * 0.3)) * speeds[k]
 		check(s.throw(v), "random throw %d starts" % k)
 		var rr: Array = await s.throw_resolved
 		var rec := s.last_recording
 		var dur := rec.duration() + s.tuning.windup_time + s.tuning.settle_wobble_time
 		durations.append(rec.duration() + s.tuning.windup_time)
+		if speeds[k] <= split:
+			soft_d.append(durations[-1])
+		else:
+			hard_d.append(durations[-1])
 		if dur > s.tuning.reveal_cap + 0.001:
 			slow += 1
 		var lim := Table3DBuilder.FELT_HALF
@@ -74,6 +110,7 @@ func _run() -> void:
 			for j in range(i + 1, s.throw_dice.size()):
 				if Vector2(p.x, p.z).distance_to(Vector2(s.throw_dice[j].global_position.x, s.throw_dice[j].global_position.z)) < s.tuning.die_size * 0.95:
 					overlap += 1
+					print("OVERLAP throw %d speed %.0f: die %d %s up %.3f / die %d %s up %.3f" % [k, speeds[k], i, p, d.up_dot(), j, s.throw_dice[j].global_position, s.throw_dice[j].up_dot()])
 		c /= float(s.throw_dice.size())
 		for d in s.throw_dice:
 			spread_sum += d.global_position.distance_to(c) / float(s.throw_dice.size())
@@ -88,12 +125,23 @@ func _run() -> void:
 			r = s.run
 			r.hands_left = 1000
 	durations.sort()
-	print("  bonfire 5-die settle (release -> rest): median %.3f s, max %.3f s, mean spread %.3f m" % [durations[n / 2], durations[-1], spread_sum / n])
-	check(durations[n / 2] <= s.tuning.settle_target, "median 5-die settle <= settle_target")
+	soft_d.sort()
+	hard_d.sort()
+	var soft_med := _median(soft_d)
+	var hard_med := _median(hard_d)
+	var hard_p95 := _p95(hard_d)
+	print("  bonfire 5-die settle (release -> rest): soft/medium <= %.0f px/s (%d): median %.3f s, max %.3f s | hard (%d): median %.3f s, p95 %.3f s, max %.3f s | mean spread %.3f m" % [
+		split, soft_d.size(), soft_med, soft_d[-1], hard_d.size(), hard_med, hard_p95, hard_d[-1], spread_sum / n])
+	check(soft_d.size() == N_SOFT and hard_d.size() == N_HARD and hard_d.size() >= 40, "enough soft (%d) and hard (%d) samples" % [soft_d.size(), hard_d.size()])
+	check(soft_med <= s.tuning.settle_target, "median 5-die settle, flicks <= %.0f px/s: %.3f <= settle_target %.2f" % [split, soft_med, s.tuning.settle_target])
+	check(hard_med <= s.tuning.settle_target_hard, "median 5-die settle, hard flicks: %.3f <= settle_target_hard %.2f" % [hard_med, s.tuning.settle_target_hard])
+	check(hard_p95 <= s.tuning.settle_p95_hard, "p95 5-die settle, hard flicks: %.3f <= settle_p95_hard %.2f" % [hard_p95, s.tuning.settle_p95_hard])
 	check(slow == 0, "every 5-die reveal within reveal_cap (%d slow)" % slow)
 	check(bad == 0, "5-die throws rest flat, on the felt, faces as seeded (%d bad)" % bad)
 	check(overlap == 0, "dice never interpenetrate (%d)" % overlap)
 	check(spread_sum / n > 0.06, "dice spread out (%.3f m)" % (spread_sum / n))
+
+	await _count_up_after_settle(s)
 
 	# A scripted table: trips, a bust, a Hot Hand, then the clearing bank.
 	s.new_run(5)
@@ -139,3 +187,41 @@ func _run() -> void:
 	await process_frame
 	print("test_bonfire_scene: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+## Section 7: the scoring count-up's time budget (juice_cap / juice_cap_big)
+## starts after the dice settle, not at release. A hard flick (the longest
+## settle): no pot / bank / count-up while the dice still move; the count-up
+## starts after the last die came to rest, and its budget is timed from its
+## own start.
+func _count_up_after_settle(s: Bonfire3D) -> void:
+	s.new_run(5)
+	s.run.hands_left = 1000
+	while s.phase != Table3D.Phase.BET or s.hand_moving():
+		await process_frame
+	var last_rest := [0]
+	var on_rest := func(_i: int) -> void: last_rest[0] = Time.get_ticks_msec()
+	for d in s.all_dice:
+		d.rest.connect(on_rest)
+	s.rig_faces([4, 4, 4, 5, 2] as Array[int])
+	var release_ms := Time.get_ticks_msec()
+	check(s.throw(Vector2.from_angle(-PI * 0.6) * s.bonfire_tuning.flick_speed_max), "hard flick at the top of the curve starts")
+	await process_frame
+	var again := s.throw_again()
+	var banked: Dictionary = await s.bank()
+	check(not again and banked.is_empty() and not s.bhud.countup.is_playing(), "no pot, bank or count-up while the dice are still rolling (phase %d)" % s.phase)
+	await s.throw_resolved
+	await s.sequence_finished
+	var rest_ms: int = last_rest[0]
+	for d in s.all_dice:
+		d.rest.disconnect(on_rest)
+	check(s.pick_die(0) and s.pick_die(1) and s.pick_die(2), "pot the 4-4-4")
+	check(s.throw_again() and s.bhud.countup.is_playing(), "committing the pot starts the count-up")
+	var cu := s.bhud.countup
+	var start_ms: int = cu._start_ms
+	check(rest_ms > release_ms and start_ms >= rest_ms, "count-up starts after the dice rest (release +%d ms, rest +%d ms, count-up +%d ms)" % [0, rest_ms - release_ms, start_ms - release_ms])
+	await cu.finished
+	var cap := float(cu.plan["cap"]) / cu.speed
+	check(cu.last_duration <= cap + 0.1, "count-up budget timed from its own start: %.3f s <= cap %.3f s (at clock x%.0f)" % [cu.last_duration, cap, cu.speed])
+	check(absf(cu.last_duration - (Time.get_ticks_msec() - start_ms) / 1000.0) < 0.1, "count-up duration runs from the count-up start, not release")
+

@@ -43,6 +43,7 @@ func _run() -> void:
 	await _test_faces_and_bounds(scene)
 	await _test_audio_hooks(scene)
 	await _test_sfx_hooks(scene)
+	_test_flat_separation(scene)
 	await _test_timing_stats(scene)
 	await _test_real_time_reveal(scene)
 	await _test_speed_modes(scene)
@@ -168,6 +169,34 @@ func _test_sfx_hooks(s: Table3D) -> void:
 	stub.queue_free()
 	fb.queue_free()
 	await process_frame
+
+
+## Flattening at the end of a throw (settle assist / timeout) puts every die
+## on the felt: a die resting on top of another must be moved beside it, not
+## dropped inside it (seen on hard 5-die bonfire throws near the backboard).
+func _test_flat_separation(s: Table3D) -> void:
+	var ds := s.tuning.die_size
+	var lim := Table3DBuilder.FELT_HALF - Vector2.ONE * ds * 0.75
+	var cases := [
+		[Vector3(0.70, ds * 0.5, -0.37), Vector3(0.70, ds * 1.5, -0.37)],  # stacked
+		[Vector3(0.70, ds * 0.5, -0.37), Vector3(0.71, ds * 0.5, -0.37)],  # side by side, overlapping
+		[Vector3(lim.x, ds * 0.5, -lim.y), Vector3(lim.x, ds * 1.5, -lim.y)],  # stacked in the corner
+	]
+	for c: Array in cases:
+		var froms: Array[Transform3D] = []
+		var targets: Array[Transform3D] = []
+		for p: Vector3 in c:
+			froms.append(Transform3D(Basis.IDENTITY, p))
+			targets.append(s.sim._flat(Transform3D(Basis.IDENTITY, p)))
+		var bottom_before := targets[0].origin
+		s.sim._separate(targets, froms)
+		var d := Vector2(targets[0].origin.x - targets[1].origin.x, targets[0].origin.z - targets[1].origin.z).length()
+		var inside := true
+		for tr in targets:
+			inside = inside and absf(tr.origin.x) <= lim.x + 0.0001 and absf(tr.origin.z) <= lim.y + 0.0001
+		check(d >= ds * 0.95 and inside, "flattened dice from %s end apart (%.3f m >= %.3f) inside the rails" % [str(c), d, ds * 0.95])
+		if c[1].y > c[0].y + ds * 0.5 and absf(c[0].x) < lim.x - ds:
+			check(targets[0].origin.is_equal_approx(bottom_before), "the bottom die stays put; the stacked one moves")
 
 
 # --- Pure face math ---------------------------------------------------------------
