@@ -30,7 +30,7 @@ https://partner.steamgames.com/doc/gettingstarted/contentsurvey
 - **Not AI (third-party)**: made by people outside the team, under a licence.
 
 **Columns:** *asset path* is a file or glob in the repo (the export ships everything except `tests/`,
-`tools/` and `art/*/src/`). *Date* is when it landed on `main` (from `git log`), plus the last change.
+`tools/`, `art/*/src/` and `assets/*/src/`). *Date* is when it landed on `main` (from `git log`), plus the last change.
 *Owner*: Art Director = 2D and branding, 3D Artist = models and textures, Sound Designer = audio,
 VFX Dev = FX textures and shaders, Game Designer = text. Sources are in brackets. "Team art folder" and
 "team design folder" are the owners' working folders outside the repo; ask the owner for them.

@@ -45,9 +45,11 @@ how the code fits together is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A
   `SCRIPT ERROR`.
 - Commit the `*.uid` files Godot makes next to new scripts and the `*.import` files next to new
   assets. Never commit `.godot/`, builds or editor settings.
-- **AI-generated assets:** Every PR that adds or replaces an AI-generated asset must add a row to
-  docs/AI_CONTENT_LOG.md (asset path, tool, what it was used for, date). Steam's content survey
-  requires this disclosure. (The log file itself lands with the Steam-readiness PR.)
+- **AI content log:** every PR that adds or replaces anything players see or hear that agents made
+  or scripted (art, models, textures, shaders, audio, in-game text; script-built assets count too)
+  adds or updates its row in [docs/AI_CONTENT_LOG.md](docs/AI_CONTENT_LOG.md) (asset path, tool,
+  what it was used for, date, owner). Steam's content survey requires this disclosure; the log's
+  "Policy: broad disclosure" section has the rules (PM ruling, Oct 19 2026).
 
 ## 3. Open the PR, pass CI
 
@@ -91,9 +93,11 @@ delegated approvals to PM). Say so in the PR (template checkbox) so it's flagged
 
 ### Exports
 
-There's no `export_presets.cfg` in the repo yet, and adding one is repo config (PM decides). Whoever
-creates it sets company and publisher **"Tiny Anvil Games"**, product name **"Dice of the
-Damned"**, and copyright **"© 2026 Tiny Anvil Games"**. Never put signing keys or passwords in it.
+`export_presets.cfg` is repo config (PM decides). It sets company and publisher **"Tiny Anvil
+Games"**, product name **"Dice of the Damned"**, and copyright **"© 2026 Tiny Anvil Games"**; keep
+those when you touch it. Never put signing keys or passwords in it. Steam release status, the export
+CI job and open items are in [docs/STEAM_READINESS.md](docs/STEAM_READINESS.md); AI disclosure is in
+[docs/AI_CONTENT_LOG.md](docs/AI_CONTENT_LOG.md).
 
 ## 6. Commit and PR conventions
 
@@ -115,8 +119,8 @@ The team is Cash (owner), a few humans with write access (like Julian) and sever
 - **Bots all post as `@cashdvs`**, so GitHub can't tell them apart. A bot **signs its role** on
   the last line of every PR body and review comment, e.g. `Role: Systems Dev`. Humans just fill
   in the "Author" line of the template.
-- **Never change the shared repo's git config.** Agents share one clone on the studio box
-  (`/workspace/dice/game` and its worktrees share one `.git/config`), so `git config user.name`
+- **Never change the shared repo's git config.** Agents share one clone on the studio box (the
+  main checkout and all its worktrees share one `.git/config`), so `git config user.name`
   there changes every agent's author. Commit as `cashdvs <cashdvs@users.noreply.github.com>`
   (the shared default). If you need a different identity for one command, use
   `git -c user.name=... -c user.email=... commit`, never `git config` (PM ruling, Oct 19 2026).

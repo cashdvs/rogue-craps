@@ -110,6 +110,10 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
 (PM decides, [CONTRIBUTING.md §5](../CONTRIBUTING.md)). Add new files in the Godot editor
 (right-click the folder → New Resource → pick the class) so `.tres` and `.uid` stay valid.
 
+**Shipping and Steam:** builds come from `export_presets.cfg` and `.github/workflows/export.yml`;
+status and open items are in [STEAM_READINESS.md](STEAM_READINESS.md). Anything players see or hear
+that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
+
 ## Recipes
 
 ### Add a special die
