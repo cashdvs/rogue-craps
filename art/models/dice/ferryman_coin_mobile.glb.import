@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b0jxikklq208q"
-path="res://.godot/imported/ferryman_d2_mobile.glb-6fa787ef0c2ac8570668d91bf20b526f.scn"
+path="res://.godot/imported/ferryman_coin_mobile.glb-743611e50e02b0202c979b3a0606432d.scn"
 
 [deps]
 
-source_file="res://art/models/dice/ferryman_d2_mobile.glb"
-dest_files=["res://.godot/imported/ferryman_d2_mobile.glb-6fa787ef0c2ac8570668d91bf20b526f.scn"]
+source_file="res://art/models/dice/ferryman_coin_mobile.glb"
+dest_files=["res://.godot/imported/ferryman_coin_mobile.glb-743611e50e02b0202c979b3a0606432d.scn"]
 
 [params]
 

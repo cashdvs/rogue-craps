@@ -62,7 +62,7 @@
   "tris_mobile": 20,
   "tris_pc": 92
  },
- "ferryman_d2": {
+ "ferryman_coin": {
   "aabb": [
    0.1,
    0.024,
@@ -96,7 +96,7 @@
     ]
    ]
   ],
-  "file": "ferryman_d2.glb",
+  "file": "ferryman_coin.glb",
   "half_extent_mobile": [
    0.05,
    0.012,
@@ -107,7 +107,7 @@
    0.012,
    0.04924
   ],
-  "mobile": "ferryman_d2_mobile.glb",
+  "mobile": "ferryman_coin_mobile.glb",
   "names": {
    "1": "heads",
    "2": "tails"
@@ -528,7 +528,7 @@
   "tris_mobile": 116,
   "tris_pc": 276
  },
- "powder_keg_d3": {
+ "powder_keg_d6": {
   "aabb": [
    0.0974,
    0.0694,
@@ -614,7 +614,7 @@
     ]
    ]
   ],
-  "file": "powder_keg_d3.glb",
+  "file": "powder_keg_d6.glb",
   "half_extent_mobile": [
    0.04869,
    0.03469,
@@ -625,7 +625,7 @@
    0.03469,
    0.04006
   ],
-  "mobile": "powder_keg_d3_mobile.glb",
+  "mobile": "powder_keg_d6_mobile.glb",
   "names": {},
   "read": "face",
   "rest_volume_cuberoot": 0.0815,

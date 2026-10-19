@@ -33,9 +33,9 @@ black wax seals (bone stamp), Coven matte dusty plum (no emission), Last Breath 
 ends. Body albedos are lamp-compensated in `write_batch2.py` (`lamp_comp()`), so the `.tres` hexes differ from the
 swatches on purpose.
 
-Batch 3 (the non-d6 polyhedrals: Caltrop d4, Lantern d8, Tithe d10, Midnight d12, Verdict d20, Ferryman's Coin d2,
+Batch 3 (the non-d6 polyhedrals: Caltrop d4, Lantern d8, Tithe d10, Midnight d12, Verdict d20, Ferryman's Coin (coin),
 Powder Keg d3, Knucklebone) is documented in `BATCH3.md`, with each die's value → direction table. Source:
-`src/build_batch3.py` and `src/write_batch3.py`; test: `tests/test_batch3_dice.gd`.
+`src/build_batch3.py` and `src/write_batch3.py`; tests: `tests/test_batch3_dice.gd`, `tests/test_batch3_dice_shapes.gd`.
 
 ## Special dice (history)
 Special dice will get their own silhouettes and materials rather than reusing this cube; an astragalus

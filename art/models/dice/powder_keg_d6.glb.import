@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://c7c1326pdprdu"
-path="res://.godot/imported/ferryman_d2.glb-9f1fe22ac1bbcae60d500cf61d820c68.scn"
+uid="uid://dyekmsyixg266"
+path="res://.godot/imported/powder_keg_d6.glb-fde9d0a6172cee8f2386a06078448ef1.scn"
 
 [deps]
 
-source_file="res://art/models/dice/ferryman_d2.glb"
-dest_files=["res://.godot/imported/ferryman_d2.glb-9f1fe22ac1bbcae60d500cf61d820c68.scn"]
+source_file="res://art/models/dice/powder_keg_d6.glb"
+dest_files=["res://.godot/imported/powder_keg_d6.glb-fde9d0a6172cee8f2386a06078448ef1.scn"]
 
 [params]
 
@@ -41,10 +41,15 @@ materials/extract_format=0
 materials/extract_path=""
 _subresources={
 "materials": {
-"ferryman_body": {
+"powder_keg_body": {
 "use_external/enabled": true,
-"use_external/fallback_path": "res://art/models/dice/materials/ferryman_body.tres",
-"use_external/path": "res://art/models/dice/materials/ferryman_body.tres"
+"use_external/fallback_path": "res://art/models/dice/materials/powder_keg_body.tres",
+"use_external/path": "res://art/models/dice/materials/powder_keg_body.tres"
+},
+"powder_keg_hoop": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/dice/materials/powder_keg_hoop.tres",
+"use_external/path": "res://art/models/dice/materials/powder_keg_hoop.tres"
 }
 }
 }

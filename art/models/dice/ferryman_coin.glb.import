@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dv5aufy8i7dau"
-path="res://.godot/imported/powder_keg_d3_mobile.glb-4ffee32798bba24a00e47b53943fb9e1.scn"
+uid="uid://c7c1326pdprdu"
+path="res://.godot/imported/ferryman_coin.glb-f86a1009ae050c19b1031b2148e5d971.scn"
 
 [deps]
 
-source_file="res://art/models/dice/powder_keg_d3_mobile.glb"
-dest_files=["res://.godot/imported/powder_keg_d3_mobile.glb-4ffee32798bba24a00e47b53943fb9e1.scn"]
+source_file="res://art/models/dice/ferryman_coin.glb"
+dest_files=["res://.godot/imported/ferryman_coin.glb-f86a1009ae050c19b1031b2148e5d971.scn"]
 
 [params]
 
@@ -41,15 +41,10 @@ materials/extract_format=0
 materials/extract_path=""
 _subresources={
 "materials": {
-"powder_keg_body": {
+"ferryman_body": {
 "use_external/enabled": true,
-"use_external/fallback_path": "res://art/models/dice/materials/powder_keg_body.tres",
-"use_external/path": "res://art/models/dice/materials/powder_keg_body.tres"
-},
-"powder_keg_hoop": {
-"use_external/enabled": true,
-"use_external/fallback_path": "res://art/models/dice/materials/powder_keg_hoop.tres",
-"use_external/path": "res://art/models/dice/materials/powder_keg_hoop.tres"
+"use_external/fallback_path": "res://art/models/dice/materials/ferryman_body.tres",
+"use_external/path": "res://art/models/dice/materials/ferryman_body.tres"
 }
 }
 }

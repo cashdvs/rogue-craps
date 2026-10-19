@@ -1,7 +1,7 @@
 """Builds the batch-3 non-d6 special dice (Art Director brief, Oct 19, 2026) as game-ready .glb files, a PC
 mesh (~600 tris) and a mobile LOD (<= 300 tris) each:
 
-    caltrop_d4  lantern_d8  tithe_d10  midnight_d12  verdict_d20  ferryman_d2  powder_keg_d3  knucklebone_talus
+    caltrop_d4  lantern_d8  tithe_d10  midnight_d12  verdict_d20  ferryman_coin  powder_keg_d6  knucklebone_talus
 
 Run headless (Blender 4.5 LTS):
     blender -b --factory-startup --python art/models/dice/src/build_batch3.py -- [out_dir] [name ...]
@@ -414,12 +414,12 @@ def build_ferryman(pc):
             return 1
         return TRIM
     return dict(bm=bm, mats=mats, frames=frames, classify=classify, textured=[0], read="face",
-                dirs=[[1, [0, 1, 0]], [2, [0, -1, 0]]], sharp=40.0, node="FerrymanD2", rest_down=[0, -1, 0],
+                dirs=[[1, [0, 1, 0]], [2, [0, -1, 0]]], sharp=40.0, node="FerrymanCoin", rest_down=[0, -1, 0],
                 names={1: "heads", 2: "tails"})
 
 
 def build_powder_keg(pc):
-    """Powder Keg d3: a hexagonal barrel (bulged mustard staves, black iron hoops, dark recessed lids) that rolls on
+    """Powder Keg d3 (die id powder_keg, shape d6; docs/DICE_IDS.md): a hexagonal barrel (bulged mustard staves, black iron hoops, dark recessed lids) that rolls on
     its long axis (local X). Six staves show 1, 2, 3, 1, 2, 3, so opposite staves match and the top stave is the value."""
     mats = [make_material("powder_keg_body", "C9A030", 0.8), make_material("powder_keg_hoop", "1E1C1C", 0.4, 1.0)]
     L, a_mid = 0.098, 0.0337
@@ -511,7 +511,7 @@ def build_powder_keg(pc):
         ang = math.degrees(math.atan2(c.z, c.y)) % 360.0
         return int(round(ang / 60.0)) % 6
     return dict(bm=bm, mats=mats, frames=frames, classify=classify, textured=[0], read="face",
-                dirs=[[fr.value, list(fr.n)] for fr in frames], sharp=40.0, node="PowderKegD3", rest_down=[0, -1, 0])
+                dirs=[[fr.value, list(fr.n)] for fr in frames], sharp=40.0, node="PowderKegD6", rest_down=[0, -1, 0])
 
 
 def build_knucklebone(pc):
@@ -620,10 +620,10 @@ def build_knucklebone(pc):
 
 
 BUILDERS = {"caltrop_d4": build_caltrop, "lantern_d8": build_lantern, "tithe_d10": build_tithe, "midnight_d12": build_midnight,
-            "verdict_d20": build_verdict, "ferryman_d2": build_ferryman, "powder_keg_d3": build_powder_keg,
+            "verdict_d20": build_verdict, "ferryman_coin": build_ferryman, "powder_keg_d6": build_powder_keg,
             "knucklebone_talus": build_knucklebone}
 TITLES = {"caltrop_d4": "Caltrop", "lantern_d8": "Lantern", "tithe_d10": "Tithe", "midnight_d12": "Midnight",
-          "verdict_d20": "Verdict", "ferryman_d2": "Ferryman's Coin", "powder_keg_d3": "Powder Keg", "knucklebone_talus": "Knucklebone"}
+          "verdict_d20": "Verdict", "ferryman_coin": "Ferryman's Coin", "powder_keg_d6": "Powder Keg", "knucklebone_talus": "Knucklebone"}
 
 
 # ------------------------------------------------------------------ assemble
