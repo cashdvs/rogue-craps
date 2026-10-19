@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_l3nwq")
-id = &"cold_sixes"
+id = &"mister_wick"
 display_name = "Mister Wick"
 description = "Snuffs the sixes: 6s never light. A bust costs 2 Soul."
 kind = 1
