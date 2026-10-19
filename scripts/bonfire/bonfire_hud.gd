@@ -129,7 +129,7 @@ func _init() -> void:
 	bank_button.custom_minimum_size = Vector2(310, 84)
 	bank_button.pressed.connect(func() -> void: bank_pressed.emit())
 	col.add_child(bank_button)
-	leave_button = _button("Leave table", 32, Palette.FELT_DARK)
+	leave_button = _button(LEAVE_TEXT, 32, Palette.FELT_DARK)
 	leave_button.name = "LeaveButton"
 	leave_button.custom_minimum_size = Vector2(310, 84)
 	leave_button.visible = false
@@ -196,10 +196,10 @@ func _init() -> void:
 var display_hold: Dictionary = {}
 
 
-## Seconds the "LEAVE?  TAP AGAIN" question waits for the second tap.
+## Seconds the "Leave? Tap again" question waits for the second tap.
 const LEAVE_CONFIRM_S: float = 2.0
-const LEAVE_TEXT := "LEAVE TABLE  (L)"
-const LEAVE_ASK_TEXT := "LEAVE?  TAP AGAIN"
+const LEAVE_TEXT := "Leave table"
+const LEAVE_ASK_TEXT := "Leave? Tap again"
 ## When the first tap came (seconds on leave_clock), -1 = not asked.
 var _leave_asked_at: float = -1.0
 ## Seconds for the confirm window (tests can swap in a fake clock).
@@ -207,7 +207,7 @@ var leave_clock: Callable = func() -> float: return Time.get_ticks_msec() / 1000
 
 
 ## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
-## the button into "LEAVE?  TAP AGAIN"; a second one within LEAVE_CONFIRM_S
+## the button into "Leave? Tap again"; a second one within LEAVE_CONFIRM_S
 ## leaves (emits leave_pressed). Otherwise the text goes back.
 func press_leave() -> void:
 	if not leave_button.visible:
