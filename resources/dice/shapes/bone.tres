@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_e8hce")
-id = &"d6"
+id = &"bone"
 display_name = "Bone"
 description = "A plain six-sided die."
 price = 0

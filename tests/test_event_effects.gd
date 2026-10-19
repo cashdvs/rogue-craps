@@ -95,7 +95,7 @@ func _test_give_die() -> void:
 	_apply(&"mirror", p)
 	_check(p.dice.size() == n + 1 and p.dice[n].special_id == &"mirror", "give die: a Mirror Die joins the bag")
 	_apply(&"bone", p)
-	_check(p.dice.size() == n + 2 and p.dice[n + 1].special_id == &"" and p.dice[n + 1].shape == &"d6" and p.die_name(n + 1) == "Bone",
+	_check(p.dice.size() == n + 2 and p.dice[n + 1].special_id == &"" and p.dice[n + 1].shape == DiceIds.DIE_BONE and p.die_name(n + 1) == "Bone",
 		"give die: an empty die id gives a plain Bone")
 	_check(p.dice.size() == _run.max_dice, "give die: bag now full (%d)" % _run.max_dice)
 	_check(EventApplier.why_not(_ch(&"mirror"), p) == "Your bag is full (%d dice)." % _run.max_dice, "give die: full bag greys the choice")
@@ -123,7 +123,7 @@ func _test_sell_die() -> void:
 	_check(p.dice.size() == 5 and p.embers == e0 + 6 + 2 and lines[0].contains("Mirror Die"), "sell die: Mirror sells for half (6) + 2 bonus")
 	_check(EventApplier.why_not(_ch(&"sell"), p) != "", "sell die: the last spare die gone, the bag can't drop below 5")
 	var q := RunProgress.new(_run)
-	q.add_die(&"d6")
+	q.add_die(DiceIds.DIE_BONE)
 	var e1 := q.embers
 	_apply(&"sell", q, [Vector2i(2, 0)])
 	_check(q.dice.size() == 5 and q.embers == e1 + 2, "sell die: a plain die sells for 0 (+ bonus); any die may be picked")

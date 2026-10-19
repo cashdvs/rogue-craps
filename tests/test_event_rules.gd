@@ -109,7 +109,7 @@ func _test_only_leave() -> void:
 	var gd := _event(&"gravedigger", [], [_fx(K.SOUL, -9), _fx(K.GIVE_DIE)] as Array[EventEffectData])
 	var full := RunProgress.new(_run)
 	while full.can_add_die():
-		full.add_die(&"d6")
+		full.add_die(DiceIds.DIE_BONE)
 	_check(not EventPicker.worth_offering(gd, full, true), "leave-only: Gravedigger with a full bag isn't offered")
 	_check(EventPicker.worth_offering(gd, RunProgress.new(_run), true), "leave-only: Gravedigger with room is offered")
 	_check(EventPicker.is_leave(_altar.choices[2]) and not EventPicker.is_leave(_altar.choices[0]), "leave-only: Leave = the choice with no effects")
@@ -243,7 +243,7 @@ func test_hidden() -> void:
 	_check(EventPicker.worth_offering(gd, p, true), "hidden: the Bone option keeps the Gravedigger offered")
 	var full := RunProgress.new(_run)
 	while full.can_add_die():
-		full.add_die(&"d6")
+		full.add_die(DiceIds.DIE_BONE)
 	_check(not EventPicker.worth_offering(gd, full, true), "hidden: with a full bag, only Leave is left, so it's skipped")
 	var lone := EventData.new()
 	lone.id = &"lone"

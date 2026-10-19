@@ -24,5 +24,7 @@ func is_preset(face_i: int, mod_id: StringName) -> bool:
 	return face_i < faces.size() and mod_id != &"" and StringName(preset_mods.get(faces[face_i], &"")) == mod_id
 
 
+## Number of physical faces (the size of `faces`): Ferryman's Coin 2, the
+## Powder Keg 6 (1-1-2-2-3-3), Verdict 20.
 func face_count() -> int:
 	return faces.size()
