@@ -93,5 +93,14 @@ func _initialize() -> void:
 	k.set_shape(&"coin")
 	check(k.faces == [1, 5], "set_shape resets to defaults")
 
+	# Caltrop d4: read from the vertex that points up.
+	var vert_ok := true
+	for vk in range(1, 5):
+		vert_ok = vert_ok and D4Geometry.up_slot(D4Geometry.basis_for_slot(vk)) == vk
+		vert_ok = vert_ok and D4Geometry.up_slot(Basis(Vector3.UP, 1.3) * D4Geometry.basis_for_slot(vk)) == vk
+	check(vert_ok, "d4: the vertex pointing up is the slot read (any spin about vertical)")
+	var tilted := Basis(Vector3.RIGHT, deg_to_rad(10)) * D4Geometry.basis_for_slot(3)
+	check(D4Geometry.up_slot(tilted) == 3, "d4: a slightly tilted landing still reads its top vertex")
+
 	print("test_table_die_shape: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
