@@ -15,7 +15,7 @@ He is modelled from the waist up and stands behind the far rail. This is art onl
 | `materials/*.tres` | toon_noir per glTF slot + ink hulls (`ink_smiles` 4.8 mm, `ink_smiles_thin` 1.8 mm for teeth / buttons / chip) |
 | `src/build_smiles.py` | Blender 4.5 source: model, rig, poses (2-bone arm IK solved to FK keys), clips, export |
 | `src/make_smiles.gd`, `src/write_imports.py`, `src/rebuild_smiles.sh` | materials, import settings (slot -> .tres, loops), wrapper scenes |
-| `tests/test_smiles.gd` | bones, hierarchy, clips + lengths, hooks, parts, materials, budgets, no scripts / lights, rail clearance, key gestures above the rail in the game camera, MC-only glow |
+| `tests/test_smiles.gd` | bones, hierarchy, clips + lengths, hooks, parts, materials, budgets, no scripts / lights, rail clearance, game-camera v2 (a153087) band: grin / visor inside the phone band, visor never clips, only horn tips may clip, key gestures over the rail in the phone + PC frames, taunt / cheat hands at or below the head, grin above the clap, idle hands low, MC-only glow |
 
 ## Triangles
 
@@ -31,6 +31,7 @@ He is modelled from the waist up and stands behind the far rail. This is art onl
 - **Horns:** about 30% shorter and swept back, so they lean along the top frame edge in the game camera.
 - **Visor brim:** tipped up 15° more (29° total), so the eyes show from above. It has a pale-green rim along the brim edge (a 7 mm-radius tube, ~2 px wider at game-camera scale so the green reads at 48 px; non-emissive as dealer) and stays opaque. The outer headband is now visor green.
 - **Teeth:** two chunky 7-tooth gold bands (upper on `head`, lower on `jaw`; the outer teeth ride on `grin_L|R`). Each row is one connected strip that bulges per tooth and notches between teeth.
+- **Camera v2 re-pose (a153087 phone band):** horns pushed further back and flatter (tips trail behind the head, so only the tips can touch the phone frame edge; the visor never does), hair spikes flatter, and every clip re-posed for the 0.22 m phone band (see Clips and Placement).
 - **Dealer lighting:** the dealer is lit by the lamp only. `smiles_gold` and `smiles_visor` have no emission. The glow is MC-only (see `glow_*` below).
 
 ## Rig (29 bones, every bone rests pointing up, roll 0, so local axes match the parent's)
@@ -64,11 +65,11 @@ Hero bosses (including Mister Wick) get their own rigs, per the locked direction
 
 | Clip | Length | Loop | Use |
 |---|---|---|---|
-| `idle` | 3.0 s | yes | rolls a chip over his right knuckles beside his cheek, grin twitch, breath, head sway |
-| `taunt` | 1.4 s | no | on bust: leans in, cackles (jaw chatter, head back), points up at the player |
-| `grudging` | 1.6 s | no | big score (tier 3+): two slow sarcastic claps raised beside his chin/cheek (screen-left, so the cracking grin stays clear), hands over the rail in the game camera |
-| `cheat` | 1.2 s | no | boss tell: shifty glance, visor tipped down, left cuff raised by his cheek and the chip slipped up it (both hands over the rail), smug grin |
-| `deal` | 1.0 s | no | right hand flicks a chip out across the felt |
+| `idle` | 3.0 s | yes | leans low on the far rail (both forearms on it), rolls a chip over his right knuckles just above the rail top, grin twitch, breath, head sway |
+| `taunt` | 1.4 s | no | on bust: leans in, cackles (jaw chatter, head back), points out at the player at head height (never above it) |
+| `grudging` | 1.6 s | no | big score (tier 3+): two slow sarcastic claps at the centre of his body, chin height, hands just over the rail; on screen the cracking grin sits right above the hands (chip palmed for the clip) |
+| `cheat` | 1.2 s | no | boss tell: shifty glance, visor tipped down, left cuff raised by his cheek and the chip slipped up it (both hands over the rail, at or below head height), smug grin |
+| `deal` | 1.0 s | no | right hand flicks a chip out across the felt, low over the rail |
 | `mc_idle` | 2.4 s | yes | MC variant (boss in the dealer spot, Smiles on the left rail): upright, fist on hip, presenting |
 | `mc_cheer` | 1.2 s | no | MC cheers on bust: both fists pumping, mouth open |
 
@@ -93,10 +94,14 @@ Every clip starts and ends near the base `STAND` pose (MC clips start and end on
 ## Placement (what the captures use; the layout itself is Godot Dev's call)
 
 - **Dealer spot: `(-0.42, -0.47, -0.86)`, facing +Z, stage left of the brazier.**
-  - From the game camera (pitch 55, distance 2.5, FOV 36), only about y 0.04-0.29 is visible at this depth, between the far-rail top and the frame top.
+  - **Game camera v2 (Godot Dev, `feat/bonfire-sandbox` a153087):** rig at the pivot pitched -55, camera dolly d, look-up 7.5°, FOV 36.
+    PC 1920x1080: d 2.40, pivot z 0.26. Phone landscape 844x390: d 2.04, pivot z 0.34.
+    At this spot the band above the rail (RAIL_TOP_Y 0.11) is **0.22 m on phone** and 0.44 m on PC, so everything is authored for the phone band.
+    Max heights above 0.11 (tested, phone px from the frame top in brackets): visor 0.209 (3-22 px), grin 0.058-0.071, horns 0.124-0.162 (1-10 px; only the tips may clip),
+    hands: idle 0.089, taunt 0.173, grudging 0.168, cheat 0.168, deal 0.253 (18 px). On PC he simply shows more chest and waistcoat.
   - A centred dealer is hidden by the brazier bowl and its fire.
   - At x -0.42 his face clears all four fire steps. The Hearth test checks a face sphere at (-0.42, 0.2, -0.86).
-  - In the game camera he reads as his head (visor + grin), plus the hands he raises (idle chip, taunt point).
+  - In the game camera he reads as his head (visor + grin), plus the key hands: the idle forearms on the rail, the taunt point, the clap under the grin and the cheat cuff.
   - Waist-up only shows in close-ups. See the open questions.
   - Rail clearance (tested): at this spot every clip keeps the forearms, hands, fingers and chip behind the far rail's outer edge (z -0.70).
     The only exception is a limb raised over the rail top (y > 0.14), or held above the felt once it is past the rail.
@@ -112,6 +117,7 @@ Every clip starts and ends near the base `STAND` pose (MC clips start and end on
   - `smiles_34_insitu.png`
   - `smiles_48.png` + `smiles_48_x6.png`: the 48 px read.
   - `smiles_mc_game_camera.png`, `smiles_mc_34.png`
+- **Camera v2 stills:** `camera_v2/smiles_<idle|taunt|grudging|cheat|deal>_<pc|phone>.png` at each clip's key beat, plus `contact_<pc|phone>_dealer_crop.png`.
 - **MP4s:** `smiles_<clip>.mp4` for all 7 clips, plus `smiles_head_track.mp4`. Left = 3/4 showcase, right = game-camera zoom.
 
 ## Rebuild
