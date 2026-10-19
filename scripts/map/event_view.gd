@@ -10,6 +10,7 @@ signal choice_made(index: int, picks: Array[Vector2i])
 var _box: VBoxContainer
 var _event: EventData
 var _progress: RunProgress
+var _table_ahead: bool = true
 
 
 func _ready() -> void:
@@ -25,9 +26,10 @@ func _ready() -> void:
 	panel.add_child(_box)
 
 
-func show_event(e: EventData, p: RunProgress) -> void:
+func show_event(e: EventData, p: RunProgress, table_ahead: bool = true) -> void:
 	_event = e
 	_progress = p
+	_table_ahead = table_ahead
 	_clear()
 	_box.add_child(RunTheme.label(e.title, 44, RunTheme.EMBER, true))
 	var row := HBoxContainer.new()
@@ -40,7 +42,7 @@ func show_event(e: EventData, p: RunProgress) -> void:
 	for i in e.choices.size():
 		var c := e.choices[i]
 		var b := RunTheme.button(c.label)
-		var why := EventApplier.why_not(c, p)
+		var why := EventApplier.why_not(c, p, table_ahead)
 		b.disabled = why != ""
 		b.tooltip_text = why
 		b.pressed.connect(_on_choice.bind(i))
@@ -98,7 +100,7 @@ func _on_choice(i: int) -> void:
 		_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
 		_box.add_child(picker)
 		var back := RunTheme.button("Back")
-		back.pressed.connect(func() -> void: show_event(_event, _progress))
+		back.pressed.connect(func() -> void: show_event(_event, _progress, _table_ahead))
 		_box.add_child(back)
 		picks.append(await picker.picked)
 	choice_made.emit(i, picks)

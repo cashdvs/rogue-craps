@@ -99,7 +99,7 @@ func refresh() -> void:
 		S.MAP:
 			map_view.show_map(run.map, run.boss_name(), _boss_rules(), run.pending_twist_note())
 		S.EVENT:
-			event_view.show_event(run.event, run.progress)
+			event_view.show_event(run.event, run.progress, run.table_ahead())
 		S.TABLE:
 			_show_table()
 		S.REWARD:
@@ -324,7 +324,7 @@ func _on_event_choice(i: int, picks: Array[Vector2i]) -> void:
 	var text := run.event.choices[i].result_text
 	var lines := run.choose_event(i, picks)
 	if run.screen == S.EVENT:
-		event_view.show_event(run.event, run.progress)
+		event_view.show_event(run.event, run.progress, run.table_ahead())
 		return
 	# Show the outcome over the event before going back to the map.
 	map_view.visible = false
