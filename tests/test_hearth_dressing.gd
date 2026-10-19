@@ -1,6 +1,7 @@
 ## Headless test: the Hearth set dressing + ambient motion (detail pass, Oct 19;
 ## art/concept/bonfire_table/hearth_detail_pass.md). Art only: Hearth/Dressing (hearth_dressing.gd) under the
-## Hearth hub. Checks, for PC and mobile:
+## Hearth hub. The image / resource-level looks (felt wear, inks, colours, the unlit-light ceiling) are in
+## test_hearth_dressing_looks.gd. Checks, for PC and mobile:
 ##   budget     drawn tris with the dressing on (tail out: the worst frame) <= 15k / 8k; off = the pre-pass board;
 ##              trinkets are PC only (mobile LOD).
 ##   clearance  no dressing vertex over the felt / inside the rail centrelines (at rest and at every sampled
@@ -9,12 +10,6 @@
 ##              felt from the game camera (PC 16:9 and phone landscape), and the bell never covers Smiles' face.
 ##   toggle     Hearth.dressing off -> exactly Board A's looks (hearth_felt / hearth_leather, Visual/Trim shown,
 ##              Dressing hidden); on -> worn felt, carved rails, worn studs; ambient off -> motes hidden, clips stop.
-##   looks      felt wear low-contrast (<= 15 % value shift), off the landing centre and off both combo-table
-##              strips (landscape / portrait felt decal), never bone-coloured; prop outlines ~60 % of the dice
-##              ink (0.0025); no Soul cyan / Danger red; dark, dim backdrop; the dressing's unlit light (self-glow
-##              + warm rim) stays <= 60 % of the dice value and no more saturated than Ember; light pools at
-##              ~25-35 % value; the tail's top-edge rim is Ember, clear of Danger red's hue and brightness; the
-##              near-rail carving brass stays under the brass total plate.
 ##   motion     clip lengths, peek interval 8-15 s, clips key only the pose params, the tail peeks on schedule
 ##              and whips back + stays in while scoring, rail_hit sways the chain, eyes 3 rattles the bell.
 ##
@@ -26,20 +21,9 @@ const H := "res://art/models/boards/hearth/"
 const FELT_HALF := Vector2(1.02, 0.52)
 const RAIL_R := 0.09
 const EPS := 0.0015
-const DICE_INK := 0.0042
-const PROP_INK := 0.0025
-const BONE := Color("E8DCC0")
-const SOUL := Color("4FE6E0")
-const DANGER := Color("FF2E3E")
 const DEALER_FACE := Vector3(-0.42, 0.2, -0.86)
 const DEALER_FACE_R := 0.11
 const POSE_PARAMS: Array[String] = ["tail_out", "tail_sway", "tail_curl", "chain_swing", "bell_shake"]
-## Combo-table strips: the felt combo decal (art/ui/readability/felt/, outside the repo) alpha bounds in board
-## metres (landscape: along the near edge, z 0.366..0.513; portrait: the left edge, x -0.994..-0.713), + 2 cm.
-const COMBO_LANDSCAPE := Rect2(-1.02, 0.346, 2.04, 0.187)      # x, z, w, h
-const COMBO_PORTRAIT := Rect2(-1.02, -0.522, 0.327, 1.044)
-const EMBER := Color("E8622A")
-const UNLIT_CEIL := 0.6       # dressing unlit light <= 60 % of the dice (bone) value
 
 var _passed := 0
 var _failed := 0
@@ -51,8 +35,6 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	_check_felt_wear()
-	_check_materials()
 	for mobile in [false, true]:
 		await _check_board(mobile)
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -61,15 +43,37 @@ func _run() -> void:
 
 # --- cameras -----------------------------------------------------------------------------------------
 
-## The game camera (a153087): rig -55 deg about the pivot, tilt-up 7.5 deg, FOV 36 (vertical).
+## The game cameras, read from the game's own camera code rather than hardcoded: a CameraRig set up like
+## Bonfire3D (TuningData + BonfireTuning "Game camera"), PC 16:9 at the home framing and phone landscape
+## (844x390) at cam_phone_landscape_distance / _pivot. [name, camera transform, aspect, fov]
+var _cam_cache: Array = []
+
+
 func _cams() -> Array:
-	return [["pc", _a153087(Vector3(0, 0, 0.26), 2.40), 1920.0 / 1080.0],
-		["phone", _a153087(Vector3(0, 0, 0.34), 2.04), 844.0 / 390.0]]
-
-
-func _a153087(pivot: Vector3, d: float) -> Transform3D:
-	var rig := Transform3D(Basis.from_euler(Vector3(deg_to_rad(-55), 0, 0)), pivot)
-	return rig * Transform3D(Basis.from_euler(Vector3(deg_to_rad(7.5), 0, 0)), Vector3(0, 0, d))
+	if not _cam_cache.is_empty():
+		return _cam_cache
+	var bt := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var t := (load("res://resources/tuning/poc_tuning.tres") as TuningData).duplicate() as TuningData
+	t.cam_pitch_deg = bt.cam_pitch_deg
+	t.cam_distance = bt.cam_distance
+	t.cam_pivot = bt.cam_pivot
+	t.cam_look_up_deg = bt.cam_look_up_deg
+	for spec in [["pc", Vector2(1920, 1080)], ["phone", Vector2(844, 390)]]:
+		var rig := CameraRig.new()
+		root.add_child(rig)
+		rig.setup(t)
+		if spec[0] == "phone":
+			rig.fit_viewport(spec[1])
+			rig.home_distance = bt.cam_phone_landscape_distance
+			rig.distance = rig.home_distance
+			rig.home_pivot = bt.cam_phone_landscape_pivot
+			rig.position = rig.home_pivot
+			rig._apply()
+		var size: Vector2 = spec[1]
+		_cam_cache.append([spec[0], rig.cam.global_transform, size.x / size.y, rig.cam.fov])
+		root.remove_child(rig)
+		rig.free()
+	return _cam_cache
 
 
 ## True when p is above the felt plane and the camera ray through it lands on the felt (p is drawn over
@@ -86,184 +90,12 @@ func _over_felt(cam: Transform3D, p: Vector3) -> bool:
 	return absf(hit.x) < FELT_HALF.x and absf(hit.z) < FELT_HALF.y
 
 
-func _ndc(cam: Transform3D, aspect: float, p: Vector3) -> Vector2:
-	var tn := tan(deg_to_rad(36.0) * 0.5)
-	var v := cam.affine_inverse() * p
+func _ndc(c: Array, p: Vector3) -> Vector2:
+	var tn := tan(deg_to_rad(float(c[3])) * 0.5)
+	var v := (c[1] as Transform3D).affine_inverse() * p
+	var aspect: float = c[2]
 	return Vector2(v.x / (-v.z * tn * aspect), v.y / (-v.z * tn))
 
-
-# --- felt wear + materials (image / resource level) -----------------------------------------------------
-
-func _check_felt_wear() -> void:
-	var plain := Image.load_from_file(ProjectSettings.globalize_path(H + "textures/felt_ember_corners.png"))
-	var worn := Image.load_from_file(ProjectSettings.globalize_path(H + "textures/felt_ember_corners_worn.png"))
-	_check(plain != null and worn != null and plain.get_size() == worn.get_size(), "felt: plain + worn overlays load at the same size")
-	if plain == null or worn == null:
-		return
-	var felt := Color8(18, 58, 54)  # Underfelt #123A36 under the overlay
-	var w := plain.get_width()
-	var h := plain.get_height()
-	var changed := 0
-	var centre_ok := true
-	var band_ok := true
-	var band_at := ""
-	var shift := 0.0
-	var hue_ok := true
-	var bad := ""
-	for y in range(0, h, 2):
-		for x in range(0, w, 2):
-			var a := plain.get_pixel(x, y)
-			var b := worn.get_pixel(x, y)
-			if a.is_equal_approx(b):
-				continue
-			changed += 1
-			# board metres (row 0 = near edge): u = (x + 1.02) / 2.04, v = (0.52 - z) / 1.04
-			var bx := (x + 0.5) / w * 2.04 - 1.02
-			var bz := 0.52 - (y + 0.5) / h * 1.04
-			if absf(bx) < 0.4 and absf(bz) < 0.2:
-				centre_ok = false  # the dice landing centre stays clean
-			for r: Rect2 in [COMBO_LANDSCAPE, COMBO_PORTRAIT]:
-				if r.has_point(Vector2(bx, bz)) and absf(b.a - a.a) + Vector3(b.r - a.r, b.g - a.g, b.b - a.b).length() > 0.004:
-					band_ok = false  # the combo-table strip stays clean
-					band_at = "(%.3f, %.3f)" % [bx, bz]
-			var ca := felt.lerp(Color(a.r, a.g, a.b), a.a)
-			var cb := felt.lerp(Color(b.r, b.g, b.b), b.a)
-			shift = maxf(shift, absf(cb.v - ca.v) / maxf(ca.v, 0.05))
-			# the wear may only dull / darken the felt: never warmer (bone / pip-like) than the board under it
-			if (cb.r - cb.g > ca.r - ca.g + 0.03 and cb.v > 0.3) or (_near(cb, BONE, 0.35) and not _near(ca, BONE, 0.35)):
-				hue_ok = false
-				bad = "(%d,%d) %s" % [x, y, cb.to_html(false)]
-	_check(changed > 200, "felt: the worn overlay adds wear marks (%d px changed, sampled)" % changed)
-	_check(shift <= 0.15 + 0.01, "felt: wear is very low contrast (max value shift %.3f <= 0.15)" % shift)
-	_check(centre_ok, "felt: no wear on the dice landing centre (|x| < 0.4, |z| < 0.2)")
-	_check(band_ok, "felt: no wear on the combo-table strips (landscape near edge, portrait left edge) " + band_at)
-	_check(hue_ok, "felt: wear stays felt-toned, never bone / pip coloured " + bad)
-
-
-func _check_materials() -> void:
-	var ink := load(H + "materials/ink_prop.tres") as ShaderMaterial
-	var wd: Variant = ink.get_shader_parameter("width") if ink != null else null
-	_check(wd != null and absf(float(wd) - PROP_INK) < 1e-5 and absf(float(wd) / DICE_INK - 0.6) < 0.02,
-		"materials: prop ink width %.4f = ~60 %% of the dice ink (0.0042)" % (float(wd) if wd != null else -1.0))
-	var bd := load(H + "materials/backdrop.tres") as ShaderMaterial
-	var mv := _param(bd, "max_value")
-	_check(bd != null and mv > 0.0 and mv <= 0.02, "materials: backdrop is dark (max_value %.3f linear <= 0.02, ~<= 10 %% value)" % mv)
-	var dust := load(H + "materials/lamp_dust.tres") as ShaderMaterial
-	_check(dust != null and dust.shader.resource_path.ends_with("hearth_dust.gdshader"), "materials: lamp dust uses hearth_dust")
-	var drip := load(H + "materials/dressing_wax_drip.tres") as ShaderMaterial
-	_check(drip != null and drip.get_shader_parameter("drip_mode") == true, "materials: wax drips creep (hearth_toon_detail drip_mode)")
-	var carved := load(H + "materials/hearth_leather_carved.tres") as ShaderMaterial
-	var plain := load(H + "materials/hearth_leather.tres") as ShaderMaterial
-	_check(carved != null and carved.get_shader_parameter("use_carve") == true and carved.get_shader_parameter("carve_tex") != null,
-		"materials: carved rail leather (imp faces + flame scroll normal map)")
-	_check(carved != null and plain != null and carved.next_pass == plain.next_pass, "materials: carved leather keeps the ember seam pass + ink hull")
-	var worn := load(H + "materials/hearth_felt_worn.tres") as ShaderMaterial
-	_check(worn != null and str(worn.get_shader_parameter("overlay_tex").resource_path).ends_with("felt_ember_corners_worn.png"), "materials: worn felt = the worn overlay")
-	# palette: no Soul cyan / Danger red, no dice bone on dressing props (aged bone #C9B48A is darker)
-	var pal_ok := true
-	var bad := ""
-	var d := DirAccess.open(H + "materials")
-	for f in d.get_files():
-		if not f.begins_with("dressing_") or not f.ends_with(".tres"):
-			continue
-		var m := load(H + "materials/" + f) as ShaderMaterial
-		var c: Variant = m.get_shader_parameter("albedo")
-		if c == null:
-			continue
-		var col := c as Color
-		if _near(col, SOUL, 0.3) or _near(col, DANGER, 0.3) or (f != "dressing_wax.tres" and f != "dressing_wax_drip.tres" and _near(col, BONE, 0.12)):
-			pal_ok = false
-			bad += " " + f
-	_check(pal_ok, "materials: dressing palette avoids Soul cyan, Danger red and the dice bone" + bad)
-	_check_ceiling()
-
-
-## v2 (AD Oct 19): nothing in the dressing outshines the lit dice / brazier / candles. Unlit light only (the
-## lamp-lit part is shared with every board prop): self-glow + the warm rim, as a value, <= 60 % of the dice
-## bone; emission no more saturated than Ember (the brazier / candle fire); the light pools 25-35 %.
-func _check_ceiling() -> void:
-	var ceil_v := UNLIT_CEIL * BONE.v
-	var worst := 0.0
-	var worst_f := ""
-	var sat_ok := true
-	var sat_bad := ""
-	var rims := 0
-	var d := DirAccess.open(H + "materials")
-	for f in d.get_files():
-		if not f.begins_with("dressing_") or not f.ends_with(".tres") or f == "dressing_pool.tres":
-			continue
-		var m := load(H + "materials/" + f) as ShaderMaterial
-		var v := 0.0
-		for pair in [["emission_color", "emission_energy"], ["rim_emit_color", "rim_emit"]]:
-			var c: Variant = m.get_shader_parameter(pair[0])
-			var k := _param(m, pair[1])
-			if c == null or k <= 0.0:
-				continue
-			v += (c as Color).v * k
-			if (c as Color).s > EMBER.s + 0.02:
-				sat_ok = false
-				sat_bad += " " + f
-		if _param(m, "rim_emit") > 0.0:
-			rims += 1
-		if v > worst:
-			worst = v
-			worst_f = f
-	_check(worst <= ceil_v, "materials: dressing unlit light <= %d %% of the dice value (worst %.3f <= %.3f, %s)" % [int(UNLIT_CEIL * 100), worst, ceil_v, worst_f])
-	_check(sat_ok, "materials: dressing glow / rim no more saturated than Ember" + sat_bad)
-	_check(rims >= 9, "materials: the dressing props carry the warm rim (%d materials)" % rims)
-	var pool := load(H + "materials/dressing_pool.tres") as ShaderMaterial
-	_check(pool != null and pool.shader.resource_path.ends_with("hearth_pool.gdshader"), "materials: corner light pools use hearth_pool")
-	if pool != null:
-		var pc: Color = pool.get_shader_parameter("pool_color") if pool.get_shader_parameter("pool_color") != null else Color("D9783B")
-		var cc: Color = pool.get_shader_parameter("core_color") if pool.get_shader_parameter("core_color") != null else Color("E2B46B")
-		var pe := _param(pool, "energy")
-		var ce := _param(pool, "core_energy")
-		# additive in linear light on the dark leather: the pool core as an sRGB value
-		var lin := pc.srgb_to_linear() * pe + cc.srgb_to_linear() * ce
-		var val := Color(lin.r, lin.g, lin.b).linear_to_srgb().v
-		_check(val >= 0.2 and val <= 0.4, "materials: light-pool core adds ~25-35 %% value (%.2f sRGB)" % val)
-	var tail := load(H + "materials/dressing_tail.tres") as ShaderMaterial
-	var rc: Variant = tail.get_shader_parameter("rim_emit_color")
-	var rk := _param(tail, "rim_emit")
-	var hue_d := 1.0
-	if rc != null:
-		hue_d = absf((rc as Color).h - DANGER.h)
-		hue_d = minf(hue_d, 1.0 - hue_d) * 360.0
-	_check(rc != null and rk > 0.0 and _param(tail, "rim_emit_up") >= 0.9 and _near(rc as Color, EMBER, 0.02),
-		"materials: the tail carries an Ember rim along its top edge")
-	_check(hue_d >= 15.0 and rk * (rc as Color).v <= 0.6 * DANGER.v, "materials: the tail rim stays clear of Danger red (hue %.0f deg off, value %.2f)" % [hue_d, rk * ((rc as Color).v if rc != null else 0.0)])
-	var carved := load(H + "materials/hearth_leather_carved.tres") as ShaderMaterial
-	var skip: Variant = carved.get_shader_parameter("carve_skip_u")
-	_check(_param(carved, "carve_brass") > 0.0 and skip != null and (skip as Vector2).y > 4.0,
-		"materials: carving has a brass edge highlight and is off the far rail (U %s)" % str(skip))
-	# AD sign-off (Oct 19): the brass total plate stays the brightest brass on the near rail. The near-rail carving
-	# brass is a partial mix (carve_brass x carve_dim of the edge mask) of a darker brass + a little emission; its
-	# strongest possible value must stay under the plate ring's brass albedo (renders: plate p99 0.96 vs carving max 0.85).
-	var plate_v := 0.0
-	var dial := (load("res://art/models/boards/infernal_pit/scenes/total_dial.tscn") as PackedScene).instantiate()
-	var dial_meshes: Array[MeshInstance3D] = []
-	_collect(dial, dial_meshes)
-	for mi in dial_meshes:
-		for si in mi.mesh.get_surface_count():
-			var dm := mi.get_active_material(si) as ShaderMaterial
-			if dm != null and _param(dm, "spec_size") > 0.0 and dm.get_shader_parameter("albedo") != null:
-				var ac := dm.get_shader_parameter("albedo") as Color
-				if ac.g > ac.b + 0.1 and ac.r > ac.g:   # brass-coloured
-					plate_v = maxf(plate_v, ac.v)
-	dial.free()
-	var cb: Variant = carved.get_shader_parameter("carve_brass_color")
-	var dim := _param(carved, "carve_dim")
-	var cbv := (cb as Color).v if cb != null else 0.0
-	var near_brass := cbv * (_param(carved, "carve_brass") + _param(carved, "carve_brass_emit")) * dim
-	_check(plate_v > 0.0 and cbv < plate_v and near_brass < plate_v and dim <= 0.86 and _param(carved, "carve_rim_dim") > 0.0,
-		"materials: the total plate (brass %.2f) stays the brightest brass on the near rail (carving brass %.2f, x %.2f near-rail dim, at most %.2f)" % [plate_v, cbv, dim, near_brass])
-
-
-func _near(a: Color, b: Color, dist: float) -> bool:
-	return Vector3(a.r - b.r, a.g - b.g, a.b - b.b).length() < dist
-
-
-# --- the board -----------------------------------------------------------------------------------------
 
 func _check_board(mobile: bool) -> void:
 	var label := "hearth_board%s" % ("_mobile" if mobile else "")
@@ -462,13 +294,13 @@ func _scan(board: Node3D, d: Node3D, res: Dictionary, moving_only: bool = false)
 							res.felt = false
 							res.fbad = "%s %s (%s)" % [path, w, c[0]]
 					if path.begins_with("Bell"):
-						var q := _ndc(cams[0][1], cams[0][2], w)
+						var q := _ndc(cams[0], w)
 						lo = lo.min(q)
 						hi = hi.max(q)
 		if path.begins_with("Bell"):
 			var c0: Array = cams[0]
-			var f0 := _ndc(c0[1], c0[2], DEALER_FACE + Vector3(-DEALER_FACE_R, -DEALER_FACE_R, 0))
-			var f1 := _ndc(c0[1], c0[2], DEALER_FACE + Vector3(DEALER_FACE_R, DEALER_FACE_R, 0))
+			var f0 := _ndc(c0, DEALER_FACE + Vector3(-DEALER_FACE_R, -DEALER_FACE_R, 0))
+			var f1 := _ndc(c0, DEALER_FACE + Vector3(DEALER_FACE_R, DEALER_FACE_R, 0))
 			var face := Rect2(f0.min(f1), (f1 - f0).abs())
 			if Rect2(lo, hi - lo).intersects(face):
 				res.face = false

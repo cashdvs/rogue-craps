@@ -36,18 +36,43 @@ func _run() -> void:
 	quit(1 if _failed > 0 else 0)
 
 
+## The game cameras, read from the game's own camera code rather than hardcoded: a CameraRig set up like
+## Bonfire3D (TuningData + BonfireTuning "Game camera"), PC 16:9 at the home framing and phone landscape
+## (844x390) at cam_phone_landscape_distance / _pivot. [name, camera transform, aspect, fov]
+var _cam_cache: Array = []
+
+
 func _cams() -> Array:
-	return [["pc", _a153087(Vector3(0, 0, 0.26), 2.40), 1920.0 / 1080.0], ["phone", _a153087(Vector3(0, 0, 0.34), 2.04), 844.0 / 390.0]]
+	if not _cam_cache.is_empty():
+		return _cam_cache
+	var bt := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var t := (load("res://resources/tuning/poc_tuning.tres") as TuningData).duplicate() as TuningData
+	t.cam_pitch_deg = bt.cam_pitch_deg
+	t.cam_distance = bt.cam_distance
+	t.cam_pivot = bt.cam_pivot
+	t.cam_look_up_deg = bt.cam_look_up_deg
+	for spec in [["pc", Vector2(1920, 1080)], ["phone", Vector2(844, 390)]]:
+		var rig := CameraRig.new()
+		root.add_child(rig)
+		rig.setup(t)
+		if spec[0] == "phone":
+			rig.fit_viewport(spec[1])
+			rig.home_distance = bt.cam_phone_landscape_distance
+			rig.distance = rig.home_distance
+			rig.home_pivot = bt.cam_phone_landscape_pivot
+			rig.position = rig.home_pivot
+			rig._apply()
+		var size: Vector2 = spec[1]
+		_cam_cache.append([spec[0], rig.cam.global_transform, size.x / size.y, rig.cam.fov])
+		root.remove_child(rig)
+		rig.free()
+	return _cam_cache
 
 
-func _a153087(pivot: Vector3, d: float) -> Transform3D:
-	var rig := Transform3D(Basis.from_euler(Vector3(deg_to_rad(-55), 0, 0)), pivot)
-	return rig * Transform3D(Basis.from_euler(Vector3(deg_to_rad(7.5), 0, 0)), Vector3(0, 0, d))
-
-
-func _ndc(cam: Transform3D, aspect: float, p: Vector3) -> Vector2:
-	var tn := tan(deg_to_rad(36.0) * 0.5)
-	var v := cam.affine_inverse() * p
+func _ndc(c: Array, p: Vector3) -> Vector2:
+	var tn := tan(deg_to_rad(float(c[3])) * 0.5)
+	var v := (c[1] as Transform3D).affine_inverse() * p
+	var aspect: float = c[2]
 	return Vector2(v.x / (-v.z * tn * aspect), v.y / (-v.z * tn))
 
 
@@ -229,7 +254,7 @@ func _rect(c: Array, pts: PackedVector3Array) -> Rect2:
 	var lo := Vector2(INF, INF)
 	var hi := Vector2(-INF, -INF)
 	for p in pts:
-		var q := _ndc(c[1], c[2], p)
+		var q := _ndc(c, p)
 		lo = lo.min(q)
 		hi = hi.max(q)
 	return Rect2(lo, hi - lo)

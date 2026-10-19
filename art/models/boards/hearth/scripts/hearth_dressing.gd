@@ -100,6 +100,9 @@ func set_next_peek(seconds: float) -> void:
 	_next_peek = seconds
 
 
+## A die hit a rail: the hanging chain sways (ChainPlayer "chain_sway", 0.4 s), its amplitude scaled by
+## strength (clamped to 0.2-1.5). Restarts the sway if one is playing; does nothing while the dressing or
+## the ambient motion is off. Called through the Hearth hub (fx.rail_hit).
 func rail_hit(strength: float = 1.0) -> void:
 	if not enabled or not ambient:
 		return
@@ -110,6 +113,9 @@ func rail_hit(strength: float = 1.0) -> void:
 		cp.play("chain_sway")
 
 
+## Smiles' service bell rattles (BellPlayer "bell_rattle", 0.5 s). Restarts it if playing;
+## does nothing while the dressing or the ambient motion is off. Called through the Hearth hub
+## (fx.bell_ring), which also rings it when fx.eyes reaches 3.
 func bell_ring() -> void:
 	if not enabled or not ambient:
 		return
