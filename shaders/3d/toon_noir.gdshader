@@ -70,6 +70,9 @@ uniform vec3 lit_albedo_mul = vec3(1.04, 1.00, 0.94);
 uniform vec3 cold_albedo_mul = vec3(0.80, 0.78, 0.76);
 uniform float cold_desat = 0.75;
 uniform vec3 cold_warm_grey = vec3(1.00, 0.96, 0.90);
+// How much a cold die greys the lights on it too (the lamp and the rail
+// glow are warm / red: without this a cold die reads brown, not grey).
+uniform float cold_light_desat = 0.8;
 uniform vec4 state_rim_color : source_color = vec4(0.910, 0.384, 0.165, 1.0); // #E8622A
 uniform float state_rim_energy = 0.85;
 uniform float state_rim_power = 2.5;
@@ -156,6 +159,8 @@ void light() {
 	// Only where this light reaches at all (outside the cone = nothing).
 	float reach = smoothstep(0.0, 0.05, ATTENUATION);
 	vec3 lc = LIGHT_COLOR / PI;
+	float cold_l = die_cold * (1.0 - die_lit) * cold_light_desat;
+	lc = mix(lc, vec3(dot(lc, vec3(0.299, 0.587, 0.114))), cold_l);
 	// DIFFUSE_LIGHT is multiplied by ALBEDO later, so divide it back out.
 	DIFFUSE_LIGHT += band / a * lc * light_gain * reach;
 	if (spec_size > 0.0) {
