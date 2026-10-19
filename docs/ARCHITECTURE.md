@@ -67,7 +67,7 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 | `Bonfire3D.setup` (a `TableSetup`) | set by `RunScreen._play_table()` before `add_child` | everything the table needs: dice as `TableDie`, `TableGoal`, Soul, leveled `BonfireTuning`, seed, rules |
 | `Bonfire3D.finished(outcome: TableOutcome)` | `scripts/bonfire/bonfire_3d.gd` | fires once when the table ends; the only way a table reports back (cleared, Soul, Embers, bounties, banked combos, shattered dice) |
 | `Bonfire3D.throw_resolved(faces, lit)`, `hand_result(result)` | same | per-throw and per-hand results, for HUD and tests |
-| `BonfireRun.table_event(event, data)` | `scripts/core/bonfire_run.gd` | today's hook for juice and audio: `hand_start`, `throw_landed`, `pot`, `bank`, `bust`, `die_shattered`, `kindling_saved`, `table_end`. Being replaced by `table.events` (`scripts/bonfire/table_events.gd`, readability PR) |
+| `BonfireRun.table_event(event, data)` | `scripts/core/bonfire_run.gd` | today's hook for juice and audio: `hand_start`, `throw_landed`, `pot`, `bank`, `bust`, `die_shattered`, `kindling_saved`, `table_cleared` (the clearing bank; the table stays open until Leave), `table_end`. Being replaced by `table.events` (`scripts/bonfire/table_events.gd`, readability PR) |
 | `MapRun.screen_changed(screen)` | `scripts/core/map/map_run.gd` | `MAP`, `TABLE`, `EVENT`, `SHOP`, `REST`, `REWARD`, `RUN_WON`, `RUN_OVER`; `RunScreen.refresh()` redraws |
 | `RunProgress.changed`, `run_ended` | `scripts/core/run/run_progress.gd` | Soul, Embers, dice or Seals changed; Soul hit 0 |
 | `MapView.node_pressed(id)`, `EventView.choice_made(i, picks)` | `scripts/map/` | UI → `MapRun.choose_node()` / `choose_event()` |
@@ -183,8 +183,8 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - For anything that changes how the table looks, attach a capture from `tools/capture_bonfire.gd` or `tools/capture_readability.gd`.
   - For throw feel, use `tools/measure_throw_momentum.gd`.
 
-- **Readability and onboarding (#63, with #60's Leave table):**
-  - `leave()` / `can_leave_now()` and the `throw_measured` and `refused` signals on `Bonfire3D`; tests in `tests/test_leave_table.gd`.
+- **Readability and onboarding (#63):**
+  - The `throw_measured` and `refused` signals on `Bonfire3D` (`leave()` / `can_leave_now()` came with #60).
   - `scripts/bonfire/table_events.gd` (`table.events`): the plain signals FX and audio listen to (see the FX section).
   - `scripts/core/bust_risk.gd` (`BustRisk`): the exact chance the next rethrow lights nothing, for the rethrow prompt. Static and display-only: it never touches the run's RNG or state.
   - `scripts/bonfire/bonfire_onboarding.gd` (`BonfireOnboarding`, `table.onboarding`): when the Table 1 tutorial runs, which hint to ask for at each table moment, and the seeded tutorial throws. The hint panel itself is `bonfire_tutorial.gd`.

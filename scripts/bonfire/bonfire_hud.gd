@@ -133,7 +133,7 @@ func _init() -> void:
 	leave_button.name = "LeaveButton"
 	leave_button.custom_minimum_size = Vector2(310, 84)
 	leave_button.visible = false
-	leave_button.pressed.connect(func() -> void: leave_pressed.emit())
+	leave_button.pressed.connect(press_leave)
 	col.add_child(leave_button)
 	rules_panel = PanelContainer.new()
 	rules_panel.name = "RulesPanel"
@@ -194,6 +194,35 @@ func _init() -> void:
 ## commit (Bonfire3D sets this; the run state underneath is already final):
 ## {embers, points, pot_from, pot_add}. The pot counts up with the count-up.
 var display_hold: Dictionary = {}
+
+
+## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
+## the button into "LEAVE?  TAP AGAIN"; a second one within LEAVE_CONFIRM_S
+## leaves (emits leave_pressed). Otherwise the text goes back.
+const LEAVE_CONFIRM_S: float = 2.0
+const LEAVE_TEXT := "LEAVE TABLE  (L)"
+const LEAVE_ASK_TEXT := "LEAVE?  TAP AGAIN"
+## When the first tap came (seconds on leave_clock), -1 = not asked.
+var _leave_asked_at: float = -1.0
+## Seconds for the confirm window (tests can swap in a fake clock).
+var leave_clock: Callable = func() -> float: return Time.get_ticks_msec() / 1000.0
+
+
+func press_leave() -> void:
+	if not leave_button.visible:
+		return
+	var now: float = leave_clock.call()
+	if _leave_asked_at >= 0.0 and now - _leave_asked_at <= LEAVE_CONFIRM_S:
+		_reset_leave_ask()
+		leave_pressed.emit()
+	else:
+		_leave_asked_at = now
+		leave_button.text = LEAVE_ASK_TEXT
+
+
+func _reset_leave_ask() -> void:
+	_leave_asked_at = -1.0
+	leave_button.text = LEAVE_TEXT
 
 
 func refresh(run: BonfireRun, can_act: bool) -> void:
@@ -442,6 +471,9 @@ func pulsing() -> Array:
 
 
 func _process(delta: float) -> void:
+	# The Leave question times out (or the button went away).
+	if _leave_asked_at >= 0.0 and (not leave_button.visible or float(leave_clock.call()) - _leave_asked_at > LEAVE_CONFIRM_S):
+		_reset_leave_ask()
 	_t += delta / maxf(Engine.time_scale, 0.001)
 	for id in _pulse:
 		var c: Control = bounty_cards.get(id)

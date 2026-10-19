@@ -147,6 +147,7 @@ func _ready() -> void:
 	add_child(pause_menu)
 	pause_menu.set_run_mode(setup.run_mode)
 	pause_menu.forfeit_confirmed.connect(func() -> void: forfeit())
+	pause_menu.can_forfeit = can_forfeit_now
 	juice = BonfireJuice.new()
 	add_child(juice)
 	juice.setup(self)
@@ -259,7 +260,7 @@ func outcome() -> TableOutcome:
 ## like a timeout (see BonfireRun.forfeit) and shows the end panel; CONTINUE
 ## then emits finished. Returns false if the table was already over.
 func forfeit() -> bool:
-	if run == null or run.is_over():
+	if not can_forfeit_now():
 		return false
 	if not run.forfeit():
 		return false
@@ -273,6 +274,14 @@ func forfeit() -> bool:
 	_refresh_hud()
 	hand_result.emit(run.last_result)
 	return true
+
+
+## Can the table be forfeited right now? Not while a throw is in flight
+## (rolling, landed, resolving): its faces are already decided, so a forfeit
+## then could dodge a bust you can see (QA #60 blocker). FORFEIT comes back
+## once the throw has resolved (bust or score applied) and phase is BET.
+func can_forfeit_now() -> bool:
+	return run != null and not run.is_over() and (phase == Phase.BET or phase == Phase.HELD)
 
 
 ## Is the Leave table button live right now? A cleared table, between
@@ -1237,7 +1246,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				bank()
 				return
 			KEY_L:
-				leave()
+				bhud.press_leave()  # a second L within 2 s leaves
 				return
 			KEY_F3:
 				# Debug builds only (editor / debug export); a release
@@ -1260,6 +1269,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	# The pause menu's FORFEIT follows can_forfeit_now() every frame, so it
+	# is already greyed out when Esc pauses the tree mid-throw.
+	pause_menu.set_forfeit_enabled(can_forfeit_now())
 	if hand_label.text == "BET FIRST":
 		hand_label.text = ""  # no bets here
 
