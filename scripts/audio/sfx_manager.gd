@@ -43,6 +43,7 @@ func _ready() -> void:
 		player.bus = BUS_NAME
 		add_child(player)
 		_players.append(player)
+	_add_throw_events()
 
 
 ## Plays an event. pitch: 1.0 = normal. pitch_jitter adds a little random
@@ -59,6 +60,18 @@ func play(event: StringName, pitch: float = 1.0, volume_db: float = 0.0, pitch_j
 	player.volume_db = volume_db
 	player.play()
 	played.emit(event)
+
+
+## A throw leaves the hand: plays the fwip layers and the rattle burst, all
+## scaled by the flick speed (ThrowSynth curve). Returns the 0..1 intensity.
+## Soft: cloth swish + a few clicks at about -14 dB. Hard: + air whump +
+## bright tail + dense rattle at about 0 dB, pitched up to 1.15.
+func play_throw(flick_speed_px_s: float) -> float:
+	var p := ThrowSynth.throw_params(flick_speed_px_s)
+	for n in int(p["layers"]):
+		play(ThrowSynth.FWIP_LAYERS[n], p["pitch"], p["volume_db"], 0.03)
+	play(p["rattle"], p["pitch"], p["volume_db"] - 2.0, 0.04)
+	return p["intensity"]
 
 
 func has_event(event: StringName) -> bool:
@@ -113,6 +126,12 @@ func _load_stream(event: StringName) -> AudioStream:
 		if stream != null:
 			return stream
 	return SfxSynth.make(event)
+
+
+func _add_throw_events() -> void:
+	for event in ThrowSynth.EVENTS:
+		var path := SFX_DIR + String(event) + ".wav"
+		_streams[event] = load(path) as AudioStream if ResourceLoader.exists(path) else ThrowSynth.make(event)
 
 
 ## Creates the SFX bus (routed to Master) if the project doesn't have one.
