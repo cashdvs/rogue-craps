@@ -367,8 +367,8 @@ func _fallback_pillar(at: Vector3, reduced: bool) -> void:
 # --- Moments --------------------------------------------------------------------------
 
 ## Hot Hand: every die ignites (the fly-back trail starts with fly_start).
+## Its sound is played by scripts/fx/table_audio.gd on events.hot_hand.
 func hot_hand(dice: Array[DieVisual]) -> void:
-	sfx(&"hot_hand", 1.0, 0.0, 0.0, &"win_big", 1.1, -4.0)
 	var ps := _scene(IGNITE)
 	for d in dice:
 		if ps != null:
