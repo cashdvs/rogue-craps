@@ -101,6 +101,11 @@ func _test_helpers() -> void:
 	_check(DiceIds.canonical(&"nope") == &"", "unknown id -> empty")
 	_check(DiceIds.shape_of(&"ferryman") == &"coin", "ferryman is a coin")
 	_check(DiceIds.asset_key(&"ferryman") == &"ferryman_coin", "asset key ferryman_coin")
+	for k in [&"ferryman_coin", &"powder_keg_d6", &"bone_d6", &"mirror_d6"]:
+		_check(DiceIds.canonical(k) != &"", "asset key %s resolves via canonical()" % k)
+	_check(DiceIds.canonical(&"ferryman_coin") == &"ferryman", "ferryman_coin -> ferryman")
+	_check(DiceIds.canonical(&"powder_keg_d6") == &"powder_keg", "powder_keg_d6 -> powder_keg")
+	_check(DiceIds.canonical(&"knucklebone_d6") == &"", "asset-only knucklebone_d6 stays unresolved")
 	_check(DiceIds.asset_key(&"mirror") == &"mirror_d6", "asset key mirror_d6 matches main's art")
 	_check(DiceIds.face_key(&"verdict", 20) == &"verdict_20", "face key verdict_20")
 	_check(DiceIds.face_key(&"keg", 3) == &"powder_keg_3", "face key powder_keg_3")

@@ -140,11 +140,16 @@ static func is_shape(id: StringName) -> bool:
 	return SHAPES.has(id)
 
 
-## Canonical die id for [param id] (itself, or the target of an old alias); &"" if unknown.
+## Canonical die id for [param id] (itself, an old alias, or a current asset key); &"" if unknown.
 static func canonical(id: StringName) -> StringName:
 	if ALL.has(id):
 		return id
-	return ALIASES.get(id, &"")
+	if ALIASES.has(id):
+		return ALIASES[id]
+	for d in ALL:  # Current art asset keys ("<die>_<shape>") resolve too, e.g. ferryman_coin.
+		if asset_key(d) == id:
+			return d
+	return &""
 
 
 ## Shape id of die [param die_id] (aliases accepted); &"" if unknown.
