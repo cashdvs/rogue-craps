@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_c6st5")
-id = &"madame_shuffle"
+id = &"pit_boss"
 display_name = "Madame Shuffle"
-description = "Rerolls your highest unpotted die after each throw."
+description = "Each hand, a 2 or a 4 never lights."
 kind = 1
 params = {
-"count": 1
+"faces": [2, 4]
 }
