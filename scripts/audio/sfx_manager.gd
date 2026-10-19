@@ -32,6 +32,10 @@ var _rng := RandomNumberGenerator.new()
 var _variants: Dictionary[StringName, Array] = {}
 # event -> index of the take played last, so the next pick can avoid it.
 var _last_variant: Dictionary[StringName, int] = {}
+# die id -> time of its last impact sound (per-die rate limit).
+var _last_impact: Dictionary[int, float] = {}
+## Tests: a fixed clock in seconds for play_impact's rate limit (-1 = real time).
+var impact_clock: float = -1.0
 
 
 func _ready() -> void:
@@ -72,6 +76,29 @@ func play_throw(flick_speed_px_s: float) -> float:
 		play(ThrowSynth.FWIP_LAYERS[n], p["pitch"], p["volume_db"], 0.03)
 	play(p["rattle"], p["pitch"], p["volume_db"] - 2.0, 0.04)
 	return p["intensity"]
+
+
+## A die hit something: kind = felt / rail / backboard / die / chip / puck,
+## speed_mps = relative contact speed. Under 0.3 m/s it's silent; faster
+## hits are louder, higher and brighter (more impact_click). Takes rotate
+## (dice_hit / rim_hit / chip_place variants); backboard hits add a wooden
+## knock (impact_wood). die_id >= 0 limits that die to
+## one sound per ThrowSynth.IMPACT_MIN_GAP_S. Returns true if it played.
+func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bone", die_id: int = -1) -> bool:
+	var p := ThrowSynth.impact_params(kind, speed_mps, material)
+	if p.is_empty():
+		return false
+	var now := Time.get_ticks_usec() / 1e6 if impact_clock < 0.0 else impact_clock
+	if die_id >= 0:
+		if now - float(_last_impact.get(die_id, -1e9)) < ThrowSynth.IMPACT_MIN_GAP_S:
+			return false
+		_last_impact[die_id] = now
+	play(p["event"], p["pitch"], p["volume_db"], 0.03)
+	if p["click_db"] > -40.0:
+		play(ThrowSynth.CLICK, p["pitch"] * 1.1, p["click_db"], 0.05)
+	if p["wood_db"] > -40.0:
+		play(ThrowSynth.WOOD, 0.95 + 0.1 * float(p["strength"]), p["wood_db"], 0.04)
+	return true
 
 
 func has_event(event: StringName) -> bool:
