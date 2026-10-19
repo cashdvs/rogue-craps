@@ -14,17 +14,24 @@ const DIR: String = "res://art/models/dice/"
 const MAX_TRIS: int = 2000
 const TOON_SHADERS: Array[String] = ["res://shaders/3d/toon_noir.gdshader", "res://art/models/dice/shaders/toon_mirror.gdshader"]
 const OUTLINE_SHADER: String = "res://shaders/3d/outline.gdshader"
-## Max |x|, |y|, |z| of any vertex: the 0.08 m box + 2 mm (box-only colliders).
+## Max |x|, |y|, |z| of any vertex (box-only colliders, every die on the same 0.08 m BoxShape3D): the box + 2 mm,
+## except the two dice whose decoration tapers to thin tips (Godot Dev, Oct 19: 1.08x, 0.0432 m), mirroring
+## build_special_dice.py's VISUAL_EXTENT_SCALE / EXTENT_SCALE.
 const MAX_EXTENT: float = 0.042
+const EXTENT_CAP: Dictionary = {"hellfire_d6": 0.0432, "wanderer_d6": 0.0432}
+const SLIVER: float = 0.005
+## Fin read (AD, Oct 19): the silhouette decoration carries its own ink hull, is bone or bright brass, and is far
+## brighter than its body. slot -> min albedo value (HSV v).
+const ACCENTS: Dictionary = {"hellfire_spike": 0.85, "gilded_bead": 0.85, "wanderer_fin": 0.85, "blood_pact_stamp": 0.85, "last_breath_collar": 0.85}
 ## name -> [material slots, min AABB, max AABB, silhouette check]
 const DICE: Dictionary = {
 	"mirror_d6": [["mirror_body", "mirror_pip"], 0.08, 0.08, "chamfer"],
 	"cracked_d6": [["cracked_body", "cracked_pip", "cracked_crack"], 0.08, 0.08, "chips"],
-	"hellfire_d6": [["hellfire_body", "hellfire_pip", "hellfire_seam"], 0.082, 0.084, "spikes"],
-	"gilded_d6": [["gilded_body", "gilded_pip", "gilded_panel"], 0.082, 0.084, "beads"],
+	"hellfire_d6": [["hellfire_body", "hellfire_pip", "hellfire_seam", "hellfire_spike"], 0.084, 0.0864, "spikes"],
+	"gilded_d6": [["gilded_body", "gilded_pip", "gilded_panel", "gilded_bead"], 0.082, 0.084, "beads"],
 	# batch 2
 	"twin_flame_d6": [["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft", "twin_flame_line"], 0.08, 0.08, "waist"],
-	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin"], 0.082, 0.084, "fins"],
+	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin"], 0.084, 0.0864, "fins"],
 	"bellows_d6": [["bellows_body", "bellows_pip", "bellows_pleat"], 0.08, 0.08, "steps"],
 	"blood_pact_d6": [["blood_pact_body", "blood_pact_pip", "blood_pact_seal", "blood_pact_stamp"], 0.082, 0.084, "seals"],
 	"coven_d6": [["coven_body", "coven_pip", "coven_cove"], 0.08, 0.08, "coves"],
@@ -73,13 +80,31 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 		sized = sized and aabb.size[i] >= lo - 0.0005 and aabb.size[i] <= hi + 0.0005
 	_check(sized, "%s: AABB %s within %.3f-%.3f m" % [die, aabb.size, lo, hi])
 	# Godot Dev (Oct 19): every die uses the same 0.08 m BoxShape3D, no hulls, so nothing may poke out more than
-	# ~2 mm past a face in any resting orientation. No exceptions (Gilded's corner beads are trimmed too).
+	# ~2 mm past a face in any resting orientation (Gilded's corner beads are trimmed too); Hellfire and Wanderer may
+	# reach 3.2 mm with their tapered spike / fin tips (Godot Dev's felt-sink ruling).
 	var ext := Vector3.ZERO
 	for s in mesh.get_surface_count():
 		for p: Vector3 in mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
 			ext = ext.max(p.abs())
-	var cap: float = MAX_EXTENT
+	var cap: float = float(EXTENT_CAP.get(die, MAX_EXTENT))
 	_check(ext.x <= cap + 1e-5 and ext.y <= cap + 1e-5 and ext.z <= cap + 1e-5, "%s: max extent from the centre %s <= %.4f m per axis (box collider sink <= %.1f mm)" % [die, ext, cap, (cap - edge * 0.5) * 1000.0])
+	if EXTENT_CAP.has(die):
+		# Only thin tips may use the extra reach: everything past MAX_EXTENT sits within SLIVER of a tip vertex, so what
+		# can sink into the felt on the box collider is a sliver, not a slab.
+		var tips := PackedVector3Array()
+		var past := PackedVector3Array()
+		for s in mesh.get_surface_count():
+			for p: Vector3 in mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+				var m := maxf(absf(p.x), maxf(absf(p.y), absf(p.z)))
+				if m > MAX_EXTENT:
+					past.append(p)
+				if m > cap - 0.0004:
+					tips.append(p)
+		var worst := 0.0
+		for p in past:
+			worst = maxf(worst, _nearest(tips, p))
+		print("  info %s: %d verts past %.3f m, all within %.1f mm of a tip" % [die, past.size(), MAX_EXTENT, worst * 1000.0])
+		_check(worst <= SLIVER, "%s: only tapered tips pass %.3f m (worst %.1f mm from a tip <= %.1f mm)" % [die, MAX_EXTENT, worst * 1000.0, SLIVER * 1000.0])
 	var tris := 0
 	var names: Array[String] = []
 	var toon := true
@@ -125,6 +150,14 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 		for g: Color in [Color("#B08D3C"), Color("#E2C06A"), Color("#D4AF37")]:
 			bone = bone and sc != null and _rgb_dist(sc as Color, g) > 0.2
 		_check(bone, "blood_pact_d6: seal stamp albedo %s is bone, not gold/brass" % [sc])
+	for s in mesh.get_surface_count():
+		var sn: String = mesh.surface_get_name(s)
+		if ACCENTS.has(sn):
+			var am := mesh.surface_get_material(s) as ShaderMaterial
+			var ai := am.next_pass as ShaderMaterial if am != null else null
+			var ac: Variant = am.get_shader_parameter("albedo") if am != null else null
+			_check(ai != null and ai.shader.resource_path == OUTLINE_SHADER, "%s: %s carries an ink hull (fin read)" % [die, sn])
+			_check(ac != null and (ac as Color).v >= float(ACCENTS[sn]) and (ac as Color).s < 0.55, "%s: %s albedo %s is full-value bone / brass" % [die, sn, ac])
 	var body := mesh.surface_get_material(0) as ShaderMaterial
 	var ink := body.next_pass as ShaderMaterial if body != null else null
 	_check(ink != null and ink.shader.resource_path == OUTLINE_SHADER, "%s: body carries the ink hull" % die)
