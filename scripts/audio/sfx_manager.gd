@@ -43,7 +43,7 @@ var _game_time: float = 0.0
 
 func _ready() -> void:
 	_ensure_bus()
-	for event in SfxSynth.EVENTS:
+	for event in SfxSynth.EVENTS + BonfireSynth.EVENTS:
 		_streams[event] = _load_stream(event)
 	for i in POOL_SIZE:
 		var player := AudioStreamPlayer.new()
@@ -167,6 +167,8 @@ func _load_stream(event: StringName) -> AudioStream:
 		var stream := load(path) as AudioStream
 		if stream != null:
 			return stream
+	if BonfireSynth.EVENTS.has(event):
+		return BonfireSynth.make(event)
 	return SfxSynth.make(event)
 
 
