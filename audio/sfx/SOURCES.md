@@ -24,3 +24,17 @@ here:
 | File | Source | Licence |
 |---|---|---|
 | (none yet) | | |
+
+## Revision log
+
+Procedural sounds that were re-designed keep their file names (so the hooks
+don't change); the old version is in git history.
+
+| File | Change | Recipe |
+|---|---|---|
+| `hot_hand.wav` | rev 2 (core-loop cues): dice return to the hand, bone/felt/wood; was a fire ignition | `BonfireSynth._dice_return` |
+| `bust.wav` | rev 2: fizzle/burn + ash puff + thud; was a flame snuff | `BonfireSynth._fizzle` |
+| `bank.wav` | rev 2: ember tinks of the points landing in the pile | `BonfireSynth._bank` |
+| `bounty_claimed.wav` | rev 2: wax CLAIMED stamp (handle knock, press, lift) | `BonfireSynth._stamp` |
+| `table_cleared.wav` | new (core-loop cues): TABLE CLEARED sting | `BonfireSynth.make` |
+| `no_score.wav` | new: a non-scoring die's soft bounce | `BonfireSynth._no_score` |
