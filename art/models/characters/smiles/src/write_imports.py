@@ -7,7 +7,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 R = "res://art/models/characters/smiles/"
 SLOTS = ["smiles_skin", "smiles_horn", "smiles_shirt", "smiles_vest", "smiles_black", "smiles_gold",
-         "smiles_visor", "smiles_eye", "smiles_mouth", "smiles_chip", "smiles_chip_edge"]
+         "smiles_visor", "smiles_eye", "smiles_mouth", "smiles_chip", "smiles_chip_edge",
+         "smiles_visor_rim", "smiles_glow_gold", "smiles_glow_rim"]
 LOOPS = ["idle", "mc_idle"]
 CLIPS = ["idle", "taunt", "grudging", "cheat", "deal", "mc_idle", "mc_cheer"]
 

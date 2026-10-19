@@ -2,11 +2,11 @@
 
 [ext_resource type="PackedScene" path="res://art/models/characters/smiles/smiles.glb" id="1_pfokx"]
 
-[node name="Smiles" type="Node3D" unique_id=311007900]
+[node name="Smiles" type="Node3D" unique_id=880598409]
 
-[node name="Model" parent="." unique_id=877026116 instance=ExtResource("1_pfokx")]
+[node name="Model" parent="." unique_id=129081888 instance=ExtResource("1_pfokx")]
 
-[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(877026116, 148557188) index="4" unique_id=739681978]
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(129081888, 1197431639) index="4" unique_id=143194359]
 influence = 0.0
 bone_name = "head"
 duration = 0.25
@@ -19,10 +19,10 @@ primary_damp_threshold = 1.0
 secondary_limit_angle = 0.6981317
 secondary_damp_threshold = 1.0
 
-[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(877026116, 148557188) index="5" unique_id=48986377]
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(129081888, 1197431639) index="5" unique_id=573044285]
 bone_name = "head"
 
-[node name="AnimationPlayer" parent="Model" index="1" unique_id=605450138]
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=163242961]
 autoplay = &"idle"
 
 [editable path="Model"]

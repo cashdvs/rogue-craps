@@ -14455,6 +14455,16 @@ _subresources={
 "use_external/fallback_path": "res://art/models/characters/smiles/materials/smiles_eye.tres",
 "use_external/path": "res://art/models/characters/smiles/materials/smiles_eye.tres"
 },
+"smiles_glow_gold": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+"use_external/path": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres"
+},
+"smiles_glow_rim": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+"use_external/path": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres"
+},
 "smiles_gold": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/characters/smiles/materials/smiles_gold.tres",
@@ -14489,6 +14499,11 @@ _subresources={
 "use_external/enabled": true,
 "use_external/fallback_path": "res://art/models/characters/smiles/materials/smiles_visor.tres",
 "use_external/path": "res://art/models/characters/smiles/materials/smiles_visor.tres"
+},
+"smiles_visor_rim": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+"use_external/path": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres"
 }
 }
 }

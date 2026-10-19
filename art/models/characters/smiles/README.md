@@ -12,23 +12,36 @@ He is modelled from the waist up and stands behind the far rail. This is art onl
 | `materials/*.tres` | toon_noir per glTF slot + ink hulls (`ink_smiles` 4.8 mm, `ink_smiles_thin` 1.8 mm for teeth / buttons / chip) |
 | `src/build_smiles.py` | Blender 4.5 source: model, rig, poses (2-bone arm IK solved to FK keys), clips, export |
 | `src/make_smiles.gd`, `src/write_imports.py`, `src/rebuild_smiles.sh` | materials, import settings (slot -> .tres, loops), wrapper scenes |
-| `tests/test_smiles.gd` | bones, hierarchy, clips + lengths, hooks, parts, materials, budgets, no scripts / lights |
+| `tests/test_smiles.gd` | bones, hierarchy, clips + lengths, hooks, parts, materials, budgets, no scripts / lights, rail clearance, key gestures above the rail in the game camera, MC-only glow |
 
 ## Triangles
 
 | Part | PC | Mobile |
 |---|---|---|
 | Smiles_Body (costume, arms, hands) | 3,506 | 1,648 |
-| Smiles_Head (skull, jaw, teeth, eyes, ears, horns, hair) | 2,870 | 1,156 |
-| Smiles_Visor | 550 | 210 |
+| Smiles_Head (skull, jaw, teeth + MC glow shell, eyes, ears, horns, hair) | 3,174 | 1,228 |
+| Smiles_Visor (band, brim, pale rim + MC glow shell) | 902 | 418 |
 | Smiles_Chip (prop) | 120 | 72 |
-| **total** | **7,046** (budget ~6-8k) | **3,086** (budget ~3.5k) |
+| **total** | **7,702** (budget ~6-8k) | **3,366** (budget ~3.5k) |
 
-## Rig (24 bones, every bone rests pointing up, roll 0, so local axes match the parent's)
+**Art Director revision pass (r2).**
+- **Horns:** about 30% shorter and swept back, so they lean along the top frame edge in the game camera.
+- **Visor brim:** tipped up 15° more (29° total), so the eyes show from above. It has a pale-green rim along the brim edge and stays opaque. The outer headband is now visor green.
+- **Teeth:** two chunky 7-tooth gold bands (upper on `head`, lower on `jaw`; the outer teeth ride on `grin_L|R`). Each row is one connected strip that bulges per tooth and notches between teeth.
+- **Dealer lighting:** the dealer is lit by the lamp only. `smiles_gold` and `smiles_visor` have no emission. The glow is MC-only (see `glow_*` below).
+
+## Rig (29 bones, every bone rests pointing up, roll 0, so local axes match the parent's)
 
 `root` > `spine` > `chest` > `neck` > `head` > `jaw`, `grin_L`, `grin_R`, `visor`;
 `chest` > `shoulder_L|R` > `upper_arm_L|R` > `forearm_L|R` > `hand_L|R` > `thumb_L|R`, `index_L|R`, `fingers_L|R`
-(middle + ring + pinky as one group); `hand_R` > `chip` (prop bone; scale 0 = palmed).
+(middle + ring + pinky as one group); `hand_R` > `chip` (prop bone; scale 0 = palmed);
+`glow_head` / `glow_jaw` / `glow_grin_L|R` / `glow_visor` (children of `head` / `jaw` / `grin_L|R` / `visor`).
+
+- **MC glow (`glow_*`):** these bones carry the faint emissive shells over the grin (`smiles_glow_gold`) and the visor rim (`smiles_glow_rim`).
+  - Every dealer clip keys them to scale 0, so the shells collapse and are not drawn.
+  - `mc_idle` / `mc_cheer` key them to 1.
+  - The clip alone switches the glow, with no script or material swap. If Godot Dev blends dealer and MC clips, the glow pops (stepped scale keys).
+  - The bind pose shows the glow. The wrapper autoplays `idle`, so it is off at runtime.
 
 - Skinning is rigid (one bone per vertex) with ball joints at the elbows and shoulder caps. That is the cheap toon approach and it never needs weight painting.
 - Godot bone space is +Y up and +Z forward, so the face looks down the head bone's +Z.
@@ -50,8 +63,8 @@ Hero bosses (including Mister Wick) get their own rigs, per the locked direction
 |---|---|---|---|
 | `idle` | 3.0 s | yes | rolls a chip over his right knuckles beside his cheek, grin twitch, breath, head sway |
 | `taunt` | 1.4 s | no | on bust: leans in, cackles (jaw chatter, head back), points up at the player |
-| `grudging` | 1.6 s | no | big score (tier 3+): two slow claps, the grin cracks (corners droop) |
-| `cheat` | 1.2 s | no | boss tell: shifty glance, visor tipped down, palms the chip into his left sleeve, smug grin |
+| `grudging` | 1.6 s | no | big score (tier 3+): two slow sarcastic claps raised beside his chin/cheek (screen-left, so the cracking grin stays clear), hands over the rail in the game camera |
+| `cheat` | 1.2 s | no | boss tell: shifty glance, visor tipped down, left cuff raised by his cheek and the chip slipped up it (both hands over the rail), smug grin |
 | `deal` | 1.0 s | no | right hand flicks a chip out across the felt |
 | `mc_idle` | 2.4 s | yes | MC variant (boss in the dealer spot, Smiles on the left rail): upright, fist on hip, presenting |
 | `mc_cheer` | 1.2 s | no | MC cheers on bust: both fists pumping, mouth open |
