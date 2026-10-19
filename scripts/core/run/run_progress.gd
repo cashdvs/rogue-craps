@@ -69,6 +69,8 @@ func special_die(id: StringName) -> SpecialDieData:
 	return null
 
 
+## The DieShape with this id from RunData.shapes (e.g. &"powder_keg",
+## &"coin"), or null if the run data has none.
 func shape_data(id: StringName) -> DieShape:
 	for s in data.shapes:
 		if s.id == id:
@@ -87,7 +89,7 @@ func die_def(die_i: int) -> SpecialDieData:
 	return shape_data(d.shape) if d.shape != &"d6" else null
 
 
-## "Bone", "Mirror Die", "Coin", ...
+## "Bone", "Mirror Die", "Powder Keg", "Ferryman's Coin", ...
 func die_name(die_i: int) -> String:
 	var def := die_def(die_i)
 	return def.display_name if def != null else "Bone"
@@ -346,9 +348,10 @@ func _table_die(d: RunDie, lib: Array, shaped: bool) -> TableDie:
 
 
 ## Until TableDie has a `shape` (Godot Dev's shape commit) the table rolls
-## and labels a 6-slot d6 mesh, so a Coin / d3 is sent as 6 slots with the
-## same odds: each value (with its mod and weight) on 6/N physical slots,
-## e.g. Ferryman's Coin -> 5,5,5,1,1,1 (the Powder Keg is already 6 faces).
+## and labels a 6-slot d6 mesh, so a die with fewer faces is sent as 6 slots
+## with the same odds: each value (with its mod and weight) on 6/N physical
+## slots, e.g. Ferryman's Coin -> faces 5,5,5,0,0,0 (Tails scores 0; the
+## table's label clamps it to show 1). The Powder Keg is already 6 faces.
 ## Face counts that don't divide 6 (d4, d8+, Knucklebone; all disabled)
 ## are left N-sized.
 func _to_d6_slots(td: TableDie) -> void:

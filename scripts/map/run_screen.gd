@@ -271,7 +271,7 @@ func _show_shop() -> void:
 	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half.", "Your dice: " + bag_text()], buttons)
 
 
-## The handful by name and shape, e.g. "Bone, Bone, Coin (2 faces), Mirror Die".
+## The handful by name and shape, e.g. "Bone, Powder Keg (6 faces), Ferryman's Coin (2 faces), Mirror Die".
 func bag_text() -> String:
 	var names: Array[String] = []
 	for i in run.progress.dice.size():
