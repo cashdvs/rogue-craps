@@ -432,6 +432,28 @@ func buy_die(i: int) -> bool:
 	return true
 
 
+## Can mod offer i go on face `at` right now (free face, and its die's
+## escalated price is affordable)?
+func can_buy_mod_at(i: int, at: Vector2i) -> bool:
+	return i >= 0 and i < shop_mods.size() and shop_mods[i] != null and free_face(at) \
+		and progress.mod_price(shop_mods[i], at.x) <= progress.embers
+
+
+## The lowest escalated price of mod offer i over dice with a free face; -1
+## if no die has one.
+func cheapest_mod_price(i: int) -> int:
+	if i < 0 or i >= shop_mods.size() or shop_mods[i] == null:
+		return -1
+	var best := -1
+	for d in progress.dice.size():
+		if progress.dice[d].free_faces().is_empty() and not progress.dice[d].faces.has(RunDie.BLANK):
+			continue
+		var price := progress.mod_price(shop_mods[i], d)
+		if best < 0 or price < best:
+			best = price
+	return best
+
+
 ## Buy mod offer i onto a picked face; the price escalates per mod on that die.
 func buy_mod(i: int, pick: Vector2i) -> bool:
 	if i < 0 or i >= shop_mods.size() or shop_mods[i] == null or not free_face(pick) \
@@ -454,9 +476,10 @@ func buy_seal(i: int, params: Dictionary = {}) -> bool:
 	return true
 
 
-## Sell a special die from the handful for half its price.
+## Sell a special die from the handful for half its price (floor; a 0-Ember
+## sale still sells). True whenever the die left the handful.
 func sell_die(die_i: int) -> bool:
-	return screen == Screen.SHOP and progress.sell_die(die_i) > 0
+	return screen == Screen.SHOP and progress.sell_die(die_i) >= 0
 
 
 func leave() -> void:

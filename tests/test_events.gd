@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_test_devil_and_carver()
 	_test_altar_merchant_croupier()
 	_test_progress()
+	_test_duplicate_picks()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_events.clear()
 	_run = null
@@ -137,3 +138,31 @@ func _test_progress() -> void:
 		for f in 6:
 			d.faces[f] = &"wild"
 	_check(not EventApplier.can_choose(_ch(&"bone_carver", 1), full), "grey: no free face -> can't carve")
+
+
+func _fx(kind: int, mod: StringName = &"") -> EventEffectData:
+	var e := EventEffectData.new()
+	e.kind = kind
+	e.target = EventEffectData.Target.PICKED
+	if mod != &"":
+		e.mod = load("res://resources/mods/%s.tres" % mod)
+	return e
+
+
+func _test_duplicate_picks() -> void:
+	var K := EventEffectData.Kind
+	var two := EventChoiceData.new()
+	two.effects = [_fx(K.ADD_FACE_MOD, &"wild"), _fx(K.ADD_FACE_MOD, &"twin")] as Array[EventEffectData]
+	var rng := RandomNumberGenerator.new()
+	var p := _p()
+	var same: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 0)]
+	var lines := EventApplier.apply(two, p, rng, same)
+	_check(lines.size() == 1 and lines[0].begins_with("refused") and p.dice[0].faces[0] == &"", "picks: two adds can't target the same face (nothing changes)")
+	var diff: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 1)]
+	EventApplier.apply(two, p, rng, diff)
+	_check(p.dice[0].faces[0] == &"wild" and p.dice[0].faces[1] == &"twin", "picks: different faces both apply")
+	var rem := EventChoiceData.new()
+	rem.effects = [_fx(K.REMOVE_FACE_MOD), _fx(K.REMOVE_FACE_MOD)] as Array[EventEffectData]
+	var re: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 0)]
+	lines = EventApplier.apply(rem, p, rng, re)
+	_check(lines[0].begins_with("refused") and p.dice[0].faces[0] == &"wild", "picks: two removals can't target the same face either")

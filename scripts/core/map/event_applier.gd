@@ -61,11 +61,18 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 	if why != "":
 		return ["refused: " + why]
 	# Check every pick up front so a bad pick changes nothing.
+	# Two picks of the same kind can't share a face (the second would
+	# overwrite the first, or find nothing to remove).
 	var k: int = 0
+	var used: Dictionary = {}
 	for e in choice.effects:
 		if e.needs_pick():
 			if k >= picks.size() or not pick_ok(e, p, picks[k]):
 				return ["refused: pick a valid face"]
+			var key := [e.kind, picks[k]]
+			if used.has(key):
+				return ["refused: pick a different face for each"]
+			used[key] = true
 			k += 1
 	var lines: Array[String] = []
 	var next_pick: int = 0

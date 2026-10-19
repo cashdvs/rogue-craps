@@ -247,8 +247,6 @@ func gain_contract_piece() -> void:
 	changed.emit()
 
 
-## A copy of `base` with Seal levels added to each combo's base and mult
-## (build content: Pair +5/+1 per level, ...). The table plays this copy.
 ## The handful as the Bonfire table throws it: each RunDie as a TableDie with
 ## its run die id, special kind (TableDie.special), the special die's face
 ## values / weights, its per-face mods, and Heavy faces weighted
@@ -283,6 +281,8 @@ func table_dice() -> Array[TableDie]:
 	return out
 
 
+## A copy of `base` with Seal levels added to each combo's base and mult
+## (build content: Pair +5/+1 per level, ...). The table plays this copy.
 func leveled_tuning(base: BonfireTuning) -> BonfireTuning:
 	var t := base.duplicate() as BonfireTuning
 	var combos: Array[BonfireCombo] = []
