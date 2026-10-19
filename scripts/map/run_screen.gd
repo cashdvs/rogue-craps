@@ -6,7 +6,8 @@
 ## Tables: "Play at the table" opens Bonfire3D in run mode with a TableSetup
 ## (the run's dice and mods, Soul, Seal-leveled combos, this node's goal) and
 ## applies its finished(TableOutcome);
-## "Stub: clear / miss" resolves instantly for quick playthroughs.
+## "Stub: clear / miss" (resolve instantly, for quick playthroughs) only
+## show with debug_table_stubs on in a debug build; never in release.
 ## Launch: godot --path . res://scenes/run.tscn
 class_name RunScreen
 extends Node
@@ -16,6 +17,10 @@ const NT := MapGenData.NodeType
 
 @export var run_data: RunData
 @export var bonfire_tuning: BonfireTuning
+## Dev only: show "Stub: clear / miss" at tables. Off by default, and
+## ignored outside debug builds (OS.is_debug_build()), so exported games
+## never show it. Tests and capture tools switch it on.
+@export var debug_table_stubs: bool = false
 ## -1 = a random run each launch.
 @export var run_seed: int = -1
 
@@ -144,13 +149,18 @@ func _show_table() -> void:
 		"Hands: %d" % g.hands]
 	for r in run.rules:
 		lines.append("%s: %s - %s" % ["Cheat" if r.kind == RunRuleData.Kind.CHEAT else "Twist", r.display_name, r.description])
-	if not run.rules.is_empty():
-		lines.append("(Rules are passed to the table; enforcement is Godot Dev's setup-driven table.)")
 	if run.table_type == NT.BOSS:
 		if run.boss_misses > 0:
 			lines.append("Re-sit: one more miss ends the run.")
-	_panel(g.display_name, lines, [["Play at the table", _play_table],
-		["Stub: clear", func() -> void: run.quick_resolve(true)], ["Stub: miss", func() -> void: run.quick_resolve(false)]])
+	var buttons: Array = [["Play at the table", _play_table]]
+	if stubs_enabled():
+		buttons.append(["Stub: clear", func() -> void: run.quick_resolve(true)])
+		buttons.append(["Stub: miss", func() -> void: run.quick_resolve(false)])
+	_panel(g.display_name, lines, buttons)
+
+
+func stubs_enabled() -> bool:
+	return debug_table_stubs and OS.is_debug_build()
 
 
 func _play_table() -> void:

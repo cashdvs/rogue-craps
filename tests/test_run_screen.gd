@@ -74,6 +74,16 @@ func _test_map(scene: RunScreen) -> void:
 	scene.map_view.node_pressed.emit(first)
 	await process_frame
 	_check(scene.run.map.current_id == first and scene.run.screen == S.TABLE and scene._panel_root.visible, "map: click -> table screen")
+	var stub_shown := false
+	var note_shown := false
+	for b in _buttons(scene):
+		stub_shown = stub_shown or (b.text.begins_with("Stub") and b.is_visible_in_tree())
+	for l in scene._panel_box.get_children():
+		note_shown = note_shown or (l is Label and (l as Label).text.contains("Godot Dev"))
+	_check(not stub_shown and not note_shown, "table: no Stub buttons and no dev note by default")
+	scene.debug_table_stubs = true
+	scene.refresh()
+	await process_frame
 	_press(scene, "Stub: clear")
 	await process_frame
 	_check(scene.run.screen == S.REWARD, "table: stub clear -> Seal reward")
