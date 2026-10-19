@@ -60,6 +60,12 @@ func _test_helpers() -> void:
 	_check(DiceIds.asset_key(&"mirror") == &"mirror_d6", "asset key mirror_d6 matches main's art")
 	_check(DiceIds.face_key(&"verdict", 20) == &"verdict_20", "face key verdict_20")
 	_check(DiceIds.face_key(&"keg", 3) == &"powder_keg_3", "face key powder_keg_3")
+	_check(DiceIds.shape_of(&"powder_keg") == &"d6", "powder_keg shape is d6")
+	_check(DiceIds.asset_key(&"powder_keg") == &"powder_keg_d6", "asset key powder_keg_d6")
+	_check(DiceIds.canonical(&"powder_keg_d3") == &"powder_keg", "powder_keg_d3 -> powder_keg")
+	_check(DiceIds.is_shape(&"d3"), "d3 remains a valid shape (no die today)")
+	_check(DiceIds.shape_of(&"knucklebone") == &"talus", "knucklebone shape is talus")
+	_check(DiceIds.canonical(&"standard") == &"bone", "standard -> bone")
 	_check(DiceIds.display_name(&"verdict") == "Verdict", "display name")
 	_check(not DiceIds.is_snake_case("Verdict") and not DiceIds.is_snake_case("a__b"), "snake_case rejects bad ids")
 
