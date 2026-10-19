@@ -191,6 +191,7 @@ func _test_cues() -> void:
 
 func _test_mapping() -> void:
 	var cases := {
+		&"hellfire": &"hellfire_face", &"mirror": &"mirror_copy", &"gilded_payout": &"gilded_payout",
 		&"blank": &"no_score", &"heavy": &"", &"extra": &"", &"not_a_mod": &"generic",
 	}
 	for id: StringName in cases:
