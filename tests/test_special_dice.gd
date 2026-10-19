@@ -20,9 +20,15 @@ const OUTLINE_SHADER: String = "res://shaders/3d/outline.gdshader"
 const MAX_EXTENT: float = 0.042
 const EXTENT_CAP: Dictionary = {"hellfire_d6": 0.0432, "wanderer_d6": 0.0432}
 const SLIVER: float = 0.005
-## Fin read (AD, Oct 19): the silhouette decoration carries its own ink hull, is bone or bright brass, and is far
-## brighter than its body. slot -> min albedo value (HSV v).
-const ACCENTS: Dictionary = {"hellfire_spike": 0.85, "gilded_bead": 0.85, "wanderer_fin": 0.85, "blood_pact_stamp": 0.85, "last_breath_collar": 0.85}
+## Lit-face read under Lamp3D (#FFB070; write_batch2.py LAMP / LAMP_K): dark iron must read at ~20-25% value.
+const LAMP_TINT: Color = Color("#FFB070")
+const LAMP_K: float = 8.3
+const IRON_READ: Vector2 = Vector2(0.18, 0.27)
+## Fin read (AD, Oct 19, revised the same day): the silhouette decoration carries its own ink hull. slot ->
+## {"bright": min HSV v, max saturation} or {"dark": max HSV v, max saturation} of the stored albedo.
+const ACCENTS: Dictionary = {"hellfire_spike": {"bright": [0.85, 0.55]}, "gilded_bead": {"bright": [0.85, 0.55]},
+	"blood_pact_stamp": {"bright": [0.85, 0.55]}, "last_breath_collar": {"dark": [0.45, 0.55]},
+	"wanderer_fin": {"dark": [0.45, 0.55]}, "wanderer_fin_tip": {"bright": [0.85, 0.55]}}
 ## name -> [material slots, min AABB, max AABB, silhouette check]
 const DICE: Dictionary = {
 	"mirror_d6": [["mirror_body", "mirror_pip"], 0.08, 0.08, "chamfer"],
@@ -31,7 +37,7 @@ const DICE: Dictionary = {
 	"gilded_d6": [["gilded_body", "gilded_pip", "gilded_panel", "gilded_bead"], 0.082, 0.084, "beads"],
 	# batch 2
 	"twin_flame_d6": [["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft", "twin_flame_line"], 0.08, 0.08, "waist"],
-	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin"], 0.084, 0.0864, "fins"],
+	"wanderer_d6": [["wanderer_body", "wanderer_pip", "wanderer_fin", "wanderer_fin_tip"], 0.084, 0.0864, "fins"],
 	"bellows_d6": [["bellows_body", "bellows_pip", "bellows_pleat"], 0.08, 0.08, "steps"],
 	"blood_pact_d6": [["blood_pact_body", "blood_pact_pip", "blood_pact_seal", "blood_pact_stamp"], 0.082, 0.084, "seals"],
 	"coven_d6": [["coven_body", "coven_pip", "coven_cove"], 0.08, 0.08, "coves"],
@@ -156,8 +162,21 @@ func _check_die(die: String, spec: Array, edge: float) -> void:
 			var am := mesh.surface_get_material(s) as ShaderMaterial
 			var ai := am.next_pass as ShaderMaterial if am != null else null
 			var ac: Variant = am.get_shader_parameter("albedo") if am != null else null
-			_check(ai != null and ai.shader.resource_path == OUTLINE_SHADER, "%s: %s carries an ink hull (fin read)" % [die, sn])
-			_check(ac != null and (ac as Color).v >= float(ACCENTS[sn]) and (ac as Color).s < 0.55, "%s: %s albedo %s is full-value bone / brass" % [die, sn, ac])
+			if sn != "wanderer_fin_tip":
+				_check(ai != null and ai.shader.resource_path == OUTLINE_SHADER, "%s: %s carries an ink hull (fin read)" % [die, sn])
+			var rule: Dictionary = ACCENTS[sn]
+			var ok := false
+			if ac != null and rule.has("bright"):
+				ok = (ac as Color).v >= float(rule["bright"][0]) and (ac as Color).s < float(rule["bright"][1])
+			elif ac != null:
+				ok = (ac as Color).v <= float(rule["dark"][0]) and (ac as Color).s < float(rule["dark"][1])
+			_check(ok, "%s: %s albedo %s is %s (fin read)" % [die, sn, ac, rule.keys()[0]])
+			if rule.has("dark") and ac != null:
+				# dark iron as it READS under the lamp (lamp_comp leaves the stored albedo bluer than it looks)
+				var g: Variant = am.get_shader_parameter("light_gain")
+				var lit := _lamp_read(ac as Color, float(g) if g != null else 1.0)
+				print("  info %s: %s reads %.2f value under the lamp" % [die, sn, lit.v])
+				_check(lit.v >= IRON_READ.x and lit.v <= IRON_READ.y, "%s: %s reads dark iron under the lamp (value %.2f in %.2f-%.2f)" % [die, sn, lit.v, IRON_READ.x, IRON_READ.y])
 	var body := mesh.surface_get_material(0) as ShaderMaterial
 	var ink := body.next_pass as ShaderMaterial if body != null else null
 	_check(ink != null and ink.shader.resource_path == OUTLINE_SHADER, "%s: body carries the ink hull" % die)
@@ -244,16 +263,18 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 					return false
 			return _nearest(verts, Vector3(h, h, h)) < 0.012 and accent.size() > 0
 		"fins":
-			# A compass point past the (sharp-cube) edge at the middle of all 12 edges.
-			for m in _edge_mids(h):
+			# A compass point on all 8 corners (fin read v2: 8 corner blades, not 12 edge fins).
+			# Each blade's point is the brass tip (accent = the last surface, wanderer_fin_tip), reaching past the cube
+			# corner along its diagonal.
+			for c in _corners(h):
 				var hit := false
-				for v in verts:
-					if v.normalized().dot(m.normalized()) > 0.995 and v.length() > m.length() * 1.01:
+				for v in accent:
+					if v.normalized().dot(c.normalized()) > 0.995 and v.length() > h * sqrt(3.0) * 1.03:
 						hit = true
 						break
 				if not hit:
 					return false
-			return accent.size() > 0
+			return true
 		"steps":
 			# Every edge is folded into a staircase: its midpoint is carved away, and the 3 step risers exist.
 			for m in _edge_mids(h):
@@ -307,6 +328,13 @@ func _silhouette(kind: String, verts: PackedVector3Array, accent: PackedVector3A
 						bottom += 1
 			return top >= 16 and bottom >= 16 and accent.size() > 0
 	return false
+
+
+func _lamp_read(albedo: Color, gain: float) -> Color:
+	var a := albedo.srgb_to_linear()
+	var l := LAMP_TINT.srgb_to_linear()
+	var k := gain * LAMP_K
+	return Color(minf(1.0, a.r * l.r * k), minf(1.0, a.g * l.g * k), minf(1.0, a.b * l.b * k)).linear_to_srgb()
 
 
 func _rgb_dist(a: Color, b: Color) -> float:

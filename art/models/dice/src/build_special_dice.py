@@ -555,38 +555,62 @@ def build_twin_flame():
     return ob, 30.0
 
 
+# Wanderer corner fins: (fraction of the length, half-width in the blade plane, half-thickness) from the root (inside
+# the bevel) to the point. Every ring stays inside the face planes (<= 0.042 m) except the last, 4.6 mm from the tip.
+FIN_PROFILE = [(0.0, 0.0110, 0.0080), (0.45, 0.0075, 0.0058), (0.8, 0.0030, 0.0026), (1.0, 0.0, 0.0)]
+FIN_TIP_FROM = 0.8  # the segment past this fraction is the bright brass tip (the glint)
+
+
+def blade(bm, base, d, e, length, profile, tip_from):
+    """A flat diamond-section blade from `base` along unit `d`, wide along unit `e` (Godot), closed at both ends.
+    Faces past `tip_from` of the length get material index 1 (the tip), the rest 0."""
+    d = Vector(d).normalized()
+    e = Vector(e).normalized()
+    n = d.cross(e)
+    rings = []
+    fr = []
+    tip = None
+    for f, w, t in profile:
+        p = base + d * length * f
+        if w <= 0.0:
+            tip = bm.verts.new(g2b(p))
+            continue
+        rings.append([bm.verts.new(g2b(p + q)) for q in (e * w, n * t, -e * w, -n * t)])
+        fr.append(f)
+    fs = [bm.faces.new(rings[0][::-1])]
+    for i, (r0, r1) in enumerate(zip(rings, rings[1:])):
+        for k in range(4):
+            j = (k + 1) % 4
+            fs.append(bm.faces.new((r0[k], r0[j], r1[j], r1[k])))
+            fs[-1].material_index = 1 if fr[i] >= tip_from - 1e-6 else 0
+    for k in range(4):
+        fs.append(bm.faces.new((rings[-1][k], rings[-1][(k + 1) % 4], tip)))
+        fs[-1].material_index = 1 if fr[-1] >= tip_from - 1e-6 else 0
+    bmesh.ops.recalc_face_normals(bm, faces=fs)
+
+
 def build_wanderer():
-    """Wanderer Die: a steel-blue block with a compass point on the middle of every edge (12 bright brass fins
-    tapering to thin tips), so the outline is an 8-pointed star from any side; cream pips."""
+    """Wanderer Die: a mid steel-blue block with a compass point on each of the 8 corners: a flat dark-iron blade
+    (diamond section, wide in the plane of the corner diagonal and the die's Y axis) tapering to a small bright
+    brass tip that glints. Cream pips. (Fin read v2, AD Oct 19: dark fins on the mid body, bright tips.)"""
     body_m = make_material("wanderer_body", "5C7894", 0.6)
     pip_m = make_material("wanderer_pip", "F2E6C8", 0.6)
-    fin_m = make_material("wanderer_fin", "B08D3C", 0.3, 1.0)
+    fin_m = make_material("wanderer_fin", "34302E", 0.45, 1.0)
+    tip_m = make_material("wanderer_fin_tip", "E2C06A", 0.25, 1.0)
     radius = 0.16 * EDGE  # a rounder edge leaves the fins more room inside the 0.08 m box
     bm = rounded_cube_bmesh(radius, 2)
-    ob = new_obj("WandererD6", bm, [body_m, pip_m, fin_m])
+    ob = new_obj("WandererD6", bm, [body_m, pip_m, fin_m, tip_m])
     c = H - radius
     fb = bmesh.new()
-    L, T, T_TIP = 0.040, 0.005, 0.0006  # 5 mm at the root: a fin seen edge-on (along its diagonal) still shows ~3 px of brass
-    # outward reach of the fin tip from the edge line, so the tip (incl. half its thickness) stops 0.2 mm inside
-    # BOX_HALF per axis; the blade necks in towards it, so what can sink into the felt is a thin sliver
-    rt = (BOX_HALF - 0.0002 - c - T_TIP * 0.5 / math.sqrt(2.0)) * math.sqrt(2.0)
-    rise = rt - radius
-    # (along the edge, out from the edge line, thickness): half-profile from the base corner to the tip
-    half = [(L * 0.5, radius - 0.004, T), (L * 0.3, radius + rise * 0.35, T), (L * 0.15, radius + rise * 0.7, T * 0.8),
-            (L * 0.05, radius + rise * 0.92, T * 0.45)]
-    prof = half + [(0.0, rt, T_TIP)] + [(-u, r, t) for (u, r, t) in reversed(half)]
-    for axis, outv in EDGES:
-        o = outv.normalized()
-        side = outv.cross(axis).normalized()
-        e = outv * c
-        vs = [[fb.verts.new(g2b(e + axis * u + o * r + side * t * 0.5 * k)) for (u, r, t) in prof] for k in (-1, 1)]
-        fs = [fb.faces.new(vs[0][::-1]), fb.faces.new(vs[1])]
-        n = len(prof)
-        for i in range(n):
-            j = (i + 1) % n
-            fs.append(fb.faces.new((vs[0][i], vs[0][j], vs[1][j], vs[1][i])))
-        bmesh.ops.recalc_face_normals(fb, faces=fs)
-    boolean(ob, new_obj("fins", fb, [fin_m]), op="UNION", use_self=True)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for sz in (-1, 1):
+                dvec = Vector((sx, sy, sz)).normalized()
+                base = Vector((sx, sy, sz)) * c + dvec * radius * 0.35
+                tip_len = (BOX_HALF - 0.0002 - base.x * sx) * math.sqrt(3.0)  # tip per axis = BOX_HALF - 0.2 mm
+                e = Vector((0, 1, 0)) - dvec * dvec.y  # blade plane = the diagonal + the die's Y axis
+                blade(fb, base, dvec, e, tip_len, FIN_PROFILE, FIN_TIP_FROM)
+    boolean(ob, new_obj("fins", fb, [fin_m, tip_m]), op="UNION", use_self=True)
     a, d = 0.18 * EDGE * 0.5, 0.06 * EDGE
     boolean(ob, cutter_caps(pip_spots(H), a, d, 8, pip_m, H))
     clamp_to_box(ob)

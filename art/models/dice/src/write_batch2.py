@@ -60,6 +60,10 @@ def lamp_comp(target, s=0.7, v=1.3):
 BONE_FULL = {**PIP_BONE, **lamp_comp("#E8DCC0", s=0.3, v=1.5), "roughness": 0.5, **BONE_SPEC}
 BRASS_FULL = {"shadow_color": "#4A3410", "mid_tint": 0.82, "wrap": 0.45, "roughness": 0.25, **lamp_comp("#E2C06A", s=0.3, v=1.8),
               "spec_size": 0.9, "spec_color": "#FFF0C8", "spec_strength": 0.8}
+# Dark iron (fin read v2, AD Oct 19): reads ~22% value under the lamp (lit-face sRGB max ~0.22 after lamp_comp);
+# used where the body is mid / light and the accent must sit DARK against it (Last Breath collars, Wanderer fins).
+IRON_DARK = {"albedo": "#34302E", "shadow_color": "#0E1414", "mid_tint": 0.7, "roughness": 0.4, **lamp_comp("#34302E", s=0.8, v=1.0),
+             "spec_size": 0.9, "spec_color": "#C8C0B8", "spec_strength": 0.6, "rim_color": "#8A847E", "rim_strength": 0.3, "rim_power": 3.0}
 CREAM = {"albedo": "#F2E6C8", "shadow_color": "#7E7058", "mid_tint": 0.8, "wrap": 0.4, "roughness": 0.6}
 MATS = {
     # Twin Flame: bone half / charcoal half (max value split), thin ember line at the waist, pips flip per half
@@ -75,7 +79,10 @@ MATS = {
     "wanderer_body": ({"albedo": "#5C7894", "shadow_color": "#1C2632", "mid_tint": 0.74, "wrap": 0.3, "roughness": 0.6, **lamp_comp("#5C7894"),
                        "spec_size": 0.985, "spec_color": "#D8E0E8", "spec_strength": 0.25}, True),
     "wanderer_pip": (CREAM, False),
-    "wanderer_fin": (BRASS_FULL, "accent"),  # bright brass at full value (was #B08D3C at 0.8 gain: it sank into the lamp-lit body)
+    # fin read v2 (AD, Oct 19): value flipped, dark iron corner blades on the mid steel-blue body, small bright brass
+    # tips that glint (no ink on the 4.6 mm tip: a 2.2 mm hull would eat it)
+    "wanderer_fin": (IRON_DARK, "accent"),
+    "wanderer_fin_tip": (BRASS_FULL, False),  # bright brass at full value (was #B08D3C at 0.8 gain: it sank into the lamp-lit body)
     # Bellows: warm tan leather, dark brown pleats, oxblood pips
     "bellows_body": ({"albedo": "#B88A5A", "shadow_color": "#46291A", "mid_tint": 0.72, "wrap": 0.3, "roughness": 0.75, **lamp_comp("#B88A5A"),
                       "spec_size": 0.975, "spec_color": "#E8C8A0", "spec_strength": 0.2}, True),
@@ -98,9 +105,8 @@ MATS = {
     # Last Breath: pale cool ash stone, dark iron collars on both ends, charcoal pips
     "last_breath_body": ({"albedo": "#9AA0A6", "shadow_color": "#363A40", "mid_tint": 0.75, "wrap": 0.35, "roughness": 0.9, **lamp_comp("#9AA0A6", s=0.8)}, True),
     "last_breath_pip": ({"albedo": "#2A2426", "shadow_color": "#0A0809", "roughness": 0.8, "ambient_energy": 0.1, "light_gain": 0.45}, False),
-    # Fin read (AD, Oct 19): collars go bright brass at full value (were dark iron #34302E, which vanished into the
-    # ink line 1.6 mm proud of the pale stone); warm brass bands on the cool ash keep the banded-urn read
-    "last_breath_collar": (BRASS_FULL, "accent"),
+    # Fin read v2 (AD, Oct 19): back to dark iron (~22% value as lit), now with its own accent ink hull
+    "last_breath_collar": (IRON_DARK, "accent"),
     # batch-1 fin-read accents: Hellfire's corner spikes in bone (not brass: no Devilish corner-cap cue), Gilded's
     # studs polished bright brass on the tarnished body
     "hellfire_spike": (BONE_FULL, "accent"),
@@ -108,7 +114,7 @@ MATS = {
 }
 DICE = {
     "twin_flame_d6": ["twin_flame_body", "twin_flame_pip", "twin_flame_half", "twin_flame_pip_light", "twin_flame_cleft", "twin_flame_line"],
-    "wanderer_d6": ["wanderer_body", "wanderer_pip", "wanderer_fin"],
+    "wanderer_d6": ["wanderer_body", "wanderer_pip", "wanderer_fin", "wanderer_fin_tip"],
     "bellows_d6": ["bellows_body", "bellows_pip", "bellows_pleat"],
     "blood_pact_d6": ["blood_pact_body", "blood_pact_pip", "blood_pact_seal", "blood_pact_stamp"],
     "coven_d6": ["coven_body", "coven_pip", "coven_cove"],
