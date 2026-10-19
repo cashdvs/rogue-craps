@@ -9,6 +9,8 @@ signal throw_pressed
 signal restart_pressed
 ## Run mode: the end panel's CONTINUE (hand the outcome back to the run).
 signal continue_pressed
+## A cleared table: the player taps Leave table (between hands only).
+signal leave_pressed
 
 var coin_label: Label
 var points_label: Label
@@ -21,6 +23,11 @@ var throw_label: Label
 var mult_label: Label
 var result_label: Label
 var bank_button: Button
+## "LEAVE TABLE": shown between hands once the table is cleared (Bonfire3D
+## decides when; see Bonfire3D.can_leave_now).
+var leave_button: Button
+## The "TABLE CLEARED" banner shown at the clearing bank.
+var cleared_banner: Label
 var throw_button: Button
 var end_panel: PanelContainer
 var end_title: Label
@@ -68,6 +75,11 @@ func _init() -> void:
 	mult_label = _label(34, Color("#FF2E3E"), Vector2(1260, 880), Vector2(260, 60))
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
 	result_label.modulate.a = 0.0
+	# Two lines, centred, just under the bank / bust banner (see show_cleared).
+	cleared_banner = _label(58, Palette.BRASS_HI, Vector2(360, 480), Vector2(1200, 150))
+	cleared_banner.name = "ClearedBanner"
+	cleared_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cleared_banner.modulate.a = 0.0
 	var col := VBoxContainer.new()
 	col.position = Vector2(1580, 760)
 	col.add_theme_constant_override("separation", 14)
@@ -80,6 +92,12 @@ func _init() -> void:
 	bank_button.custom_minimum_size = Vector2(310, 84)
 	bank_button.pressed.connect(func() -> void: bank_pressed.emit())
 	col.add_child(bank_button)
+	leave_button = _button("LEAVE TABLE  (L)", 32, Palette.FELT_DARK)
+	leave_button.name = "LeaveButton"
+	leave_button.custom_minimum_size = Vector2(310, 84)
+	leave_button.visible = false
+	leave_button.pressed.connect(func() -> void: leave_pressed.emit())
+	col.add_child(leave_button)
 	rules_panel = PanelContainer.new()
 	rules_panel.name = "RulesPanel"
 	rules_panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.8)))
@@ -488,6 +506,20 @@ func flash_ticks(ids: Array) -> void:
 		tw.parallel().tween_property(l, "modulate", Color.WHITE, 0.5)
 
 
+## The clearing bank (how_bonfire_plays.md §4): "TABLE CLEARED: chase the
+## bonus or Leave table". Stays a little longer than a flash, then fades.
+const CLEARED_TEXT := "TABLE CLEARED\nchase the bonus or Leave table"
+const CLEARED_HOLD := 2.2
+
+
+func show_cleared() -> void:
+	cleared_banner.text = CLEARED_TEXT
+	cleared_banner.modulate.a = 1.0
+	var tw := cleared_banner.create_tween().set_ignore_time_scale(true)
+	tw.tween_interval(CLEARED_HOLD)
+	tw.tween_property(cleared_banner, "modulate:a", 0.0, 0.5)
+
+
 func flash(text: String, col: Color) -> void:
 	result_label.text = text
 	result_label.label_settings.font_color = col
@@ -510,7 +542,12 @@ func show_end(run: BonfireRun) -> void:
 	match run.state:
 		BonfireRun.State.CLEARED:
 			end_title.text = "TABLE CLEARED"
-			end_body.text = "Every bounty banked with %d hands to spare.\n%s\nSoul %d." % [run.hands_left, ember_line, run.soul]
+			var bonus: Array[String] = []
+			for b: BountyData in run.goal.bonus:
+				if run.is_ticked(b):
+					bonus.append("%s +%d" % [b.display_name, b.bonus_embers])
+			end_body.text = "Every required bounty banked%s.\n%s\nSoul %d." % [
+				(" (bonus: %s)" % ", ".join(bonus)) if not bonus.is_empty() else "", ember_line, run.soul]
 		_ when run.forfeited and run.state != BonfireRun.State.RUN_OVER:
 			end_title.text = "TABLE FORFEITED"
 			end_body.text = "You walked away with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]

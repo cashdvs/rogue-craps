@@ -187,6 +187,7 @@ func _run() -> void:
 	r3.toggle(1)
 	r3.toggle(2)
 	r3.bank()
+	check(r3.cleared and not r3.is_over() and r3.leave(), "cleared: the table stays open until Leave")
 	var o3 := TableOutcome.from_run(r3, 30)
 	check(o3.cleared and not o3.forfeited and o3.soul_delta == 0 and o3.hands_used == 1, "cleared outcome")
 	check(o3.points == r3.points and o3.embers == r3.points / tuning.points_per_ember + g0.clear_embers, "cleared outcome: Embers include the clear bonus")
