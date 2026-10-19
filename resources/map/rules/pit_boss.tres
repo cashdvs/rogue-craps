@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RunRuleData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="1_u5mc0"]
+
+[resource]
+script = ExtResource("1_u5mc0")
+id = &"pit_boss"
+display_name = "The Pit Boss"
+description = "One random face value is locked each hand and never lights (shown on the felt)."
+kind = 1
+params = {
+"faces": [1, 2, 3, 4, 5, 6]
+}

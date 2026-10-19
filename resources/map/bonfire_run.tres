@@ -1,9 +1,15 @@
 [gd_resource type="Resource" script_class="RunData" format=3]
 
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="1_qfvd1"]
+[ext_resource type="Resource" path="res://resources/events/devils_deal.tres" id="2_bkp6x"]
 [ext_resource type="Resource" path="res://resources/mods/ember_pip.tres" id="2_riil2"]
+[ext_resource type="Resource" path="res://resources/events/bone_carver.tres" id="3_0yela"]
 [ext_resource type="Resource" path="res://resources/mods/gilded.tres" id="3_vphwc"]
+[ext_resource type="Resource" path="res://resources/events/altar.tres" id="4_cxvay"]
 [ext_resource type="Resource" path="res://resources/mods/heavy.tres" id="4_txop1"]
+[ext_resource type="Resource" path="res://resources/events/ember_merchant.tres" id="5_dvrif"]
 [ext_resource type="Resource" path="res://resources/mods/step.tres" id="5_ln2yo"]
+[ext_resource type="Resource" path="res://resources/events/weeping_croupier.tres" id="6_0oyw3"]
 [ext_resource type="Resource" path="res://resources/mods/kindling.tres" id="6_eldjo"]
 [ext_resource type="Resource" path="res://resources/mods/blood.tres" id="7_qfvd1"]
 [ext_resource type="Script" path="res://scripts/data/face_mod_data.gd" id="7_xs4v5"]
@@ -11,10 +17,14 @@
 [ext_resource type="Resource" path="res://resources/mods/wild.tres" id="9_vphwc"]
 [ext_resource type="Resource" path="res://resources/mods/stair.tres" id="10_o6wbp"]
 [ext_resource type="Resource" path="res://resources/mods/twin.tres" id="10_txop1"]
+[ext_resource type="Script" path="res://scripts/data/floor_data.gd" id="13_o6wbp"]
 [ext_resource type="Script" path="res://scripts/data/special_die_data.gd" id="13_w0480"]
 [ext_resource type="Resource" path="res://resources/dice/special/extra.tres" id="14_267f4"]
+[ext_resource type="Resource" path="res://resources/map/floor_1.tres" id="14_w0480"]
+[ext_resource type="Resource" path="res://resources/map/floor_2.tres" id="15_267f4"]
 [ext_resource type="Resource" path="res://resources/dice/special/mirror.tres" id="15_74278"]
 [ext_resource type="Script" path="res://scripts/data/run_data.gd" id="15_w0480"]
+[ext_resource type="Resource" path="res://resources/map/floor_3.tres" id="16_74278"]
 [ext_resource type="Resource" path="res://resources/dice/special/cracked.tres" id="16_bkp6x"]
 [ext_resource type="Resource" path="res://resources/dice/special/twin_flame.tres" id="17_0yela"]
 [ext_resource type="Resource" path="res://resources/dice/special/wanderer.tres" id="18_cxvay"]
@@ -25,5 +35,7 @@
 
 [resource]
 script = ExtResource("15_w0480")
+floors = Array[ExtResource("13_o6wbp")]([ExtResource("14_w0480"), ExtResource("15_267f4"), ExtResource("16_74278")])
+events = Array[ExtResource("1_qfvd1")]([ExtResource("2_bkp6x"), ExtResource("3_0yela"), ExtResource("4_cxvay"), ExtResource("5_dvrif"), ExtResource("6_0oyw3")])
 special_dice = Array[ExtResource("13_w0480")]([ExtResource("14_267f4"), ExtResource("15_74278"), ExtResource("16_bkp6x"), ExtResource("17_0yela"), ExtResource("18_cxvay"), ExtResource("19_dvrif"), ExtResource("20_0oyw3"), ExtResource("21_8vtvu"), ExtResource("22_frdgj")])
 face_mods = Array[ExtResource("7_xs4v5")]([ExtResource("2_riil2"), ExtResource("3_vphwc"), ExtResource("4_txop1"), ExtResource("5_ln2yo"), ExtResource("6_eldjo"), ExtResource("7_qfvd1"), ExtResource("9_vphwc"), ExtResource("10_txop1"), ExtResource("10_o6wbp"), ExtResource("8_riil2")])

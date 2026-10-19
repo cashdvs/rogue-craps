@@ -32,7 +32,7 @@ GameSettings="*res://scripts/settings/game_settings.gd"
 [boot]
 
 next_scene="res://scenes/title.tscn"
-play_scene="res://scenes/bonfire.tscn"
+play_scene="res://scenes/run.tscn"
 
 [debug]
 

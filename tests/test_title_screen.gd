@@ -1,4 +1,4 @@
-## Title screen: splash -> title -> Play reaches Bonfire; Options panel;
+## Title screen: splash -> title -> Play reaches the run map; Options panel;
 ## Esc pause menu in Bonfire (Resume / Quit to title).
 ##   godot --headless --path . --script res://tests/test_title_screen.gd
 extends SceneTree
@@ -26,7 +26,7 @@ func _frames(n: int) -> void:
 
 func _run() -> void:
 	check(str(ProjectSettings.get_setting("boot/next_scene", "")) == "res://scenes/title.tscn", "splash continues to the title")
-	check(TitleScreen.play_scene_path() == "res://scenes/bonfire.tscn", "Play target is Bonfire")
+	check(TitleScreen.play_scene_path() == "res://scenes/run.tscn", "Play target is the run (map) scene")
 	var t := (load("res://scenes/title.tscn") as PackedScene).instantiate() as TitleScreen
 	root.add_child(t)
 	current_scene = t
@@ -40,8 +40,12 @@ func _run() -> void:
 	check(not t.options.visible and t.menu.visible, "Back closes Options")
 	t.play()
 	await _frames(4)
+	check(current_scene is RunScreen, "Play loads the run map (%s)" % str(current_scene))
+	# The Esc pause menu lives in the Bonfire table scene.
+	change_scene_to_file("res://scenes/bonfire.tscn")
+	await _frames(4)
 	var b := current_scene as Bonfire3D
-	check(b != null, "Play loads Bonfire (%s)" % str(current_scene))
+	check(b != null, "Bonfire loads (%s)" % str(current_scene))
 	if b != null:
 		await _frames(2)
 		check(b.can_throw() == "" and b.run != null, "Bonfire is playable")
