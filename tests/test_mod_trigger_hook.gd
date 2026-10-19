@@ -66,6 +66,10 @@ func _test_hook() -> void:
 	for p in sfx._trigger_players:
 		live += 1 if p.playing else 0
 	_check(live == 3, "pool: 14 count ticks cut none of the 3 live cues (%d)" % live)
+	var on_sfx := not sfx._trigger_players.is_empty()
+	for p in sfx._trigger_players:
+		on_sfx = on_sfx and p.bus == &"SFX"
+	_check(on_sfx, "bus: every trigger cue player is on the SFX bus (not Master)")
 	# Cap: 3 live + 1 more = 4, the 5th becomes one cluster at its hit, the 6th is dropped.
 	_check(sfx.play_mod_trigger(&"twin") > 0.0, "cap: the 4th cue plays")
 	_check(is_equal_approx(sfx.play_mod_trigger(&"stair"), 0.33), "cap: the 5th returns its (staggered) hit time (cluster)")
