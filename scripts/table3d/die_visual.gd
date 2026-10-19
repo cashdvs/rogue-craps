@@ -300,6 +300,7 @@ func make_coin() -> void:
 		var mat: Material = heads_mat if side > 0.0 else tails_mat
 		# The ring near the rim.
 		var ring := MeshInstance3D.new()
+		ring.name = "HeadsRing" if side > 0.0 else "TailsRing"
 		var tm := TorusMesh.new()
 		tm.inner_radius = CoinPhysics.RADIUS * 0.70
 		tm.outer_radius = CoinPhysics.RADIUS * 0.82
@@ -320,11 +321,13 @@ func make_coin() -> void:
 			boss.height = 0.003
 			boss.radial_segments = 18
 			mark.mesh = boss
+			mark.name = "HeadsBoss"
 		else:
 			# Tails: a bar across the face.
 			var bar := BoxMesh.new()
 			bar.size = Vector3(CoinPhysics.RADIUS * 1.1, 0.003, CoinPhysics.RADIUS * 0.22)
 			mark.mesh = bar
+			mark.name = "TailsBar"
 		mark.position = Vector3(0, side * (h + 0.0005), 0)
 		_pips_root.add_child(mark)
 	var blob := get_node("Blob") as MeshInstance3D
@@ -334,16 +337,48 @@ func make_coin() -> void:
 var _pip_color: Color = Palette.PIT_BLACK
 
 
-## `slot_labels` as exactly 6 labels 1..6 (pad with the slot number, trim
-## extras, clamp values to 1..6 since a cube can only print 1-6 pips),
-## warning when the input didn't fit.
+## Highest printed value a face label can carry (a d20's 20).
+const MAX_LABEL: int = 20
+
+
+## `slot_labels` as exactly 6 labels (pad with the slot number, trim extras),
+## warning when the input didn't fit. Values are kept as printed, 0..20:
+## 0 is a blank face (no pips), 1-6 are pips, 7+ a printed numeral. They are
+## NOT clamped to 1-6 any more (a 0 used to show as one pip, an 8 as a 6).
 static func safe_labels(slot_labels: Array) -> Array[int]:
 	var out: Array[int] = [1, 2, 3, 4, 5, 6]
 	if slot_labels.size() != 6:
 		push_warning("DieVisual: %d face labels for a 6-faced mesh; padding / trimming to 6" % slot_labels.size())
 	for i in mini(slot_labels.size(), 6):
-		out[i] = clampi(int(slot_labels[i]), 1, 6)
+		out[i] = clampi(int(slot_labels[i]), 0, MAX_LABEL)
 	return out
+
+
+## A printed number (7..20) on the face with normal `n` (`u` = face "up").
+func _add_numeral(n: Vector3, u: Vector3, h: float, value: int) -> void:
+	var lab := Label3D.new()
+	lab.name = "Numeral%d" % value
+	lab.text = str(value)
+	lab.font_size = 96
+	lab.pixel_size = edge * 0.005
+	lab.modulate = _pip_color
+	lab.outline_size = 0
+	lab.double_sided = false
+	# Label3D faces +Z: turn it so +Z points out of the face, `u` reads up.
+	lab.transform = Transform3D(Basis(u.cross(n), u, n), n * (h + 0.002 * edge))
+	_pips_root.add_child(lab)
+
+
+## Pip discs drawn on face `axis` (cube axis id 1..6); 0 for a blank face.
+func pip_count(axis: int) -> int:
+	if _pips_root == null:
+		return 0
+	var n := FACE_AXES.get(axis, Vector3.ZERO) as Vector3
+	var count := 0
+	for c in _pips_root.get_children():
+		if c is MeshInstance3D and (c as Node3D).position.normalized().dot(n) > 0.6:
+			count += 1
+	return count
 
 
 func _add_pips() -> void:
@@ -363,10 +398,17 @@ func _add_pips() -> void:
 	var h := edge * 0.5
 	for value: int in PIPS:
 		var n := FACE_AXES[value] as Vector3
-		var shown: int = clampi(labels[value - 1], 1, 6) if value - 1 < labels.size() else value
+		var shown: int = clampi(labels[value - 1], 0, MAX_LABEL) if value - 1 < labels.size() else value
 		var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
 		u = (u - n * u.dot(n)).normalized()
 		var v := n.cross(u)
+		if shown == 0:
+			# A 0 face (e.g. a coin's Tails value) is blank: plain bone, no pips.
+			continue
+		if shown > 6:
+			# More than six pips won't fit: print the number on the face.
+			_add_numeral(n, u, h, shown)
+			continue
 		for spot: Vector2 in PIPS[shown]:
 			var mi := MeshInstance3D.new()
 			mi.mesh = pip_mesh

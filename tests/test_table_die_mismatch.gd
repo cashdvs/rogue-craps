@@ -26,7 +26,8 @@ func _run() -> void:
 	# DieVisual labels: short, long, out of range.
 	check(DieVisual.safe_labels([1, 5]) == [1, 5, 3, 4, 5, 6], "2 labels padded with the slot numbers")
 	check(DieVisual.safe_labels([1, 2, 3, 4, 5, 6, 7, 8]) == [1, 2, 3, 4, 5, 6], "8 labels trimmed to 6")
-	check(DieVisual.safe_labels([0, 9, 2, 2, 3, 3]) == [1, 6, 2, 2, 3, 3], "labels clamped to 1..6")
+	check(DieVisual.safe_labels([0, 9, 2, 2, 3, 3]) == [0, 9, 2, 2, 3, 3], "labels kept as printed (0 blank, 9 a numeral), not clamped to 1..6")
+	check(DieVisual.safe_labels([-3, 99, 1, 1, 1, 1]) == [0, 20, 1, 1, 1, 1], "labels clamped to 0..20")
 	check(DieVisual.safe_labels([]) == [1, 2, 3, 4, 5, 6], "no labels -> 1..6")
 	var dv := DieVisual.new()
 	dv.set_look(Palette.BONE, Palette.PIT_BLACK, [1, 5] as Array[int])
