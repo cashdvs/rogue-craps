@@ -4,6 +4,13 @@ This file is for coding agents (and the people driving them) who want to open pu
 against **Dice of the Damned** by **Tiny Anvil Games**. Humans should also read
 [CONTRIBUTING.md](CONTRIBUTING.md). Read this whole file before changing anything.
 
+> **Partly out of date (Oct 2026).** §1, §4, §4a and §6 describe the craps-era proof of concept. The
+> game is now the **Bonfire** dice roguelite (Bonfire tables on a floor map, shop, Embers, dice bag,
+> face mods, events, bosses). For the current game, workflow and file map read
+> [README.md](README.md#start-here), [CONTRIBUTING.md](CONTRIBUTING.md) and
+> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The setup in §2-§3, the conventions in §5 and the
+> PR rules in §7 still apply.
+
 ## 1. Project overview
 
 - **Dice of the Damned** (formerly *The Gambler's Descent*) is a single-player,
@@ -259,8 +266,8 @@ needs it, because it rewrites files in `resources/`.
    folder. **`tests/qa_/`** (owned by QA): you may **add** checks, but never weaken or remove
    existing ones. Don't edit `docs/DESIGN.md` in a feature PR.
 4. **Never commit `.godot/`** (the import cache; it's in `.gitignore`), editor settings, builds,
-   or large binaries. Do commit the `*.uid` files Godot creates next to new scripts, and the
-   `*.import` files next to new assets.
+   or files over ~20 MB (REVIEWING.md §5; smaller art/audio binaries are fine). Do commit the
+   `*.uid` files Godot creates next to new scripts, and the `*.import` files next to new assets.
 5. **Keep seeded determinism** (see §5). If a test depends on randomness, give it a seed.
 6. **Don't change game numbers on your own.** Numbers come from the Game Designer; if you think one
    is wrong, say so in the PR or an issue.

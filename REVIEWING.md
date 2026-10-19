@@ -2,7 +2,8 @@
 
 The reviewer (PM, with QA support) works through this checklist for every PR.
 **AGENTS.md is the source of truth** for contributor rules (with CONTRIBUTING.md and
-docs/MODULES.md). If this file disagrees with them, AGENTS.md wins and a follow-up PR fixes this file.
+docs/MODULES.md). The contributor-facing summary of review and merge is CONTRIBUTING.md §4.
+If this file disagrees with them, AGENTS.md wins and a follow-up PR fixes this file.
 
 ## Modules
 "Module" means a **feature module in [docs/MODULES.md](docs/MODULES.md)**: 3D table, Dice physics,
@@ -55,7 +56,8 @@ Embers, Dealer/taunts, UI, Shaders, Audio, Fonts, Art import, QA tests, Tools/CI
 - changes CI or repo config: `.github/` (workflows, CODEOWNERS, templates), `run_tests.sh`,
   `project.godot`, export presets, `.gitignore`, `LICENSE`, `AGENTS.md`, `CONTRIBUTING.md`,
   `docs/MODULES.md`, `docs/DESIGN.md`, `REVIEWING.md`;
-- adds dependencies/addons/plugins, or large assets (> 1 MB per file, or any binary).
+- adds dependencies/addons/plugins, or very large assets (any file over about 20 MB). Binaries under
+  that are fine when they're art or audio (PM ruling, Oct 19 2026).
 
 ## 6. Safety (any hit = request changes, and escalate if it looks deliberate)
 - [ ] No secrets, tokens, keys or credentials (including in `.tres`, `.cfg` and export presets).

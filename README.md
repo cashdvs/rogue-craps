@@ -1,120 +1,64 @@
-# Dice of the Damned (Godot 4.7): POC table
+# Dice of the Damned
 
 [![CI](https://github.com/cashdvs/rogue-craps/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cashdvs/rogue-craps/actions/workflows/ci.yml)
 
-A single-player craps roguelite by **Tiny Anvil Games** (design
-summary: [`docs/DESIGN.md`](docs/DESIGN.md)). The
-current build is the **proof-of-concept table**, where the goal is feel. You get 2 plain bone
-dice, a Pass Line, Soul, a 12-roll limit, a target bankroll, and a taunting Dealer. Visuals and
-timings follow the team's POC feel spec.
+A 3D, top-down dice roguelite set in an underworld casino, by **Tiny Anvil Games**, made in
+**Godot 4.7.2** with GDScript. (The repo is still called `rogue-craps` from the old craps design.)
 
-**Contributing:** humans start with [CONTRIBUTING.md](CONTRIBUTING.md), AI coding agents with
-[AGENTS.md](AGENTS.md). Claimable sub-sections are listed in [docs/MODULES.md](docs/MODULES.md).
+## Start here
+
+**The game.** You lost your soul on one roll. Win it back table by table:
+
+- **Bonfire tables:** throw 5 dice, pot a scoring combo from the dice that light up, then bank
+  the points or throw the rest again. Nothing lights = bust (you lose the hand's pot and Soul).
+  Clear a table by banking every required **bounty** (Pair of 6s, Run of 4, ...) within its hands.
+- **The run:** 3 floors, each a branching Slay the Spire-style map of Table, Elite, Event, Shop
+  and Rest nodes, with a **boss** at the top who cheats (one rule-bending twist).
+- **Build:** tables pay **Embers**. Spend them in the **Shop** on special dice for your
+  **dice bag**, **face mods** carved onto single faces, and Infernal Seals that level up combos.
+  **Soul** is your health; at 0 the run is over.
+
+**Run it.**
+
+1. Install **Godot 4.7.2-stable** (standard build, not .NET):
+   [release page](https://github.com/godotengine/godot/releases/tag/4.7.2-stable).
+   Headless Linux steps: [AGENTS.md §2](AGENTS.md#2-install-godot-472-headless-linux).
+2. Clone the repo, then point `GODOT` at your binary:
+   ```bash
+   export GODOT=/path/to/godot              # run_tests.sh reads $GODOT
+   "$GODOT" --headless --path . --import    # first time only: builds the .godot/ cache (never commit it)
+   ```
+3. Play: open the folder in the Godot editor (Import → `project.godot`) and press F5, or run
+   `"$GODOT" --path .`. You get the studio splash, the title screen, then **Play** starts a run
+   (`scenes/run.tscn`). Shortcuts:
+   ```bash
+   "$GODOT" --path . res://scenes/run.tscn       # straight to a new run (the map)
+   "$GODOT" --path . res://scenes/bonfire.tscn   # one sandbox table, no run
+   ```
+
+**Test it.**
+
+```bash
+./run_tests.sh                                                   # every tests/test_*.gd + tests/qa_/qa_*.gd; non-zero exit = failure
+"$GODOT" --headless --path . --script res://tests/test_run_screen.gd   # one test file
+"$GODOT" --headless --path . res://scenes/bonfire.tscn --quit-after 300   # smoke run, like CI
+```
+
+Some `ERROR:` lines in test output are expected (tests feed bad input on purpose). Only the
+`N passed, M failed` lines and the exit code matter.
+
+## Where to go next
+
+| You want to... | Read |
+|---|---|
+| Make your first PR (humans and bots) | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Know how the code fits together, who owns what, how to add a die / face mod / event / boss | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Find the current design docs | [docs/DESIGN_INDEX.md](docs/DESIGN_INDEX.md) |
+| Coding conventions and tooling details (AI agents) | [AGENTS.md](AGENTS.md) |
+| Know what reviewers check | [REVIEWING.md](REVIEWING.md) |
+| Modules, labels and how to claim one | [docs/MODULES.md](docs/MODULES.md) |
+
+Starter tasks carry the [`good first issue`](https://github.com/cashdvs/rogue-craps/issues?q=is%3Aopen+label%3A%22good+first+issue%22) label.
 
 **License:** proprietary, all rights reserved; see [LICENSE](LICENSE). Contributions are
 assigned (or licensed) to Tiny Anvil Games on submission.
-
-## Run
-
-```bash
-# Play (main scene = scenes/table.tscn)
-/home/box/tools/godot/godot --path /workspace/dice/game
-# The old greybox screen is still available:
-/home/box/tools/godot/godot --path /workspace/dice/game res://scenes/greybox.tscn
-# Editor
-/home/box/tools/godot/godot --editor --path /workspace/dice/game
-# All headless tests (imports first)
-./run_tests.sh
-# One QA script by hand (run_tests.sh already runs all tests/qa_/qa_*.gd)
-/home/box/tools/godot/godot --headless --path . --script res://tests/qa_/qa_craps_stats.gd
-# Screenshots / movie (need a display; xvfb works)
-xvfb-run -a -s "-screen 0 1920x1080x24" /home/box/tools/godot/godot --path . \
-  --rendering-driver opengl3 --resolution 1920x1080 --script res://tools/capture_table.gd
-xvfb-run -a -s "-screen 0 1920x1080x24" /home/box/tools/godot/godot --path . \
-  --rendering-driver opengl3 --resolution 1280x720 --fixed-fps 30 \
-  --write-movie /tmp/table_poc.avi --script res://tools/demo_table.gd
-```
-
-## How to play (PC: mouse and keyboard)
-
-| Action | Input |
-|---|---|
-| Add a 5-Coin chip to the Pass Line (5-25, before the come-out only) | Click the bankroll chip stack or the Pass Line, or press Up/+ |
-| Take the bet down (before the come-out) | Right-click the stack or the Pass Line, or press Down/- |
-| Throw | **Press on the dice in your hand (bottom right), drag, and flick.** A slow release or a plain click drops them back into your hand. |
-| Quick throw (keyboard) | Space / Enter |
-| Fast-forward a roll | Click (or Space) during the reveal or resolve |
-| Reduced motion | R, or the F1 panel |
-| Debug: seed and restart, force the next roll, Hot Seven rule | F1 |
-
-The throw is decided **at release**. The seeded `DiceRoller` picks the faces. The flick's
-direction and speed plan the path (along the flick, off the rim, coming to rest in the landing
-zone), and the dice tween along that path and settle on the chosen faces. You can't throw while
-the come-out Pass bet is under 5 Coin. During a Point, the bet is locked and you throw again.
-
-## Tuning (one file)
-
-`resources/tuning/poc_tuning.tres` uses `TuningData` (`scripts/data/tuning_data.gd`), and the
-defaults in the script are the doc numbers:
-
-- **Table:** stake 20, target 40, 12 rolls, bets 5-25, chip value 5.
-- **Soul:** 40 Soul. The formulas are:
-  - Seven-out: 2 + ceil(lost/10).
-  - Craps: 1 + ceil(lost/10).
-  - Other losses: floor(lost/10).
-  - `soul_on_loss = true` (PM decision).
-- **End of table:** miss penalty 3 + 1 per 25% of the gap (max 7), bust 7, clear bonus +5, and +1
-  per unused roll.
-- **Throw gesture:** `min_throw_speed` (700 px/s), `min_throw_drag` (40 px), speed→distance,
-  throw time at slow and fast flicks, rim restitution.
-- **Spec timings:** wind-up, throw, bounces, settle, die B delay, reveal hold and punch, a resolve
-  duration per moment, reset, chip, payout and rake times, puck times, shake px and hit-stop ms per
-  moment, seven-out escalation caps, fast-forward speed, and the reduced-motion scale and particle
-  factor.
-- **Table rule (Hot Seven):** ships **off**, because doc v0.4 §12 puts table rules out of POC
-  scope. Use F1 or `table_rule_enabled` to try it.
-
-## Dealer lines
-
-`resources/dealer/dealer_lines.json` maps each event to a list of lines. The events are
-`natural`, `craps`, `point_set`, `point_hit`, `seven_out`, `big_bet` (stake ≥ 20), `low_soul`
-(Soul ≤ 12, once per table), `table_win`, and `table_fail`. A line is picked at random with no
-immediate repeats (`DealerLines`), and each one plays the `dealer_taunt` sound.
-
-## Layout
-
-```
-project.godot              1920x1080 design size, stretch canvas_items, aspect expand
-scripts/data/              Resources: die_face, die_data, bet_type, bet_catalog, tuning_data, table_rule_data
-scripts/core/              Pure logic (unit-tested, no nodes)
-  craps_round / roll_result / dice_roller / bankroll / active_bet / bet_payout / bet_resolver
-  craps_table / table_report   betting session (Pass, Field, Any Craps, Odds, Hard-way logic)
-  poc_table / poc_roll_report  POC table: Soul, roll limit, target, end-of-table, "why" line
-  throw_gesture                drag -> release velocity, throw threshold, path planning
-  dealer_lines                 JSON lines, random without immediate repeats
-scripts/table/             The POC table scene (drawn in code, no textures)
-  table_scene.gd           director: input, roll sequence, moments, chips, HUD, end/debug screens
-  die_view / chip_view / puck_view / soul_meter / bankroll_stack / banner / dealer_view / dealer_bubble
-  table_painter (rim, point row, Pass Line arc) / rule_plaque / shake_camera / palette
-scripts/audio/             SfxSynth (procedural sounds) + SfxManager (pool; prefers audio/sfx/<event>.wav)
-shaders/                   felt (stains, burns, edge darkening, flash, scorch), backdrop, bulb_light, grade
-fonts/                     Alfa Slab One + Barlow Condensed (SIL OFL, licenses alongside)
-tests/                     test_*.gd and qa_/qa_*.gd (both run by run_tests.sh); tests/qa_/ belongs to QA; PR review: REVIEWING.md
-tools/                     generate_sample_resources, bake_sfx, capture_table, demo_table
-```
-
-## Doc names used in code
-
-| Design doc / art spec | Code |
-|---|---|
-| Coin | `Bankroll.coin` |
-| Pass ("Natural (Pass)" in data) / "PASS LINE" on the felt | `pass.tres`, `BetType.Rule.PASS` |
-| Field, Any Craps (doc stretch) | `field.tres`, `any_craps.tres`: logic and tests only, not on the POC felt |
-| Soul | `PocTable.soul`, `SoulMeter` |
-| Table rule "Hot Seven" | `TableRuleData` inside the tuning file (off for the POC) |
-| Croupier / Dealer | `DealerView`, `DealerLines` |
-
-## Rule precedence
-This is documented in `craps_round.gd` and tested. Totals outside 2-12 are rejected. On the
-come-out, a Natural beats Craps, which beats setting a Point. In the Point phase, hitting the Point
-beats a Seven-out.
