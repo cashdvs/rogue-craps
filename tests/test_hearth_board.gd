@@ -27,8 +27,15 @@ const EPS: float = 0.0015
 const TOON := "res://shaders/3d/toon_noir.gdshader"
 const SH := "res://art/models/boards/hearth/shaders/"
 ## Effect shaders (billboard cards / sparks): exempt from the 0.25 m geometry cap.
-const FX_SHADERS: Array[String] = [SH + "hearth_flame_card.gdshader", SH + "hearth_sparks.gdshader"]
+## (hearth_glow = the additive candle glow decal lying on the rail top.)
+const FX_SHADERS: Array[String] = [SH + "hearth_flame_card.gdshader", SH + "hearth_sparks.gdshader", SH + "hearth_glow.gdshader"]
 const PROP_SHADERS: Array[String] = [TOON, SH + "hearth_coals.gdshader", SH + "demon_eye.gdshader"]
+## Smiles (the dealer) stands STAGE LEFT of the brazier behind the far rail: a centred dealer's face
+## would sit behind the brazier bowl itself from the game camera. Face sphere (world) used to check
+## that solid fire never covers his face at any pot step (Art Director, Oct 18).
+const DEALER_FACE := Vector3(-0.42, 0.2, -0.86)
+const DEALER_FACE_R := 0.11
+const CARD_FOOT := 0.113
 const HOOKS: Array[String] = ["pot_step", "eyes", "eyes_left", "eyes_right", "fill", "lit_count", "seam", "pulse", "snuff", "wisp", "flare"]
 
 var _passed: int = 0
@@ -176,6 +183,8 @@ func _check_board(mobile: bool) -> void:
 	_check(left == 4 and right == 4, "%s: 4 candles per side rail at |x| >= 1.11" % label)
 	_check(cand_ok, "%s: each candle <= %d tris" % [label, 90 if mobile else 150])
 	_check(shared, label + ": all 8 candles share one mesh and one wax material")
+	# --- Art Director revisions (Oct 18) ---
+	_check_revisions(label, board, candles)
 	# --- hooks and clips ---
 	var fx := board.get_node_or_null("Hearth")
 	_check(fx != null, label + ": Hearth FX hub node")
@@ -233,6 +242,85 @@ func _check_board(mobile: bool) -> void:
 	_check(float(rails.get_instance_shader_parameter(&"pulse")) > 0.9, label + ": seam pulse reaches the rail seam pass")
 	root.remove_child(board)
 	board.free()
+
+
+func _check_revisions(label: String, board: Node3D, candles: Array[Node3D]) -> void:
+	var c0 := candles[0]
+	var fl := c0.get_node("Flame") as MeshInstance3D
+	_check(is_equal_approx((fl.mesh as QuadMesh).size.y * 0.8, 0.03), label + ": candle flame = tier-1 tongue at 0.75 scale (0.03 m visible)")
+	var gl := c0.get_node_or_null("Glow") as MeshInstance3D
+	_check(gl != null and (gl.material_override as ShaderMaterial).shader.resource_path.ends_with("hearth_glow.gdshader"), label + ": candle has an additive glow decal for the rail top")
+	var wax := _mesh(c0.get_node("Model")).mesh.surface_get_material(0) as ShaderMaterial
+	_check(wax != null and _param(wax, "emission_energy") > 0.0, label + ": unlit wax keeps a dim emissive silhouette")
+	var lit := load("res://art/models/boards/hearth/materials/candle_wax_lit.tres") as ShaderMaterial
+	_check(lit != null and _param(lit, "rim_strength") > 1.0, label + ": lit wax has an emissive rim")
+	# Fire: the step-4 column caps at ~0.3 m above the coals, and no solid fire card at any step covers
+	# the dealer's face from the game camera (sparks may: they are not checked).
+	var pot := board.get_node("Anchors/TargetPlate/Plate")
+	var cam := Transform3D(Basis.from_euler(Vector3(deg_to_rad(-55), 0, 0)), Vector3.ZERO)
+	cam.origin = Vector3(0, 0, 0.05) + cam.basis * Vector3(0, 0, 2.5)
+	var face := _screen_rect(cam, [DEALER_FACE + Vector3(-DEALER_FACE_R, -DEALER_FACE_R, 0), DEALER_FACE + Vector3(DEALER_FACE_R, DEALER_FACE_R, 0)])
+	var top := 0.0
+	var clear := true
+	var bad := ""
+	for i in range(1, 5):
+		var step := pot.get_node("Fire/Step%d" % i)
+		var meshes: Array[MeshInstance3D] = []
+		_collect(step, meshes)
+		for mi in meshes:
+			if not (mi.mesh is QuadMesh) or not ((mi.material_override as ShaderMaterial).get_shader_parameter("mode") in [null, 0]):
+				continue  # sparks and the smoke curl are not solid fire
+			var size := (mi.mesh as QuadMesh).size.y
+			var lp := mi.position  # inside Step (or Step/Twist, which only rotates about y)
+			var r := Vector2(lp.x, lp.z).length() if mi.get_parent().name == "Twist" else absf(lp.x)
+			var foot := lp.y + size * CARD_FOOT
+			if i == 4:
+				top = maxf(top, foot + size * 0.8)
+			var w := _xf(board, step).origin
+			var rect := _screen_rect(cam, [w + Vector3(-r - size * 0.5, foot, 0), w + Vector3(r + size * 0.5, foot + size * 0.8, 0)])
+			if rect.intersects(face):
+				clear = false
+				bad = "Step%d/%s" % [i, mi.name]
+	_check(top > 0.25 and top < 0.32, "%s: step-4 column capped at ~0.3 m above the coals (%.3f)" % [label, top])
+	_check(clear, "%s: no solid fire at any step covers the dealer's face from the game camera %s" % [label, bad])
+	var eye := _mesh(board.get_node("Anchors/Corner_FL/Cap/Model"))
+	var em: ShaderMaterial = null
+	for s in eye.mesh.get_surface_count():
+		var m := eye.mesh.surface_get_material(s) as ShaderMaterial
+		if m != null and m.shader.resource_path.ends_with("demon_eye.gdshader"):
+			em = m
+	var es: Variant = em.get_shader_parameter("eye_size") if em != null else null
+	_check(es != null and (es as Vector2).x * (es as Vector2).y >= 2.0 * 0.0115 * 0.0068 * 0.99, label + ": demon eyes are 2x the first pass's area")
+	_check(em != null and _param(em, "idle_energy") + _code_default(em.shader, "idle_energy") > 0.0, label + ": demon eyes smoulder faintly at eyes = 0")
+
+
+## A material's parameter, falling back to the shader's default (0 when neither is set).
+func _param(m: ShaderMaterial, n: String) -> float:
+	var v: Variant = m.get_shader_parameter(n)
+	if v == null:
+		v = RenderingServer.shader_get_parameter_default(m.shader.get_rid(), n)
+	return 0.0 if v == null else float(v)
+
+
+## A float uniform's default parsed from shader code (the headless dummy renderer reports none).
+func _code_default(sh: Shader, n: String) -> float:
+	var re := RegEx.create_from_string("uniform float " + n + "[^=;]*=\\s*([0-9.]+)")
+	var m := re.search(sh.code)
+	return 0.0 if m == null else float(m.get_string(1))
+
+
+## Screen-space (NDC) bounding box of world points seen from the game camera (FOV 36, 16:9).
+func _screen_rect(cam: Transform3D, pts: Array) -> Rect2:
+	var t := tan(deg_to_rad(36.0) * 0.5)
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p: Vector3 in pts:
+		for corner in [Vector3(p.x, p.y, p.z)]:
+			var v: Vector3 = cam.affine_inverse() * (corner as Vector3)
+			var s := Vector2(v.x / (-v.z * t * 16.0 / 9.0), v.y / (-v.z * t))
+			lo = lo.min(s)
+			hi = hi.max(s)
+	return Rect2(lo, hi - lo)
 
 
 ## The seam band (ember_seam band_v) must land on the INNER face of the rail tube, just above the felt.

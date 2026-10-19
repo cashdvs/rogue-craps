@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_glow.gdshader" id="1_eflyo"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_eflyo")
+shader_parameter/outer_color = null
+shader_parameter/inner_color = null
+shader_parameter/outer_energy = null
+shader_parameter/inner_energy = null
+shader_parameter/inner_at = null
+shader_parameter/fps = null

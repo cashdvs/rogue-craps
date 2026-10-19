@@ -9,15 +9,15 @@
 size = Vector2(0.0625, 0.0625)
 center_offset = Vector3(0, 0.03125, 0)
 
-[node name="Cauldron" type="Node3D" unique_id=1451084160]
+[node name="Cauldron" type="Node3D" unique_id=726465761]
 script = ExtResource("1_vs8bt")
 
-[node name="Model" parent="." unique_id=319164143 instance=ExtResource("2_orumm")]
+[node name="Model" parent="." unique_id=1769062793 instance=ExtResource("2_orumm")]
 
-[node name="Fill" parent="." unique_id=1245025732 instance=ExtResource("3_du7nn")]
+[node name="Fill" parent="." unique_id=1115552658 instance=ExtResource("3_du7nn")]
 transform = Transform3D(0.07317333, 0, 0, 0, 1.3, 0, 0, 0, 0.07317333, 0.106, 0.058000002, 0)
 
-[node name="Wisp" type="MeshInstance3D" parent="." unique_id=1293051576]
+[node name="Wisp" type="MeshInstance3D" parent="." unique_id=1954662973]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.106, 0.068, 0)
 visible = false
 material_override = ExtResource("4_epdch")

@@ -168,7 +168,7 @@ surface_material_override/0 = ExtResource("4_fwfrr")
 [node name="TargetPlate" type="Marker3D" parent="Anchors" unique_id=898722290]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, -0.61)
 
-[node name="Plate" parent="Anchors/TargetPlate" unique_id=817783737 instance=ExtResource("8_016od")]
+[node name="Plate" parent="Anchors/TargetPlate" unique_id=1380688300 instance=ExtResource("8_016od")]
 
 [node name="TotalPlate" type="Marker3D" parent="Anchors" unique_id=85588356]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0.61)
@@ -181,18 +181,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, -0.4)
 [node name="ChipTray" type="Marker3D" parent="Anchors" unique_id=327466050]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, 0)
 
-[node name="Tray" parent="Anchors/ChipTray" unique_id=1451084160 instance=ExtResource("10_tqlje")]
+[node name="Tray" parent="Anchors/ChipTray" unique_id=726465761 instance=ExtResource("10_tqlje")]
 
 [node name="Corner_FL" type="Marker3D" parent="Anchors" unique_id=991117630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.11, 0.11, -0.61)
 
-[node name="Cap" parent="Anchors/Corner_FL" unique_id=2109930148 instance=ExtResource("11_khgkt")]
+[node name="Cap" parent="Anchors/Corner_FL" unique_id=1713766155 instance=ExtResource("11_khgkt")]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, -0.02828427, 0, -0.02828427)
 
 [node name="Corner_FR" type="Marker3D" parent="Anchors" unique_id=948355802]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, -0.61)
 
-[node name="Cap" parent="Anchors/Corner_FR" unique_id=1676908613 instance=ExtResource("11_khgkt")]
+[node name="Cap" parent="Anchors/Corner_FR" unique_id=193591043 instance=ExtResource("11_khgkt")]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 0.02828427, 0, -0.02828427)
 
 [node name="Corner_NL" type="Marker3D" parent="Anchors" unique_id=1001027978]
@@ -217,50 +217,65 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.11, -0.61)
 
 [node name="Ambient" type="Node3D" parent="." unique_id=240646792]
 
-[node name="Hearth" type="Node3D" parent="." unique_id=1006470121]
+[node name="Hearth" type="Node3D" parent="." unique_id=1785980178]
 script = ExtResource("13_p0uud")
 
-[node name="Candles" type="Node3D" parent="Hearth" unique_id=1308316062]
+[node name="Candles" type="Node3D" parent="Hearth" unique_id=310904598]
 
-[node name="RailLeft" type="Node3D" parent="Hearth/Candles" unique_id=455921747]
+[node name="RailLeft" type="Node3D" parent="Hearth/Candles" unique_id=2141484820]
 
-[node name="Candle1" parent="Hearth/Candles/RailLeft" unique_id=2100427450 instance=ExtResource("14_ocvmg")]
+[node name="Candle1" parent="Hearth/Candles/RailLeft" unique_id=1124958156 instance=ExtResource("14_ocvmg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.42)
+glow_tilt = 16.0
 
-[node name="Candle3" parent="Hearth/Candles/RailLeft" unique_id=190864522 instance=ExtResource("14_ocvmg")]
-transform = Transform3D(0.16996716, 0, 0.98544973, 0, 1, 0, -0.98544973, 0, 0.16996716, -1.135, 0.105, -0.24)
+[node name="Candle3" parent="Hearth/Candles/RailLeft" unique_id=1985693157 instance=ExtResource("14_ocvmg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.24)
 height = 0.92
+spin = 1.4
+glow_tilt = 16.0
 
-[node name="Candle5" parent="Hearth/Candles/RailLeft" unique_id=1167374959 instance=ExtResource("14_ocvmg")]
-transform = Transform3D(-0.9422223, 0, 0.3349882, 0, 1, 0, -0.3349882, 0, -0.9422223, -1.135, 0.105, 0.24)
+[node name="Candle5" parent="Hearth/Candles/RailLeft" unique_id=1323913811 instance=ExtResource("14_ocvmg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, 0.24)
 height = 1.1
+spin = 2.8
+glow_tilt = 16.0
 
-[node name="Candle7" parent="Hearth/Candles/RailLeft" unique_id=1299604090 instance=ExtResource("14_ocvmg")]
-transform = Transform3D(-0.490261, 0, -0.87157565, 0, 1, 0, 0.87157565, 0, -0.490261, -1.135, 0.105, 0.42)
+[node name="Candle7" parent="Hearth/Candles/RailLeft" unique_id=69377503 instance=ExtResource("14_ocvmg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, 0.42)
 height = 1.04
+spin = 4.199999999999999
+glow_tilt = 16.0
 
-[node name="RailRight" type="Node3D" parent="Hearth/Candles" unique_id=1772169822]
+[node name="RailRight" type="Node3D" parent="Hearth/Candles" unique_id=1794895765]
 
-[node name="Candle2" parent="Hearth/Candles/RailRight" unique_id=2121323992 instance=ExtResource("14_ocvmg")]
-transform = Transform3D(0.7648422, 0, 0.64421767, 0, 1, 0, -0.64421767, 0, 0.7648422, 1.135, 0.105, -0.42)
+[node name="Candle2" parent="Hearth/Candles/RailRight" unique_id=1330186689 instance=ExtResource("14_ocvmg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, -0.42)
 height = 1.12
+spin = 0.7
+glow_tilt = -16.0
 
-[node name="Candle4" parent="Hearth/Candles/RailRight" unique_id=255500492 instance=ExtResource("14_ocvmg")]
-transform = Transform3D(-0.50484604, 0, 0.8632094, 0, 1, 0, -0.8632094, 0, -0.50484604, 1.135, 0.105, -0.24)
+[node name="Candle4" parent="Hearth/Candles/RailRight" unique_id=1316589530 instance=ExtResource("14_ocvmg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, -0.24)
 height = 1.06
+spin = 2.0999999999999996
+glow_tilt = -16.0
 
-[node name="Candle6" parent="Hearth/Candles/RailRight" unique_id=65488065 instance=ExtResource("14_ocvmg")]
-transform = Transform3D(-0.9364567, 0, -0.35078323, 0, 1, 0, 0.35078323, 0, -0.9364567, 1.135, 0.105, 0.24)
+[node name="Candle6" parent="Hearth/Candles/RailRight" unique_id=1218117486 instance=ExtResource("14_ocvmg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, 0.24)
 height = 0.95
+spin = 3.5
+glow_tilt = -16.0
 
-[node name="Candle8" parent="Hearth/Candles/RailRight" unique_id=1903807670 instance=ExtResource("14_ocvmg")]
-transform = Transform3D(0.18651247, 0, -0.9824526, 0, 1, 0, 0.9824526, 0, 0.18651247, 1.135, 0.105, 0.42)
+[node name="Candle8" parent="Hearth/Candles/RailRight" unique_id=2118887428 instance=ExtResource("14_ocvmg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.135, 0.105, 0.42)
 height = 0.9
+spin = 4.8999999999999995
+glow_tilt = -16.0
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="Hearth" unique_id=26297497]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Hearth" unique_id=330400567]
 libraries/ = SubResource("AnimationLibrary_qph6c")
 
-[node name="SeamPlayer" type="AnimationPlayer" parent="Hearth" unique_id=1004407107]
+[node name="SeamPlayer" type="AnimationPlayer" parent="Hearth" unique_id=881023399]
 libraries/ = SubResource("AnimationLibrary_csla1")
 
 [editable path="Visual/Floor"]

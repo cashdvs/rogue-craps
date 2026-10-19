@@ -1,35 +1,46 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_candle.gd" id="1_xh64a"]
-[ext_resource type="PackedScene" path="res://art/models/boards/hearth/candle.glb" id="2_wf4rs"]
-[ext_resource type="Material" path="res://art/models/boards/hearth/materials/candle_flame.tres" id="3_j760k"]
-[ext_resource type="Material" path="res://art/models/boards/hearth/materials/smoke_wisp_small.tres" id="4_2b18y"]
+[ext_resource type="Script" path="res://art/models/boards/hearth/scripts/hearth_candle.gd" id="1_wf4rs"]
+[ext_resource type="PackedScene" path="res://art/models/boards/hearth/candle.glb" id="2_j760k"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/candle_glow.tres" id="3_2b18y"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/candle_flame.tres" id="4_arido"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/smoke_wisp_small.tres" id="5_3u4a7"]
 
-[sub_resource type="QuadMesh" id="QuadMesh_arido"]
-size = Vector2(0.0275, 0.0275)
-center_offset = Vector3(0, 0.01375, 0)
+[sub_resource type="PlaneMesh" id="PlaneMesh_be6pk"]
+size = Vector2(0.07, 0.12)
 
-[sub_resource type="QuadMesh" id="QuadMesh_3u4a7"]
+[sub_resource type="QuadMesh" id="QuadMesh_ay5wq"]
+size = Vector2(0.0375, 0.0375)
+center_offset = Vector3(0, 0.01875, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_bqsqc"]
 size = Vector2(0.0325, 0.0325)
 center_offset = Vector3(0, 0.01625, 0)
 
-[node name="Candle" type="Node3D" unique_id=2100427450]
-script = ExtResource("1_xh64a")
+[node name="Candle" type="Node3D" unique_id=1124958156]
+script = ExtResource("1_wf4rs")
 
-[node name="Model" parent="." unique_id=860014379 instance=ExtResource("2_wf4rs")]
+[node name="Model" parent="." unique_id=741979651 instance=ExtResource("2_j760k")]
 
-[node name="Flame" type="MeshInstance3D" parent="." unique_id=637077204]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.061392497, 0)
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=814749084]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0028, 0)
 visible = false
-material_override = ExtResource("3_j760k")
+material_override = ExtResource("3_2b18y")
 cast_shadow = 0
-extra_cull_margin = 0.1275
-mesh = SubResource("QuadMesh_arido")
+mesh = SubResource("PlaneMesh_be6pk")
 
-[node name="Wisp" type="MeshInstance3D" parent="." unique_id=1545834517]
+[node name="Flame" type="MeshInstance3D" parent="." unique_id=254825393]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.060262498, 0)
+visible = false
+material_override = ExtResource("4_arido")
+cast_shadow = 0
+extra_cull_margin = 0.1375
+mesh = SubResource("QuadMesh_ay5wq")
+
+[node name="Wisp" type="MeshInstance3D" parent="." unique_id=1030803844]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0643275, 0)
 visible = false
-material_override = ExtResource("4_2b18y")
+material_override = ExtResource("5_3u4a7")
 cast_shadow = 0
 extra_cull_margin = 0.1325
-mesh = SubResource("QuadMesh_3u4a7")
+mesh = SubResource("QuadMesh_bqsqc")

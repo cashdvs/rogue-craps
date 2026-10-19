@@ -238,6 +238,7 @@ def number_anchor():
 FACE_TILT = math.radians(22.0)  # leaned back toward the camera
 FACE_C = Vector((0.0, 0.05, 0.0))
 FACE_R = (0.046, 0.05, 0.03)
+EYE_R = (0.0163, 0.0096, 0.006)  # 2x the first pass's eye area (Art Director, Oct 18)
 
 
 def _gauss(dx, dy, sx, sy):
@@ -279,7 +280,7 @@ def build_demon_face(out_dir, name, useg, vseg, horn_seg, eye_seg):
         pts = [(0.026 * sx, 0.092, -0.006), (0.044 * sx, 0.108, -0.01), (0.054 * sx, 0.125, -0.012), (0.056 * sx, 0.138, -0.012)]
         pts = [FACE_C + B @ (Vector(p) - FACE_C) for p in pts]
         part.cone_path(pts, [0.012, 0.008, 0.0045, 0.0], horn_seg, 0)
-        part.sphere(eye_pos(sx), (0.0115, 0.0068, 0.005), eye_seg, max(3, eye_seg // 2), 1, None,
+        part.sphere(eye_pos(sx), EYE_R, eye_seg, max(3, eye_seg // 2), 1, None,
                     B @ Matrix.Rotation(-0.35 * sx, 3, Vector((0, 0, 1))))
     # fangs from the grin corners
     for sx in (-1, 1):

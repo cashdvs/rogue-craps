@@ -1,8 +1,9 @@
 """Hearth felt overlay: a faint ember motif in each felt corner, nothing else (no rules text).
 
 Writes art/models/boards/hearth/textures/felt_ember_corners.png (1024 x 512 RGBA, the felt bed's
-0-1 UV, 2.04 x 1.04 m). RGB = Ember #E8622A everywhere, alpha = the ink; hearth_felt.tres draws it
-with toon_noir's overlay (overlay_tint.a sets the strength). Each corner: a three-tongue flame crown
+0-1 UV, 2.04 x 1.04 m). Straight-alpha RGBA, drawn by toon_noir's overlay
+(hearth_felt.tres, overlay_tint.a = 1): an edge lift (lighter teal, ramping up toward the edges and
+corners) under the Ember motifs. Each corner: a three-tongue flame crown
 (hooked tips, odd count, tallest in the centre: fire_style.md) pointing into the felt along the
 diagonal, two diamond sparks, and a thin quarter-arc rule. Kept within ~0.2 m of the corner so dice
 never sit on a busy pattern. Run: python3 art/models/boards/hearth/src/make_felt_motif.py
@@ -18,6 +19,9 @@ W, H = 1024, 512
 SS = 4                      # supersampling
 PX_PER_M = W / 2.04         # 502 px per metre (same in V: 512 / 1.04 = 492)
 EMBER = (232, 98, 42)
+LIFT = (38, 104, 94)       # lighter Underfelt, the edge lift colour
+EDGE_A = 0.75             # edge lift strength at the felt edge
+MOTIF_A = 0.5             # ember motif strength (the material draws the texture at full strength)
 
 
 def tongue(cx, cy, h, w, lean, hook):
@@ -74,8 +78,21 @@ def main():
     for (ox, oy, sx, sy) in ((0, 0, 1, 1), (W * SS, 0, -1, 1), (0, H * SS, 1, -1), (W * SS, H * SS, -1, -1)):
         corner(d, ox, oy, sx, sy)
     a = a.resize((W, H), Image.LANCZOS)
-    img = Image.new("RGBA", (W, H), EMBER + (0,))
-    img.putalpha(a)
+    # Edge lift (Art Director, Oct 18): a lighter felt teal toward the edges and corners, so a die
+    # in the lamp's vignette never sits on near-black. Straight alpha ramps 0 -> EDGE_A from an
+    # inner rounded rectangle out to the felt edge (strongest in the corners).
+    import numpy as np
+    u = (np.arange(W) + 0.5) / W * 2.0 - 1.0
+    v = (np.arange(H) + 0.5) / H * 2.0 - 1.0
+    U, V = np.meshgrid(u, v)
+    dx = np.clip((np.abs(U) - 0.55) / 0.45, 0, 1)
+    dy = np.clip((np.abs(V) - 0.35) / 0.65, 0, 1)
+    ramp = np.clip(np.sqrt(dx * dx + dy * dy), 0, 1) ** 1.3
+    edge = Image.new("RGBA", (W, H), LIFT + (0,))
+    edge.putalpha(Image.fromarray((ramp * EDGE_A * 255).astype("uint8"), "L"))
+    motif = Image.new("RGBA", (W, H), EMBER + (0,))
+    motif.putalpha(a.point(lambda x: int(x * MOTIF_A)))
+    img = Image.alpha_composite(edge, motif)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     img.save(OUT)
     print("wrote", OUT)
