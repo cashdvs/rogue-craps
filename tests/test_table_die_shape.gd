@@ -119,5 +119,28 @@ func _initialize() -> void:
 		keg_ok = keg_ok and PolyDie.up_slot(&"keg", PolyDie.remap_basis(&"keg", Basis.IDENTITY, ks)) == ks and keg.value_at(ks) == PolyDie.values(&"keg")[ks - 1]
 	check(keg_ok, "Powder Keg: the stave pointing up is the slot read (6 staves -> slots 1-6, values 1-2-3 x2)")
 
+	# Independent face read (QA #61): every slot, turned up by the remap, must
+	# show its printed value by the 3D Artist's labelled directions in
+	# batch3_faces.json (not DieHullData, which is generated from them).
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/models/dice/batch3_faces.json"))
+	var keys := {&"d4": "caltrop_d4", &"d8": "lantern_d8", &"d10": "tithe_d10", &"d12": "midnight_d12",
+		&"d20": "verdict_d20", &"talus": "knucklebone_talus", &"keg": "powder_keg_d6"}
+	for sh: StringName in keys:
+		var printed: Array = [1, 1, 2, 2, 3, 3] if sh == &"keg" else Array(TableDie.default_values(sh))
+		var art_ok := true
+		for slot_k in range(1, printed.size() + 1):
+			for yaw in [0.0, 1.1, 2.7]:
+				var pose := PolyDie.remap_basis(sh, Basis(Vector3.UP, yaw) * Basis(Vector3(1, 0.3, 0.2).normalized(), 0.8), slot_k)
+				var up := pose.orthonormalized().inverse() * Vector3.UP
+				var best := -2.0
+				var val := -1
+				for e: Array in (art[keys[sh]] as Dictionary)["dirs"]:
+					var art_dir := Vector3(e[1][0], e[1][1], e[1][2]).normalized()
+					if art_dir.dot(up) > best:
+						best = art_dir.dot(up)
+						val = int(e[0])
+				art_ok = art_ok and val == int(printed[slot_k - 1])
+		check(art_ok, "%s: each slot turned up shows its printed value by batch3_faces.json" % sh)
+
 	print("test_table_die_shape: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
