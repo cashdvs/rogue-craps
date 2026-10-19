@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_choice"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_effect"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_event"]
+
+[sub_resource type="Resource" id="fx_toll_keeper_a1"]
+script = ExtResource("2_effect")
+kind = 1
+amount = -12
+
+[sub_resource type="Resource" id="fx_toll_keeper_a2"]
+script = ExtResource("2_effect")
+kind = 5
+amount = 4
+
+[sub_resource type="Resource" id="ch_toll_keeper_a"]
+script = ExtResource("1_choice")
+label = "Pay the fare: -12 Embers, +4 max Soul and +4 Soul."
+result_text = "He bites the Ember, nods, and waves you down."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_toll_keeper_a1"), SubResource("fx_toll_keeper_a2")])
+
+[sub_resource type="Resource" id="fx_toll_keeper_b1"]
+script = ExtResource("2_effect")
+kind = 5
+amount = -5
+
+[sub_resource type="Resource" id="fx_toll_keeper_b2"]
+script = ExtResource("2_effect")
+kind = 1
+amount = 12
+
+[sub_resource type="Resource" id="ch_toll_keeper_b"]
+script = ExtResource("1_choice")
+label = "Pay in years: -5 max Soul for +12 Embers."
+result_text = "He takes a little of your time, and pays you for it."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_toll_keeper_b1"), SubResource("fx_toll_keeper_b2")])
+
+[sub_resource type="Resource" id="ch_toll_keeper_c"]
+script = ExtResource("1_choice")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_event")
+id = &"toll_keeper"
+title = "The Toll Keeper"
+body = "A hooded toll keeper blocks the stair: pay in Embers or years."
+art_note = "A hooded toll keeper on a stair going down, palm out, an Ember between his teeth."
+floors = Array[int]([2, 3])
+choices = Array[ExtResource("1_choice")]([SubResource("ch_toll_keeper_a"), SubResource("ch_toll_keeper_b"), SubResource("ch_toll_keeper_c")])
