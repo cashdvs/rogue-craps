@@ -12,10 +12,17 @@ const BLANK: StringName = &"blank"
 var id: StringName = &""
 ## &"" = a plain Bone die, else e.g. &"coven" (build content: special dice).
 var special_id: StringName = &""
+## One face-mod id per face; sized to the shape's face count (d6: 6).
 var faces: Array[StringName] = [&"", &"", &"", &"", &"", &""]
+## Die shape id (DieShape.id): &"bone", &"powder_keg", &"ferryman" (Ferryman's Coin), ...
+## Special dice are d6.
+var shape: StringName = DiceIds.DIE_BONE
 
 
-func _init(special: StringName = &"") -> void:
+func _init(special: StringName = &"", shape_id: StringName = DiceIds.DIE_BONE, face_count: int = 6) -> void:
+	shape = shape_id
+	faces.resize(face_count)
+	faces.fill(&"")
 	special_id = special
 
 

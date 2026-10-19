@@ -1,0 +1,22 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="1"]
+[ext_resource type="Material" path="res://art/models/dice/materials/die_ink_outline.tres" id="2"]
+[ext_resource type="Texture2D" path="res://art/models/dice/textures/knucklebone_talus_faces.png" id="3"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("2")
+shader = ExtResource("1")
+shader_parameter/albedo = Color(0.850980, 0.768627, 0.541176, 1)
+shader_parameter/shadow_color = Color(0.431373, 0.352941, 0.203922, 1)
+shader_parameter/mid_tint = 0.8
+shader_parameter/wrap = 0.35
+shader_parameter/roughness = 0.6
+shader_parameter/light_gain = 0.42
+shader_parameter/spec_size = 0.99
+shader_parameter/spec_color = Color(1.000000, 0.941176, 0.815686, 1)
+shader_parameter/spec_strength = 0.15
+shader_parameter/use_overlay = true
+shader_parameter/overlay_tex = ExtResource("3")
+shader_parameter/overlay_tint = Color(1, 1, 1, 1)
