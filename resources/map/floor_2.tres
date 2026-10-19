@@ -42,28 +42,28 @@ n = 4
 script = ExtResource("1_ypktt")
 id = &"run5"
 display_name = "Run of 5"
-description = "Pot five in a row."
+description = "Pot five numbers in a row."
 kind = 4
 n = 5
 
 [sub_resource type="Resource" id="b_triple"]
 script = ExtResource("1_ypktt")
 id = &"triple"
-display_name = "Triple"
+display_name = "Trips"
 description = "Pot three of a kind."
 
 [sub_resource type="Resource" id="b_run3"]
 script = ExtResource("1_ypktt")
 id = &"run3"
 display_name = "Run of 3"
-description = "Pot three in a row."
+description = "Pot three numbers in a row."
 kind = 1
 
 [sub_resource type="Resource" id="b_two_pairs"]
 script = ExtResource("1_ypktt")
 id = &"two_pairs"
-display_name = "Two Pairs"
-description = "Pot two different pairs."
+display_name = "Two Pair"
+description = "Pot two different pairs in one pot."
 kind = 2
 n = 2
 
@@ -71,7 +71,7 @@ n = 2
 script = ExtResource("1_ypktt")
 id = &"run4"
 display_name = "Run of 4"
-description = "Pot four in a row."
+description = "Pot four numbers in a row."
 kind = 1
 n = 4
 

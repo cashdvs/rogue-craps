@@ -88,7 +88,7 @@ func _build_confirm(center: Control) -> void:
 	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(q)
 	var why := Label.new()
-	why.text = "The hand in play is lost and every unticked\nrequired bounty burns Soul, like running out of hands."
+	why.text = "The hand in play is lost and every unclaimed\nbounty costs Soul, like running out of hands."
 	why.label_settings = Palette.label_settings(26, Palette.BONE, 4)
 	why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(why)

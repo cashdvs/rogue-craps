@@ -6,7 +6,7 @@
 script = ExtResource("1_ket3d")
 id = &"stair"
 display_name = "Stair Face"
-description = "If in a run, +10 base per die in that run."
+description = "In a run: +10 base for each die in that run."
 effect = 8
 amount = 10
 price = 9

@@ -65,7 +65,7 @@ func _run() -> void:
 	var br: Dictionary = await s.bank()
 	for k in 60:
 		await process_frame
-	check(s.run.is_over() and s.bhud.pot_label.text == "POT 0", "(a) end of table: '%s' under Banked %d (not POT %d)" % [s.bhud.pot_label.text, int(br.get("gain", 0)), 2 * int(br.get("gain", 0))])
+	check(s.run.is_over() and s.bhud.pot_label.text == "Pot 0", "(a) end of table: '%s' under Banked %d (not Pot %d)" % [s.bhud.pot_label.text, int(br.get("gain", 0)), 2 * int(br.get("gain", 0))])
 	s.queue_free()
 	await process_frame
 	# (b) The final bust: HANDS LEFT is current when hand_result fires.
@@ -76,8 +76,8 @@ func _run() -> void:
 	s.hand_result.connect(func(_r: Dictionary) -> void: at_result.append([s.run.hands_left, s.bhud.hands_label.text]))
 	await throw_faces(s, [2, 3] as Array[int])
 	check(s.run.is_over() and s.run.state == BonfireRun.State.RUN_OVER, "(b) the bust burns the last Soul")
-	check(at_result.size() == 1 and at_result[0][1] == "HANDS LEFT %d" % at_result[0][0], "(b) HANDS LEFT is current at the final bust (%s)" % str(at_result))
-	check(s.bhud.hands_label.text == "HANDS LEFT %d" % s.run.hands_left, "(b) and after it (%s)" % s.bhud.hands_label.text)
+	check(at_result.size() == 1 and at_result[0][1] == "Hands left: %d" % at_result[0][0], "(b) HANDS LEFT is current at the final bust (%s)" % str(at_result))
+	check(s.bhud.hands_label.text == "Hands left: %d" % s.run.hands_left, "(b) and after it (%s)" % s.bhud.hands_label.text)
 	s.queue_free()
 	await process_frame
 	# (d) Greyed-out buttons say why.

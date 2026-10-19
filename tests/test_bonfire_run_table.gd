@@ -160,7 +160,7 @@ func _run() -> void:
 	await process_frame
 	check(not paused and r.is_over() and r.forfeited and r.state == BonfireRun.State.FAILED, "confirm forfeits the table")
 	check(r.soul == soul_now - unticked * 3, "forfeit: -3 Soul per unticked required bounty")
-	check(s.bhud.end_panel.visible and s.bhud.end_title.text == "TABLE FORFEITED", "end panel shows the forfeit")
+	check(s.bhud.end_panel.visible and s.bhud.end_title.text == "You left the table", "end panel shows the forfeit")
 	check(got.is_empty(), "finished waits for CONTINUE")
 	s.bhud.continue_pressed.emit()
 	check(got.size() == 1, "CONTINUE emits finished once")

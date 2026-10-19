@@ -6,6 +6,6 @@
 script = ExtResource("1_3t0xv")
 id = &"wild"
 display_name = "Wild Face"
-description = "Counts as whichever value scores best."
+description = "Counts as whichever number scores best for you."
 effect = 1
 price = 9

@@ -6,6 +6,6 @@
 script = ExtResource("1_og5tx")
 id = &"coven"
 display_name = "Coven Die"
-description = "Trips or Full House containing it get x2 mult."
+description = "Trips or a Full House with this die gets x2 mult."
 price = 24
 faces = Array[int]([1, 2, 3, 4, 5, 6])

@@ -3,7 +3,7 @@
 ## dice, which shows the bounty's state (how_bonfire_plays.md section 4):
 ##   open     the plain card;
 ##   pending  landed this hand but not banked yet: a faint oxblood "PENDING"
-##            ghost stamp and the line "PENDING · bank to lock";
+##            ghost stamp and the line "Pending: bank to claim it.";
 ##   claimed  banked: the burgundy wax CLAIMED seal stamps in and stays.
 ##
 ## Everything inside is laid out in the art's own @4x texture pixels
@@ -25,8 +25,8 @@ const ICON_TOP := 136.0
 const ICON_PX := 80.0
 const ICON_GAP := 12.0
 const ARROW_SIZE := Vector2(48, 80)
-## The pending line under the dice ("PENDING · bank to lock"), oxblood.
-const PENDING_TEXT := "PENDING · bank to lock"
+## The pending line under the dice ("Pending: bank to claim it."), oxblood.
+const PENDING_TEXT := "Pending: bank to claim it."
 const PENDING_FONT_PX := 48
 const OXBLOOD := Color("#3B0D14")
 ## The wax seal: 512 x 384 art, shown at 0.8x (its cap stays >= 9.2 pt).

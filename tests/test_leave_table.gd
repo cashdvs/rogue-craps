@@ -224,7 +224,7 @@ func _scene() -> void:
 	s.bhud.leave_pressed.emit()
 	await process_frame
 	check(r.is_over() and r.state == BonfireRun.State.CLEARED and s.bhud.end_panel.visible and not s.bhud.leave_button.visible, "scene: Leave ends the table (end panel, button gone)")
-	check(s.bhud.end_title.text == "TABLE CLEARED", "scene: end panel says TABLE CLEARED")
+	check(s.bhud.end_title.text == "Table cleared", "scene: end panel says Table cleared")
 	s.bhud.continue_pressed.emit()
 	s.bhud.continue_pressed.emit()
 	await process_frame

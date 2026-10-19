@@ -31,7 +31,7 @@ var throw_label: Label
 ## Under the pot preview: what changed the numbers ("Hot Hand +1 mult ·
 ## Hellfire x1.5").
 var notes_label: Label
-## The rethrow prompt with the bust risk ("Throw 2 cold dice: 1 in 3 burns").
+## The rethrow prompt with the bust risk ("2 cold dice: 1 in 3 chance nothing lights").
 var risk_label: Label
 ## Set by Bonfire3D before each refresh (it knows which dice will be thrown).
 var rethrow_prompt: String = ""
@@ -107,7 +107,7 @@ func _init() -> void:
 	col.position = Vector2(1580, 760)
 	col.add_theme_constant_override("separation", 14)
 	add_child(col)
-	throw_button = _button("THROW  (Space)", 32, Palette.BURGUNDY)
+	throw_button = _button("Throw", 32, Palette.BURGUNDY)
 	throw_button.custom_minimum_size = Vector2(310, 84)
 	throw_button.pressed.connect(func() -> void: throw_pressed.emit())
 	col.add_child(throw_button)
@@ -119,11 +119,11 @@ func _init() -> void:
 	action_reason.size = Vector2(310, 28)
 	action_reason.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	throw_button.add_child(action_reason)
-	bank_button = _button("BANK  (B)", 36, Color("#3C6A34"))
+	bank_button = _button("Bank", 36, Color("#3C6A34"))
 	bank_button.custom_minimum_size = Vector2(310, 84)
 	bank_button.pressed.connect(func() -> void: bank_pressed.emit())
 	col.add_child(bank_button)
-	leave_button = _button("LEAVE TABLE  (L)", 32, Palette.FELT_DARK)
+	leave_button = _button("Leave table", 32, Palette.FELT_DARK)
 	leave_button.name = "LeaveButton"
 	leave_button.custom_minimum_size = Vector2(310, 84)
 	leave_button.visible = false
@@ -164,11 +164,11 @@ func _init() -> void:
 	end_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(end_body)
-	restart_button = _button("RESTART", 34, Palette.BURGUNDY)
+	restart_button = _button("Restart", 34, Palette.BURGUNDY)
 	restart_button.custom_minimum_size = Vector2(360, 80)
 	restart_button.pressed.connect(func() -> void: restart_pressed.emit())
 	box.add_child(restart_button)
-	continue_button = _button("CONTINUE", 34, Palette.FELT_DARK)
+	continue_button = _button("Continue", 34, Palette.FELT_DARK)
 	continue_button.custom_minimum_size = Vector2(360, 80)
 	continue_button.visible = false
 	continue_button.pressed.connect(func() -> void: continue_pressed.emit())
@@ -195,7 +195,7 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	# Points are income (section 4): "points 572 → +5 Embers".
 	var pts := int(display_hold.get("points", run.points))
 	points_label.text = "points %d → +%d Embers" % [pts, pts / maxi(run.tuning.points_per_ember, 1)]
-	hands_label.text = "HANDS LEFT %d" % run.hands_left
+	hands_label.text = "Hands left: %d" % run.hands_left
 	_refresh_checklist(run)
 	portrait_goal.refresh(run)
 	_place_result()
@@ -205,9 +205,9 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 		hold_count(float(display_hold.get("f", 0.0)))
 	elif picking and run.throw_points() > 0:
 		# The selection is a preview until the count-up banks it into the pot.
-		pot_label.text = "POT %d  (+%d)" % [run.pot, run.throw_points()]
+		pot_label.text = "Pot %d (+%d)" % [run.pot, run.throw_points()]
 	else:
-		pot_label.text = "POT %d" % run.hand_pot()
+		pot_label.text = "Pot %d" % run.hand_pot()
 	notes_label.text = ""
 	risk_label.text = ""
 	if picking:
@@ -219,24 +219,24 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 			notes_label.text = "  ·  ".join(BonfireScoring.factor_notes(run.selection_faces(), sel, run.tuning, run.mult_bonus(), run.rule_ctx()))
 			risk_label.text = rethrow_prompt
 		elif run.potted.is_empty():
-			throw_label.text = "Click burning dice: pot ONE combo"
+			throw_label.text = "%s lit dice to pot one combo." % ("Tap" if tutorial.touch else "Click")
 		else:
-			throw_label.text = "not a combo yet..."
+			throw_label.text = "Not a combo yet."
 	elif run.forfeited or run.is_over():
 		throw_label.text = ""
 	elif rethrow_prompt != "":
 		# Cold dice waiting to be thrown again: say how risky it is.
 		throw_label.text = rethrow_prompt
 	else:
-		throw_label.text = "Grab the %d dice and flick" % run.cold
-	mult_label.text = ("+%d MULT" % run.mult_bonus()) if run.mult_bonus() > 0 else ""
+		throw_label.text = "Grab the %d dice and flick them." % run.cold
+	mult_label.text = ("+%d mult" % run.mult_bonus()) if run.mult_bonus() > 0 else ""
 	bank_button.disabled = not (can_act and run.can_continue())
 	if picking:
 		throw_button.disabled = not (can_act and run.rethrow_block_reason() == "")
-		throw_button.text = "HOT HAND! ALL %d" % run.dice_count if run.is_hot() else "THROW %d AGAIN" % (run.throw_faces.size() - run.potted.size())
+		throw_button.text = "Hot Hand: throw all %d dice" % run.dice_count if run.is_hot() else "Rethrow %d cold dice" % (run.throw_faces.size() - run.potted.size())
 	else:
 		throw_button.disabled = not can_act
-		throw_button.text = "THROW %d  (Space)" % run.cold
+		throw_button.text = "Throw %d dice" % run.cold
 	var why := action_reasons(run, can_act)
 	throw_button.tooltip_text = why["throw"]
 	bank_button.tooltip_text = why["bank"]
@@ -269,7 +269,7 @@ func hold_count(f: float) -> void:
 	if not display_hold.has("pot_from"):
 		return
 	display_hold["f"] = f
-	pot_label.text = "POT %d" % (int(display_hold["pot_from"]) + int(round(int(display_hold.get("pot_add", 0)) * clampf(f, 0.0, 1.0))))
+	pot_label.text = "Pot %d" % (int(display_hold["pot_from"]) + int(round(int(display_hold.get("pot_add", 0)) * clampf(f, 0.0, 1.0))))
 
 
 ## One row per active rule: NAME (brass; red for a boss cheat) + its line.
@@ -342,7 +342,7 @@ func _refresh_checklist(run: BonfireRun) -> void:
 			bounty_rows[b.id] = l
 		_layout_cards()
 	# "CLAIM ALL 3 · 5 hands" (section 4).
-	card_header.text = "CLAIM ALL %d · %d hand%s" % [run.goal.required.size(), run.hands_left, "" if run.hands_left == 1 else "s"]
+	card_header.text = "Claim all %d bounties · %d hand%s left" % [run.goal.required.size(), run.hands_left, "" if run.hands_left == 1 else "s"]
 	for b: BountyData in bounties:
 		var l: Label = bounty_rows[b.id]
 		var bonus := run.goal.bonus.has(b)
@@ -665,26 +665,26 @@ func set_run_mode(on: bool) -> void:
 
 func show_end(run: BonfireRun) -> void:
 	var sm := run.table_summary
-	var ember_line := "Points %d -> %d Embers%s.  Embers %d." % [run.points, int(sm.get("points_embers", 0)),
+	var ember_line := "%d points became %d Embers%s.  Embers %d." % [run.points, int(sm.get("points_embers", 0)),
 		(", clear +%d" % int(sm["clear_embers"])) if int(sm.get("clear_embers", 0)) > 0 else "", run.embers]
 	match run.state:
 		BonfireRun.State.CLEARED:
-			end_title.text = "TABLE CLEARED"
+			end_title.text = "Table cleared"
 			var bonus: Array[String] = []
 			for b: BountyData in run.goal.bonus:
 				if run.is_ticked(b):
 					bonus.append("%s +%d" % [b.display_name, b.bonus_embers])
-			end_body.text = "Every required bounty banked%s.\n%s\nSoul %d." % [
+			end_body.text = "You banked every bounty%s.\n%s\nSoul %d." % [
 				(" (bonus: %s)" % ", ".join(bonus)) if not bonus.is_empty() else "", ember_line, run.soul]
 		_ when run.forfeited and run.state != BonfireRun.State.RUN_OVER:
-			end_title.text = "TABLE FORFEITED"
-			end_body.text = "You walked away with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
+			end_title.text = "You left the table"
+			end_body.text = "%d bounties unclaimed: -%d Soul.\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), ember_line]
 		BonfireRun.State.RUN_OVER:
-			end_title.text = "SOUL BURNED OUT"
-			end_body.text = "The bonfire took everything.\n%s" % ember_line
+			end_title.text = "Out of Soul"
+			end_body.text = "Your Soul hit 0, so the run is over.\n%s" % ember_line
 		_:
-			end_title.text = "TABLE LOST"
-			end_body.text = "Out of hands with %d bounties unticked: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
+			end_title.text = "Out of hands"
+			end_body.text = "%d bounties unclaimed: -%d Soul.\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), ember_line]
 	end_panel.visible = true
 
 

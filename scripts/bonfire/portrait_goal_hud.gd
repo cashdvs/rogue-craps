@@ -91,7 +91,7 @@ func refresh(run: BonfireRun) -> void:
 	# The goal line: the same goal the plaque stands for.
 	var claimed := run.goal.required.size() - run.unticked_required()
 	title_label.text = "%s GOAL" % run.goal.display_name.to_upper()
-	progress_label.text = "%d/%d claimed  -  %d hands left" % [claimed, run.goal.required.size(), run.hands_left]
+	progress_label.text = "%d/%d claimed · %d hands left" % [claimed, run.goal.required.size(), run.hands_left]
 	for b: BountyData in bounties:
 		var l: Label = rows[b.id]
 		var bonus := run.goal.bonus.has(b)

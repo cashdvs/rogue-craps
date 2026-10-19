@@ -6,7 +6,7 @@
 script = ExtResource("1_7h3a6")
 id = &"ember_pip"
 display_name = "Ember Pip"
-description = "+2 mult when in a scoring pot."
+description = "+2 mult when you pot it."
 effect = 4
 amount = 2
 price = 6

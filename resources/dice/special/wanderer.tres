@@ -6,6 +6,6 @@
 script = ExtResource("1_fuuer")
 id = &"wanderer"
 display_name = "Wanderer Die"
-description = "A run containing it may skip one value."
+description = "A run with this die may skip one number."
 price = 18
 faces = Array[int]([1, 2, 3, 4, 5, 6])
