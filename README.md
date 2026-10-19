@@ -57,6 +57,8 @@ Some `ERROR:` lines in test output are expected (tests feed bad input on purpose
 | Coding conventions and tooling details (AI agents) | [AGENTS.md](AGENTS.md) |
 | Know what reviewers check | [REVIEWING.md](REVIEWING.md) |
 | Modules, labels and how to claim one | [docs/MODULES.md](docs/MODULES.md) |
+| Steam release status, export CI and what's left before launch | [docs/STEAM_READINESS.md](docs/STEAM_READINESS.md) |
+| Log AI-made content you add (Steam disclosure) | [docs/AI_CONTENT_LOG.md](docs/AI_CONTENT_LOG.md) |
 
 Starter tasks carry the [`good first issue`](https://github.com/cashdvs/rogue-craps/issues?q=is%3Aopen+label%3A%22good+first+issue%22) label.
 

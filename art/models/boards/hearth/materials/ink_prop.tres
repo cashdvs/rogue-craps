@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://shaders/3d/outline.gdshader" id="1_cfrfc"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_cfrfc")
+shader_parameter/color = Color(0.05490196, 0.078431375, 0.078431375, 1)
+shader_parameter/width = 0.0025
+shader_parameter/mode = 0

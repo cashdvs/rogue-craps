@@ -39,6 +39,28 @@ var impact_clock: float = -1.0
 # Game clock for the rate limit: process time, so it follows Engine.time_scale
 # (slow-mo) and fixed-fps recordings the way the table's contacts do.
 var _game_time: float = 0.0
+## Mod trigger cues: the FX speed (JuicePlan): 0 = 1x, 1 = 2x, 2 = Instant.
+var trigger_speed_mode: int = 0
+# Trigger cues play on their own small pool, so the count-up's ticks never steal them.
+var _trigger_players: Array[AudioStreamPlayer] = []
+# Game times each live or scheduled trigger cue ends (the voice cap counts these).
+var _trigger_ends: Array[float] = []
+# Scheduled cues: [game time, row, pitch, volume_db, start offset].
+var _trigger_queue: Array[Array] = []
+var _cluster_until: float = -1.0
+var _instant_frame: int = -1
+## Optional: the table's crowd. Set it once (sfx.crowd = crowd) and every
+## SIGNATURE trigger nudges it on its hit (+3 dB, back over 0.3 s, spec §4.6).
+var crowd: CrowdLayers
+## Rows that play once while one is still sounding (spec §2b: extra Bellows
+## play the effect once, on the first Bellows in resolve order).
+const ONCE_ROWS: Array[StringName] = [&"bellows_hot"]
+# Same-moment triggers (one resolve step) are staggered here: the game time of the
+# current burst and how many it has had.
+var _burst_time: float = -1.0
+var _burst_k: int = 0
+# Once-rows: game time each one's cue ends.
+var _once_until: Dictionary[StringName, float] = {}
 
 
 func _ready() -> void:
@@ -55,6 +77,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_game_time += delta
+	_run_trigger_queue()
 
 
 ## Plays an event. pitch: 1.0 = normal. pitch_jitter adds a little random
@@ -118,6 +141,118 @@ func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bo
 
 func has_event(event: StringName) -> bool:
 	return _streams.has(event)
+
+
+## A face mod or special die fired (its trigger FX starts now). id: a spec row
+## (&"ferryman_heads_copy"), a mod / die id (&"mirror") or a short form; unknown
+## ids play trigger_generic, Heavy / Extra play nothing.
+## tier -1 = the row's (ModTriggerSynth.Tier); intensity 0..1 trims -9..0 dB;
+## hit_ms -1 = the row's hit frame. The cue's transient lands on the hit.
+## Returns the seconds until the hit, or -1 if nothing plays (silent, capped,
+## an extra Bellows). Call it once per trigger, in resolve order, at FX start:
+## triggers called at the same moment are staggered here (k * 0.08 s, halved at
+## 2x; the return value includes it), so callers add no timers of their own.
+## The hook also owns the voice cap, the shared cluster, the speed modes and
+## the crowd nudge.
+## flavor: a pre-carved batch-3 face's layer (ctx.flavor: &"verdict", &"midnight",
+## &"tithe", &"powder_keg", &"lantern"); &"" = the one its id implies, if any.
+func play_mod_trigger(id: StringName, tier: int = -1, intensity: float = 1.0, hit_ms: float = -1.0, flavor: StringName = &"") -> float:
+	var row := ModTriggerSynth.row_for(id)
+	var t := ModTriggerSynth.timing(row)
+	var tier_i := int(t[0]) if tier < 0 else tier
+	var vol := ModTriggerSynth.volume_db(tier_i, intensity)
+	if row == &"":
+		return -1.0
+	if row == &"no_score":  # Blank: the existing soft bounce, right away
+		play(row, 1.0, vol)
+		return 0.0
+	var now := _game_time
+	if ONCE_ROWS.has(row) and float(_once_until.get(row, -1.0)) > now:
+		return -1.0
+	if trigger_speed_mode >= 2:  # Instant: one shared pop per frame, no stagger
+		if _instant_frame == Engine.get_process_frames():
+			return -1.0
+		_instant_frame = Engine.get_process_frames()
+		_schedule_trigger(&"cluster", 0.0, 1.0, vol)
+		_once_until[row] = now + _trigger_stream(&"cluster").get_length()
+		return 0.0
+	if is_equal_approx(_burst_time, now):
+		_burst_k += 1
+	else:
+		_burst_time = now
+		_burst_k = 0
+	var fast := trigger_speed_mode == 1  # 2x: the FX hit comes twice as soon
+	var pitch := 1.12 if fast else 1.0
+	var hit_s := ModTriggerSynth.stagger(_burst_k, trigger_speed_mode) + (float(t[1]) if hit_ms < 0.0 else hit_ms) / 1000.0 / (2.0 if fast else 1.0)
+	_trigger_ends = _trigger_ends.filter(func(e: float) -> bool: return e > now)
+	var capped := _trigger_ends.size() >= ModTriggerSynth.MAX_VOICES
+	if capped and _cluster_until > now:
+		return -1.0
+	if tier_i == ModTriggerSynth.Tier.SIGNATURE and crowd != null:
+		_schedule_trigger(&"", hit_s, 1.0, 0.0)  # the crowd nudge, on the hit
+	if capped:
+		_cluster_until = now + hit_s + _trigger_stream(&"cluster").get_length()
+		_once_until[row] = _cluster_until
+		_schedule_trigger(&"cluster", hit_s, 1.0, vol)
+		return hit_s
+	var start := hit_s - float(t[2]) / 1000.0 / pitch
+	_trigger_ends.append(now + start + _trigger_stream(row).get_length() / pitch)
+	_once_until[row] = _trigger_ends.back()
+	_schedule_trigger(row, start, pitch, vol + (-2.0 if fast else 0.0))
+	var fl: StringName = flavor if flavor != &"" else ModTriggerSynth.FLAVOR_OF.get(id, &"")
+	if ModTriggerSynth.FLAVORS.has(fl) and ModTriggerSynth.FLAVORS[fl][0] == row:  # the face's layer, on the same hit
+		var layer := StringName("flavor_" + fl)
+		_schedule_trigger(layer, hit_s - float(ModTriggerSynth.FLAVORS[fl][1]) / 1000.0 / pitch, pitch, vol + ModTriggerSynth.FLAVOR_DB + (-2.0 if fast else 0.0))
+	return hit_s
+
+
+func _schedule_trigger(row: StringName, delay: float, pitch: float, vol: float) -> void:
+	if delay > 0.0:
+		_trigger_queue.append([_game_time + delay, row, pitch, vol, 0.0])
+	else:  # already late: start now, skipping into the cue so the hit still lands on time
+		_play_trigger(row, pitch, vol, -delay * pitch)
+
+
+func _run_trigger_queue() -> void:
+	while not _trigger_queue.is_empty():
+		var k := _trigger_queue.find_custom(func(q: Array) -> bool: return q[0] <= _game_time)
+		if k < 0:
+			return
+		var q: Array = _trigger_queue.pop_at(k)
+		_play_trigger(q[1], q[2], q[3], q[4])
+
+
+func _play_trigger(row: StringName, pitch: float, vol: float, from_s: float) -> void:
+	if row == &"":  # a scheduled crowd nudge
+		if crowd != null:
+			crowd.nudge()
+		return
+	if _trigger_players.is_empty():
+		for i in ModTriggerSynth.MAX_VOICES * 2:  # room for the cluster (and flavour layers)
+			var p := AudioStreamPlayer.new()
+			p.bus = BUS_NAME
+			add_child(p)
+			_trigger_players.append(p)
+	var player: AudioStreamPlayer = _trigger_players[0]
+	for p in _trigger_players:
+		if not p.playing:
+			player = p
+			break
+	_trigger_players.erase(player)
+	_trigger_players.append(player)  # the oldest is reused first if all are busy
+	player.stream = _trigger_stream(row)
+	player.pitch_scale = pitch
+	player.volume_db = vol
+	player.play(from_s)
+	played.emit(ModTriggerSynth.event(row))
+
+
+func _trigger_stream(row: StringName) -> AudioStream:
+	var event := ModTriggerSynth.event(row)
+	if not _streams.has(event):
+		var path := SFX_DIR + String(event) + ".wav"
+		_streams[event] = load(path) as AudioStream if ResourceLoader.exists(path) else ModTriggerSynth.make(row)
+	return _streams[event]
 
 
 ## How many takes this event rotates through (0 = it has a single sound).

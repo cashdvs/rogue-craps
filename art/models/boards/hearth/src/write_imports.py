@@ -13,6 +13,20 @@ SLOTS = {"hearth_iron": H + "materials/hearth_iron.tres", "brass": A + "brass.tr
 PARTS = {"brazier": ["hearth_iron", "brass", "hearth_coals", "plate_face"], "demon_face": ["demon_iron", "demon_eye"],
          "cauldron": ["hearth_iron", "brass"], "cauldron_fill": ["hearth_coals"], "candle": ["candle_wax", "brass", "hearth_iron"]}
 OVERRIDE = {"cauldron_fill": {"hearth_coals": H + "materials/cauldron_coals.tres"}}
+# Set dressing (detail pass, Oct 19: build_dressing.py): every slot is materials/<slot>.tres.
+DRESSING = {
+    "dressing_corners": ["dressing_coin", "dressing_glass", "dressing_bone", "dressing_paper", "dressing_seal", "dressing_wax",
+                         "dressing_wax_drip", "dressing_ink", "dressing_iron", "dressing_pool"],
+    "dressing_chain": ["dressing_iron", "dressing_brass"], "dressing_bell": ["dressing_brass", "dressing_iron"],
+    "dressing_floor": ["dressing_floor", "dressing_wood", "dressing_iron", "dressing_coin", "dressing_bone", "dressing_ink"],
+    "dressing_tail_root": ["dressing_tail"], "dressing_tail_tip": ["dressing_tail"],
+    "dressing_trinkets": ["dressing_bone", "dressing_ink", "dressing_paper", "dressing_leather", "dressing_brass", "dressing_coin"],
+}
+for _part, _slots in DRESSING.items():
+    PARTS[_part] = _slots
+    for _s in _slots:
+        SLOTS.setdefault(_s, H + "materials/%s.tres" % _s)
+LODS = {"dressing_trinkets": ("",)}  # PC only (small trinkets are LODed out on mobile)
 
 PARAMS = """nodes/root_type=""
 nodes/root_name=""
@@ -43,7 +57,7 @@ materials/extract_path=""
 """
 
 for part, slots in PARTS.items():
-    for lod in ("", "_mobile"):
+    for lod in LODS.get(part, ("", "_mobile")):
         name = part + lod
         if part == "candle" and lod and "hearth_iron" in slots:
             pass

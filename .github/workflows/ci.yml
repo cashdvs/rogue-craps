@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.GODOT_DIR }}
-          key: godot-${{ env.GODOT_VERSION }}-stable-linux-x86_64
+          key: godot-${{ env.GODOT_VERSION }}-stable-linux-x86_64-v2
 
       - name: Download Godot ${{ env.GODOT_VERSION }} (headless Linux)
         if: steps.cache-godot.outputs.cache-hit != 'true'

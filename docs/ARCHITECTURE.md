@@ -48,7 +48,7 @@ studio_splash.tscn ──▶ title.tscn ──Play──▶ run.tscn (RunScreen)
 | **Title, splash, settings, pause** | Godot Dev | `scenes/title.tscn`, `scripts/title/`, `scenes/studio_splash.tscn`, `scripts/splash/`, `scripts/settings/`, `scripts/ui/` |
 | **Run** (Soul, Embers, dice bag, Seals) | Systems Dev | `scripts/core/run/` (`run_progress.gd`, `run_die.gd`), `scripts/data/run_data.gd`, `resources/map/bonfire_run.tres` |
 | **Map, shop, events, rewards, rest** | Systems Dev | `scripts/core/map/` (`map_run.gd`, `map_generator.gd`, `run_map.gd`, `event_applier.gd`, `run_table_setup.gd`), `scripts/map/` (`run_screen.gd`, `map_view.gd`, `event_view.gd`, `face_picker.gd`), `scenes/run.tscn`, `scripts/data/{floor,map_gen,event*,bounty,table_goal,run_rule}_data.gd`, `resources/map/`, `resources/events/` |
-| **Dice, face mods, boss/Elite rule data** | Systems Dev | `scripts/data/special_die_data.gd`, `face_mod_data.gd`, `resources/dice/`, `resources/mods/`, `resources/map/rules/` (the *data*; the table enforces it) |
+| **Dice, face mods, boss/Elite rule data** | Systems Dev | `scripts/data/dice_ids.gd` (canonical die and shape ids; table in [DICE_IDS.md](DICE_IDS.md)), `scripts/data/special_die_data.gd`, `face_mod_data.gd`, `resources/dice/`, `resources/mods/`, `resources/map/rules/` (the *data*; the table enforces it) |
 | **FX** (listeners on `table.events`) | VFX Dev | `scripts/fx/` (in flight), `scripts/table3d/fx_3d.gd`, `shaders/3d/fx_*` |
 | **Audio** | Sound Designer | `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` |
 | **Art pipeline** | Art Director (look, sign-off), 3D Artist (meshes) | `art/models/`, `*.import` for art, `fonts/`, `assets/branding/` |
@@ -109,6 +109,10 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 Numbers in these files come from the Game Designer. Changing an existing one is a balance change
 (PM decides, [CONTRIBUTING.md §5](../CONTRIBUTING.md)). Add new files in the Godot editor
 (right-click the folder → New Resource → pick the class) so `.tres` and `.uid` stay valid.
+
+**Shipping and Steam:** builds come from `export_presets.cfg` and `.github/workflows/export.yml`;
+status and open items are in [STEAM_READINESS.md](STEAM_READINESS.md). Anything players see or hear
+that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
 
 ## Recipes
 
