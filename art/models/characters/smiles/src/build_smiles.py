@@ -267,12 +267,12 @@ def build_model(arm, mobile):
         head.tube([((sx * 0.012, -0.093, 0.652), 0.005), ((sx * 0.04, -0.091, 0.668), 0.0065), ((sx * 0.068, -0.08, 0.678), 0.0)], "smiles_black", "head", seg=S(6))
         # ears (long, pointed, swept back) + horns (curl in)
         head.tube([((sx * 0.08, 0.004, 0.632), 0.026), ((sx * 0.14, 0.022, 0.668), 0.016), ((sx * 0.19, 0.04, 0.705), 0.0)], "smiles_skin", "head", seg=S(8), flat=0.35, flat_axis=(0, 1, 0))
-        head.tube([((sx * 0.045, -0.024, 0.722), 0.021), ((sx * 0.066, 0.0, 0.762), 0.015), ((sx * 0.07, 0.032, 0.79), 0.008), ((sx * 0.062, 0.06, 0.806), 0.0)], "smiles_horn", "head", seg=S(9))
+        head.tube([((sx * 0.05, -0.012, 0.718), 0.021), ((sx * 0.074, 0.026, 0.742), 0.015), ((sx * 0.08, 0.066, 0.752), 0.009), ((sx * 0.07, 0.104, 0.754), 0.0)], "smiles_horn", "head", seg=S(9))
     head.tube([((0, -0.088, 0.64), 0.011), ((0, -0.106, 0.615), 0.005), ((0, -0.108, 0.605), 0.0)], "smiles_skin", "head", seg=S(6))
     # black hair: a cap swept back + spikes
     head.ellipsoid((0, 0.014, 0.67), (0.097, 0.097, 0.095), "smiles_black", "head", seg=(S(16), S(10)))
-    for px, py, pz, dx, dy, dz, r in ((0, -0.03, 0.75, 0.0, 0.03, 0.06, 0.03), (-0.045, -0.02, 0.74, -0.03, 0.04, 0.05, 0.026), (0.045, -0.02, 0.74, 0.03, 0.04, 0.05, 0.026),
-                                      (0, 0.05, 0.74, 0.0, 0.07, 0.03, 0.03), (-0.06, 0.04, 0.72, -0.05, 0.06, 0.02, 0.026), (0.06, 0.04, 0.72, 0.05, 0.06, 0.02, 0.026),
+    for px, py, pz, dx, dy, dz, r in ((0, -0.03, 0.745, 0.0, 0.05, 0.03, 0.03), (-0.045, -0.02, 0.735, -0.03, 0.05, 0.025, 0.026), (0.045, -0.02, 0.735, 0.03, 0.05, 0.025, 0.026),
+                                      (0, 0.05, 0.735, 0.0, 0.075, 0.01, 0.03), (-0.06, 0.04, 0.715, -0.05, 0.06, 0.005, 0.026), (0.06, 0.04, 0.715, 0.05, 0.06, 0.005, 0.026),
                                       (0, 0.085, 0.68, 0.0, 0.06, -0.01, 0.03)):
         head.tube([((px, py, pz), r), ((px + dx, py + dy, pz + dz), 0.0)], "smiles_black", "head", seg=S(7))
     ob_head = head.finish(arm)
@@ -395,84 +395,96 @@ def clip(name, length_s, keys, loop=False):
     CLIPS[name] = (length_s, keys, loop)
 
 
-# idle (3.0 s loop): the right hand rolls a chip up beside his cheek (visible over the rail in the game
-# camera), the grin twitches, slow breath, head sway. Left hand stays steepled-low.
-_chip_hand = P(STAND, arm("R", (-0.2, -0.04, 0.47), (-0.35, 0.3, -0.2), fingers=(0.25, 0.15, 1)))
-_chip_hand2 = P(STAND, arm("R", (-0.2, -0.05, 0.49), (-0.35, 0.3, -0.2), fingers=(0.35, 0.1, 1)))
+# idle (3.0 s loop): leans low on the far rail, both forearms on it; the right hand rolls a chip over its
+# knuckles just above the rail top (inside the phone band, clear of the brazier and plaque), grin twitch, head sway.
+_lean = arm("L", (0.15, -0.05, 0.655), (0.45, 0.3, 0.1), fingers=(-0.35, -1, 0.16))
+_chip_hand = P(STAND, _lean, arm("R", (-0.17, -0.05, 0.655), (-0.45, 0.3, 0.1), fingers=(0.3, -1, 0.24)), spine=(6, 0, 0), chest=(10, 0, 0))
+_chip_hand2 = P(STAND, _lean, arm("R", (-0.17, -0.055, 0.665), (-0.45, 0.3, 0.1), fingers=(0.35, -1, 0.3)), spine=(6, 0, 0), chest=(10, 0, 0))
 clip("idle", 3.0, [
-    (0.0, P(_chip_hand, chip=(0, 0, 0, 0, 0, 0))),
-    (0.5, P(_chip_hand2, chest=(5, 0, 0), chip=(90, 0, 0, 0, -0.012, 0))),
-    (1.0, P(_chip_hand2, chest=(6, 0, 0), head=(-24, 0, 4), chip=(180, 0, 0, 0, -0.024, 0), index_R=(0, 0, 14))),
-    (1.4, P(_chip_hand2, chest=(6, 0, 0), head=(-26, 0, 5), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8), chip=(260, 0, 0, 0, -0.03, 0), index_R=(0, 0, 14))),
-    (1.7, P(_chip_hand2, chest=(5, 0, 0), head=(-25, 0, 3), jaw=(0, 0, 0), chip=(300, 0, 0, 0, -0.02, 0))),
-    (2.2, P(_chip_hand, chest=(4, 0, 0), head=(-23, 0, -3), chip=(340, 0, 0, 0, -0.008, 0))),
-    (3.0, P(_chip_hand, chip=(360, 0, 0, 0, 0, 0))),
+    (0.0, P(_chip_hand, chip=(0, 0, 0, 0.025, 0, 0))),
+    (0.5, P(_chip_hand2, chest=(10, 0, 0), chip=(90, 0, 0, 0.025, -0.012, 0))),
+    (1.0, P(_chip_hand2, chest=(10, 0, 0), head=(-24, 0, 4), chip=(180, 0, 0, 0.025, -0.024, 0), index_R=(0, 0, 14))),
+    (1.4, P(_chip_hand2, chest=(10, 0, 0), head=(-26, 0, 5), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8), chip=(260, 0, 0, 0.025, -0.03, 0), index_R=(0, 0, 14))),
+    (1.7, P(_chip_hand2, chest=(10, 0, 0), head=(-25, 0, 3), jaw=(0, 0, 0), chip=(300, 0, 0, 0.025, -0.02, 0))),
+    (2.2, P(_chip_hand, chest=(10, 0, 0), head=(-23, 0, -3), chip=(340, 0, 0, 0.025, -0.008, 0))),
+    (3.0, P(_chip_hand, chip=(360, 0, 0, 0.025, 0, 0))),
 ], loop=True)
 
-# taunt (1.4 s, bust): lean in, cackle (jaw chatter, head thrown back), point up at the player
-_point = P(STAND, arm("R", (-0.18, -0.1, 0.84), (-0.3, 0.5, 1.0), fingers=(0, -1, 0.6)), arm("L", (0.1, -0.08, 0.12), (0.5, 0.1, 0.2), hand=(0, 0, 0)),
-           curl("L", 50), spine=(4, 0, 0), chest=(5, 0, 0), neck=(-18, 0, 0), head=(-32, 0, 0),
+# Camera v2 (Godot Dev a153087): the band above the far rail at Smiles' spot is ~0.22 m on phone landscape and
+# ~0.44 m on PC. Everything is authored for the phone band: grin, visor and the key gestures read inside it, and
+# nothing goes above his head; on PC he just shows more chest and waistcoat.
+
+# taunt (1.4 s, bust): lean in, cackle (jaw chatter, head tipped back a little), jab a finger at the player at
+# eye height (the hand stays at or below his head)
+_point = P(STAND, arm("R", (-0.17, -0.06, 0.63), (-0.4, 0.3, 0.2), fingers=(0.15, -1, 0.38)), arm("L", (0.1, -0.08, 0.12), (0.5, 0.1, 0.2), hand=(0, 0, 0)),
+           curl("L", 50), spine=(4, 0, 0), chest=(5, 0, 0), neck=(-18, 0, 0), head=(-28, 0, 0),
            index_R=(0, 0, 0), fingers_R=(0, 0, 70), thumb_R=(0, 0, 30))
-_wind = arm("R", (-0.2, 0.02, 0.72), (-0.4, 0.3, 0.9), fingers=(0, -0.3, 1))
+_wind = arm("R", (-0.21, 0.03, 0.54), (-0.45, 0.3, 0.2), fingers=(0.1, -0.3, 1))
+_wind_back = arm("R", (-0.22, 0.03, 0.47), (-0.45, 0.3, 0.2), fingers=(0.1, -0.25, 1))
 clip("taunt", 1.4, [
     (0.0, STAND),
-    (0.12, P(STAND, _wind, spine=(5, 0, 0), chest=(6, 0, 0), head=(-30, 0, 0), jaw=(10, 0, 0))),
+    (0.12, P(STAND, _wind, spine=(5, 0, 0), chest=(6, 0, 0), head=(-28, 0, 0), jaw=(10, 0, 0))),
+    (0.19, P(STAND, arm("R", (-0.19, -0.05, 0.63), (-0.4, 0.3, 0.2), fingers=(0.12, -0.7, 0.6)), spine=(5, 0, 0), chest=(6, 0, 0), head=(-28, 0, 0), jaw=(16, 0, 0))),
     (0.25, P(_point, jaw=(24, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10))),
-    (0.38, P(_point, jaw=(8, 0, 0), head=(-42, 0, 4), chest=(3, 0, 0))),
-    (0.5, P(_point, jaw=(28, 0, 0), head=(-38, 0, -3), grin_L=(0, 0, 12), grin_R=(0, 0, -12))),
-    (0.63, P(_point, jaw=(6, 0, 0), head=(-44, 0, 4), chest=(3, 0, 0))),
-    (0.76, P(_point, jaw=(26, 0, 0), head=(-38, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10))),
+    (0.38, P(_point, jaw=(8, 0, 0), head=(-30, 0, 3), chest=(3, 0, 0))),
+    (0.5, P(_point, jaw=(28, 0, 0), head=(-29, 0, -2), grin_L=(0, 0, 12), grin_R=(0, 0, -12))),
+    (0.63, P(_point, jaw=(6, 0, 0), head=(-30, 0, 3), chest=(3, 0, 0))),
+    (0.76, P(_point, jaw=(26, 0, 0), head=(-29, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10))),
     (1.0, P(_point, jaw=(10, 0, 0))),
-    (1.2, P(STAND, _wind, head=(-28, 0, 0))),
+    (1.2, P(STAND, _wind_back, head=(-27, 0, 0))),
     (1.4, STAND),
 ])
 
-# grudging (1.6 s, big score tier 3+): two slow sarcastic claps raised beside his chin (screen-left of the
-# face, so the cracking grin stays clear) with the hands big over the rail in the game camera
+# grudging (1.6 s, big score tier 3+): two slow sarcastic claps at the centre of his body, hands at chin height
+# just in front of the face, so on screen the cracking grin sits right above the clapping hands.
 _crack = {"jaw": (4, 0, 0), "grin_L": (0, 0, -16), "grin_R": (0, 0, 16)}
-_clap_open = P(STAND, _crack, arm("L", (-0.09, -0.05, 0.57), (0.2, 0.3, -0.3), fingers=(-0.3, -0.05, 1)),
-               arm("R", (-0.34, 0.02, 0.6), (-0.5, 0.3, -0.2), fingers=(0.3, -0.05, 1)),
-               spine=(2, 0, 0), chest=(4, 0, 0), head=(-18, -8, 6))
-_clap_shut = P(_clap_open, arm("L", (-0.165, 0.0, 0.6), (0.2, 0.3, -0.3), fingers=(-0.12, -0.05, 1)),
-               arm("R", (-0.255, 0.01, 0.61), (-0.5, 0.3, -0.2), fingers=(0.12, -0.05, 1)))
-_clap_rise = P(STAND, arm("L", (-0.02, -0.01, 0.43), (0.2, 0.3, -0.3), fingers=(-0.1, 0.1, 1)),
-               arm("R", (-0.26, 0.02, 0.46), (-0.5, 0.3, -0.2), fingers=(0.1, 0.1, 1)), chest=(2, 0, 0), head=(-16, -4, 3))
+_up = {"head": (-25, 0, 0)}
+_clap_open = P(STAND, _crack, _up, arm("L", (0.085, -0.13, 0.66), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.0)),
+               arm("R", (-0.085, -0.13, 0.66), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.0)))
+_clap_shut = P(_clap_open, arm("L", (0.04, -0.135, 0.665), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.0)),
+               arm("R", (-0.04, -0.135, 0.665), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.0)))
+_clap_rise = P(STAND, arm("L", (0.11, -0.100, 0.660), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.0)),
+               arm("R", (-0.11, -0.100, 0.660), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.0)), head=(-25, 0, 0))
+_clap_lift = P(STAND, arm("L", (0.16, -0.02, 0.65), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.6)),
+               arm("R", (-0.16, -0.02, 0.65), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.6)), head=(-12, 0, 0))
 clip("grudging", 1.6, [
     (0.0, STAND),
-    (0.15, _clap_rise),
-    (0.3, _clap_open),
-    (0.5, P(_clap_shut, head=(-12, 0, 8), grin_L=(0, 0, -20), grin_R=(0, 0, 20))),
-    (0.8, P(_clap_open, grin_L=(0, 0, -18), grin_R=(0, 0, 18))),
-    (1.0, P(_clap_shut, head=(-10, 0, 9), jaw=(2, 0, 0), grin_L=(0, 0, -24), grin_R=(0, 0, 24))),
-    (1.25, P(_clap_open, grin_L=(0, 0, -14), grin_R=(0, 0, 14))),
-    (1.45, _clap_rise),
-    (1.6, STAND),
+    (0.08, P(_clap_lift, chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.17, P(_clap_rise, chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.3, P(_clap_open, chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.5, P(_clap_shut, head=(-25, 0, 3), grin_L=(0, 0, -20), grin_R=(0, 0, 20), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.8, P(_clap_open, grin_L=(0, 0, -18), grin_R=(0, 0, 18), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (1.0, P(_clap_shut, head=(-25, 0, 3), jaw=(2, 0, 0), grin_L=(0, 0, -24), grin_R=(0, 0, 24), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (1.25, P(_clap_open, grin_L=(0, 0, -14), grin_R=(0, 0, 14), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (1.42, P(_clap_rise, chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (1.52, P(_clap_lift, chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (1.6, P(STAND, chip=(0, 0, 0, 0, 0, 0, 1.0))),
 ])
 
 # cheat (1.2 s, boss tell): shifty glance, visor tipped down, left cuff raised beside his cheek and the chip
-# slipped up it by the right hand -- both hands over the rail in the game camera -- then a smug grin
-_glance = P(STAND, head=(-12, 26, 0), neck=(-10, 10, 0), visor=(14, 0, 0))
-_sleeve = arm("L", (0.22, 0.02, 0.6), (0.5, 0.3, -0.2), fingers=(0.05, -0.05, 1))
+# slipped up it by the right hand (both hands at or below head height), then a smug grin
+_glance = P(STAND, head=(-14, 26, 0), neck=(-12, 10, 0), visor=(12, 0, 0))
+_sleeve = arm("L", (0.21, -0.02, 0.57), (0.5, 0.3, -0.2), fingers=(0.1, -0.35, 1))
 clip("cheat", 1.2, [
     (0.0, STAND),
-    (0.1, P(STAND, arm("R", (-0.1, 0.0, 0.42), (-0.4, 0.3, -0.3), fingers=(0.2, 0.15, 1)), head=(-10, 14, 0), neck=(-6, 5, 0), visor=(7, 0, 0))),
-    (0.2, P(_glance, _sleeve, arm("R", (0.05, -0.01, 0.55), (-0.4, 0.3, -0.3), fingers=(0.6, 0.15, 0.8)))),
-    (0.45, P(_glance, _sleeve, arm("R", (0.13, -0.02, 0.63), (-0.4, 0.2, -0.3), fingers=(1, 0.05, 0.3)), chip=(40, 0, 0, 0, 0.0, 0, 0.6))),
-    (0.6, P(_glance, _sleeve, arm("R", (0.12, -0.02, 0.62), (-0.4, 0.2, -0.3), fingers=(1, 0.05, 0.4)), head=(-16, -10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
-    (0.72, P(STAND, arm("R", (-0.12, 0.0, 0.45), (-0.4, 0.3, -0.3), fingers=(0.2, 0.15, 1)), arm("L", (0.16, 0.02, 0.46), (0.5, 0.3, -0.2), fingers=(-0.1, 0.1, 1)),
-             head=(-18, 4, 4), visor=(8, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10), chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (0.85, P(STAND, head=(-20, 0, 6), visor=(4, 0, 0), grin_L=(0, 0, 14), grin_R=(0, 0, -14), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.1, P(STAND, arm("R", (-0.1, -0.02, 0.42), (-0.4, 0.3, -0.3), fingers=(0.2, 0.0, 1)), head=(-12, 14, 0), neck=(-8, 5, 0), visor=(6, 0, 0))),
+    (0.2, P(_glance, _sleeve, arm("R", (0.05, 0.0, 0.56), (-0.4, 0.3, -0.3), fingers=(0.6, 0.0, 0.8)))),
+    (0.45, P(_glance, _sleeve, arm("R", (0.12, -0.005, 0.595), (-0.4, 0.2, -0.3), fingers=(1, -0.1, 0.3)), chip=(40, 0, 0, 0, 0.0, 0, 0.6))),
+    (0.6, P(_glance, _sleeve, arm("R", (0.11, -0.005, 0.59), (-0.4, 0.2, -0.3), fingers=(1, -0.1, 0.4)), head=(-18, -10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
+    (0.72, P(STAND, arm("R", (-0.12, -0.02, 0.45), (-0.4, 0.3, -0.3), fingers=(0.2, 0.0, 1)), arm("L", (0.16, 0.0, 0.46), (0.5, 0.3, -0.2), fingers=(-0.1, 0.0, 1)),
+             head=(-20, 4, 4), visor=(7, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.85, P(STAND, head=(-22, 0, 6), visor=(4, 0, 0), grin_L=(0, 0, 14), grin_R=(0, 0, -14), chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.1, P(STAND, chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.2, P(STAND, chip=(0, 0, 0, 0, 0, 0, 1.0))),
 ])
 
-# deal (1.0 s): right hand flicks a chip out across the felt
+# deal (1.0 s): right hand flicks a chip out across the felt, low over the rail (inside the phone band)
 clip("deal", 1.0, [
     (0.0, STAND),
-    (0.25, P(STAND, arm("R", (-0.17, 0.0, 0.5), (-0.5, 0.35, 0.0), fingers=(0.1, 0.4, 1)), chest=(2, -8, 0))),
-    (0.42, P(STAND, arm("R", (-0.14, -0.17, 0.8), (-0.4, 0.4, 1.0), fingers=(0.1, -1, -0.3)), chest=(3, 6, 0), chip=(0, 0, 0, 0, 0, 0.0, 1.0))),
-    (0.5, P(STAND, arm("R", (-0.14, -0.18, 0.79), (-0.4, 0.4, 1.0), fingers=(0.1, -1, -0.6)), chest=(3, 6, 0), chip=(0, 0, 0, 0, 0, 0.03, 0.0))),
-    (0.7, P(STAND, arm("R", (-0.19, 0.0, 0.64), (-0.4, 0.4, 0.8), fingers=(0.1, 0.1, 1)), chest=(3, 2, 0), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.25, P(STAND, arm("R", (-0.17, -0.02, 0.5), (-0.5, 0.35, 0.0), fingers=(0.1, 0.0, 1)), chest=(2, -8, 0))),
+    (0.42, P(STAND, arm("R", (-0.15, -0.2, 0.675), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.12)), chest=(4, 6, 0), chip=(0, 0, 0, 0, 0, 0.0, 1.0))),
+    (0.5, P(STAND, arm("R", (-0.15, -0.2, 0.68), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.12)), chest=(4, 6, 0), chip=(0, 0, 0, 0, 0, 0.03, 0.0))),
+    (0.7, P(STAND, arm("R", (-0.19, -0.04, 0.58), (-0.45, 0.4, 0.3), fingers=(0.1, -0.2, 1)), chest=(3, 2, 0), chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (0.9, P(STAND, chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.0, P(STAND, chip=(0, 0, 0, 0, 0, 0, 1.0))),
 ])

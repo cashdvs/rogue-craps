@@ -32,9 +32,15 @@ const SOUL_CYAN := Color("#4FE6E0")
 const DEALER_POS := Vector3(-0.42, -0.47, -0.86)
 const MC_POS := Vector3(-1.32, -0.42, -0.30)
 const RAIL_TOP := 0.14
-## Key gesture frames that must read above the far rail in the game camera: [clip, time, bones].
-const GESTURES: Array = [["grudging", 0.5, ["hand_L", "hand_R"]], ["grudging", 1.0, ["hand_L", "hand_R"]],
-	["taunt", 0.5, ["hand_R"]], ["cheat", 0.45, ["hand_L", "hand_R"]]]
+## Key gesture frames that must read above the far rail in the game camera: [clip, time, hands].
+const GESTURES: Array = [["grudging", 0.5, ["L", "R"]], ["grudging", 1.0, ["L", "R"]],
+	["taunt", 0.5, ["R"]], ["cheat", 0.45, ["L", "R"]]]
+## Game camera from feat/bonfire-sandbox a153087: rig at the pivot pitched -55, camera dolly d, look-up 7.5, fov 36.
+const GAME_CAMS: Dictionary = {"pc": [Vector2i(1920, 1080), 2.40, Vector3(0, 0, 0.26)], "phone": [Vector2i(844, 390), 2.04, Vector3(0, 0, 0.34)]}
+const CAM_RAIL_TOP := 0.11  # RAIL_TOP_Y in the sandbox: the band is measured from here
+const VISOR_MIN_PX := 2
+const HORN_TIP_PX := 4
+const IDLE_HANDS_MAX := 0.10
 const GLOW: Array[String] = ["glow_head", "glow_jaw", "glow_grin_L", "glow_grin_R", "glow_visor"]
 const FELT_TOP := 0.03
 const LIMBS: Array[String] = ["forearm_L", "forearm_R", "hand_L", "hand_R", "index_L", "index_R", "fingers_L", "fingers_R", "thumb_L", "thumb_R", "chip"]
@@ -196,28 +202,89 @@ func _check(lod: String) -> void:
 				if absf(skel.get_bone_pose_scale(skel.find_bone(g)).x - want) > 0.01:
 					glow_bad.append("%s %s @%.1f" % [c, g, t])
 	_ok(glow_bad.is_empty(), "%s: grin + visor-rim glow only in the MC clips %s" % [label, glow_bad.slice(0, 3)])
-	# key gestures read above the far rail from the game camera (palm centre over the rail's top edge)
+	# --- Godot Dev's game camera (feat/bonfire-sandbox a153087): the band above the far rail is ~0.22 m on
+	# phone landscape and ~0.44 m on PC, so everything that has to read is authored for the phone band ---
 	s.position = DEALER_POS
 	s.rotation_degrees = Vector3.ZERO
-	var cam := Transform3D(Basis.from_euler(Vector3(deg_to_rad(-55), 0, 0)), Vector3.ZERO)
-	cam.origin = Vector3(0, 0, 0.05) + cam.basis * Vector3(0, 0, 2.5)
-	var inv := cam.affine_inverse()
-	var low := ""
-	var margin := INF
+	var cams := {"pc": _game_cam("pc"), "phone": _game_cam("phone")}
+	await process_frame
+	var phone: Camera3D = cams["phone"]
+	var band := _headroom(phone)
+	print("  info %s band above the rail at the dealer: phone %.3f m, pc %.3f m" % [label, band, _headroom(cams["pc"])])
+	var band_bad: Array[String] = []
+	var horn_bad: Array[String] = []
+	var visor_bad: Array[String] = []
+	var over_head: Array[String] = []
+	for c in ["idle", "taunt", "grudging", "cheat", "deal"]:
+		var a := ap.get_animation(c)
+		var mx := {}
+		var px := {}
+		var t := 0.0
+		while t <= a.length + 0.001:
+			ap.play(c)
+			ap.seek(t, true)
+			var pts := _skinned(s, skel)
+			var fm := {}
+			for cat: String in pts:
+				for q: Vector3 in pts[cat]:
+					fm[cat] = maxf(fm.get(cat, -INF), q.y - CAM_RAIL_TOP)
+					px[cat] = minf(px.get(cat, INF), phone.unproject_position(q).y)
+			for cat: String in fm:
+				mx[cat] = maxf(mx.get(cat, -INF), fm[cat])
+			if c in ["taunt", "cheat"] and fm.get("hands", -INF) > fm.get("head", INF) + 0.002 and over_head.size() < 3:
+				over_head.append("%s@%.2f hands %.3f > head %.3f" % [c, t, fm["hands"], fm["head"]])
+			t += 0.05
+		print("  info %s %s max height above the rail (m): visor %.3f grin %.3f hands %.3f horns %.3f | phone top px: visor %.0f horns %.0f hands %.0f" % [
+			label, c, mx["visor"], mx["grin"], mx["hands"], mx["horn"], px["visor"], px["horn"], px["hands"]])
+		if mx["visor"] > band or mx["grin"] > band:
+			band_bad.append("%s visor %.3f grin %.3f" % [c, mx["visor"], mx["grin"]])
+		if px["visor"] < VISOR_MIN_PX:
+			visor_bad.append("%s %.0f px" % [c, px["visor"]])
+		if px["horn"] < -HORN_TIP_PX:
+			horn_bad.append("%s %.0f px" % [c, px["horn"]])
+		if c == "idle" and mx["hands"] > IDLE_HANDS_MAX:
+			band_bad.append("idle hands %.3f (lean low on the rail)" % mx["hands"])
+	_ok(band_bad.is_empty(), "%s: grin + visor stay inside the phone band (<= %.2f m above the rail) in every clip, idle hands low %s" % [label, band, band_bad])
+	_ok(visor_bad.is_empty(), "%s: visor never clips the phone frame (>= %d px inside) %s" % [label, VISOR_MIN_PX, visor_bad])
+	_ok(horn_bad.is_empty(), "%s: horns swept back - at most the tips clip the phone frame (<= %d px) %s" % [label, HORN_TIP_PX, horn_bad])
+	_ok(over_head.is_empty(), "%s: taunt point + cheat tell at or below head height (nothing above the head) %s" % [label, over_head])
+	# key gesture hands read over the far rail and inside the phone frame (PC has twice the headroom)
+	var low: Array[String] = []
 	for gst in GESTURES:
 		ap.play(gst[0])
 		ap.seek(gst[1], true)
-		for b in gst[2]:
-			var palm: Vector3 = skel.global_transform * skel.get_bone_global_pose(skel.find_bone(b)) * Vector3(0, -0.05, 0)
-			var pv := inv * palm
-			var rv := inv * Vector3(palm.x, RAIL_TOP, -0.72)
-			var m := pv.y / -pv.z - rv.y / -rv.z
-			margin = minf(margin, m)
-			print("  info %s@%.2f %s palm margin %.3f" % [gst[0], gst[1], b, m])
-			if m < 0.01 and low == "":
-				low = "%s@%.2f %s (%.3f)" % [gst[0], gst[1], b, m]
-	_ok(low == "", "%s: key gesture hands (clap / point / cheat) above the rail in the game camera %s" % [label, low])
-	print("  info %s gesture palm margin over the rail line %.3f (tan units)" % [label, margin])
+		var pts := _skinned(s, skel)
+		for sd: String in gst[2]:
+			var hv: PackedVector3Array = pts["hand_" + sd]
+			var vis := 0
+			var top := INF
+			for ck in ["phone", "pc"]:
+				var cam: Camera3D = cams[ck]
+				vis = 0
+				for q: Vector3 in hv:
+					var sy := cam.unproject_position(q).y
+					top = minf(top, sy) if ck == "phone" else top
+					if q.z > -0.72 or sy < cam.unproject_position(Vector3(q.x, RAIL_TOP, -0.72)).y:
+						vis += 1
+				var frac := float(vis) / maxf(hv.size(), 1.0)
+				if ck == "phone":
+					print("  info %s %s@%.2f hand_%s: %.0f%% over the rail line on phone, top %.0f px" % [label, gst[0], gst[1], sd, frac * 100.0, top])
+				if frac < 0.6 or top < 0.0:
+					low.append("%s %s@%.2f hand_%s %.2f top %.0f" % [ck, gst[0], gst[1], sd, frac, top])
+		if gst[0] == "grudging":
+			var gy := 0.0
+			for q: Vector3 in pts["grin"]:
+				gy += phone.unproject_position(q).y
+			gy /= maxf(pts["grin"].size(), 1.0)
+			var hy := INF
+			for q: Vector3 in pts["hand_L"] + pts["hand_R"]:
+				hy = minf(hy, phone.unproject_position(q).y)
+			print("  info %s grudging@%.2f phone: grin centre %.0f px, clapping hands top %.0f px" % [label, gst[1], gy, hy])
+			if gy >= hy:
+				low.append("grudging@%.2f grin %.0f not above hands %.0f" % [gst[1], gy, hy])
+	_ok(low.is_empty(), "%s: key gestures (clap / point / cheat) read over the rail inside the phone + PC frames, grin above the clap %s" % [label, low.slice(0, 3)])
+	for ck in cams:
+		(cams[ck] as Camera3D).get_viewport().queue_free()
 	# rail clearance at the documented spots (arms never sink into the rail / table)
 	for spot in [[DEALER_POS, 0.0, false], [MC_POS, 90.0, true]]:
 		s.position = spot[0]
@@ -265,3 +332,90 @@ func _same(a: PackedFloat32Array, b: PackedFloat32Array) -> bool:
 
 func _near(a: Color, b: Color) -> bool:
 	return absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) < 0.2
+
+
+func _game_cam(kind: String) -> Camera3D:
+	var c: Array = GAME_CAMS[kind]
+	var vp := SubViewport.new()
+	vp.size = c[0]
+	vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	root.add_child(vp)
+	var rig := Node3D.new()
+	vp.add_child(rig)
+	rig.position = c[2]
+	rig.rotation_degrees = Vector3(-55, 0, 0)
+	var cam := Camera3D.new()
+	rig.add_child(cam)
+	cam.fov = 36.0
+	cam.position = Vector3(0, 0, c[1])
+	cam.rotation_degrees = Vector3(7.5, 0, 0)
+	cam.current = true
+	return cam
+
+
+## Height above CAM_RAIL_TOP at the dealer's spot where the frame's top edge cuts.
+func _headroom(cam: Camera3D) -> float:
+	var lo := -1.0
+	var hi := 6.0
+	for i in 50:
+		var mid := (lo + hi) * 0.5
+		if cam.unproject_position(Vector3(DEALER_POS.x, mid, DEALER_POS.z)).y < 0.0:
+			hi = mid
+		else:
+			lo = mid
+	return lo - CAM_RAIL_TOP
+
+
+## CPU-skinned world positions of the drawn vertices, by what has to read (glow shells and the chip skipped).
+func _skinned(s: Node3D, skel: Skeleton3D) -> Dictionary:
+	var out := {"horn": PackedVector3Array(), "visor": PackedVector3Array(), "grin": PackedVector3Array(), "hands": PackedVector3Array(),
+		"hand_L": PackedVector3Array(), "hand_R": PackedVector3Array(), "head": PackedVector3Array()}
+	for mi: MeshInstance3D in s.find_children("*", "MeshInstance3D", true, false):
+		var skin := mi.skin
+		var mats: Array[Transform3D] = []
+		var bnames: Array[String] = []
+		for i in skin.get_bind_count():
+			var bn := skin.get_bind_name(i)
+			var bi := skel.find_bone(bn) if bn != "" else skin.get_bind_bone(i)
+			bnames.append(skel.get_bone_name(bi))
+			mats.append(skel.global_transform * skel.get_bone_global_pose(bi) * skin.get_bind_pose(i))
+		for si in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(si)
+			var mname := m.resource_path.get_file().get_basename() if m != null else "?"
+			if mname.begins_with("smiles_chip"):
+				continue
+			var arr := mi.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var bs: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+			var ws: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+			var k := ws.size() / maxi(vs.size(), 1)
+			for vi in vs.size():
+				var q := Vector3.ZERO
+				var wsum := 0.0
+				var top := ""
+				var topw := 0.0
+				for j in k:
+					var w := ws[vi * k + j]
+					if w <= 0.0:
+						continue
+					q += (mats[bs[vi * k + j]] * vs[vi]) * w
+					wsum += w
+					if w > topw:
+						topw = w
+						top = bnames[bs[vi * k + j]]
+				if wsum <= 0.0 or top.begins_with("glow_"):
+					continue
+				q /= wsum
+				if mname == "smiles_horn":
+					out["horn"].append(q)
+				if mi.name == "Smiles_Visor":
+					out["visor"].append(q)
+				if mname == "smiles_gold" and mi.name == "Smiles_Head":
+					out["grin"].append(q)
+				if (mi.name == "Smiles_Head" and mname != "smiles_horn") or mi.name == "Smiles_Visor":
+					out["head"].append(q)
+				for sd in ["L", "R"]:
+					if top in ["hand_" + sd, "index_" + sd, "fingers_" + sd, "thumb_" + sd]:
+						out["hand_" + sd].append(q)
+						out["hands"].append(q)
+	return out
