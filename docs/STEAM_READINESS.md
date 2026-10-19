@@ -9,6 +9,16 @@ Steam; **missing** = nothing yet. Each gap has an issue draft labelled `steam-re
 
 _Last checked against `main` at `fad5622` (Godot 4.7.2), 2026-10-19._
 
+## Decisions (PM, 2026-10-19)
+
+1. **Version:** `application/config/version` is set by hand (starting at `0.1.0`); CI appends the run number as the 4th part (`0.1.0.<run>`).
+2. **Window size:** minimum 1280×720; 1280×800 (Steam Deck) must be supported ([#77](https://github.com/cashdvs/rogue-craps/issues/77), [#78](https://github.com/cashdvs/rogue-craps/issues/78)).
+3. **Engine and templates:** pinned to Godot 4.7.2. Bump `GODOT_VERSION` in `ci.yml` and `export.yml` together.
+4. **Packaging:** embedded PCK, one `.exe` (and one Linux binary).
+5. **`user://` folder:** custom user dir `Tiny Anvil Games/Dice of the Damned`, set before any public build ([#75](https://github.com/cashdvs/rogue-craps/issues/75)).
+6. **AI disclosure scope:** Cash's call (PM is taking it to him); the log rows stay as written until then ([#89](https://github.com/cashdvs/rogue-craps/issues/89)).
+
+
 ## Summary
 
 | # | Item | Status | Where |
@@ -26,7 +36,7 @@ _Last checked against `main` at `fad5622` (Godot 4.7.2), 2026-10-19._
 | 11 | Steam overlay | partial | Forward+ renders every frame; needs Steamworks init to appear |
 | 12 | GodotSteam / Steamworks SDK hook | missing (designed) | planned `scripts/platform/steam_service.gd` autoload |
 | 13 | Achievements, cloud saves | deferred | after 12 |
-| 14 | Windows icon and version resources | partial | `export_presets.cfg` `application/*`; icon comes with `chore/studio-branding` |
+| 14 | Windows icon and version resources | partial | `export_presets.cfg` `application/*`; icon is on `main` since #71 (`assets/branding/studio/icon.png`) |
 | 15 | Code signing | deferred (off) | `export_presets.cfg` `codesign/enable=false` |
 | 16 | AI content disclosure (Steam content survey) | partial | [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md); 5 rows still TBD |
 
