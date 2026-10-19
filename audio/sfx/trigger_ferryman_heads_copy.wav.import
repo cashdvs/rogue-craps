@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://ue5d3gdiaww8"
-path="res://.godot/imported/trigger_coin_heads_copy.wav-c06eec9097cf89fc01c080853cc11a00.sample"
+path="res://.godot/imported/trigger_ferryman_heads_copy.wav-cbc5d6062f5cfc3ea7cd57a7201d3ecf.sample"
 
 [deps]
 
-source_file="res://audio/sfx/trigger_coin_heads_copy.wav"
-dest_files=["res://.godot/imported/trigger_coin_heads_copy.wav-c06eec9097cf89fc01c080853cc11a00.sample"]
+source_file="res://audio/sfx/trigger_ferryman_heads_copy.wav"
+dest_files=["res://.godot/imported/trigger_ferryman_heads_copy.wav-cbc5d6062f5cfc3ea7cd57a7201d3ecf.sample"]
 
 [params]
 

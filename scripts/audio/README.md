@@ -73,7 +73,7 @@ for trig in fired:
 
 **One caller, one owner.** Exactly one place in the game calls `play_mod_trigger`: the feel layer's listener, `TableAudio`. **Pending:** nothing calls it yet; wiring it into `TableAudio` (VFX Dev's #72) is a follow-up PR. The hook owns everything after that call: stagger, voice cap, cluster, speed modes, the Bellows once-rule and the crowd nudge. The caller doesn't add timers, count voices or call `crowd.nudge()`, or those would happen twice.
 
-- **id:** a spec row id (`&"coin_heads_copy"`) or a mod / die id (`&"mirror"`, `&"hellfire"`). `ModTriggerSynth.ALIASES` maps an id to its default row. Pass the row id when one die has several moments (`kindling_armed` / `kindling_save`, `cracked_mult` / `cracked_shatter`). Unknown ids play `trigger_generic`. `heavy` and `extra` play nothing, and `blank` plays the existing `no_score`.
+- **id:** a spec row id (`&"ferryman_heads_copy"`) or a mod / die id (`&"mirror"`, `&"hellfire"`). `ModTriggerSynth.ALIASES` maps an id to its default row. Pass the row id when one die has several moments (`kindling_armed` / `kindling_save`, `cracked_mult` / `cracked_shatter`). Unknown ids play `trigger_generic`. `heavy` and `extra` play nothing, and `blank` plays the existing `no_score`.
 - **tier:** `ModTriggerSynth.Tier` MINOR / MAJOR / SIGNATURE is −4 / −2 / 0 dB; −1 uses the row's tier. **intensity** 0..1 trims −9..0 dB.
 - **hit_ms:** the hit frame from the FX start; −1 uses the row's. The hook schedules the file so its transient lands on the hit. If the hit comes sooner than the file's anticipation, the cue starts at once and skips in. Retune `ROWS` without re-baking.
 - **Several per pot:** triggers called at the same moment (one resolve step, e.g. several copy dice on LAND) are staggered 0.08 s apart in call order (`ModTriggerSynth.stagger(k)`, halved at 2x), and the return value includes the stagger, so the FX can use it for its own key hit. Triggers at different moments (each die's pip tick) aren't delayed. At most `MAX_VOICES` (4) cues sound at once, matching the spec's burst cap. The 5th and later play one shared `trigger_cluster` at their hit (the spec's shared pop); the rest are dropped while it's pending. Trigger cues have their own players, so count ticks never cut them off.
@@ -103,8 +103,8 @@ for trig in fired:
 | `cracked_mult` (major, 167) | a ceramic stress creak, a stone tick and ring (A♭6), discrete grit pings (no crackle) |
 | `cracked_shatter` (signature, 250) | ceramic shards + a low thud + a dry trickle of tiny ticks |
 | `caltrop_run` (minor, 167) | a quick run of three iron tinks |
-| `coin_heads_copy` / `coin_tails_copy` (major, 333) | a flick ping, a spin whirr speeding up, the landing ring (heads C7, tails a fourth lower, G6) |
-| `coin_alone_heads` (minor, 250) | a flick ping, a short one-turn spin, a bright lucky landing ring (E♭7) + a glint |
+| `ferryman_heads_copy` / `ferryman_tails_copy` (major, 333) | a flick ping, a spin whirr speeding up, the landing ring (heads C7, tails a fourth lower, G6) |
+| `ferryman_alone_heads` (minor, 250) | a flick ping, a short one-turn spin, a bright lucky landing ring (E♭7) + a glint |
 | `knucklebone_level` (major, 250) | a dry bone clack + a two-note brass "level up" blip (G5–C6) |
 | `verdict_20_alt` (signature, 250) **optional variant** | the v0.1 Verdict 20 cue, kept at the Art Director's request: the gavel lifts (creak), a wood crack + deep brass hit, a crowd gasp. Never the default (Verdict 20 plays `hellfire_face` + `verdict`); only `sfx.play_mod_trigger(&"verdict_20_alt")` plays it. Its gasp is crowd noise, not the die, so the no-hiss test allows it. |
 | `generic` | any other id: a plain two-note ding (C6–G6) |
@@ -116,12 +116,12 @@ for trig in fired:
 |---|---|---|
 | Lantern 8 (`lantern_8`) | `wild_face` | `lantern`: a faint glass chime (A♭6) |
 | Tithe 10 (`tithe_10`) | `gilded_payout` | `tithe`: a soft wooden slot-clunk 60 ms before the clink |
-| Midnight XII (`midnight_xii`) | `hellfire_face` | `midnight`: one soft clock tick just after the bell |
+| Midnight 12 (`midnight_12`) | `hellfire_face` | `midnight`: one soft clock tick just after the bell |
 | Verdict 20 (`verdict_20`) | `hellfire_face` | `verdict`: a small dry wood gavel tap on the hit |
 | Verdict 1 (`verdict_1`) | `blood_face` | none (Blood as-is) |
-| Powder Keg 3 (`keg_3`) | `twin_face` | `keg`: a hollow barrel thump on each tick |
+| Powder Keg 3 (`powder_keg_3`) | `twin_face` | `powder_keg`: a hollow barrel thump on each tick |
 
-Coin alone on tails (a Blank face) and a coin on its edge (a physics re-settle) play nothing.
+The Ferryman's Coin alone on tails (`ferryman_alone_tails`, a Blank face) and on its edge (`ferryman_edge`, a physics re-settle) plays nothing. Die, face and cue ids follow Systems Dev's dice-id map (`docs/DICE_IDS.md`, #107): cue ids start with the die id (`ferryman_*`, `powder_keg`), and face keys use Arabic digits (`midnight_12`).
 
 The heavies differ in envelope as well as pitch: Hellfire's bell clang rings
 on, Last Breath's 80 ms iron thunk stops dead, and Cracked shatter scatters.

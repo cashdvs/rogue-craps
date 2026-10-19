@@ -9,6 +9,13 @@ const MIX_RATE: int = SfxSynth.MIX_RATE
 ## Gilded: the coin lands in the ember pile this long after the hit.
 const GILDED_PILE_S: float = 0.35
 
+## Rows renamed to the dice-id map (docs/DICE_IDS.md) keep the seed of their
+## old id, so the baked sound (and file) is unchanged: new id -> old id.
+const SEED_OF: Dictionary[StringName, StringName] = {
+	&"ferryman_heads_copy": &"coin_heads_copy", &"ferryman_tails_copy": &"coin_tails_copy",
+	&"ferryman_alone_heads": &"coin_alone_heads", &"flavor_powder_keg": &"flavor_keg",
+}
+
 static var _rng := RandomNumberGenerator.new()
 
 
@@ -16,7 +23,7 @@ static var _rng := RandomNumberGenerator.new()
 ## inside the file (s), h2 its second hit (double-beat rows, else h).
 ## Seeded by the row, so every bake is the same.
 static func build(row: StringName, h: float, h2: float) -> PackedFloat32Array:
-	_rng.seed = hash(row)
+	_rng.seed = hash(SEED_OF.get(row, row))
 	var b := _buf(0.3)
 	match row:
 		&"wild_face":  # a card-shuffle flick into a short crystalline ting bending up
@@ -162,11 +169,11 @@ static func build(row: StringName, h: float, h2: float) -> PackedFloat32Array:
 			for k in 3:
 				_click(b, k * 0.06, 0.5 - k * 0.12, 1.0)
 				_ring(b, k * 0.06, [3135.96, 3322.44, 3951.07][k], [[1.0, 0.7 - k * 0.15, 1.0], [1.41, 0.2, 1.3]], 45.0)
-		&"coin_heads_copy", &"coin_tails_copy":  # a flick ping, a whirring spin that speeds up, a flat landing ring
+		&"ferryman_heads_copy", &"ferryman_tails_copy":  # a flick ping, a whirring spin that speeds up, a flat landing ring
 			b = _buf(0.6)
 			_ring(b, 0.0, 4186.0, [[1.0, 0.5, 1.0]], 45.0)
 			_whir(b, 0.02, h - 0.02, 2793.83, 14.0, 40.0, 0.22)
-			var land := 2093.0 if row == &"coin_heads_copy" else 1567.98  # tails lands a fourth lower
+			var land := 2093.0 if row == &"ferryman_heads_copy" else 1567.98  # tails lands a fourth lower
 			_click(b, h, 0.6, 0.7)
 			_ring(b, h, land, [[1.0, 0.7, 1.0], [2.31, 0.4, 1.2], [4.1, 0.2, 1.6]], 6.0)
 		&"verdict_20_alt":  # the gavel lifts (a short wooden creak), then a wood crack + deep brass hit, a crowd gasp
@@ -188,7 +195,7 @@ static func build(row: StringName, h: float, h2: float) -> PackedFloat32Array:
 				_ring(b, k * 0.018, 1396.91 * (1.0 + 0.07 * k), [[1.0, 0.5, 1.0]], 150.0)
 			_brass(b, 0.06, 0.08, 783.99, 0.003, 6, 0.35, 0.005, 0.7)
 			_brass(b, 0.14, 0.2, 1046.5, 0.003, 5, 0.4, 0.005, 0.7)
-		&"coin_alone_heads":  # a flick ping, a short one-turn spin, a bright lucky landing ring + a glint
+		&"ferryman_alone_heads":  # a flick ping, a short one-turn spin, a bright lucky landing ring + a glint
 			b = _buf(0.62)
 			_ring(b, 0.0, 4186.0, [[1.0, 0.5, 1.0]], 45.0)
 			_whir(b, 0.02, h - 0.02, 3135.96, 18.0, 24.0, 0.3)
@@ -208,7 +215,7 @@ static func build(row: StringName, h: float, h2: float) -> PackedFloat32Array:
 			_click(b, 0.0, 0.5, 0.2)
 			_thump(b, 0.0, 180.0, 30.0, 0.4)
 			_ring(b, 0.0, 1046.5, [[1.0, 0.5, 1.0], [1.6, 0.35, 1.2]], 60.0)
-		&"flavor_keg":  # a hollow wooden-barrel thump on each of the two ticks (no blast)
+		&"flavor_powder_keg":  # a hollow wooden-barrel thump on each of the two ticks (no blast)
 			b = _buf(0.4)
 			for at: float in [0.0, 0.167]:
 				_thump(b, at, 120.0, 22.0, 0.35)
