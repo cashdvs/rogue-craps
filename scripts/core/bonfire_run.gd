@@ -166,6 +166,36 @@ func rule_ctx() -> Dictionary:
 		"blood_cost": func(raw: int) -> int: return soul_cost(raw, &"blood")}
 
 
+## The ctx for a throw of `n` dice that hasn't happened yet (the rethrow
+## prompt's bust risk): like rule_ctx(), but sized for those n dice.
+func next_throw_ctx(n: int) -> Dictionary:
+	var ctx := rule_ctx()
+	var min_pot := 0
+	for r in rules:
+		min_pot = maxi(min_pot, r.min_pot(self))
+	ctx["throw_size"] = n
+	ctx["min_dice"] = mini(min_pot, n) if min_pot > 0 else 1
+	ctx["is_rethrow"] = throws_this_hand >= 1
+	return ctx
+
+
+## The rules that change faces after the dice settle, for BustRisk.
+func throw_effects() -> Array:
+	var out: Array = []
+	for r in rules:
+		if r is RuleMadameShuffle:
+			out.append({"kind": &"shuffle", "count": int(r.param("count", 1))})
+		elif r is DieMirror and not out.any(func(e: Dictionary) -> bool: return e["kind"] == &"mirror"):
+			out.append({"kind": &"mirror"})  # one entry covers every Mirror die
+	return out
+
+
+## Chance the next throw of these dice (TableDie or null) burns, exactly
+## (BustRisk). `kindling`: a Kindling face is armed for it (can't burn).
+func next_throw_risk(table_dice: Array, kindling: bool = false) -> Dictionary:
+	return BustRisk.chance(table_dice, tuning, next_throw_ctx(table_dice.size()), throw_effects(), kindling)
+
+
 func bounties_count() -> bool:
 	for r in rules:
 		if not r.bounties_count(self):

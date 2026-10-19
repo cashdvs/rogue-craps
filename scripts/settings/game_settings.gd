@@ -25,9 +25,13 @@ var throw_sensitivity: float = 1.0
 ## tutorial_seen so it plays once more).
 var tutorial_enabled: bool = true
 var tutorial_seen: bool = false
+## Debug throw overlay on the Bonfire table (flick px/s, launch m/s, curve).
+## Session only, never saved. Also on with the user arg `-- --throw-debug`.
+var throw_debug: bool = false
 
 
 func _ready() -> void:
+	throw_debug = OS.get_cmdline_user_args().has("--throw-debug")
 	ensure_buses()
 	load_settings()
 	apply()

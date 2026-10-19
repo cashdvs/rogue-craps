@@ -16,6 +16,10 @@ class_name Bonfire3D
 extends Table3D
 
 signal throw_resolved(faces: Array[int], lit: Array[int])
+## After each launch (debug overlay / tools): the flick speed in game
+## (canvas) px/s, the dice's launch speed in m/s and the curve fraction k
+## (0..1 strength after the launch curve).
+signal throw_measured(flick_px_s: float, launch_mps: float, curve_k: float)
 signal hand_result(result: Dictionary)
 ## Run mode: the table is done (end panel CONTINUE, or finish()). Emitted once.
 signal finished(outcome: TableOutcome)
@@ -53,6 +57,7 @@ var throw_dice: Array[DieVisual] = []
 var pot_dice: Array[DieVisual] = []
 var _felt_pos: Array[Vector3] = []
 var _brng := RandomNumberGenerator.new()
+## Dice showing the lit (scoring) look; keys only.
 var _lights: Dictionary = {}
 var _hand_tweens: Array[Tween] = []
 ## The last throw's launch (tests/tools): lin, spin, speed, k, flick.
@@ -69,6 +74,8 @@ var _soul_before: int = 0
 var _finished_sent: bool = false
 ## Text on the felt from the rules (e.g. "LOCKED  4").
 var felt_label: Label3D
+## The combo table on the felt (FeltComboTable).
+var felt_combos: FeltComboTable
 ## Scoring juice adapter (sounds / VFX; art + audio branches if present).
 var juice: BonfireJuice
 ## Tutorial: -1 = GameSettings decides (Table 1, not seen), 0 = never,
@@ -129,7 +136,15 @@ func _ready() -> void:
 	juice = BonfireJuice.new()
 	add_child(juice)
 	juice.setup(self)
-	bhud.set_combos(bonfire_tuning)
+	# The combo table printed on the felt (replaces the old side panel).
+	felt_combos = FeltComboTable.new()
+	add_child(felt_combos)
+	felt_combos.setup(table.felt_material as ShaderMaterial, bonfire_tuning)
+	bhud.cleared_banner.impact.connect(func() -> void:
+		if not reduced_motion:
+			_camera_shake(tuning.shake_craps_px * 0.25, 0.1))
+	_build_throw_debug()
+	_update_portrait_hud()
 	var cu := bhud.countup
 	cu.pip.connect(_on_count_pip)
 	cu.slam.connect(func(k: int) -> void:
@@ -414,7 +429,6 @@ func throw_again() -> bool:
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
 	_hold_display(hold)
 	juice.crowd_pot(run.pot)
-	_tutorial_hint(2)
 	if rt["hot"]:
 		_taunt(&"bonfire_hot")
 		# The lists change now; the dice ignite and fly back after the count-up.
@@ -577,7 +591,7 @@ func bank() -> Dictionary:
 	if r.get("cleared_now", false):
 		# The clear moment: Embers locked in, the table stays open (unless
 		# that was the last hand, then it ends right after this).
-		bhud.show_cleared()
+		bhud.show_cleared(2.0 if speed_mode == 1 else 1.0, speed_mode == 2 or reduced_motion)
 		_taunt(&"bonfire_clear")
 		_tutorial_hint(5)
 		if not run.is_over():
@@ -593,21 +607,94 @@ func pick_die(i: int) -> bool:
 	if phase != Phase.BET or run.state != BonfireRun.State.PICK or i < 0 or i >= throw_dice.size():
 		return false
 	if not run.toggle(i):
+		# It bounces back where it was, with a "doesn't score" callout.
 		sfx.play(&"chip_refuse")
+		refused.emit(i)
 		var d := throw_dice[i]
 		var tw := d.create_tween()
 		var p := d.position
-		tw.tween_property(d, "position", p + Vector3(0.012, 0, 0), 0.04)
-		tw.tween_property(d, "position", p - Vector3(0.012, 0, 0), 0.06)
-		tw.tween_property(d, "position", p, 0.04)
-		_set_why("That die can't join this combo (a pot is exactly ONE combo).")
+		var hop := tuning.die_size * 0.6
+		tw.tween_property(d, "position", p + Vector3(0, hop, 0), 0.08).set_ease(Tween.EASE_OUT)
+		tw.tween_property(d, "position", p, 0.14).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+		bhud.callout(camera.cam.unproject_position(d.global_position + Vector3(0, tuning.die_size, 0)), NO_SCORE_TEXT)
+		_set_why("That die doesn't score with this combo (a pot is exactly ONE combo).")
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	_layout_throw()
 	if run.can_continue():
 		_tutorial_hint(1)
+		_bust_hint_check()
 	_refresh_hud()
 	return true
+
+
+## The refusal callout over a die that can't join the combo.
+const NO_SCORE_TEXT := "doesn't score"
+## A pick was refused (die index): tests / juice.
+signal refused(index: int)
+
+
+## Section 4: show the bust hint BEFORE the first rethrow of 1-3 dice. True
+## when the next throw (as picked now) would be 1 to 3 cold dice.
+func _bust_hint_check() -> void:
+	# Never on top of another hint: it waits for the next refresh.
+	if bhud == null or bhud.tutorial.current != -1:
+		return
+	var n := next_throw_size()
+	if n >= 1 and n <= 3 and not (run.state == BonfireRun.State.PICK and run.is_hot()):
+		_tutorial_hint(2)
+
+
+## How many dice the next throw would use (0 = none / not a rethrow).
+func next_throw_size() -> int:
+	if run == null or run.is_over():
+		return 0
+	if run.state == BonfireRun.State.PICK:
+		if not run.selection()["valid"]:
+			return 0
+		return run.dice_count if run.is_hot() else run.throw_faces.size() - run.potted.size()
+	if run.state == BonfireRun.State.AIM and run.throws_this_hand > 0:
+		return run.cold
+	return 0
+
+
+## The rethrow prompt with its exact bust risk ("Throw 2 cold dice: 1 in 3
+## burns", BustRisk). "" when there's no rethrow to talk about.
+func rethrow_prompt() -> String:
+	var n := next_throw_size()
+	if n <= 0:
+		return ""
+	var tds: Array = []
+	var kindling := false
+	var hot := false
+	if run.state == BonfireRun.State.PICK:
+		var sel := run.selection()
+		kindling = bool(sel.get("kindling", false))
+		hot = run.is_hot()
+		if hot:
+			for d in all_dice:
+				tds.append(_die_of.get(d))
+		else:
+			for i in throw_dice.size():
+				if not run.potted.has(i):
+					tds.append(_die_of.get(throw_dice[i]))
+	else:
+		kindling = run.kindling_armed
+		# Mid-rethrow the active dice can still be the whole handful (the cold
+		# ones go active right after): no prompt until they match.
+		if dice.size() != n:
+			return ""
+		for d in dice:
+			tds.append(_die_of.get(d))
+	var key := "%d|%s|%s|%d|%d|%d" % [n, str(tds.map(func(t: Variant) -> int: return t.get_instance_id() if t != null else 0)), kindling, run.soul, run.throws_this_hand, run.rules.size()]
+	if key != _risk_key:
+		_risk_key = key
+		_risk = run.next_throw_risk(tds, kindling)
+	return BustRisk.prompt(n, _risk, hot)
+
+
+var _risk_key: String = ""
+var _risk: Dictionary = {}
 
 
 ## Bounty cards the current selection could claim (or, with nothing
@@ -816,9 +903,12 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		_to_hand()
 		phase = Phase.BET
 	elif ok:
-		for i in lit:
-			_set_lit(throw_dice[i], true)
-			_embers(throw_dice[i].global_position, 8, 2)
+		for i in throw_dice.size():
+			if i in lit:
+				_set_lit(throw_dice[i], true)
+				_embers(throw_dice[i].global_position, 8, 2)
+			else:
+				_set_cold(throw_dice[i])
 		sfx.play(&"rim_hit", 0.8, -6.0)
 		_set_why("%d burning. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
@@ -860,7 +950,43 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 		axis = axis.normalized() if axis.length() > 0.001 else Vector3.RIGHT
 		spin.append(axis * spin_mag * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter)))
 	last_launch = {"lin": lin, "spin": spin, "speed": speed, "k": k, "flick": velocity.length()}
+	_show_throw_debug(velocity.length(), speed, k)
+	throw_measured.emit(velocity.length(), speed, k)
 	return last_launch
+
+
+# --- Debug throw overlay (off by default) ------------------------------------------
+## After each flick: the flick speed (game px/s), the dice's launch speed
+## (m/s) and the curve fraction k; it stays until the next throw. Turn it
+## on with F3, GameSettings.throw_debug, or the command line user arg
+## `-- --throw-debug`. Tools can also set `throw_debug = true` directly.
+var throw_debug: bool = false:
+	set(v):
+		throw_debug = v
+		if throw_debug_label != null:
+			throw_debug_label.visible = v and throw_debug_label.text != ""
+var throw_debug_label: Label
+
+
+func _build_throw_debug() -> void:
+	throw_debug_label = Label.new()
+	throw_debug_label.name = "ThrowDebug"
+	throw_debug_label.label_settings = Palette.label_settings(26, Palette.BRASS_HI, 6)
+	throw_debug_label.add_theme_stylebox_override("normal", Palette.ink_box(Color(Palette.PIT_BLACK, 0.85), 8, 2, Palette.BRASS))
+	throw_debug_label.position = Vector2(24, 1000)
+	throw_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	throw_debug_label.visible = false
+	bhud.add_child(throw_debug_label)
+	var gs := get_node_or_null("/root/GameSettings")
+	var on := gs != null and "throw_debug" in gs and bool(gs.get("throw_debug"))
+	throw_debug = on or OS.get_cmdline_user_args().has("--throw-debug")
+
+
+func _show_throw_debug(flick_px_s: float, launch_mps: float, k: float) -> void:
+	if throw_debug_label == null:
+		return
+	throw_debug_label.text = "THROW  flick %.0f px/s  ->  launch %.2f m/s   curve %.2f" % [flick_px_s, launch_mps, k]
+	throw_debug_label.visible = throw_debug
 
 
 ## 0..1 strength of a flick (after the curve).
@@ -887,7 +1013,39 @@ func _update_portrait_hud() -> void:
 	if bhud == null:
 		return
 	var vs := get_viewport().get_visible_rect().size
-	bhud.set_portrait(vs.y > vs.x)
+	var portrait := vs.y > vs.x
+	bhud.set_portrait(portrait)
+	var phone_land := not portrait and phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y
+	bhud.set_ui_scale(ui_pt_px(portrait), BonfireHud.PHONE_LANDSCAPE_CARDS if phone_land else 1.0)
+	if felt_combos != null:
+		felt_combos.set_portrait(portrait, portrait and portrait_felt_flipped())
+
+
+## Portrait: the Art Director drew the portrait combo block for a camera
+## with the felt's +X end at the TOP of the screen (the near-rail end, -X,
+## at the bottom). True if this camera shows it the other way round, so the
+## print must turn 180 deg.
+func portrait_felt_flipped() -> bool:
+	if camera == null or camera.cam == null:
+		return false
+	var top := camera.cam.unproject_position(Vector3(0.9, 0, 0))
+	var bottom := camera.cam.unproject_position(Vector3(-0.9, 0, 0))
+	return top.y > bottom.y
+
+
+## The screen size in pt that fit_phone was last given (0 = PC / not a phone).
+var phone_screen := Vector2.ZERO
+
+
+## Design px per pt for the 2D art (bounty cards, banner): the Art
+## Director's UI scale 2.0 on PC; on a phone, whatever keeps a pt a pt
+## (390 pt wide portrait: 1920 / 390; 390 pt tall landscape: 1080 / 390).
+func ui_pt_px(portrait: bool) -> float:
+	if portrait:
+		return 1920.0 / (phone_screen.x if phone_screen.x > 0.0 and phone_screen.x < phone_screen.y else 390.0)
+	if phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y:
+		return maxf(2.0, 1080.0 / phone_screen.y)
+	return 2.0
 
 
 func _refresh_hud() -> void:
@@ -895,6 +1053,9 @@ func _refresh_hud() -> void:
 	if bhud != null:
 		bhud.leave_button.visible = can_leave_now()
 	if bhud != null and run != null:
+		bhud.rethrow_prompt = rethrow_prompt() if phase == Phase.BET else ""
+		if phase == Phase.BET and run.state == BonfireRun.State.AIM:
+			_bust_hint_check()
 		bhud.refresh(run, phase == Phase.BET)
 		bhud.pulse_cards(claimable_bounties())
 	if felt_label != null and run != null:
@@ -1015,6 +1176,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_L:
 				leave()
 				return
+			KEY_F3:
+				throw_debug = not throw_debug
+				get_viewport().set_input_as_handled()
+				return
 			KEY_SPACE, KEY_ENTER:
 				if phase == Phase.BET:
 					throw_again()
@@ -1031,11 +1196,6 @@ func _process(delta: float) -> void:
 	super(delta)
 	if hand_label.text == "BET FIRST":
 		hand_label.text = ""  # no bets here
-	for d: DieVisual in _lights:
-		var l: OmniLight3D = _lights[d]
-		if l.visible:
-			l.light_energy = 0.9 + 0.35 * sin(_t * 9.0 + d.die_id)
-			d.body_material.set_shader_parameter("emission_energy", 0.55 + 0.2 * sin(_t * 7.0 + d.die_id * 1.7))
 
 
 ## A handful in the hand: a tight ring around HAND (a 5-wide row would
@@ -1213,6 +1373,7 @@ func _apply_camera_tuning() -> void:
 
 
 func fit_phone(size: Vector2) -> float:
+	phone_screen = size
 	if size.x >= size.y:
 		return _fit_phone_landscape()
 	var px := super(size)
@@ -1245,6 +1406,11 @@ func fit_phone(size: Vector2) -> float:
 	camera.home_pivot = base + Vector3(0, 0, r[0])
 	camera.position = camera.home_pivot
 	camera._apply()
+	if felt_combos != null:
+		# The felt combo block, shrunk into this framing (8 pt margins).
+		var view := get_viewport().get_visible_rect().size
+		felt_combos.set_portrait(true, portrait_felt_flipped())
+		felt_combos.fit_portrait_view(camera.cam, view, 8.0 * view.x / maxf(size.x, 1.0))
 	return px
 
 
@@ -1354,23 +1520,28 @@ func _clear_slot(at: Vector3, except: DieVisual) -> void:
 
 
 func _set_lit(d: DieVisual, on: bool) -> void:
-	var l: OmniLight3D = _lights.get(d)
-	if l == null and on:
-		l = OmniLight3D.new()
-		l.light_color = Palette.EMBER
-		l.omni_range = 0.22
-		l.position = Vector3(0, tuning.die_size * 0.9, 0)
-		l.shadow_enabled = false
-		d.add_child(l)
-		_lights[d] = l
-	if l != null:
-		l.visible = on
-	d.body_material.set_shader_parameter("emission_color", Palette.EMBER if on else Palette.BONE)
-	d.body_material.set_shader_parameter("emission_energy", 0.6 if on else 0.0)
+	# Material only (design section 4): a lit die glows ember, no lights or
+	# flames. Turning "off" returns it to the plain bone look.
+	if on:
+		_lights[d] = true
+	else:
+		_lights.erase(d)
+	d.set_glow_state(on, false)
+
+
+## A thrown die that did not score goes matte grey ("cold") once it settles.
+func _set_cold(d: DieVisual) -> void:
+	_lights.erase(d)
+	d.set_glow_state(false, true)
 
 
 func is_lit(d: DieVisual) -> bool:
-	return _lights.has(d) and (_lights[d] as OmniLight3D).visible
+	return _lights.has(d)
+
+
+## True if this die is showing the cold (matte grey) look.
+func is_cold(d: DieVisual) -> bool:
+	return d.glow_cold > 0.0 and not _lights.has(d)
 
 
 func _refuse(why: String) -> void:

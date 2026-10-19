@@ -36,8 +36,17 @@ uniform float roughness = 0.8;
 
 // Felt extras: print overlay (alpha = ink), grime noise, flash/scorch pulses.
 uniform bool use_overlay = false;
-uniform sampler2D overlay_tex : source_color, filter_linear_mipmap, hint_default_transparent;
+uniform sampler2D overlay_tex : source_color, filter_linear_mipmap_anisotropic, hint_default_transparent;
 uniform vec4 overlay_tint : source_color = vec4(0.91, 0.86, 0.75, 0.85);
+// Emission of the overlay print, x its colour (the Bonfire combo table: 0.35,
+// so the print reads in the lamp's falloff). 0 = off.
+uniform float overlay_emission = 0.0;
+// The print's placement on the felt (UV units): scaled by overlay_scale about
+// overlay_pivot, then moved by overlay_shift. Identity by default. Phone
+// portrait shrinks the combo block into the camera's view.
+uniform vec2 overlay_pivot = vec2(0.5, 0.5);
+uniform float overlay_scale = 1.0;
+uniform vec2 overlay_shift = vec2(0.0, 0.0);
 uniform float grime = 0.0;
 uniform vec4 grime_color : source_color = vec4(0.059, 0.188, 0.172, 1.0); // FELT_STAIN
 uniform float flash = 0.0;
@@ -49,6 +58,21 @@ uniform bool chip_mode = false;
 uniform vec4 notch_color : source_color = vec4(0.91, 0.86, 0.75, 1.0);
 uniform vec4 ring_color : source_color = vec4(0.43, 0.10, 0.14, 1.0);
 uniform float chip_radius = 0.0275;
+
+// Die readability states (art/ui/readability/dice_states, design section 4).
+// die_lit 1 = a scoring die: warm albedo + an emissive ember fresnel rim
+// (energy 0.85 stays under the 1.0 glow threshold, so the rim never blooms).
+// die_cold 1 = a die that did not score: matte, desaturated warm grey, no
+// gloss. Both are 0 on every other prop, so nothing else changes.
+uniform float die_lit = 0.0;
+uniform float die_cold = 0.0;
+uniform vec3 lit_albedo_mul = vec3(1.04, 1.00, 0.94);
+uniform vec3 cold_albedo_mul = vec3(0.80, 0.78, 0.76);
+uniform float cold_desat = 0.75;
+uniform vec3 cold_warm_grey = vec3(1.00, 0.96, 0.90);
+uniform vec4 state_rim_color : source_color = vec4(0.910, 0.384, 0.165, 1.0); // #E8622A
+uniform float state_rim_energy = 0.85;
+uniform float state_rim_power = 2.5;
 
 varying vec3 obj_pos;
 varying vec3 obj_normal;
@@ -75,9 +99,13 @@ void fragment() {
 		col = mix(col, grime_color.rgb, smoothstep(0.55, 0.8, n) * grime);
 		col *= 0.94 + 0.06 * vnoise(world_pos.xz * 160.0); // fabric grain
 	}
+	vec3 overlay_emit = vec3(0.0);
 	if (use_overlay) {
-		vec4 ink = texture(overlay_tex, UV);
+		vec2 ouv = overlay_pivot + (UV - overlay_pivot - overlay_shift) / max(overlay_scale, 0.01);
+		vec4 ink = texture(overlay_tex, ouv);
+		ink.a *= step(0.0, ouv.x) * step(ouv.x, 1.0) * step(0.0, ouv.y) * step(ouv.y, 1.0);
 		col = mix(col, ink.rgb, ink.a * overlay_tint.a);
+		overlay_emit = ink.rgb * ink.a * overlay_tint.a * overlay_emission;
 	}
 	if (chip_mode) {
 		float r = length(obj_pos.xz) / chip_radius;
@@ -93,13 +121,25 @@ void fragment() {
 	if (scorch > 0.0) {
 		col *= 1.0 - 0.5 * scorch;
 	}
+	float cold_k = die_cold * (1.0 - die_lit);
+	if (die_lit > 0.0 || die_cold > 0.0) {
+		vec3 lit_col = col * lit_albedo_mul;
+		float luma = dot(col, vec3(0.299, 0.587, 0.114));
+		vec3 cold_col = mix(col, luma * cold_warm_grey, cold_desat) * cold_albedo_mul;
+		col = mix(col, lit_col, die_lit);
+		col = mix(col, cold_col, cold_k);
+	}
 	ALBEDO = col;
-	ROUGHNESS = roughness;
-	vec3 emit = emission_color.rgb * emission_energy;
+	ROUGHNESS = mix(mix(roughness, 0.5, die_lit), 1.0, cold_k);
+	vec3 emit = emission_color.rgb * emission_energy + overlay_emit;
 	emit += flash_color.rgb * flash;
 	// Ambient: the shadow band at ambient strength (so unlit sides stay warm).
 	vec3 shade = mix(col, shadow_color.rgb, 0.7);
 	emit += shade * ambient_color.rgb * ambient_energy * 2.0;
+	if (die_lit > 0.0) {
+		float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), state_rim_power);
+		emit += die_lit * state_rim_color.rgb * state_rim_energy * fres;
+	}
 	EMISSION = emit;
 }
 
@@ -121,7 +161,8 @@ void light() {
 	if (spec_size > 0.0) {
 		vec3 h = normalize(VIEW + LIGHT);
 		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
-		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att;
+		// A cold die has no gloss at all (specular 0).
+		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * (1.0 - die_cold * (1.0 - die_lit));
 	}
 	if (rim_strength > 0.0) {
 		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
