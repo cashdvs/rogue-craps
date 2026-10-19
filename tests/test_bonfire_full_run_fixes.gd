@@ -9,8 +9,9 @@
 ##       Table 1; not on later run tables, not in tests / tools.
 ##   M4: running out of hands uncleared burns the Soul meter by the table's
 ##       penalty; a cleared table burns nothing.
-##   Minor 9: volumetric fog (FogVolume + Environment) only on Forward+; the
-##       Compatibility renderer gets the fallback cone instead (checked for
+##   Minor 9: volumetric fog (FogVolume + Environment) and SSAO only on
+##       Forward+; Mobile / Compatibility get the fallback cone instead
+##       (built for each renderer via Table3D.render_method; also checked for
 ##       real under xvfb with --rendering-method gl_compatibility).
 ##   #103 F1: while picking, a click on a thrown die under THROW / BANK pots
 ##       the die (or shakes it if unlit) and presses no button.
@@ -320,18 +321,19 @@ func _m4_soul_meter() -> void:
 # --- Minor 9 ------------------------------------------------------------------------
 
 func _fog_compat() -> void:
-	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
-	s.tutorial_override = 0
-	root.add_child(s)
-	await process_frame
-	var fog := Table3D.has_volumetric_fog()
-	check(fog == (RenderingServer.get_current_rendering_method() == "forward_plus"), "volumetric fog only on Forward+ (%s)" % RenderingServer.get_current_rendering_method())
-	check((s.find_child("LampHaze", true, false) != null) == fog, "the FogVolume (fog shader) exists only where it can compile")
-	var env_node := s.find_children("*", "WorldEnvironment", true, false)
-	var env: Environment = (env_node[0] as WorldEnvironment).environment if not env_node.is_empty() else null
-	check(env != null and env.volumetric_fog_enabled == fog, "Environment volumetric fog matches the renderer")
-	s.queue_free()
-	await process_frame
+	for method in ["gl_compatibility", "mobile", "forward_plus"]:
+		var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+		s.tutorial_override = 0
+		s.render_method = method
+		root.add_child(s)
+		await process_frame
+		var plus: bool = method == "forward_plus"
+		var env: Environment = s.world_env.environment
+		check((s.find_child("LampHaze", true, false) != null) == plus, "%s: FogVolume (fog shader) %s" % [method, "built" if plus else "not built"])
+		check((s.find_child("LampConeFallback", true, false) != null) == (not plus), "%s: fallback light cone %s" % [method, "absent" if plus else "built"])
+		check(env.volumetric_fog_enabled == plus and env.ssao_enabled == plus, "%s: volumetric fog and SSAO %s" % [method, "on" if plus else "off"])
+		s.queue_free()
+		await process_frame
 
 
 # --- #103 F1 ------------------------------------------------------------------------

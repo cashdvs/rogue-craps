@@ -1076,7 +1076,9 @@ func _after_hand() -> void:
 	if run.is_over():
 		# Out of hands uncleared: the Soul meter drops by the table's
 		# penalty, like a bust or forfeit (QA M4). A cleared table costs no
-		# Soul here, so nothing burns.
+		# Soul here, so nothing burns. Only the part not shown yet burns: a
+		# final-hand bust already burned its Soul in _bust(), and maxi()
+		# keeps this from going negative.
 		_burn_soul(maxi(_soul_shown - run.soul, 0))
 		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER

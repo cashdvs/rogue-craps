@@ -67,7 +67,8 @@ func _init() -> void:
 	checklist.add_theme_constant_override("separation", 4)
 	panel.add_child(checklist)
 	pot_label = _label(64, Palette.BRASS_HI, Vector2(560, 870), Vector2(800, 80))
-	throw_label = _label(34, Palette.EMBER, Vector2(360, 950), Vector2(1200, 46))
+	# x 520-1400: clear of the BANK button (bottom-left, ends at x 494).
+	throw_label = _label(34, Palette.EMBER, Vector2(520, 950), Vector2(880, 46))
 	mult_label = _label(34, Color("#FF2E3E"), Vector2(1260, 880), Vector2(260, 60))
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
 	result_label.modulate.a = 0.0

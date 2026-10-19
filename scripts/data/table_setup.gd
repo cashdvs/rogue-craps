@@ -28,7 +28,8 @@ var rules: Array = []
 ## -1 = dice.size().
 var owned_dice_count: int = -1
 ## The run's first table (the sandbox counts as one): only it gets the
-## Table 1 tutorial seeds and TH hints (onboarding_hints_v1.md).
+## Table 1 tutorial seeds and TH hints (Game Designer's
+## design/onboarding_hints_v1.md, in the design docs outside this repo).
 var first_table: bool = true
 
 
