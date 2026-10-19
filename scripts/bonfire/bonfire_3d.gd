@@ -1182,6 +1182,8 @@ func _update_portrait_hud() -> void:
 	bhud.set_ui_scale(ui_pt_px(portrait), BonfireHud.PHONE_LANDSCAPE_CARDS if phone_land else 1.0)
 	if felt_combos != null:
 		felt_combos.set_portrait(portrait, portrait and portrait_felt_flipped())
+		if not portrait:
+			_fit_landscape_felt()
 
 
 ## Portrait: the Art Director drew the portrait combo block for a camera
@@ -1636,6 +1638,61 @@ func fit_phone(size: Vector2) -> float:
 	return px
 
 
+## Landscape: keep the felt combo band clear of the Soul meter on the left
+## and the screen's right edge (8 pt margins) for this camera framing.
+func _fit_landscape_felt() -> void:
+	if felt_combos == null or camera == null:
+		return
+	var vs := get_viewport().get_visible_rect().size
+	var margin := 8.0 * ui_pt_px(false)
+	var left := margin
+	if soul_meter != null and soul_meter.is_visible_in_tree():
+		left = soul_meter.get_global_rect().end.x + margin
+	# The band must fit every pose the camera takes in play: home, and the
+	# reveal glide (closer in, pivot slid up to cam_follow_clamp each way).
+	var c := tuning.cam_follow_clamp
+	var close := minf(tuning.cam_reveal_distance, camera.home_distance)
+	var hp := camera.home_pivot
+	var poses: Array = [[hp, camera.home_distance]]
+	for px: float in [-c, 0.0, c]:
+		for pz: float in [-c, c]:
+			poses.append([Vector3(px, 0.0, pz + hp.z), close])
+	# ok[i] is true while size/slide candidate i fits every pose so far.
+	# Candidates: size 100% down to 70%, slide -0.30..+0.30 m in 5 mm steps.
+	var ok: Array[bool] = []
+	ok.resize(31 * 121)
+	ok.fill(true)
+	var was_pos := camera.position
+	var was_dist := camera.distance
+	var was_tilt := camera.tilt_deg
+	for pose: Array in poses:
+		camera.position = pose[0]
+		camera.distance = pose[1]
+		camera.tilt_deg = 0.0
+		camera._apply()
+		for i in ok.size():
+			if ok[i]:
+				ok[i] = felt_combos.land_fits(camera.cam, (100 - i / 121) / 100.0, (i % 121 - 60) * 0.005, left, vs.x - margin)
+	camera.position = was_pos
+	camera.distance = was_dist
+	camera.tilt_deg = was_tilt
+	camera._apply()
+	# Biggest size that fits; for that size, the smallest slide.
+	var k := 0.70
+	var sx := 0.0
+	var found := false
+	for ki in 31:
+		for si in 121:
+			var shift := (si - 60) * 0.005
+			if ok[ki * 121 + si] and (not found or absf(shift) < absf(sx)):
+				sx = shift
+				found = true
+		if found:
+			k = (100 - ki) / 100.0
+			break
+	felt_combos.set_land_fit(k, sx)
+
+
 ## Phone landscape: the home framing's pitch and tilt, closer in and
 ## centred (BonfireTuning cam_phone_landscape_*), so the whole felt, the
 ## near rail and the TotalPlate are in frame with dice as big as the old
@@ -1658,6 +1715,7 @@ func _fit_phone_landscape() -> float:
 		camera.distance = camera.home_distance
 		camera._apply()
 	phone_dial_visible = true
+	_fit_landscape_felt()
 	return _smallest_die_px(CameraFraming.rest_spots(tuning.die_size))
 
 
