@@ -15,8 +15,8 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 
 | Scene | Use |
 |---|---|
-| `scenes/hearth_board.tscn` | PC board (12,964 tris incl. fire cards; budget 15k) |
-| `scenes/hearth_board_mobile.tscn` | mobile LOD (5,978 tris; budget 8k) |
+| `scenes/hearth_board.tscn` | PC board (14,800 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
+| `scenes/hearth_board_mobile.tscn` | mobile LOD (6,845 drawn, dressing on, tail out; 5,856 off; budget 8k) |
 
 ## What goes where
 
@@ -114,12 +114,80 @@ plus a slow drifting diamond spark field (`sparks_drift.tres`) above the column 
   and the felt has a low Underfelt emission floor, so dice never fall into near-black in the vignette.
 - `Hearth/Candles` subtree: approved as is. The Art Director will document it in board_kit.md.
 
+## Set dressing + ambient motion (detail pass, Oct 19)
+
+Spec: `art/concept/bonfire_table/hearth_detail_pass.md`. Everything lives under `Hearth/Dressing`
+(`scripts/hearth_dressing.gd`), built by `src/build_dressing.py` (Blender) + `make_hearth.gd`. Art only:
+no gameplay code, no lights, no physics. The play area stays clean (the tests check every vertex, at
+rest and over every clip frame).
+
+| Node / look | Content |
+|---|---|
+| `Corners` (dressing_corners*.glb) | FL coin stack + fallen coin + cracked shot glass (PC); FR knucklebones + finger bone (aged bone #C9B48A, never the dice bone) and a contract with a wax seal draped over the far rail; NR half-melted stub; wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
+| `Trinkets` (PC only) | horned skull ashtray on the right rail, leather dice cup on the near-left rail |
+| `Bell` | Smiles' brass service bell (imp knob, horns on PC) on the far rail between his right hand and the brazier |
+| `Chain` | chain + padlock hanging down the left rail's outer face (sways on a rail hit) |
+| `Tail` (Root / Joint / Tip) | a burgundy devil tail with a spade, behind the far-left corner; hidden unless peeking |
+| `Under` | the room floor (y -0.9), 4 turned legs on ball-and-claw feet (claws on the near legs), a heavy chain on the floor; PC adds 5 dropped coins + 2 dice at the screen edges |
+| `Studs` | Board A's stud ring with 12 tarnished / 4 missing (mobile 5 / 2), never on the near rail; Board A's `Visual/Trim` is hidden while it shows |
+| `Ambient` | ember motes over the brazier (7 / 5) and the cauldron (3 / 2), lamp dust (16 / 8) high in the far half of the cone |
+| `Backdrop` | an unshaded card at z -2.3: out-of-focus far casino tables and lamp cones, max ~1 % linear value |
+| felt | `hearth_felt_worn.tres` (`textures/felt_ember_corners_worn.png`): scuff arc, two broad broken scorch rings, two pocks, an old wax stain; <= 12 % value shift, landing centre untouched, nothing pip-shaped or bone-coloured |
+| rails | `hearth_leather_carved.tres` (`shaders/hearth_toon_detail.gdshader` + `textures/rail_carve.png`, `src/make_rail_carve.py`): imp faces and flame-tongue scrollwork as a 1.1 mm normal map + cavity, 22 tiles round the rails, plus two claw marks at the near corners |
+
+Props are drawn at the dice's scale (the 0.08 m dice on a 2 m felt), use the prop ink `ink_prop.tres`
+(0.0025 = 60 % of the dice outline) and carry a faint self-glow of their own albedo: the dressing sits
+outside the lamp cone, where the toon ramp is black, and reads by "candlelight". No fire on dice,
+no occult symbols, no Soul cyan / Danger red.
+
+### Hooks (on the `Hearth` hub; forwarded to `Hearth/Dressing`)
+
+```gdscript
+fx.dressing = true|false  # everything on / exactly the pre-pass board (felt, leather, Board A studs)
+fx.ambient = true|false   # ambient motion (motes, dust, tail peeks, chain, bell); off for reduced motion
+fx.scoring = true|false   # while a score shows: the tail whips back if out and does not peek again until false
+fx.rail_hit(strength)     # a die hit a rail: ChainPlayer "chain_sway" (0.4 s), amplitude x strength (0.2-1.5)
+fx.bell_ring()            # Smiles' bell rattles (BellPlayer "bell_rattle", 0.5 s); fx.eyes reaching 3 calls it
+# Dressing.set_next_peek(seconds) schedules the next tail peek (renders / tests); peek_min / peek_max = 8 / 15 s
+```
+
+Gameplay never has to call anything: with no hooks the tail still peeks every 8-15 s. Godot Dev may wire
+`rail_hit` to the die-rail contact signal and `scoring` to the score display; no gameplay code was changed.
+
+| Player / clip | Length | Keys (on twos) |
+|---|---|---|
+| `TailPlayer/tail_peek` | 1.8 s | `tail_out` 0 -> 1 in 3 drawings, a 2-bone sway + a twitch, back in 2 drawings |
+| `TailPlayer/tail_whip` | 0.17 s | straight back under (scoring) |
+| `ChainPlayer/chain_sway` | 0.4 s | `chain_swing` 1, -0.65, 0.4, -0.22, 0.1, 0 |
+| `BellPlayer/bell_rattle` | 0.5 s | `bell_shake` +-1 decaying |
+
+The clips key only the pose params (`tail_out / tail_sway / tail_curl / chain_swing / bell_shake`).
+
+### Triangles (dressing)
+
+| Part | PC | Mobile |
+|---|---|---|
+| corners | 726 | 418 |
+| trinkets | 192 | - |
+| chain + padlock | 217 | 163 |
+| bell | 120 | 76 |
+| floor, legs, floor chain (+ coins, dice on PC) | 634 | 242 |
+| tail (root + tip) | 78 | 64 |
+| worn studs (replace Board A trim) | = Board A studs minus 4 / 2 missing | |
+| motes / dust / backdrop | 52 + 2 | 30 + 2 |
+| **board drawn, dressing on, tail out** | **14,800** | **6,845** |
+
+Renders: `/workspace/dice/art/renders/hearth/detail_pass/` (tool outside the repo:
+`art/source/hearth_tools/render_detail.gd`). Tests: `tests/test_hearth_dressing.gd` (budget, clearance,
+toggle, looks, clips) and `tests/test_hearth_board.gd`.
+
 ## Rebuild
 
 `art/models/boards/hearth/src/rebuild_hearth.sh` (from the repo root): `build_hearth.py` (Blender 4.5,
 props .glb) -> `make_hearth.gd -- materials` -> `write_imports.py` (.glb.import slot -> .tres) ->
-`--import` -> `make_hearth.gd -- props` -> `make_hearth.gd -- board`. Textures: `make_flame_atlas.py`,
-`make_felt_motif.py`. Test: `tests/test_hearth_board.gd`.
+`--import` -> `make_hearth.gd -- props` -> `make_hearth.gd -- board`; the detail pass adds `build_dressing.py`
+(Blender, imports `build_hearth.py`) before the imports. Textures: `make_flame_atlas.py`, `make_felt_motif.py`
+(also the worn overlay), `make_rail_carve.py`. Tests: `tests/test_hearth_board.gd`, `tests/test_hearth_dressing.gd`.
 
 ## Notes / spec gaps
 
