@@ -490,6 +490,11 @@ func has_pending_stamp(id: StringName) -> bool:
 
 ## Bust: the PENDING ghosts crumble (0.25 s: scale 1 -> 1.1, fade, and a
 ## little bone dust), and the cards go back to open.
+## Bounty ids showing a PENDING stamp right now.
+func pending_cards() -> Array:
+	return _pending_stamps.keys()
+
+
 func crumble_pending(reduced: bool = false) -> int:
 	portrait_goal.lost(_pending_stamps.keys())
 	var n := 0
