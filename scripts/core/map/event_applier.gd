@@ -50,7 +50,7 @@ static func picks_needed(choice: EventChoiceData) -> int:
 static func pick_ok(e: EventEffectData, p: RunProgress, pick: Vector2i) -> bool:
 	if e.kind == K.REMOVE_FACE_MOD:
 		return p.modded_faces().has(pick)
-	return pick.x >= 0 and pick.x < p.dice.size() and pick.y >= 0 and pick.y < 6 \
+	return pick.x >= 0 and pick.x < p.dice.size() and pick.y >= 0 and pick.y < p.dice[pick.x].faces.size() \
 		and p.dice[pick.x].faces[pick.y] in [&"", RunDie.BLANK]
 
 

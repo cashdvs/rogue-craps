@@ -54,6 +54,19 @@ func stop(fade_seconds: float = 0.6) -> void:
 	_fade_to(silent, fade_seconds, true)
 
 
+## A quick swell on top of the pot level (at a signature trigger's hit): the
+## playing stems jump up by `db`, then glide back to the pot gains over
+## `seconds`. Does nothing while the crowd is stopped.
+func nudge(db: float = 3.0, seconds: float = 0.3) -> void:
+	if _players.is_empty() or not _players[0].playing:
+		return
+	var gains := BonfireSynth.crowd_gains_db(pot_fraction)
+	for i in _players.size():
+		if gains[i] > SILENT_DB:
+			_players[i].volume_db = maxf(_players[i].volume_db, gains[i] + volume_db) + db
+	_fade_to(gains, seconds)
+
+
 ## The volume (dB) each stem is at right now (for tests and debug overlays).
 func current_db() -> PackedFloat32Array:
 	var out := PackedFloat32Array()

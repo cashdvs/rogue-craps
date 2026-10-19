@@ -242,9 +242,7 @@ func _roll_rewards() -> void:
 			seal_options.append(rares[rng.randi_range(0, rares.size() - 1)])
 	dice_options.clear()
 	if table_type == NT.ELITE:
-		var pool: Array[SpecialDieData] = data.special_dice.duplicate()
-		while dice_options.size() < data.elite_dice_options and not pool.is_empty():
-			dice_options.append(pool.pop_at(rng.randi_range(0, pool.size() - 1)))
+		dice_options = _dice_offers(rng, data.elite_dice_options)
 
 
 func _seal_offers(rng: RandomNumberGenerator, n: int) -> Array[StringName]:
@@ -368,7 +366,7 @@ func rest_carve(pick: Vector2i) -> bool:
 
 ## A face a new mod can go on: unmodded, or Blank (carving over a curse).
 func free_face(pick: Vector2i) -> bool:
-	return pick.x >= 0 and pick.x < progress.dice.size() and pick.y >= 0 and pick.y < 6 \
+	return pick.x >= 0 and pick.x < progress.dice.size() and pick.y >= 0 and pick.y < progress.dice[pick.x].faces.size() \
 		and progress.dice[pick.x].faces[pick.y] in [&"", RunDie.BLANK]
 
 
@@ -390,12 +388,27 @@ func rest_seal(combo: StringName) -> bool:
 
 # --- Shop (spec 1, Game Designer prices) ---
 
+## n dice offers (shop slots / Elite reward): each is a shaped die with
+## RunData.shape_offer_chance (enabled shapes, equal weight), else a special
+## die; no offer repeats.
+func _dice_offers(rng: RandomNumberGenerator, n: int) -> Array[SpecialDieData]:
+	var specials: Array[SpecialDieData] = data.special_dice.duplicate()
+	var shapes: Array[SpecialDieData] = []
+	for s in data.shapes:
+		if s.enabled:
+			shapes.append(s)
+	var out: Array[SpecialDieData] = []
+	while out.size() < n and not (specials.is_empty() and shapes.is_empty()):
+		var use_shape := not shapes.is_empty() and (specials.is_empty() or rng.randf() < data.shape_offer_chance)
+		var pool := shapes if use_shape else specials
+		out.append(pool.pop_at(rng.randi_range(0, pool.size() - 1)))
+	return out
+
+
 func _roll_shop() -> void:
 	var rng := _rng(&"shop", shop_rerolls)
 	shop_dice.clear()
-	var dpool: Array[SpecialDieData] = data.special_dice.duplicate()
-	while shop_dice.size() < data.shop_dice and not dpool.is_empty():
-		shop_dice.append(dpool.pop_at(rng.randi_range(0, dpool.size() - 1)))
+	shop_dice = _dice_offers(rng, data.shop_dice)
 	shop_mods.clear()
 	var mpool: Array[FaceModData] = data.face_mods.duplicate()
 	while shop_mods.size() < data.shop_mods and not mpool.is_empty():

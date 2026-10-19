@@ -65,12 +65,15 @@ func _test_goals() -> void:
 				good = good and has
 			ok[f] = ok[f] and good
 	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, 1 bonus")
-	_check(ok[1], "goals: floor 2 has 3-4 incl. Run of 4 or Full House, 5 hands")
-	_check(ok[2], "goals: floor 3 has 4 incl. Quads or Run of 5, 6 hands")
-	var run := MapRun.new(_data, 5)
-	_enter(run, NT.BOSS)
-	_check(run.goal.required.size() >= 4 and run.goal.required.size() <= 5 and run.goal.display_name == run.boss_name(),
-		"goals: boss has 4-5 bounties")
+	_check(ok[1], "goals: floor 2 has 3 incl. Run of 4, 5 hands")
+	_check(ok[2], "goals: floor 3 has 4 incl. Run of 4, 5 hands")
+	var boss_ok := true
+	for f in 3:
+		var run := MapRun.new(_data, 5)
+		run._start_floor(f)
+		_enter(run, NT.BOSS)
+		boss_ok = boss_ok and run.goal.required.size() == [3, 5, 4][f] and run.goal.display_name == run.boss_name()
+	_check(boss_ok, "goals: bosses have 3 / 5 / 4 bounties on floors 1 / 2 / 3")
 	var a := MapRun.new(_data, 9)
 	var b := MapRun.new(_data, 9)
 	_enter(a, NT.TABLE)
@@ -210,8 +213,8 @@ func _play(seed_value: int) -> MapRun:
 
 func _test_rules_and_seals() -> void:
 	var f1: FloorData = _data.floors[0]
-	_check(f1.elite_twists.size() == 6 and f1.boss_cheats.size() == 3 and _data.floors[2].boss_cheats.size() == 6
-		and _data.floors[2].boss_adds_twist and not f1.boss_adds_twist, "rules: 6 twists; 3 bosses on floors 1-2, all 6 + a twist on floor 3")
+	_check(f1.elite_twists.size() == 4 and f1.boss_cheats.size() == 3 and _data.floors[2].boss_cheats.size() == 3
+		and not _data.floors[2].boss_adds_twist and not f1.boss_adds_twist, "rules: 4 twists; 3 bosses on every floor (Floor 3: Wick, Vig, Bodkin)")
 	var run := MapRun.new(_data, 8)
 	_check(f1.boss_cheats.has(run.boss) and run.boss_twist == null, "rules: floor 1 boss drawn from its pool on entering the floor")
 	var short: RunRuleData = load("res://resources/map/rules/short_table.tres")
@@ -225,10 +228,10 @@ func _test_rules_and_seals() -> void:
 	for s in 30:
 		var r2 := MapRun.new(_data, s)
 		_enter(r2, NT.ELITE)
-		if r2.rules[0] == short:
-			hands_ok = r2.goal.hands == 4
+		hands_ok = r2.rules.size() == 1 and r2.goal.hands == _data.floors[0].hands + r2.rules[0].hands_delta and r2.rules[0].hands_delta == 1
+		if not hands_ok:
 			break
-	_check(hands_ok, "rules: Short Table -> 4 hands")
+	_check(hands_ok, "rules: every Elite twist gives +1 hand (6 on floor 1)")
 	_check(setup.dice.size() == 5 and setup.start_soul == run.progress.soul and setup.max_soul == 35 and setup.goal == g, "setup: dice, Soul, goal")
 	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
 	run.progress.add_seal_levels(&"pair", 1)
@@ -290,21 +293,25 @@ func _test_rules_and_seals() -> void:
 ## Every rule id the run can emit is one the table knows, with the agreed
 ## default params, sent to TableSetup.rules as {"id", "params"}.
 func _test_rule_ids() -> void:
-	var allowed := {&"cold_sixes": {"face": 6}, &"first_throw": {"throws": 1}, &"short_table": {}, &"heavy_burn": {},
-		&"greedy_pot": {"min_pot": 2}, &"cold_hands": {}, &"madame_shuffle": {"count": 1},
-		&"pit_boss": {"faces": [1, 2, 3, 4, 5, 6]}, &"ashmouth": {}, &"straight_man": {"min_run": 5},
-		&"collector": {"throws": 1}, &"bloodletter": {"soul_cost_mult": 2}}
+	var allowed := {}
+	for pair in [[&"cold_sixes", {"face": 6}], [&"first_throw", {"throws": 2}], [&"first_throw", {"throws": 1}],
+			[&"greedy_pot", {"min_pot": 2}], [&"greedy_pot", {"min_pot": 3}],
+			[&"cold_hands", {}], [&"pit_boss", {"faces": [2, 3, 4, 5, 6]}], [&"pit_boss", {"faces": [2, 4]}],
+			[&"ashmouth", {}], [&"straight_man", {"min_run": 4}], [&"collector", {"throws": 1}], [&"bloodletter", {"soul_cost_mult": 2}]]:
+		if not allowed.has(pair[0]):
+			allowed[pair[0]] = []
+		allowed[pair[0]].append(str(pair[1]))
 	var emitted: Array[RunRuleData] = []
 	for f: FloorData in _data.floors:
 		for r in f.elite_twists + f.boss_cheats:
 			if not emitted.has(r):
 				emitted.append(r)
-	var ok := emitted.size() == 12
+	var ok := emitted.size() == 13
 	for r in emitted:
-		if not allowed.has(r.id) or str(r.params) != str(allowed[r.id]):
+		if not allowed.has(r.id) or not str(r.params) in allowed[r.id]:
 			ok = false
 			print("  bad rule: ", r.id, " ", r.params)
-	_check(ok, "rules: all 12 emitted ids are the table's ids, with the agreed params")
+	_check(ok, "rules: all 13 emitted rules (Wick/Vig/Bodkin reuse twist ids, Madame Shuffle pit_boss) are the table's ids, with the agreed params")
 	var base: BonfireTuning = load("res://resources/tuning/bonfire_tuning.tres")
 	var seen_ids: Dictionary = {}
 	for s in 30:
@@ -313,7 +320,7 @@ func _test_rule_ids() -> void:
 			_enter(run, t)
 			for e: Dictionary in run.table_setup().to_table_setup(base).rules:
 				seen_ids[e["id"]] = true
-				ok = ok and e.keys().size() == 2 and allowed.has(e["id"]) and str(e["params"]) == str(allowed[e["id"]])
+				ok = ok and e.keys().size() == 2 and allowed.has(e["id"]) and str(e["params"]) in allowed[e["id"]]
 	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} with known ids (%d seen)" % seen_ids.size())
 	var r2 := MapRun.new(_data, 3)
 	r2.progress.add_die(&"cracked")

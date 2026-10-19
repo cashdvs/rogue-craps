@@ -6,8 +6,8 @@
 script = ExtResource("1_by766")
 id = &"straight_man"
 display_name = "The Straight Man"
-description = "Only 5-die runs count."
+description = "Runs of 3 don't count."
 kind = 1
 params = {
-"min_run": 5
+"min_run": 4
 }
