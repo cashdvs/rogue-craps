@@ -85,6 +85,8 @@ var tutorial_override: int = -1
 var _juice_dice: Array[DieVisual] = []
 var _pip_die: Array[int] = []
 var _juice_tier: int = 0
+## The pot's face mod ids, per die (&"" = none): mod_triggered.
+var _pip_mods: Array[StringName] = []
 ## What the lit dice of this throw could claim (no selection yet).
 var _throw_claims: Array = []
 
@@ -117,6 +119,7 @@ func _ready() -> void:
 	for i in all_dice.size():
 		var td: TableDie = setup.dice[mini(i, setup.dice.size() - 1)]
 		_die_of[all_dice[i]] = td
+		all_dice[i].set_meta(&"handful_id", i)
 		apply_die_look(all_dice[i], td)
 	bhud = BonfireHud.new()
 	hud.add_child(bhud)
@@ -281,6 +284,7 @@ func leave() -> bool:
 	phase = Phase.OVER
 	for d in all_dice:
 		_set_lit(d, false)
+	events.table_cleared.emit()
 	_taunt(&"bonfire_clear")
 	_set_why("You left the table. Cleared!")
 	bhud.show_end(run)
@@ -461,6 +465,7 @@ func _hot_hand_moment() -> void:
 		_set_lit(d, false)
 		d.visible = true
 		d.scale = Vector3.ONE
+	events.hot_hand.emit(run.hot_hands)
 	juice.hot_hand(list)
 	bhud.flash("HOT HAND x%d" % run.hot_hands if run.hot_hands > 1 else "HOT HAND!", Palette.EMBER)
 	var fly := bonfire_tuning.juice_hot_hand_fly_time if not reduced_motion else 0.22
@@ -513,6 +518,14 @@ func _start_count_up(sel: Dictionary, dice_list: Array[DieVisual], faces: Array,
 	var plan := JuicePlan.timeline(vals.size(), chips.size() - 1, tier, speed_mode, t)
 	_juice_dice = dice_list.duplicate()
 	_juice_tier = tier
+	_pip_mods.clear()
+	for k in faces.size():
+		var fm: FaceModData = (faces[k] as Dictionary).get("mod")
+		_pip_mods.append(fm.id if fm != null and not run.rule_ctx()["no_mods"] else &"")
+	var ids: Array = []
+	for d in dice_list:
+		ids.append(event_id(d))
+	events.combo_potted.emit(StringName(sel.get("combo", &"")), ids, int(sel["points"]), int(sel.get("mult", 0)))
 	juice.lift(_juice_dice, plan["big"], test_speed * (2.0 if speed_mode == 1 else 1.0) * (20.0 if speed_mode == 2 else 1.0))
 	bhud.countup.play({"base": int(sel["base"]), "values": vals, "chips": chips, "points": int(sel["points"]),
 		"name": str(sel["name"]), "score_tier": tier, "banner_tier": JuicePlan.banner_tier(StringName(sel["combo"]), t)},
@@ -523,6 +536,8 @@ func _on_count_pip(i: int) -> void:
 	if speed_mode != 2:
 		juice.pip_sound(i)
 	var k: int = _pip_die[i] if i < _pip_die.size() else -1
+	if k >= 0 and k < _pip_mods.size() and _pip_mods[k] != &"" and (i == 0 or _pip_die[i - 1] != k) and k < _juice_dice.size():
+		events.mod_triggered.emit(_pip_mods[k], _juice_tier, event_id(_juice_dice[k]), clampf(_juice_tier / 4.0, 0.0, 1.0), Time.get_ticks_msec())
 	if k >= 0 and k < _juice_dice.size() and is_instance_valid(_juice_dice[k]):
 		var d := _juice_dice[k]
 		d.body_material.set_shader_parameter("emission_color", Palette.EMBER)
@@ -568,6 +583,7 @@ func bank() -> Dictionary:
 		await bhud.countup.finished
 	# Bank: embers flow to the pile, each claimed bounty gets its wax stamp.
 	bhud.flash("BANKED +%d" % int(r["gain"]), Palette.BRASS_HI)
+	events.banked.emit(int(r["gain"]))
 	juice.bank_sound()
 	juice.crowd_pot(0)
 	_taunt(&"bonfire_bank")
@@ -581,6 +597,7 @@ func bank() -> Dictionary:
 	bhud.flash_ticks(r["ticked"])
 	for id: StringName in r["ticked"]:
 		bhud.stamp_claimed(id, reduced_motion)
+		events.bounty_claimed.emit(id)
 		juice.stamp_sound()
 		if speed_mode != 2:
 			await _wait(bonfire_tuning.juice_stamp_gap / test_speed)
@@ -592,6 +609,7 @@ func bank() -> Dictionary:
 		# The clear moment: Embers locked in, the table stays open (unless
 		# that was the last hand, then it ends right after this).
 		bhud.show_cleared(2.0 if speed_mode == 1 else 1.0, speed_mode == 2 or reduced_motion)
+		events.table_cleared.emit()
 		_taunt(&"bonfire_clear")
 		_tutorial_hint(5)
 		if not run.is_over():
@@ -608,6 +626,7 @@ func pick_die(i: int) -> bool:
 		return false
 	if not run.toggle(i):
 		# It bounces back where it was, with a "doesn't score" callout.
+		events.no_score.emit()
 		sfx.play(&"chip_refuse")
 		refused.emit(i)
 		var d := throw_dice[i]
@@ -873,6 +892,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		_end_sequence_after_forfeit()
 		return
 	_punch_dice()
+	events.dice_settled.emit()
 	sfx.play(&"dice_settle", 1.0, -3.0)
 	_felt_pos.clear()
 	for d in throw_dice:
@@ -1113,6 +1133,16 @@ func _show_face_changes(th: TableThrow) -> void:
 			d.faces.position = base + Vector3(0, sin(k * PI) * d.edge * 0.7, 0)
 			d.body_material.set_shader_parameter("emission_energy", 0.9 * (1.0 - k * 0.6)), 0.0, 1.0, FLIP_TIME)
 		tw.tween_callback(func() -> void: d.faces.position = base)
+	var by_cheat: Dictionary = {}
+	for i: int in seen:
+		var by := StringName((seen[i] as Dictionary).get("by", &""))
+		for r in run.rules:
+			if r.id == by and r.kind == TableRule.Kind.CHEAT and i < throw_dice.size():
+				if not by_cheat.has(by):
+					by_cheat[by] = []
+				(by_cheat[by] as Array).append(event_id(throw_dice[i]))
+	for by: StringName in by_cheat:
+		events.boss_cheat.emit(by, by_cheat[by])
 	sfx.play(&"chip_place", 0.7, -2.0)
 	await _wait(FLIP_TIME + 0.08)
 	for i: int in seen:
@@ -1238,6 +1268,7 @@ func _bust() -> void:
 	_burn_soul(int(r["soul_lost"]))
 	_camera_shake(tuning.shake_craps_px, 0.3)
 	# Flames snuff, dice ash over, the Soul flask cracks, pending stamps crumble.
+	events.bust.emit(int(r["soul_lost"]))
 	juice.bust(throw_dice, reduced_motion)
 	bhud.crumble_pending(reduced_motion)
 	bhud.flask_crack(soul_meter.get_global_rect(), reduced_motion)
@@ -1522,15 +1553,20 @@ func _clear_slot(at: Vector3, except: DieVisual) -> void:
 func _set_lit(d: DieVisual, on: bool) -> void:
 	# Material only (design section 4): a lit die glows ember, no lights or
 	# flames. Turning "off" returns it to the plain bone look.
+	var was := _lights.has(d)
 	if on:
 		_lights[d] = true
 	else:
 		_lights.erase(d)
 	d.set_glow_state(on, false)
+	if was != on and events != null:
+		events.die_lit_changed.emit(event_id(d), on)
 
 
 ## A thrown die that did not score goes matte grey ("cold") once it settles.
 func _set_cold(d: DieVisual) -> void:
+	if _lights.has(d) and events != null:
+		events.die_lit_changed.emit(event_id(d), false)
 	_lights.erase(d)
 	d.set_glow_state(false, true)
 
