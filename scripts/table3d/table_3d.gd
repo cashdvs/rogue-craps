@@ -186,6 +186,11 @@ func _ready() -> void:
 	gesture = ThrowGesture.new(tuning)
 	sfx = SfxManager.new()
 	add_child(sfx)
+	# Feel layer (scripts/fx/): plays the cues for table.events signals.
+	# A no-op until the TableEvents node (Godot Dev) exists on the table.
+	# Whichever PR adds `events` must also remove the table's direct sfx calls
+	# for throw, impact, hot_hand, no_score, and table_cleared (one-owner rule).
+	add_child(TableAudio.new())
 	_build_world()
 	_build_hud()
 	_build_end_screen()

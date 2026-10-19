@@ -12,6 +12,12 @@
 ##   flare     0-1  the all-lit candle flare ("flare" drives it).
 ## The clips only key snuff / wisp / flare / pulse, never the state params, so after "snuff" every
 ## prop relights to its previous state (candles keep their progress).
+## Set dressing (detail pass, Oct 19; Hearth/Dressing, scripts/hearth_dressing.gd):
+##   dressing  bool  set dressing on / off (off = exactly the pre-pass board; for A/B and the dice read test)
+##   ambient   bool  ambient motion on / off (ember motes, lamp dust, tail peeks, chain sway, bell); reduced motion = off
+##   scoring   bool  true while scoring: the devil tail whips back and waits (no peeks)
+##   rail_hit(strength = 1.0)  a die hit a rail -> the chain sways 0.4 s (call from the rail-hit sfx / impact hook)
+##   bell_ring()               Smiles' service bell rattles; also plays by itself when `eyes` reaches 3 (Hot Hand 3+)
 @tool
 extends Node3D
 
@@ -25,8 +31,11 @@ var _ready_done := false
 		_apply()
 @export_range(0, 3) var eyes: int = 0:
 	set(v):
+		var was := eyes
 		eyes = clampi(v, 0, 3)
 		_apply()
+		if eyes == 3 and was < 3 and is_inside_tree() and not Engine.is_editor_hint():
+			bell_ring()
 @export_range(-1, 3) var eyes_left: int = -1:
 	set(v):
 		eyes_left = clampi(v, -1, 3)
@@ -70,9 +79,51 @@ var _ready_done := false
 		_apply()
 
 
+@export var dressing: bool = true:
+	set(v):
+		dressing = v
+		var d := _dressing()
+		if d != null:
+			d.enabled = v
+@export var ambient: bool = true:
+	set(v):
+		ambient = v
+		var d := _dressing()
+		if d != null:
+			d.ambient = v
+@export var scoring: bool = false:
+	set(v):
+		scoring = v
+		var d := _dressing()
+		if d != null:
+			d.scoring = v
+
+
 func _ready() -> void:
 	_ready_done = true
 	_apply()
+	var d := _dressing()
+	if d != null:
+		d.enabled = dressing
+		d.ambient = ambient
+
+
+func _dressing() -> Node:
+	return get_node_or_null("Dressing")
+
+
+## A die hit a rail: the draped chain sways (visual only).
+func rail_hit(strength: float = 1.0) -> void:
+	var d := _dressing()
+	if d != null:
+		d.rail_hit(strength)
+
+
+## Smiles' brass service bell rattles (visual only; a hook for a later "ding").
+func bell_ring() -> void:
+	var d := _dressing()
+	if d != null:
+		d.bell_ring()
 
 
 ## Plays the 0.15 s ember seam pulse (its own player, so it can overlap "snuff" / "flare").
@@ -127,6 +178,9 @@ func _apply() -> void:
 			c.heat = heat
 			c.flare = flare
 			c.wisp = wisp
+	var dr := _dressing()
+	if dr != null:
+		dr.heat = heat
 	var rails := HearthProps.mesh_of(b.get_node_or_null("Visual/Rails"))
 	if rails != null:
 		rails.set_instance_shader_parameter(&"level", seam)

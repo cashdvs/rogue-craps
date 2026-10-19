@@ -196,9 +196,7 @@ func _init() -> void:
 var display_hold: Dictionary = {}
 
 
-## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
-## the button into "LEAVE?  TAP AGAIN"; a second one within LEAVE_CONFIRM_S
-## leaves (emits leave_pressed). Otherwise the text goes back.
+## Seconds the "LEAVE?  TAP AGAIN" question waits for the second tap.
 const LEAVE_CONFIRM_S: float = 2.0
 const LEAVE_TEXT := "LEAVE TABLE  (L)"
 const LEAVE_ASK_TEXT := "LEAVE?  TAP AGAIN"
@@ -208,6 +206,9 @@ var _leave_asked_at: float = -1.0
 var leave_clock: Callable = func() -> float: return Time.get_ticks_msec() / 1000.0
 
 
+## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
+## the button into "LEAVE?  TAP AGAIN"; a second one within LEAVE_CONFIRM_S
+## leaves (emits leave_pressed). Otherwise the text goes back.
 func press_leave() -> void:
 	if not leave_button.visible:
 		return
@@ -642,11 +643,12 @@ func flash_ticks(ids: Array) -> void:
 		tw.parallel().tween_property(l, "modulate", Color.WHITE, 0.5)
 
 
-## The clearing bank (how_bonfire_plays.md §4): "TABLE CLEARED: chase the
-## bonus or Leave table" (ClearedBanner: 1.8 s at 1x, never blocks input).
+## The banner's text (ClearedBanner.TEXT).
 const CLEARED_TEXT := ClearedBanner.TEXT
 
 
+## The clearing bank (how_bonfire_plays.md §4): "TABLE CLEARED: chase the
+## bonus or Leave table" (ClearedBanner: 1.8 s at 1x, never blocks input).
 ## speed: 2.0 at the 2x roll speed; instant: the Instant speed / reduced motion.
 func show_cleared(speed: float = 1.0, instant: bool = false) -> void:
 	cleared_banner.pt_px = ui_pt_px
