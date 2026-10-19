@@ -335,7 +335,7 @@ def _local_euler(r_arm):
     return tuple(round(math.degrees(a), 2) for a in e)
 
 
-def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None):
+def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0):
     """Pose upper_arm_s / forearm_s so the wrist lands on `wrist` (armature rest coords, i.e. relative to the
     unposed chest; the chest / spine lean carries it). pole = a point the elbow bends toward."""
     S = Vector(BONES["upper_arm_" + s][1])
@@ -360,7 +360,10 @@ def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None):
     if fingers is not None:  # aim the hand (wrist -> knuckles) along an armature-space direction
         rest = Vector((0, -0.004, -0.085))
         want = (ru @ rf).inverted() @ Vector(fingers).normalized()
-        out["hand_" + s] = _local_euler(rest.rotation_difference(want).to_matrix())
+        rh = rest.rotation_difference(want).to_matrix()
+        if roll:  # spin the hand about its own wrist -> knuckles axis (palm direction)
+            rh = Matrix.Rotation(math.radians(roll), 3, want) @ rh
+        out["hand_" + s] = _local_euler(rh)
     return out
 
 
@@ -391,13 +394,22 @@ def curl(s, a):
 CLIPS = {}
 
 
+# Visor rim read (AD final): on these clips his head sits further back than in idle / cheat, so the brim's top and
+# its pale-green rim turn away from the lamp and go dark. Tip the visor toward the camera on every key that does not
+# key the visor itself (the cheat tell keeps its own, larger tip).
+VISOR_TIP = {"taunt": 15, "grudging": 15, "deal": 15}
+
+
 def clip(name, length_s, keys, loop=False):
+    tip = VISOR_TIP.get(name, 0)
+    if tip:
+        keys = [(t, p if "visor" in p else {**p, "visor": (tip, 0, 0)}) for t, p in keys]
     CLIPS[name] = (length_s, keys, loop)
 
 
 # idle (3.0 s loop): leans low on the far rail, both forearms on it; the right hand rolls a chip over its
 # knuckles just above the rail top (inside the phone band, clear of the brazier and plaque), grin twitch, head sway.
-_lean = arm("L", (0.15, -0.05, 0.655), (0.45, 0.3, 0.1), fingers=(-0.35, -1, 0.16))
+_lean = arm("L", (0.1, -0.05, 0.655), (0.17, 0.35, 0.05), fingers=(-0.35, -1, 0.26))
 _chip_hand = P(STAND, _lean, arm("R", (-0.17, -0.05, 0.655), (-0.45, 0.3, 0.1), fingers=(0.3, -1, 0.24)), spine=(6, 0, 0), chest=(10, 0, 0))
 _chip_hand2 = P(STAND, _lean, arm("R", (-0.17, -0.055, 0.665), (-0.45, 0.3, 0.1), fingers=(0.35, -1, 0.3)), spine=(6, 0, 0), chest=(10, 0, 0))
 clip("idle", 3.0, [
@@ -406,7 +418,7 @@ clip("idle", 3.0, [
     (1.0, P(_chip_hand2, chest=(10, 0, 0), head=(-24, 0, 4), chip=(180, 0, 0, 0.025, -0.024, 0), index_R=(0, 0, 14))),
     (1.4, P(_chip_hand2, chest=(10, 0, 0), head=(-26, 0, 5), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8), chip=(260, 0, 0, 0.025, -0.03, 0), index_R=(0, 0, 14))),
     (1.7, P(_chip_hand2, chest=(10, 0, 0), head=(-25, 0, 3), jaw=(0, 0, 0), chip=(300, 0, 0, 0.025, -0.02, 0))),
-    (2.2, P(_chip_hand, chest=(10, 0, 0), head=(-23, 0, -3), chip=(340, 0, 0, 0.025, -0.008, 0))),
+    (2.2, P(_chip_hand, chest=(10, 0, 0), head=(-23, 0, 0), chip=(340, 0, 0, 0.025, -0.008, 0))),
     (3.0, P(_chip_hand, chip=(360, 0, 0, 0.025, 0, 0))),
 ], loop=True)
 
@@ -439,40 +451,57 @@ clip("taunt", 1.4, [
 # just in front of the face, so on screen the cracking grin sits right above the clapping hands.
 _crack = {"jaw": (4, 0, 0), "grin_L": (0, 0, -16), "grin_R": (0, 0, 16)}
 _up = {"head": (-25, 0, 0)}
-_clap_open = P(STAND, _crack, _up, arm("L", (0.085, -0.13, 0.66), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.0)),
-               arm("R", (-0.085, -0.13, 0.66), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.0)))
-_clap_shut = P(_clap_open, arm("L", (0.04, -0.135, 0.665), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.0)),
-               arm("R", (-0.04, -0.135, 0.665), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.0)))
-_clap_rise = P(STAND, arm("L", (0.11, -0.100, 0.660), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.0)),
-               arm("R", (-0.11, -0.100, 0.660), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.0)), head=(-25, 0, 0))
-_clap_lift = P(STAND, arm("L", (0.16, -0.02, 0.65), (0.4, 0.3, 0.1), fingers=(-0.3, -1, 0.6)),
-               arm("R", (-0.16, -0.02, 0.65), (-0.4, 0.3, 0.1), fingers=(0.3, -1, 0.6)), head=(-12, 0, 0))
+# Clap (AD final): held keys keep the hands a palm-width apart, palms facing, fingers up and slightly splayed,
+# wrists never crossing; the palms meet for only 2-3 frames per clap. Elbows tucked down/back (clear of the brazier).
+_splay = {'index_L': (-6, 0, 0), 'fingers_L': (5, 0, 0), 'thumb_L': (-14, 0, 0), 'index_R': (-6, 0, 0), 'fingers_R': (5, 0, 0), 'thumb_R': (-14, 0, 0)}
+CW = (-0.25, 0.66)  # held clap wrist (y, z)
+FY = -0.5  # fingers up, tipped a little toward the camera
+PALM_ROLL = 145.0  # spins the hands so the palms face each other (fingers stay up)
+def _clap(hx, wy=None, wz=None, fs=0.12, roll=None):
+    wy = CW[0] if wy is None else wy
+    wz = CW[1] if wz is None else wz
+    roll = PALM_ROLL if roll is None else roll
+    return {**arm("L", (hx, wy, wz), (0.17, 0.35, 0.35), fingers=(fs, FY, 1), roll=roll),
+            **arm("R", (-hx, wy, wz), (-0.17, 0.35, 0.35), fingers=(-fs, FY, 1), roll=-roll), **_splay}
+_clap_open = P(STAND, _crack, _up, _clap(0.075))
+_clap_shut = P(_clap_open, _clap(0.017, fs=0.0))
+# The way up / down: dense keys along a wrist path (straight up behind the rail, then forward over it) with the palm
+# roll ramped, so the FK in-betweens never swing the wrists across each other or out toward the brazier.
+_CLAP_PATH = [(0.08, -0.04, 0.47, 30.0), (0.08, -0.03, 0.58, 70.0), (0.078, -0.07, 0.66, 100.0),
+              (0.077, -0.13, 0.67, 125.0), (0.075, -0.2, 0.665, 140.0)]
+_clap_way = [P(STAND, _up if k >= 3 else {}, _clap(hx, wy=wy, wz=wz, roll=r), head=(-14 - 3 * k, 0, 0)) for k, (hx, wy, wz, r) in enumerate(_CLAP_PATH)]
+_hide = {"chip": (0, 0, 0, 0, 0, 0, 0.0)}
 clip("grudging", 1.6, [
     (0.0, STAND),
-    (0.08, P(_clap_lift, chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (0.17, P(_clap_rise, chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (0.3, P(_clap_open, chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (0.5, P(_clap_shut, head=(-25, 0, 3), grin_L=(0, 0, -20), grin_R=(0, 0, 20), chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (0.8, P(_clap_open, grin_L=(0, 0, -18), grin_R=(0, 0, 18), chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (1.0, P(_clap_shut, head=(-25, 0, 3), jaw=(2, 0, 0), grin_L=(0, 0, -24), grin_R=(0, 0, 24), chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (1.25, P(_clap_open, grin_L=(0, 0, -14), grin_R=(0, 0, 14), chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (1.42, P(_clap_rise, chip=(0, 0, 0, 0, 0, 0, 0.0))),
-    (1.52, P(_clap_lift, chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    *[(0.05 * (k + 1), P(w, _hide)) for k, w in enumerate(_clap_way)],
+    (0.3, P(_clap_open, _hide)),
+    (0.44, P(_clap_open, _hide, grin_L=(0, 0, -18), grin_R=(0, 0, 18))),
+    (0.5, P(_clap_shut, _hide, head=(-25, 0, 3), grin_L=(0, 0, -20), grin_R=(0, 0, 20))),
+    (0.534, P(_clap_shut, _hide, head=(-25, 0, 3), grin_L=(0, 0, -20), grin_R=(0, 0, 20))),
+    (0.6, P(_clap_open, _hide, grin_L=(0, 0, -18), grin_R=(0, 0, 18))),
+    (0.94, P(_clap_open, _hide, grin_L=(0, 0, -20), grin_R=(0, 0, 20))),
+    (1.0, P(_clap_shut, _hide, head=(-25, 0, 3), jaw=(2, 0, 0), grin_L=(0, 0, -24), grin_R=(0, 0, 24))),
+    (1.034, P(_clap_shut, _hide, head=(-25, 0, 3), jaw=(2, 0, 0), grin_L=(0, 0, -24), grin_R=(0, 0, 24))),
+    (1.1, P(_clap_open, _hide, grin_L=(0, 0, -16), grin_R=(0, 0, 16))),
+    (1.25, P(_clap_open, _hide, grin_L=(0, 0, -14), grin_R=(0, 0, 14))),
+    *[(1.35 + 0.05 * k, P(w, _hide)) for k, w in enumerate(reversed(_clap_way))],
     (1.6, P(STAND, chip=(0, 0, 0, 0, 0, 0, 1.0))),
 ])
-
-# cheat (1.2 s, boss tell): shifty glance, visor tipped down, left cuff raised beside his cheek and the chip
-# slipped up it by the right hand (both hands at or below head height), then a smug grin
-_glance = P(STAND, head=(-14, 26, 0), neck=(-12, 10, 0), visor=(12, 0, 0))
-_sleeve = arm("L", (0.21, -0.02, 0.57), (0.5, 0.3, -0.2), fingers=(0.1, -0.35, 1))
+# cheat (1.2 s, boss tell; AD final): swung to screen-left, his own side, away from the brazier. Shifty glance
+# that way, visor tipped down, and the right hand palms the chip low by his right shoulder and flicks it up the
+# cuff (hand at or below head height; left hand stays down behind the rail), then a smug grin.
+_glance = P(STAND, head=(-14, -16, 8), neck=(-12, -7, 0), visor=(12, 0, 0))
+_cuff = lambda wx, wy, wz, f: arm("R", (wx, wy, wz), (-0.3, 0.35, -0.1), fingers=f)
 clip("cheat", 1.2, [
     (0.0, STAND),
-    (0.1, P(STAND, arm("R", (-0.1, -0.02, 0.42), (-0.4, 0.3, -0.3), fingers=(0.2, 0.0, 1)), head=(-12, 14, 0), neck=(-8, 5, 0), visor=(6, 0, 0))),
-    (0.2, P(_glance, _sleeve, arm("R", (0.05, 0.0, 0.56), (-0.4, 0.3, -0.3), fingers=(0.6, 0.0, 0.8)))),
-    (0.45, P(_glance, _sleeve, arm("R", (0.12, -0.005, 0.595), (-0.4, 0.2, -0.3), fingers=(1, -0.1, 0.3)), chip=(40, 0, 0, 0, 0.0, 0, 0.6))),
-    (0.6, P(_glance, _sleeve, arm("R", (0.11, -0.005, 0.59), (-0.4, 0.2, -0.3), fingers=(1, -0.1, 0.4)), head=(-18, -10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
-    (0.72, P(STAND, arm("R", (-0.12, -0.02, 0.45), (-0.4, 0.3, -0.3), fingers=(0.2, 0.0, 1)), arm("L", (0.16, 0.0, 0.46), (0.5, 0.3, -0.2), fingers=(-0.1, 0.0, 1)),
-             head=(-20, 4, 4), visor=(7, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.1, P(STAND, _cuff(-0.13, -0.03, 0.47, (0.15, -0.1, 1)), head=(-12, -10, 4), neck=(-8, -4, 0), visor=(6, 0, 0))),
+    (0.2, P(_glance, _cuff(-0.2, -0.03, 0.545, (0.25, -0.3, 1)))),
+    (0.45, P(_glance, _cuff(-0.22, -0.01, 0.565, (-0.25, -0.2, 1)), chip=(40, 0, 0, 0, 0.0, 0, 0.6))),
+    (0.6, P(_glance, _cuff(-0.215, -0.01, 0.545, (-0.3, -0.15, 1)), head=(-18, 10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
+    (0.72, P(STAND, _cuff(-0.15, 0.03, 0.5, (0.15, 0.1, 1)), head=(-20, -4, 4), visor=(7, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10),
+             chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.79, P(STAND, _cuff(-0.12, 0.03, 0.42, (0.25, 0.08, 1)), head=(-21, -2, 5), visor=(5, 0, 0), grin_L=(0, 0, 12), grin_R=(0, 0, -12),
+             chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (0.85, P(STAND, head=(-22, 0, 6), visor=(4, 0, 0), grin_L=(0, 0, 14), grin_R=(0, 0, -14), chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.1, P(STAND, chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.2, P(STAND, chip=(0, 0, 0, 0, 0, 0, 1.0))),
@@ -481,7 +510,7 @@ clip("cheat", 1.2, [
 # deal (1.0 s): right hand flicks a chip out across the felt, low over the rail (inside the phone band)
 clip("deal", 1.0, [
     (0.0, STAND),
-    (0.25, P(STAND, arm("R", (-0.17, -0.02, 0.5), (-0.5, 0.35, 0.0), fingers=(0.1, 0.0, 1)), chest=(2, -8, 0))),
+    (0.25, P(STAND, arm("R", (-0.17, -0.02, 0.5), (-0.5, 0.35, 0.0), fingers=(0.1, 0.0, 1)), chest=(2, -3, 0))),
     (0.42, P(STAND, arm("R", (-0.15, -0.2, 0.675), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.12)), chest=(4, 6, 0), chip=(0, 0, 0, 0, 0, 0.0, 1.0))),
     (0.5, P(STAND, arm("R", (-0.15, -0.2, 0.68), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.12)), chest=(4, 6, 0), chip=(0, 0, 0, 0, 0, 0.03, 0.0))),
     (0.7, P(STAND, arm("R", (-0.19, -0.04, 0.58), (-0.45, 0.4, 0.3), fingers=(0.1, -0.2, 1)), chest=(3, 2, 0), chip=(0, 0, 0, 0, 0, 0, 0.0))),
@@ -516,6 +545,7 @@ clip("mc_cheer", 1.2, [
 def make_actions(arm):
     arm.animation_data_create()
     for name, (length_s, keys, loop) in CLIPS.items():
+        keys = sorted(keys, key=lambda k: k[0])  # quaternion sign continuity runs in time order
         act = bpy.data.actions.new(name)
         act.use_fake_user = True
         arm.animation_data.action = act

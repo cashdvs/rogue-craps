@@ -15,7 +15,7 @@ He is modelled from the waist up and stands behind the far rail. This is art onl
 | `materials/*.tres` | toon_noir per glTF slot + ink hulls (`ink_smiles` 4.8 mm, `ink_smiles_thin` 1.8 mm for teeth / buttons / chip) |
 | `src/build_smiles.py` | Blender 4.5 source: model, rig, poses (2-bone arm IK solved to FK keys), clips, export |
 | `src/make_smiles.gd`, `src/write_imports.py`, `src/rebuild_smiles.sh` | materials, import settings (slot -> .tres, loops), wrapper scenes |
-| `tests/test_smiles.gd` | bones, hierarchy, clips + lengths, hooks, parts, materials, budgets, no scripts / lights, rail clearance, game-camera v2 (a153087) band: grin / visor inside the phone band, visor never clips, only horn tips may clip, key gestures over the rail in the phone + PC frames, taunt / cheat hands at or below the head, grin above the clap, idle hands low, MC-only glow |
+| `tests/test_smiles.gd` | bones, hierarchy, clips + lengths, hooks, parts, materials, budgets, no scripts / lights, rail clearance, game-camera v2 (a153087) band: grin / visor inside the phone band, visor never clips, only horn tips may clip, key gestures over the rail in the phone + PC frames, taunt / cheat hands at or below the head, grin above the clap, idle hands low, MC-only glow, **camera v3:** >= 20 px of clear dark between Smiles and the brazier / goal plaque in game-camera pixels (PC + phone, every clip, every frame), the pale-green visor rim lit, front-facing and unoccluded (>= 55 px² on phone) at two beats per clip, and the grudging clap (held a palm-width apart on mesh and screen, palms facing, fingers up, wrists never cross, palms meet 2-3 frames per clap) |
 
 ## Triangles
 
@@ -31,6 +31,7 @@ He is modelled from the waist up and stands behind the far rail. This is art onl
 - **Horns:** about 30% shorter and swept back, so they lean along the top frame edge in the game camera.
 - **Visor brim:** tipped up 15° more (29° total), so the eyes show from above. It has a pale-green rim along the brim edge (a 7 mm-radius tube, ~2 px wider at game-camera scale so the green reads at 48 px; non-emissive as dealer) and stays opaque. The outer headband is now visor green.
 - **Teeth:** two chunky 7-tooth gold bands (upper on `head`, lower on `jaw`; the outer teeth ride on `grin_L|R`). Each row is one connected strip that bulges per tooth and notches between teeth.
+- **Camera v3 (AD final fixes):** taunt, grudging and deal key the visor up another 15° (the cheat keeps its own tell tilt), so the pale-green brim rim faces the lamp and the camera on every clip; the clap and cheat are re-staged (see Clips) and the elbows tucked so he keeps clear of the brazier.
 - **Camera v2 re-pose (a153087 phone band):** horns pushed further back and flatter (tips trail behind the head, so only the tips can touch the phone frame edge; the visor never does), hair spikes flatter, and every clip re-posed for the 0.22 m phone band (see Clips and Placement).
 - **Dealer lighting:** the dealer is lit by the lamp only. `smiles_gold` and `smiles_visor` have no emission. The glow is MC-only (see `glow_*` below).
 
@@ -67,8 +68,8 @@ Hero bosses (including Mister Wick) get their own rigs, per the locked direction
 |---|---|---|---|
 | `idle` | 3.0 s | yes | leans low on the far rail (both forearms on it), rolls a chip over his right knuckles just above the rail top, grin twitch, breath, head sway |
 | `taunt` | 1.4 s | no | on bust: leans in, cackles (jaw chatter, head back), points out at the player at head height (never above it) |
-| `grudging` | 1.6 s | no | big score (tier 3+): two slow sarcastic claps at the centre of his body, chin height, hands just over the rail; on screen the cracking grin sits right above the hands (chip palmed for the clip) |
-| `cheat` | 1.2 s | no | boss tell: shifty glance, visor tipped down, left cuff raised by his cheek and the chip slipped up it (both hands over the rail, at or below head height), smug grin |
+| `grudging` | 1.6 s | no | big score (tier 3+): two slow sarcastic claps, hands forward over the rail under the chin. Between claps the hands are held a palm-width apart (~8.6 cm of air), palms facing, fingers up and slightly splayed; the palms meet for 2 frames per clap and the wrists never cross. On screen the cracking grin sits right above the hands (chip palmed for the clip) |
+| `cheat` | 1.2 s | no | boss tell, on screen-left (his own right side, away from the brazier): shifty glance back over his shoulder, visor tipped down, right cuff flicked up by his shoulder and the chip palmed into it low, then a sleeve tug back to the rail; left hand stays down; smug grin |
 | `deal` | 1.0 s | no | right hand flicks a chip out across the felt, low over the rail |
 | `mc_idle` | 2.4 s | yes | MC variant (boss in the dealer spot, Smiles on the left rail): upright, fist on hip, presenting |
 | `mc_cheer` | 1.2 s | no | MC cheers on bust: both fists pumping, mouth open |
@@ -97,9 +98,10 @@ Every clip starts and ends near the base `STAND` pose (MC clips start and end on
   - **Game camera v2 (Godot Dev, `feat/bonfire-sandbox` a153087):** rig at the pivot pitched -55, camera dolly d, look-up 7.5°, FOV 36.
     PC 1920x1080: d 2.40, pivot z 0.26. Phone landscape 844x390: d 2.04, pivot z 0.34.
     At this spot the band above the rail (RAIL_TOP_Y 0.11) is **0.22 m on phone** and 0.44 m on PC, so everything is authored for the phone band.
-    Max heights above 0.11 (tested, phone px from the frame top in brackets): visor 0.209 (3-22 px), grin 0.058-0.071, horns 0.124-0.162 (1-10 px; only the tips may clip),
-    hands: idle 0.089, taunt 0.173, grudging 0.168, cheat 0.168, deal 0.253 (18 px). On PC he simply shows more chest and waistcoat.
+    Max heights above 0.11 (tested, phone px from the frame top in brackets): visor 0.183-0.209 (6-22 px), grin 0.058-0.071, horns 0.124-0.167 (1-10 px; only the tips may clip),
+    hands: idle 0.089, taunt 0.173, grudging 0.290 (only on the way up; 21 px), cheat 0.174, deal 0.253 (18 px). On PC he simply shows more chest and waistcoat.
   - A centred dealer is hidden by the brazier bowl and its fire.
+  - Brazier / goal plaque clearance (tested, game-camera px, closest frame of each clip): phone idle 21.7, taunt 21.2, grudging 23.2, cheat 23.2, deal 21.4; PC 55.4-61.1. The limit is his left ear / horn tip, not a hand.
   - At x -0.42 his face clears all four fire steps. The Hearth test checks a face sphere at (-0.42, 0.2, -0.86).
   - In the game camera he reads as his head (visor + grin), plus the key hands: the idle forearms on the rail, the taunt point, the clap under the grin and the cheat cuff.
   - Waist-up only shows in close-ups. See the open questions.
@@ -118,6 +120,7 @@ Every clip starts and ends near the base `STAND` pose (MC clips start and end on
   - `smiles_48.png` + `smiles_48_x6.png`: the 48 px read.
   - `smiles_mc_game_camera.png`, `smiles_mc_34.png`
 - **Camera v2 stills:** `camera_v2/smiles_<idle|taunt|grudging|cheat|deal>_<pc|phone>.png` at each clip's key beat, plus `contact_<pc|phone>_dealer_crop.png`.
+- **Camera v3 stills:** `camera_v3/` (same names and beats; grudging at 0.44 s, held apart). The capture now pauses the clip on the beat (camera_v2 stills had drifted 2 frames late).
 - **MP4s:** `smiles_<clip>.mp4` for all 7 clips, plus `smiles_head_track.mp4`. Left = 3/4 showcase, right = game-camera zoom.
 
 ## Rebuild
