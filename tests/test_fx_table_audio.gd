@@ -77,6 +77,7 @@ func _run() -> void:
 	_test_stub()
 	_test_fallbacks()
 	_test_bare()
+	_test_calls_trim()
 	_test_real_sfx()
 	await _test_bonfire_table()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -138,7 +139,7 @@ func _test_stub() -> void:
 
 
 func _test_fallbacks() -> void:
-	# main without PR #29: hot_hand / no_score / table_cleared aren't baked yet.
+	# An SfxManager without the rev-2 cues: hot_hand / no_score / table_cleared fall back.
 	var ev := _fake_events()
 	var sfx := StubSfx.new()
 	sfx.known = [&"chip_refuse", &"win_big"]
@@ -170,6 +171,19 @@ func _test_bare() -> void:
 	sfx.free()
 	ev.free()
 	empty.free()
+
+
+func _test_calls_trim() -> void:
+	# calls grows on every impact/cue; trim like BonfireJuice past 400.
+	var sfx := StubSfx.new()
+	sfx.known = [&"hot_hand"]
+	var a := TableAudio.new()
+	a.sfx = sfx
+	for _i in 401:
+		a.cue(&"hot_hand")
+	_check(a.calls.size() == 201, "calls trims to slice(200) after growing past 400: %d" % a.calls.size())
+	a.free()
+	sfx.free()
 
 
 func _test_real_sfx() -> void:

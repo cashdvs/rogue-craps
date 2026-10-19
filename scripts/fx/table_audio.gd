@@ -19,8 +19,8 @@
 ## - no_score -> `no_score` (PR #58), in place of the old `chip_refuse`.
 ## - table_cleared -> `table_cleared` (PR #58), once per table.
 ##
-## Cues that aren't baked yet (PR #29 unmerged) fall back to an existing
-## sound so nothing goes silent and SfxManager never warns.
+## Fallbacks cover stand-in SfxManagers in tests (and any cue the live
+## manager does not have yet) so nothing goes silent and SfxManager never warns.
 ##
 ## Binding: add it as a child of the table. On the next idle frame it reads
 ## `table.events` and `table.sfx`; if the table has no `events` node yet it
@@ -49,6 +49,7 @@ var sfx: Node
 ## The TableEvents node we listen to (null = unbound).
 var events: Object
 ## Every cue played, as "<event>" or "<event>(fb)" (tests and captures).
+## Trimmed like BonfireJuice so long tables do not grow forever.
 var calls: Array[String] = []
 var _cleared_played: bool = false
 
@@ -87,6 +88,7 @@ func bind(ev: Object, s: Node) -> int:
 	return n
 
 
+## Disconnects from events (safe to call twice).
 func unbind() -> void:
 	if events != null and is_instance_valid(events):
 		for sig: StringName in HOOKS:
@@ -108,7 +110,7 @@ func _on_dice_thrown(flick_speed_px_s: float) -> void:
 		return
 	if sfx.has_method("play_throw"):
 		sfx.call("play_throw", flick_speed_px_s)
-		calls.append("throw")
+		_record("throw")
 	else:
 		cue(&"dice_shake")
 
@@ -119,7 +121,7 @@ func _on_die_impact(kind: Variant, speed_mps: float, material: Variant, die_id: 
 		return
 	if sfx.has_method("play_impact"):
 		if bool(sfx.call("play_impact", StringName(str(kind)), speed_mps, StringName(str(material)), die_id)):
-			calls.append("impact")
+			_record("impact")
 
 
 func _on_hot_hand(_count: int) -> void:
@@ -143,14 +145,20 @@ func cue(event: StringName, jitter: float = 0.06) -> StringName:
 		return &""
 	if _has(event):
 		sfx.call("play", event, 1.0, 0.0, jitter)
-		calls.append(String(event))
+		_record(String(event))
 		return event
 	var fb: StringName = FALLBACK.get(event, &"")
 	if fb != &"" and _has(fb):
 		sfx.call("play", fb, 1.0, 0.0, jitter)
-		calls.append("%s(fb)" % fb)
+		_record("%s(fb)" % fb)
 		return fb
 	return &""
+
+
+func _record(s: String) -> void:
+	calls.append(s)
+	if calls.size() > 400:
+		calls = calls.slice(200)
 
 
 func _has(event: StringName) -> bool:
