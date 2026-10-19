@@ -65,6 +65,7 @@ func _initialize() -> void:
 	_wild_cap()
 	_caltrop_knucklebone()
 	_ferryman()
+	_bust_risk()
 	print("test_nonstd_scoring: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -168,6 +169,48 @@ func _caltrop_knucklebone() -> void:
 	var kr := run_with([], [], 2)
 	kr.seal_steps = {&"pair": Vector2i(7, 3)}
 	check(kr.rule_ctx()["seal_steps"] == {&"pair": Vector2i(7, 3)}, "Knucklebone: rule_ctx passes the run's seal_steps")
+
+
+## A Tithe d10 as the run sends it (faces 1-10).
+func d10() -> TableDie:
+	return TableDie.new(&"tithe", "Tithe", &"d10")
+
+
+## A d4 whose faces are all 0 (never light, §2): a non-d6 that makes a full
+## throw able to light nothing (with §3, 3d6 + 2d10 never can).
+func blank_d4() -> TableDie:
+	var td := TableDie.new(&"blank_d4", "Blank d4", &"d4")
+	td.faces = [0, 0, 0, 0] as Array[int]
+	return td
+
+
+func _bust_risk() -> void:
+	# 3d6 + 2 blank d4s can light nothing (the d6s show e.g. 2, 3, 6); as a
+	# full throw that's a free rethrow, so the prompt's burn chance is 0.
+	var mixed: Array = [null, null, null, blank_d4(), blank_d4()]
+	var raw: float = BustRisk.chance(mixed, t)["burn"]
+	check(raw > 0.0, "3d6 + 2 blank d4s alone can light nothing (raw %.4f)" % raw)
+	var r := run_with([], [], 5)
+	var full := r.next_throw_risk(mixed)
+	check(full["burn"] == 0.0 and full["free_rethrow"], "full throw with a non-d6: burn 0 (free rethrow)")
+	r.free_rethrows_in_a_row = NonStdDice.MAX_FREE_RETHROWS - 1
+	check(r.next_throw_risk(mixed)["burn"] == 0.0, "full throw, %d free rethrows so far: still free" % (NonStdDice.MAX_FREE_RETHROWS - 1))
+	r.free_rethrows_in_a_row = NonStdDice.MAX_FREE_RETHROWS
+	var last := r.next_throw_risk(mixed)
+	check(is_equal_approx(float(last["burn"]), raw) and not last["free_rethrow"], "after %d free rethrows in a row the next no-light busts: real chance %.4f" % [NonStdDice.MAX_FREE_RETHROWS, raw])
+	# A d6-only full throw: unchanged (a Cold Sixes table really can burn).
+	var plain5: Array = [null, null, null, null, null]
+	var cs := run_with([{"id": &"cold_sixes", "params": {"face": 6}}], [], 5)
+	var cs_risk := cs.next_throw_risk(plain5)
+	check(not cs_risk["free_rethrow"] and is_equal_approx(float(cs_risk["burn"]), float(BustRisk.chance(plain5, t, cs.next_throw_ctx(5), cs.throw_effects())["burn"])) and float(cs_risk["burn"]) > 0.0,
+		"d6-only full throw: unchanged (Cold Sixes %.4f)" % float(cs_risk["burn"]))
+	# A partial throw (2 dice left after potting 3), even with a non-d6: unchanged.
+	var p := run_with([], [], 5)
+	p.cold = 2
+	var two: Array = [null, d10()]
+	var part := p.next_throw_risk(two)
+	check(not part["free_rethrow"] and is_equal_approx(float(part["burn"]), float(BustRisk.chance(two, t, p.next_throw_ctx(2), p.throw_effects())["burn"])) and float(part["burn"]) > 0.0,
+		"partial throw with a d10: unchanged (%.4f)" % float(part["burn"]))
 
 
 func _ferryman() -> void:

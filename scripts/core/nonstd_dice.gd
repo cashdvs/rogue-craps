@@ -56,6 +56,14 @@ static func free_rethrow_ok(thrown: int, cold: int, dice_count: int, table_dice:
 	return thrown >= dice_count and cold >= dice_count and has_wide_die(table_dice) and in_a_row < MAX_FREE_RETHROWS
 
 
+## §4 ahead of time (the rethrow prompt's bust chance): would the run's next
+## throw of `table_dice` get a free rethrow if it lit nothing? Same rule as
+## try_free_rethrow, so the 6th no-light in a row (after MAX_FREE_RETHROWS)
+## shows its real bust chance again.
+static func next_throw_is_free(run: BonfireRun, table_dice: Array) -> bool:
+	return free_rethrow_ok(table_dice.size(), run.cold, run.dice_count, table_dice, run.free_rethrows_in_a_row)
+
+
 ## §4 on a BonfireRun whose throw of `thrown` dice lit nothing (`cold` dice
 ## unlit): if it qualifies (free_rethrow_ok), the same dice go again for
 ## free and it still counts as this throw (a hand's first stays the first).

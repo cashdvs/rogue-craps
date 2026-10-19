@@ -205,8 +205,13 @@ func throw_effects() -> Array:
 
 ## Chance the next throw of these dice (TableDie or null) burns, exactly
 ## (BustRisk). `kindling`: a Kindling face is armed for it (can't burn).
+## A throw that would get the §4 free rethrow (NonStdDice) can't burn
+## either: lighting nothing just throws it again ("free_rethrow": true).
 func next_throw_risk(table_dice: Array, kindling: bool = false) -> Dictionary:
-	return BustRisk.chance(table_dice, tuning, next_throw_ctx(table_dice.size()), throw_effects(), kindling)
+	var free := NonStdDice.next_throw_is_free(self, table_dice)
+	var out := BustRisk.chance(table_dice, tuning, next_throw_ctx(table_dice.size()), throw_effects(), kindling or free)
+	out["free_rethrow"] = free
+	return out
 
 
 func bounties_count() -> bool:
