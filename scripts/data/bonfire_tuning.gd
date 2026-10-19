@@ -112,15 +112,16 @@ extends Resource
 ## still a throw if it passes TuningData.min_throw_speed (it launches as the
 ## gentlest lob); above flick_speed_max it's the hardest throw.
 @export var flick_speed_min: float = 700.0
-@export var flick_speed_max: float = 4200.0
+@export var flick_speed_max: float = 6000.0
 ## k = ((flick - min) / (max - min)) ^ launch_exponent, then every launch
 ## value below lerps from its _min (gentle lob) to its _max (hard throw).
-## Exponent > 1 gives finer control over soft throws.
-@export var launch_exponent: float = 1.3
-## Horizontal launch speed (m/s). ~0.8 lands a hand's width away; ~4.5
-## slams the backboard and comes back.
-@export var launch_speed_min_mps: float = 0.8
-@export var launch_speed_max_mps: float = 4.6
+## Exponent < 1 (0.9) lifts soft flicks a little; > 1 would give finer
+## control over soft throws.
+@export var launch_exponent: float = 0.9
+## Horizontal launch speed (m/s): from the gentlest lob (min) to the
+## hardest throw, which slams the backboard and comes back (max).
+@export var launch_speed_min_mps: float = 1.8
+@export var launch_speed_max_mps: float = 9.0
 ## Upward launch speed (m/s): a low lob vs a high, hard throw.
 @export var launch_up_min_mps: float = 0.45
 @export var launch_up_max_mps: float = 1.5
