@@ -3,11 +3,15 @@
 ##     flight (the dice have landed and show a bust, but it isn't applied
 ##     yet) used to end the table CLEARED with no Soul lost. FORFEIT is now
 ##     off from the throw until it resolves, so the bust's Soul is paid.
+##   - Leave asks once (PM ruling): the first tap / L shows "LEAVE?  TAP
+##     AGAIN"; a second within 2 s leaves; otherwise the text goes back.
 ##   godot --headless --path . --script res://tests/test_leave_forfeit_guard.gd
 extends SceneTree
 
 var _passed: int = 0
 var _failed: int = 0
+## Fake clock for the Leave confirm window (seconds).
+var _now: float = 100.0
 
 
 func _initialize() -> void:
@@ -62,6 +66,7 @@ func _clear(s: Bonfire3D) -> void:
 
 func _run() -> void:
 	await _forfeit_mid_throw()
+	await _leave_asks_once()
 	print("test_leave_forfeit_guard: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -114,3 +119,35 @@ func _forfeit_mid_throw() -> void:
 	s.queue_free()
 	await process_frame
 
+
+func _leave_asks_once() -> void:
+	var s := _make_table()
+	await process_frame
+	var r := s.run
+	s.bhud.leave_clock = func() -> float: return _now
+	await _clear(s)
+	var btn := s.bhud.leave_button
+	check(btn.visible and btn.text == BonfireHud.LEAVE_TEXT, "cleared: LEAVE TABLE shown")
+	btn.pressed.emit()
+	check(not r.is_over() and btn.text == BonfireHud.LEAVE_ASK_TEXT, "first tap asks: \"%s\"" % btn.text)
+	_now += 2.5
+	await process_frame
+	check(not r.is_over() and btn.text == BonfireHud.LEAVE_TEXT, "no second tap in 2 s: the text goes back")
+	btn.pressed.emit()
+	_now += 2.5
+	btn.pressed.emit()
+	check(not r.is_over() and btn.text == BonfireHud.LEAVE_ASK_TEXT, "a second tap after the window only asks again")
+	await process_frame
+	_now += 3.0
+	await process_frame
+	# L asks, then a tap within the window leaves.
+	var key := InputEventKey.new()
+	key.keycode = KEY_L
+	key.pressed = true
+	s._unhandled_input(key)
+	check(not r.is_over() and btn.text == BonfireHud.LEAVE_ASK_TEXT, "L asks too")
+	_now += 1.0
+	btn.pressed.emit()
+	check(r.is_over() and r.state == BonfireRun.State.CLEARED and s.bhud.end_panel.visible, "a second press within 2 s leaves (table CLEARED)")
+	s.queue_free()
+	await process_frame

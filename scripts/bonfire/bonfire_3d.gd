@@ -1044,7 +1044,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				bank()
 				return
 			KEY_L:
-				leave()
+				bhud.press_leave()  # a second L within 2 s leaves
 				return
 			KEY_SPACE, KEY_ENTER:
 				if phase == Phase.BET:
