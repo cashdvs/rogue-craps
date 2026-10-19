@@ -26,6 +26,7 @@ func _initialize() -> void:
 	_test_bag_cap()
 	_test_soul_draught()
 	_test_premium_seal()
+	_test_floor_prices()
 	await _test_shop_ui()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_data = null
@@ -191,6 +192,51 @@ func _test_premium_seal() -> void:
 	_check(run.shop_reroll() and _data.rare_seals.has(run.shop_premium_seal), "P4: a reroll restocks the rare slot")
 
 
+# --- P5: floor price scaling ---
+
+## A run on floor f (0-based) standing in a fresh shop.
+func _shop_on_floor(f: int, seed_v: int = 8) -> MapRun:
+	var run := MapRun.new(_data, seed_v)
+	run._start_floor(f)
+	_enter(run, NT.SHOP)
+	return run
+
+
+func _test_floor_prices() -> void:
+	_check(_data.shop_floor_price_percent == ([0, 25, 50] as Array[int]), "P5 data: +0 / +25 / +50% by floor")
+	var mirror: SpecialDieData = load("res://resources/dice/special/mirror.tres")
+	var wild: FaceModData = load("res://resources/mods/wild.tres")
+	var want := [[0, 18, 14, 5, 10, 12, 12], [25, 23, 18, 6, 13, 15, 15], [50, 27, 21, 8, 15, 18, 18]]
+	for f in 3:
+		var run := _shop_on_floor(f)
+		var w: Array = want[f]
+		run.shop_dice[0] = mirror
+		run.shop_mods[0] = wild
+		_check(run.floor_price_percent() == w[0] and run.die_price(0) == w[1] and run.shop_mod_price(wild, 0) == w[2],
+			"P5 floor %d: +%d%%, Mirror %d, Wild %d (rounded half up)" % [f + 1, w[0], w[1], w[2]])
+		_check(run.seal_price(&"pair") == w[3] and run.seal_price(&"black") == w[4] and run.premium_seal_price() == w[5] and run.soul_price() == w[6],
+			"P5 floor %d: Seal %d, rolled rare %d, rare slot %d, Soul Draught %d" % [f + 1, w[3], w[4], w[5], w[6]])
+		_check(run.reroll_price() == 3 and run.progress.sell_value(0) == 0, "P5 floor %d: rerolls don't scale" % (f + 1))
+	var run := _shop_on_floor(1)
+	run.shop_dice[0] = mirror
+	run.shop_mods[0] = wild
+	run.progress.embers = 22
+	_check(not run.buy_die(0) and run.progress.embers == 22, "P5: 22 Embers can't buy a 23-Ember Mirror on Floor 2")
+	run.progress.embers = 100
+	_check(run.buy_die(0) and run.progress.embers == 77, "P5: the Mirror charges its Floor 2 price (23)")
+	_check(run.cheapest_mod_price(0) == 18 and run.mod_price_range(0) == Vector2i(18, 18) and run.buy_mod(0, Vector2i(0, 0)) and run.progress.embers == 59,
+		"P5: Wild shows and charges 18 on Floor 2")
+	_check(run.progress.sell_value(5) == 9, "P5: sell values don't scale (Mirror sells for 9)")
+	_check(run.buy_soul() and run.progress.embers == 44 and run.soul_price() == 20, "P5: Soul Draught 15, then (12 + 4) x 1.25 = 20")
+	var tk: EventData = null
+	for ev in _data.events:
+		if ev.id == &"bone_carver":
+			tk = ev
+	var e0 := run.progress.embers
+	EventApplier.apply(tk.choices[0], run.progress, RandomNumberGenerator.new(), [Vector2i(1, 0)] as Array[Vector2i])
+	_check(run.progress.embers == e0 - 6, "P5: event prices don't scale (Bone Carver's Wild is still 6 on Floor 2)")
+
+
 # --- Shop UI: final prices on the buttons ---
 
 func _ui_buttons(node: Node, out: Array[Button] = []) -> Array[Button]:
@@ -198,6 +244,14 @@ func _ui_buttons(node: Node, out: Array[Button] = []) -> Array[Button]:
 		if c is Button:
 			out.append(c)
 		_ui_buttons(c, out)
+	return out
+
+
+func _ui_labels(node: Node, out: Array[String] = []) -> Array[String]:
+	for c in node.get_children():
+		if c is Label:
+			out.append((c as Label).text)
+		_ui_labels(c, out)
 	return out
 
 
@@ -236,5 +290,19 @@ func _test_shop_ui() -> void:
 	rare.pressed.emit()
 	await process_frame
 	_check(run.progress.embers == 0 and _ui_button(scene, "Rare Seal") == null, "P4 UI: bought; the slot is gone")
+	var lines := _ui_labels(scene._panel_box)
+	_check(not lines.any(func(t: String) -> bool: return t.begins_with("Prices on this floor")), "P5 UI: no price note on Floor 1")
+	run._start_floor(2)
+	_enter(run, NT.SHOP)
+	await process_frame
+	run.shop_dice[0] = load("res://resources/dice/special/mirror.tres")
+	run.progress.embers = 26
+	scene._show_shop()
+	lines = _ui_labels(scene._panel_box)
+	_check(lines.has("Prices on this floor: 50% above Floor 1."), "P5 UI: shop_floor_price_note on Floor 3")
+	var die := _ui_button(scene, "Mirror Die - ")
+	_check(die != null and die.text.begins_with("Mirror Die - 27 Embers") and die.disabled, "P5 UI: the die button shows the final price (27) and greys on it")
+	_check(_ui_button(scene, "Soul Draught").text.ends_with("24 Embers") and _ui_button(scene, "Reroll - 3") != null,
+		"P5 UI: Soul Draught (12 + 4) x 1.5 = 24; reroll stays 3")
 	scene.queue_free()
 	await process_frame

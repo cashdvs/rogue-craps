@@ -90,6 +90,10 @@ extends Resource
 ## The guaranteed rare Seal slot in every shop (P4; 0 = off). The 10% rare
 ## roll in the normal Seal slots stays at shop_rare_seal_price.
 @export var shop_premium_rare_price: int = 12
+## Shop prices rise by floor (P5): + this % on floors 1 / 2 / 3 (later floors
+## use the last entry), rounded to whole Embers. Dice, mods, Seals and the
+## Soul Draught; never rerolls, sell values or event prices.
+@export var shop_floor_price_percent: Array[int] = [0, 25, 50]
 ## Soul Draught, in every shop (economy_balance_v1 P3): +shop_soul_amount max
 ## Soul (also heals that much) for shop_soul_price Embers, + shop_soul_step
 ## per Draught bought this run (12, 16, 20...). Same rate as the Toll Keeper.

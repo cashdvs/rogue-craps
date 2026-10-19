@@ -6,10 +6,13 @@ class_name ShopView
 extends RefCounted
 
 
-## The shop's header lines.
+## The shop's header lines; from Floor 2 the markup note (P5).
 static func lines(screen: RunScreen) -> Array:
-	return ["Each mod on a die makes its next mod cost more; pick the die to see its price. Dice sell for half.",
-		"Your dice: " + screen.bag_text()]
+	var out: Array = ["Each mod on a die makes its next mod cost more; pick the die to see its price. Dice sell for half."]
+	if screen.run.floor_price_percent() > 0:
+		out.append(EconomyStrings.shop_floor_price_note(screen.run.floor_price_percent()))
+	out.append("Your dice: " + screen.bag_text())
+	return out
 
 
 ## Every shop button, in order: dice, mods, Seals, the rare Seal slot, Soul
@@ -21,8 +24,8 @@ static func buttons(screen: RunScreen) -> Array:
 	for i in run.shop_dice.size():
 		var d := run.shop_dice[i]
 		if d != null:
-			out.append(["%s - %d Embers (%s)" % [d.display_name, d.price, d.description],
-				func() -> void: run.buy_die(i); screen._show_shop(), e < d.price or not run.progress.can_add_die()])
+			out.append(["%s - %d Embers (%s)" % [d.display_name, run.die_price(i), d.description],
+				func() -> void: run.buy_die(i); screen._show_shop(), e < run.die_price(i) or not run.progress.can_add_die()])
 	for i in run.shop_mods.size():
 		if run.shop_mods[i] != null:
 			var m := run.shop_mods[i]
@@ -31,7 +34,7 @@ static func buttons(screen: RunScreen) -> Array:
 				screen._pick("Pick a face for the %s" % m.display_name, func(at: Vector2i) -> void:
 					run.buy_mod(i, at)
 					screen._show_shop(), func(at: Vector2i) -> bool: return run.can_buy_mod_at(i, at),
-					func(d: int) -> int: return run.progress.mod_price(m, d)), low < 0 or e < low])
+					func(d: int) -> int: return run.shop_mod_price(m, d)), low < 0 or e < low])
 	for i in run.shop_seals.size():
 		if run.shop_seals[i] != &"":
 			var id := run.shop_seals[i]

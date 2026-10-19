@@ -57,3 +57,4 @@ shop_soul_amount = 4
 shop_soul_price = 12
 shop_soul_step = 4
 shop_premium_rare_price = 12
+shop_floor_price_percent = Array[int]([0, 25, 50])

@@ -26,3 +26,8 @@ static func shop_soul_button(amount: int, price: int) -> String:
 ## which rare Seal it is, e.g. "Rare Seal: 12 Embers (Transference)".
 static func shop_premium_seal_button(price: int, seal_name: String) -> String:
 	return "Rare Seal: %d Embers (%s)" % [price, seal_name]
+
+
+## strings_v1 shop_floor_price_note (P5): "Prices on this floor: 25% above Floor 1."
+static func shop_floor_price_note(pct: int) -> String:
+	return "Prices on this floor: %d%% above Floor 1." % pct
