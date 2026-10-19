@@ -34,6 +34,10 @@ GameSettings="*res://scripts/settings/game_settings.gd"
 next_scene="res://scenes/title.tscn"
 play_scene="res://scenes/run.tscn"
 
+[gui]
+
+timers/tooltip_delay_sec=0.3
+
 [debug]
 
 gdscript/warnings/untyped_declaration=1
