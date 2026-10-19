@@ -139,18 +139,45 @@ def write_tres(name, params, inked):
         f.write("\n".join(lines) + "\n")
 
 
+def _block_end(text, i):
+    """Index just past the brace that closes the {...} opening at text[i] (braces inside "strings" ignored).
+    The old writer cut at the first "\n}\n", i.e. the last slot's own closing brace, and left the outer
+    block's braces behind as strays (QA on #48)."""
+    assert text[i] == "{"
+    depth, in_str, esc = 0, False, False
+    for j in range(i, len(text)):
+        ch = text[j]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        elif ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return j + 1
+    raise ValueError("unbalanced _subresources block")
+
+
 def write_import(die, slots):
     path = os.path.join(ROOT, die + ".glb.import")
     text = open(path).read()
     for k, v in (("animation/import", "false"), ("meshes/generate_lods", "false")):
         text = re.sub(r"^%s=.*$" % re.escape(k), "%s=%s" % (k, v), text, flags=re.M)
     sub = ['"materials": {']
+    slots = sorted(slots)  # Godot writes the keys sorted; match it so an import leaves the file unchanged
     for i, s in enumerate(slots):
         p = "res://art/models/dice/materials/%s.tres" % s
         sub.append('"%s": {\n"use_external/enabled": true,\n"use_external/fallback_path": "%s",\n"use_external/path": "%s"\n}%s' % (s, p, p, "," if i < len(slots) - 1 else ""))
     sub.append("}")
     start = text.index("_subresources={")
-    end = text.find("\n", start) if text[start:].startswith("_subresources={}") else text.index("\n}\n", start) + 2
+    end = _block_end(text, start + len("_subresources="))
     text = text[:start] + "_subresources={\n" + "\n".join(sub) + "\n}" + text[end:]
     with open(path, "w") as f:
         f.write(text)
