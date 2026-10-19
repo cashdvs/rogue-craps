@@ -720,13 +720,13 @@ func show_end(run: BonfireRun) -> void:
 				(" (bonus: %s)" % ", ".join(bonus)) if not bonus.is_empty() else "", ember_line, run.soul]
 		_ when run.forfeited and run.state != BonfireRun.State.RUN_OVER:
 			end_title.text = "You left the table"
-			end_body.text = "%d bounties unclaimed: -%d Soul.\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), ember_line]
+			end_body.text = "%d bounties unclaimed: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
 		BonfireRun.State.RUN_OVER:
 			end_title.text = "Out of Soul"
 			end_body.text = "Your Soul hit 0, so the run is over.\n%s" % ember_line
 		_:
 			end_title.text = "Out of hands"
-			end_body.text = "%d bounties unclaimed: -%d Soul.\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), ember_line]
+			end_body.text = "%d bounties unclaimed: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
 	end_panel.visible = true
 	# A table can end mid-tutorial: the hint panel must not cover the end
 	# panel (#103 N6). stop() also drops the waiting hints, so dismiss()
