@@ -15,45 +15,41 @@ opposite 3 stave that shares the atlas cell stays dark.
 | Shader include (mask math) | `shaders/3d/twin_face_mask.gdshaderinc` |
 | Body shader (toon_noir variant) | `shaders/3d/toon_noir_twin.gdshader` |
 | Driver script | `scripts/fx/twin_face_glow.gd` |
-| Stand-in mask (tests/captures) | `art/fx/twin_face/twin_face_mask_standin.png` |
+| Stand-in mask (tests) | `art/fx/twin_face/twin_face_mask_standin.png` |
 
-`toon_noir.gdshader` is **not** edited (Godot Dev). The twin file is a full
-variant that `#include`s the mask include. A future shared include extract from
-toon_noir would be a Godot Dev change.
+`toon_noir.gdshader` is **not** edited (Godot Dev). Final AD values: C+ Ember
+(Oct 19 2026). 3D Artist ships the real mask/atlas in their follow-up after #102.
 
-### Uniforms (3D Artist)
+### Uniforms (final)
 
-| Uniform | Type | Role |
-|---|---|---|
-| `twin_mask` | texture | UV1, same 1024 5×5 layout as the face atlas. **R** = hard glyph inlay, **G** = soft halo (~1.3×), B/A spare. No vertex colour. |
-| `settled` | float 0..1 | Driven by `TwinFaceGlow` (fade-in ~0.12 s). 0 while rolling. |
-| `twin_glow` | colour | Lit emission — **Palette.EMBER** `#E8622A`. Never violet/cyan. |
-| `twin_strength` | float | Emission strength, default **1.35** (> 1.2). |
-| `twin_unlit` | colour | Unlit inlay albedo `#6A2E1C`. |
-| `up_threshold` | float | World-up smoothstep centre (default 0.92). |
-| `up_soft` | float | Smoothstep width (default 0.08). |
+| Uniform | Type | Default | Role |
+|---|---|---|---|
+| `twin_mask` | texture | — | UV1, 1024 5×5. **R** = hard glyph inlay, **G** = soft halo (~1.3×, 0 inside glyph), B/A spare. Import **non-colour** / linear + mipmaps (`hint_default_black`, no `source_color`). |
+| `settled` | float 0..1 | `0.0` | Driven by `TwinFaceGlow` (fade-in ~0.12 s). 0 while rolling. |
+| `twin_glow` | colour | `#E8622A` Ember | Lit emission. Never violet/cyan. |
+| `twin_strength` | float | **1.6** | Core emission: `glow * strength * R * gate`. |
+| `twin_halo_strength` | float | **1.6** | Halo emission: `glow * halo_strength * G * gate` (albedo untouched). |
+| `twin_unlit` | colour | `#403440` | Unlit inlay albedo (renders ~`#692B16` under the Hearth lamp). Final atlas also paints this. |
+| `up_lo` | float | **0.80** | World-up ramp start. |
+| `up_hi` | float | **0.92** | World-up ramp end. |
 
-Per-fragment: `world_n = normalize(MODEL * NORMAL)`; gate =
-`settled * smoothstep(up_threshold - up_soft, up_threshold, world_n.y)`.
+Per-fragment: `world_n = normalize(MODEL * NORMAL)`;  
+`gate = settled * smoothstep(up_lo, up_hi, world_n.y)`.  
+Lit core: albedo lerps to near-black (`0.02`) by `R * gate` so the lamp does not wash the emission.
 
 ### Hookup for 3D Artist (Powder Keg body)
 
-1. Put the real mask PNG on **UV1** (same layout as `powder_keg_d3_faces.png`;
-   mark in the **3's cell**, index 2). Ship it next to the face atlas; replace
-   the stand-in.
-2. Point the keg **body** material slot (`powder_keg_body` → `powder_keg_d6`)
-   at `res://shaders/3d/toon_noir_twin.gdshader` (keep the ink outline
-   `next_pass`). Keep `use_overlay` + the face atlas as today; ink stays in the
-   albedo overlay, not in the mask.
-3. Assign `twin_mask` to your PNG. Defaults for glow/unlit/strength are fine.
-4. At runtime, add `TwinFaceGlow`, `bind_material(body_mat)`, then
-   `bind_events(table.events)` (or `bind_die(die_visual)` until TableEvents
-   lands). Face normals come from the mesh (stave normals must face outward).
+1. Ship `powder_keg_twin_mask.png` + `powder_keg_faces.png` on **UV1** (mark in the **3's cell**, index 2). Replace the stand-in.
+2. Point the keg **body** slot (`powder_keg_body` → `powder_keg_d6`) at `res://shaders/3d/toon_noir_twin.gdshader`. Keep ink outline `next_pass`. Keep `use_overlay` + face atlas; ink stays in albedo, not in the mask.
+3. Assign `twin_mask` (non-colour import). Defaults above match AD-approved VALUES.md.
+4. Runtime: `TwinFaceGlow` → `bind_material(body_mat)` → `bind_events(table.events)` (or `bind_die` until TableEvents). Stave normals outward.
 
 ### Tests / capture
 
 ```bash
 godot --headless --path . --script res://tests/test_fx_twin_face_mask.gd
-# strip: rolling dark / 3-up landed lit / other-face dark
+# strip (stand-in): rolling dark / landed Ember / other-face dark
 xvfb-run -a godot --path . --rendering-driver vulkan --script res://tools/capture_twin_mask.gd -- --out=/workspace/dice/captures/twin_mask/
+# final look (local 3D Artist assets, not in repo):
+xvfb-run -a godot --path . --rendering-driver vulkan --script res://tools/capture_twin_mask.gd -- --out=/workspace/dice/captures/twin_mask/ --final
 ```

@@ -82,8 +82,8 @@ void fragment() {
 		vec4 ink = texture(overlay_tex, UV);
 		col = mix(col, ink.rgb, ink.a * overlay_tint.a);
 	}
-	// Twin Face: unlit inlay always reads as dark wood/iron; when gated lit,
-	// kill albedo so the Ember emission is lamp-independent (mock calibrated).
+	// Twin Face: unlit inlay (twin_unlit / atlas) when R; when gated lit,
+	// lerp core albedo to near-black so the lamp does not wash the Ember emission.
 	float twin_inlay_w;
 	float twin_halo_w;
 	float twin_gate;
@@ -110,7 +110,7 @@ void fragment() {
 	vec3 emit = emission_color.rgb * emission_energy;
 	emit += flash_color.rgb * flash;
 	emit += twin_glow.rgb * twin_strength * twin_inlay_w;
-	emit += twin_glow.rgb * twin_strength * 0.35 * twin_halo_w;
+	emit += twin_glow.rgb * twin_halo_strength * twin_halo_w;
 	// Ambient: the shadow band at ambient strength (so unlit sides stay warm).
 	vec3 shade = mix(col, shadow_color.rgb, 0.7);
 	emit += shade * ambient_color.rgb * ambient_energy * 2.0;

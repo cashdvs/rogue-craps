@@ -17,16 +17,21 @@ const FADE_IN: float = 0.12
 const PARAM_SETTLED := &"settled"
 const PARAM_GLOW := &"twin_glow"
 const PARAM_STRENGTH := &"twin_strength"
+const PARAM_HALO := &"twin_halo_strength"
 const PARAM_UNLIT := &"twin_unlit"
-const PARAM_UP := &"up_threshold"
+const PARAM_UP_LO := &"up_lo"
+const PARAM_UP_HI := &"up_hi"
 const PARAM_MASK := &"twin_mask"
 
-## Default up-facing smoothstep centre (cos of a few degrees off world up).
-const DEFAULT_UP_THRESHOLD: float = 0.92
-## Lit emission strength (a bit above 1.2 per 3D Artist).
-const DEFAULT_STRENGTH: float = 1.35
-## Unlit inlay #6A2E1C.
-const DEFAULT_UNLIT := Color("#6A2E1C")
+## Up ramp: smoothstep(up_lo, up_hi, world_n.y) (AD final VALUES.md).
+const DEFAULT_UP_LO: float = 0.80
+const DEFAULT_UP_HI: float = 0.92
+## Core emission strength (AD-approved 1.6).
+const DEFAULT_STRENGTH: float = 1.6
+## Halo emission strength: emission += glow * halo_strength * G.
+const DEFAULT_HALO_STRENGTH: float = 1.6
+## Unlit inlay albedo #403440 (renders ~#692B16 under the Hearth lamp).
+const DEFAULT_UNLIT := Color("#403440")
 
 ## The keg body ShaderMaterial (toon_noir_twin).
 var material: ShaderMaterial
@@ -51,8 +56,10 @@ func bind_material(m: ShaderMaterial) -> void:
 		return
 	material.set_shader_parameter(PARAM_GLOW, Palette.EMBER)
 	material.set_shader_parameter(PARAM_STRENGTH, DEFAULT_STRENGTH)
+	material.set_shader_parameter(PARAM_HALO, DEFAULT_HALO_STRENGTH)
 	material.set_shader_parameter(PARAM_UNLIT, DEFAULT_UNLIT)
-	material.set_shader_parameter(PARAM_UP, DEFAULT_UP_THRESHOLD)
+	material.set_shader_parameter(PARAM_UP_LO, DEFAULT_UP_LO)
+	material.set_shader_parameter(PARAM_UP_HI, DEFAULT_UP_HI)
 	material.set_shader_parameter(PARAM_SETTLED, _value)
 
 
@@ -97,16 +104,16 @@ func set_settled(on: bool) -> void:
 
 
 ## GDScript mirror of the shader's up-facing weight (for headless tests).
-static func up_weight(world_normal: Vector3, threshold: float = DEFAULT_UP_THRESHOLD, soft: float = 0.08) -> float:
+static func up_weight(world_normal: Vector3, up_lo: float = DEFAULT_UP_LO, up_hi: float = DEFAULT_UP_HI) -> float:
 	if world_normal.length_squared() < 1e-8:
 		return 0.0
 	var y := world_normal.normalized().y
-	return smoothstep(threshold - soft, threshold, y)
+	return smoothstep(up_lo, up_hi, y)
 
 
 ## Gated inlay / halo weights (mirror of twin_mask_sample).
-static func mask_lit(mask_r: float, mask_g: float, settled: float, world_normal: Vector3, threshold: float = DEFAULT_UP_THRESHOLD) -> Vector2:
-	var gate := clampf(settled, 0.0, 1.0) * up_weight(world_normal, threshold)
+static func mask_lit(mask_r: float, mask_g: float, settled: float, world_normal: Vector3, up_lo: float = DEFAULT_UP_LO, up_hi: float = DEFAULT_UP_HI) -> Vector2:
+	var gate := clampf(settled, 0.0, 1.0) * up_weight(world_normal, up_lo, up_hi)
 	return Vector2(mask_r * gate, mask_g * gate)
 
 

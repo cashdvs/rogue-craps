@@ -45,6 +45,14 @@ func _test_files() -> void:
 	_check(ResourceLoader.exists(INCLUDE), "twin_face_mask.gdshaderinc exists")
 	_check(ResourceLoader.exists(STANDIN), "stand-in mask PNG exists")
 	_check(ResourceLoader.exists(TOON), "toon_noir.gdshader still present (untouched path)")
+	var inc := FileAccess.get_file_as_string(INCLUDE)
+	var mask_line := ""
+	for line in inc.split("\n"):
+		if "uniform sampler2D twin_mask" in line:
+			mask_line = line
+			break
+	_check("hint_default_black" in mask_line and "source_color" not in mask_line, "twin_mask sampler is non-colour (hint_default_black): %s" % mask_line)
+	_check("up_lo" in inc and "twin_halo_strength" in inc, "include exposes up_lo/up_hi and twin_halo_strength")
 	var sh := load(SHADER) as Shader
 	_check(sh != null, "twin shader loads")
 	if sh != null:
@@ -57,26 +65,22 @@ func _test_up_weight() -> void:
 	_check(is_equal_approx(TwinFaceGlow.up_weight(Vector3.UP), 1.0), "world up → weight 1")
 	_check(TwinFaceGlow.up_weight(Vector3.DOWN) < 0.01, "world down → weight 0 (opposite stave dark)")
 	_check(TwinFaceGlow.up_weight(Vector3.RIGHT) < 0.01, "side normal → weight 0")
-	# A few degrees off up should still be mostly lit; far off should fall off.
-	var near := TwinFaceGlow.up_weight(Vector3(0.1, 1.0, 0.0).normalized())
-	var far := TwinFaceGlow.up_weight(Vector3(0.6, 0.8, 0.0).normalized())
-	_check(near > 0.5, "near-up still lit (%.2f)" % near)
-	_check(far < near, "further from up is darker (%.2f < %.2f)" % [far, near])
-	# Smoothstep edge on already-unit normals (up_weight normalises its input).
-	var thr := TwinFaceGlow.DEFAULT_UP_THRESHOLD
-	var soft := 0.08
-	var y_lo := thr - soft
-	var y_mid := thr - soft * 0.5  # midpoint of the smoothstep → ~0.5
-	var y_hi := thr
+	# Ramp smoothstep(up_lo=0.80, up_hi=0.92, y) on unit normals.
+	var lo: float = TwinFaceGlow.DEFAULT_UP_LO
+	var hi: float = TwinFaceGlow.DEFAULT_UP_HI
+	var y_lo: float = lo
+	var y_mid: float = (lo + hi) * 0.5
+	var y_hi: float = hi
 	var n_lo := Vector3(sqrt(1.0 - y_lo * y_lo), y_lo, 0.0)
 	var n_mid := Vector3(sqrt(1.0 - y_mid * y_mid), y_mid, 0.0)
 	var n_hi := Vector3(sqrt(maxf(0.0, 1.0 - y_hi * y_hi)), y_hi, 0.0)
-	var at_lo := TwinFaceGlow.up_weight(n_lo, thr, soft)
-	var at_mid := TwinFaceGlow.up_weight(n_mid, thr, soft)
-	var at_hi := TwinFaceGlow.up_weight(n_hi, thr, soft)
-	_check(at_lo < 0.05, "below soft edge → ~0 (%.3f)" % at_lo)
-	_check(at_mid > 0.45 and at_mid < 0.55, "mid soft edge → ~0.5 (%.3f)" % at_mid)
-	_check(at_hi > 0.95, "at threshold → ~1 (%.3f)" % at_hi)
+	var at_lo := TwinFaceGlow.up_weight(n_lo)
+	var at_mid := TwinFaceGlow.up_weight(n_mid)
+	var at_hi := TwinFaceGlow.up_weight(n_hi)
+	_check(at_lo < 0.05, "at up_lo → ~0 (%.3f)" % at_lo)
+	_check(at_mid > 0.45 and at_mid < 0.55, "mid ramp → ~0.5 (%.3f)" % at_mid)
+	_check(at_hi > 0.95, "at up_hi → ~1 (%.3f)" % at_hi)
+	_check(is_equal_approx(lo, 0.80) and is_equal_approx(hi, 0.92), "defaults up_lo=0.80 up_hi=0.92")
 
 
 func _test_mask_lit() -> void:
@@ -92,12 +96,14 @@ func _test_mask_lit() -> void:
 func _test_colours() -> void:
 	_check(Palette.EMBER.is_equal_approx(Color("#E8622A")), "Palette.EMBER is #E8622A")
 	var u := TwinFaceGlow.DEFAULT_UNLIT
-	_check(u.is_equal_approx(Color("#6A2E1C")), "unlit default is #6A2E1C")
-	# Never violet (h~0.75) or Soul cyan (h~0.5).
-	for c: Color in [Palette.EMBER, u]:
-		_check(not (c.h > 0.45 and c.h < 0.55), "not cyan (%s)" % c)
-		_check(not (c.h > 0.70 and c.h < 0.92), "not violet (%s)" % c)
-	_check(TwinFaceGlow.DEFAULT_STRENGTH > 1.2, "strength > 1.2")
+	_check(u.is_equal_approx(Color("#403440")), "unlit default is #403440 (renders ~#692B16)")
+	# Glow must never be Soul cyan or Satanic violet; unlit #403440 is a cool
+	# wood albedo (renders warm under the lamp) and is allowed.
+	var g := Palette.EMBER
+	_check(not (g.h > 0.45 and g.h < 0.55), "glow not cyan (%s)" % g)
+	_check(not (g.h > 0.70 and g.h < 0.92), "glow not violet (%s)" % g)
+	_check(is_equal_approx(TwinFaceGlow.DEFAULT_STRENGTH, 1.6), "core strength default 1.6")
+	_check(is_equal_approx(TwinFaceGlow.DEFAULT_HALO_STRENGTH, 1.6), "halo strength default 1.6")
 
 
 func _test_driver() -> void:
@@ -111,6 +117,10 @@ func _test_driver() -> void:
 	root.add_child(glow)
 	glow.bind_material(mat)
 	_check(Color(mat.get_shader_parameter(&"twin_glow")).is_equal_approx(Palette.EMBER), "bind sets Ember glow")
+	_check(is_equal_approx(float(mat.get_shader_parameter(&"twin_strength")), 1.6), "bind sets core strength 1.6")
+	_check(is_equal_approx(float(mat.get_shader_parameter(&"twin_halo_strength")), 1.6), "bind sets halo strength 1.6")
+	_check(is_equal_approx(float(mat.get_shader_parameter(&"up_lo")), 0.80), "bind sets up_lo 0.80")
+	_check(is_equal_approx(float(mat.get_shader_parameter(&"up_hi")), 0.92), "bind sets up_hi 0.92")
 	_check(is_equal_approx(float(mat.get_shader_parameter(&"settled")), 0.0), "starts unsettled")
 	# Fake table.events with the agreed signals.
 	var ev := Node.new()

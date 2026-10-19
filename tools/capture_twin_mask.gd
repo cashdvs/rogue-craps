@@ -1,12 +1,20 @@
 ## Capture strip for the Twin Face glow mask: rolling dark / 3-up landed lit /
-## other-face-up dark. Uses the stand-in mask and a UV-mapped quad (batch-3
-## keg mesh lands in 3D Artist's follow-up).
+## other-face-up dark. Default uses the stand-in mask. Pass --final to load
+## 3D Artist's local final mask + faces from twin_mark_mock/final/ (not in repo)
+## and write twin_mask_strip_final.png.
 ##   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver vulkan \\
 ##       --resolution 960x320 --script res://tools/capture_twin_mask.gd -- \\
-##       --out=/workspace/dice/captures/twin_mask/
+##       --out=/workspace/dice/captures/twin_mask/ [--final]
 extends SceneTree
 
+const FINAL_DIR := "/workspace/dice/art/source/twin_mark_mock/final/"
+const FINAL_MASK := FINAL_DIR + "powder_keg_twin_mask.png"
+const FINAL_FACES := FINAL_DIR + "powder_keg_faces.png"
+
 var OUT := "user://captures_twin_mask/"
+var USE_FINAL := false
+var _mask_tex: Texture2D
+var _faces_tex: Texture2D
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -20,15 +28,15 @@ func shot(path: String) -> void:
 	root.get_texture().get_image().save_png(path)
 	print("saved ", path)
 
+func _load_file_tex(path: String) -> Texture2D:
+	var img := Image.load_from_file(path)
+	if img == null:
+		push_error("failed to load " + path)
+		return null
+	return ImageTexture.create_from_image(img)
+
 func _make_face(mat: ShaderMaterial, world_n: Vector3) -> MeshInstance3D:
-	# Quad in XY facing +Z in local space; we rotate so its normal becomes world_n.
 	var mi := MeshInstance3D.new()
-	var q := QuadMesh.new()
-	q.size = Vector2(0.12, 0.12)
-	mi.mesh = q
-	mi.material_override = mat
-	# Map UV to cell 2 (value 3) of a 5x5 atlas: u 0.4..0.6, v 0..0.2
-	# QuadMesh uses full 0..1 UV — we bake cell UVs via a custom ArrayMesh instead.
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var u0 := 2.0 / 5.0
@@ -36,7 +44,6 @@ func _make_face(mat: ShaderMaterial, world_n: Vector3) -> MeshInstance3D:
 	var v0 := 0.0
 	var v1 := 1.0 / 5.0
 	var h := 0.06
-	# Quad facing +Y (up) in local space so BASIS can aim it.
 	var n := Vector3.UP
 	var verts = [
 		Vector3(-h, 0, -h), Vector3(h, 0, -h), Vector3(h, 0, h), Vector3(-h, 0, h),
@@ -48,10 +55,9 @@ func _make_face(mat: ShaderMaterial, world_n: Vector3) -> MeshInstance3D:
 			st.set_uv(uvs[i])
 			st.add_vertex(verts[i])
 	mi.mesh = st.commit()
-	# Rotate local +Y to world_n.
+	mi.material_override = mat
 	mi.basis = _basis_from_up(world_n)
 	return mi
-
 
 func _basis_from_up(up: Vector3) -> Basis:
 	up = up.normalized()
@@ -62,7 +68,6 @@ func _basis_from_up(up: Vector3) -> Basis:
 	var axis := Vector3.UP.cross(up).normalized()
 	return Basis(axis, Vector3.UP.angle_to(up))
 
-
 func _panel(label: String, settled: float, world_n: Vector3, x: float) -> Node3D:
 	var sh := load("res://shaders/3d/toon_noir_twin.gdshader") as Shader
 	var mat := ShaderMaterial.new()
@@ -70,17 +75,21 @@ func _panel(label: String, settled: float, world_n: Vector3, x: float) -> Node3D
 	mat.set_shader_parameter("albedo", Color("#C9C14D"))
 	mat.set_shader_parameter("light_gain", 0.35)
 	mat.set_shader_parameter("wrap", 0.3)
-	mat.set_shader_parameter("twin_mask", load("res://art/fx/twin_face/twin_face_mask_standin.png"))
+	mat.set_shader_parameter("twin_mask", _mask_tex)
 	mat.set_shader_parameter("twin_glow", Palette.EMBER)
-	mat.set_shader_parameter("twin_strength", 1.35)
-	mat.set_shader_parameter("twin_unlit", Color("#6A2E1C"))
+	mat.set_shader_parameter("twin_strength", 1.6)
+	mat.set_shader_parameter("twin_halo_strength", 1.6)
+	mat.set_shader_parameter("twin_unlit", Color("#403440"))
 	mat.set_shader_parameter("settled", settled)
-	mat.set_shader_parameter("up_threshold", 0.92)
+	mat.set_shader_parameter("up_lo", 0.80)
+	mat.set_shader_parameter("up_hi", 0.92)
+	if USE_FINAL and _faces_tex != null:
+		mat.set_shader_parameter("use_overlay", true)
+		mat.set_shader_parameter("overlay_tex", _faces_tex)
+		mat.set_shader_parameter("overlay_tint", Color(1, 1, 1, 1))
 	var root3 := Node3D.new()
 	root3.position = Vector3(x, 0, 0)
-	var face := _make_face(mat, world_n)
-	root3.add_child(face)
-	# Tiny label card as unshaded text substitute: coloured bar under the face.
+	root3.add_child(_make_face(mat, world_n))
 	var bar := MeshInstance3D.new()
 	var bq := QuadMesh.new()
 	bq.size = Vector2(0.11, 0.02)
@@ -99,7 +108,18 @@ func _run() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			OUT = a.trim_prefix("--out=").trim_suffix("/") + "/"
+		elif a == "--final":
+			USE_FINAL = true
 	DirAccess.make_dir_recursive_absolute(OUT)
+	if USE_FINAL:
+		_mask_tex = _load_file_tex(FINAL_MASK)
+		_faces_tex = _load_file_tex(FINAL_FACES)
+		if _mask_tex == null or _faces_tex == null:
+			quit(1)
+			return
+		print("using FINAL mask+faces from ", FINAL_DIR)
+	else:
+		_mask_tex = load("res://art/fx/twin_face/twin_face_mask_standin.png") as Texture2D
 	var world := Node3D.new()
 	root.add_child(world)
 	var cam := Camera3D.new()
@@ -122,16 +142,14 @@ func _run() -> void:
 	e.ambient_light_energy = 0.3
 	e.glow_enabled = true
 	e.glow_intensity = 0.6
+	e.glow_hdr_threshold = 1.0
 	env.environment = e
 	world.add_child(env)
-	# Three panels.
 	world.add_child(_panel("rolling", 0.0, Vector3.UP, -0.16))
 	world.add_child(_panel("landed", 1.0, Vector3.UP, 0.0))
-	# Tilted toward camera but well below up_threshold → settled yet dark.
 	world.add_child(_panel("other", 1.0, Vector3(0.0, 0.35, 1.0).normalized(), 0.16))
 	await wait(0.35)
-	await shot(OUT + "twin_mask_strip.png")
-	# Also save singles for QA.
-	await shot(OUT + "twin_mask_strip_native.png")
+	var name := "twin_mask_strip_final.png" if USE_FINAL else "twin_mask_strip.png"
+	await shot(OUT + name)
 	print("labels: rolling(settled=0,3-up,dark) | landed(settled=1,3-up,Ember) | other(settled=1,side,dark)")
 	quit()
