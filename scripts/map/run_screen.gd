@@ -95,7 +95,10 @@ func new_run(seed_value: int) -> void:
 	run = MapRun.new(run_data, seed_value)
 	run.screen_changed.connect(func(_s: S) -> void: refresh())
 	run.progress.changed.connect(_refresh_bar)
-	map_key.visible = true  # open on Floor 1; _start_floor collapses it later
+	# Opens by itself once per profile (RunProfile), then only via Key / K.
+	map_key.visible = not RunProfile.map_key_seen()
+	if map_key.visible:
+		RunProfile.mark_map_key_seen()
 	run.screen_changed.connect(func(_s: S) -> void:
 		if run.floor_index > 0 and run.screen == S.MAP and run.map.current_id == -1:
 			map_key.visible = false)
@@ -228,7 +231,10 @@ func _show_table() -> void:
 	if stubs_enabled():
 		buttons.append(["Stub: clear", func() -> void: run.quick_resolve(true)])
 		buttons.append(["Stub: miss", func() -> void: run.quick_resolve(false)])
-	_panel(g.display_name, lines, buttons)
+	var dice := MiniDiceRow.new()
+	dice.build(run.progress)
+	dice.opened.connect(show_dice)
+	_panel(g.display_name, lines, buttons, dice)
 
 
 ## Dev stub buttons at tables: only with debug_table_stubs in a debug build.

@@ -13,6 +13,8 @@ var _failed: int = 0
 
 
 func _initialize() -> void:
+	RunProfile.path = "user://test_profile_playtest_1_ui.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(RunProfile.path))
 	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
 	scene.run_seed = 4242
 	root.add_child(scene)
@@ -25,6 +27,7 @@ func _initialize() -> void:
 	scene.queue_free()
 	await process_frame
 	await _test_embers_hud()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(RunProfile.path))
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -72,7 +75,7 @@ func _key(scene: RunScreen, code: Key) -> void:
 func _test_bar_and_key(scene: RunScreen) -> void:
 	_check(scene._bar.text.contains("Seed 4242") and scene._bar.text.contains("Seals 0") and not scene._bar.text.contains("Lv"),
 		"seed: shown on the run bar; Seals as a count (%s)" % scene._bar.text)
-	_check(scene.map_key.visible and scene.key_button.visible and scene.bag_button.visible, "key: open on Floor 1's map, with Key / Your dice buttons")
+	_check(scene.map_key.visible and scene.key_button.visible and scene.bag_button.visible, "key: open on a new profile's first map, with Key / Your dice buttons")
 	var lines := _texts(scene.map_key)
 	_check(lines.size() == 9 and lines[0] == "Map key" and MapKey.all_lines().size() == 8 and lines[1].ends_with(MapKey.LINES[NT.TABLE]),
 		"key: a row per node type + path and re-sit lines (strings_v1)")
