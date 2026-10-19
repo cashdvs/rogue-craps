@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_choice"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_effect"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_event"]
+
+[sub_resource type="Resource" id="fx_bone_setter_a1"]
+script = ExtResource("2_effect")
+kind = 7
+
+[sub_resource type="Resource" id="fx_bone_setter_a2"]
+script = ExtResource("2_effect")
+kind = 5
+amount = 3
+
+[sub_resource type="Resource" id="ch_bone_setter_a"]
+script = ExtResource("1_choice")
+label = "Sell him a die: its sell value, +3 max Soul, +3 Soul."
+result_text = "He sets the bone into your ribs, and you feel sturdier."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_bone_setter_a1"), SubResource("fx_bone_setter_a2")])
+
+[sub_resource type="Resource" id="fx_bone_setter_b1"]
+script = ExtResource("2_effect")
+kind = 5
+amount = -8
+
+[sub_resource type="Resource" id="fx_bone_setter_b2"]
+script = ExtResource("2_effect")
+kind = 6
+
+[sub_resource type="Resource" id="ch_bone_setter_b"]
+script = ExtResource("1_choice")
+label = "Take a Bone die: -8 max Soul."
+result_text = "He pulls a die from somewhere you'd rather not know."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_bone_setter_b1"), SubResource("fx_bone_setter_b2")])
+
+[sub_resource type="Resource" id="ch_bone_setter_c"]
+script = ExtResource("1_choice")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_event")
+id = &"bone_setter"
+title = "The Bone Setter"
+body = "A bone setter trades bone for bone, whichever way you like."
+art_note = "A bone setter cracking his knuckles over a slab of splints and loose dice."
+floors = Array[int]([3])
+choices = Array[ExtResource("1_choice")]([SubResource("ch_bone_setter_a"), SubResource("ch_bone_setter_b"), SubResource("ch_bone_setter_c")])

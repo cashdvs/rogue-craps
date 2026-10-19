@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_choice"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_effect"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="3_event"]
+
+[sub_resource type="Resource" id="fx_fence_a1"]
+script = ExtResource("2_effect")
+kind = 7
+amount = 6
+
+[sub_resource type="Resource" id="ch_fence_a"]
+script = ExtResource("1_choice")
+label = "Sell a die you pick: its sell value +6 Embers."
+result_text = "The die vanishes into his coat."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_fence_a1")])
+
+[sub_resource type="Resource" id="fx_fence_b1"]
+script = ExtResource("2_effect")
+kind = 1
+amount = -10
+
+[sub_resource type="Resource" id="fx_fence_b2"]
+script = ExtResource("2_effect")
+kind = 6
+die = &"cracked"
+
+[sub_resource type="Resource" id="ch_fence_b"]
+script = ExtResource("1_choice")
+label = "Buy a hot die: -10 Embers for a Cracked Die."
+result_text = "It's warm from someone else's pocket, and slightly cracked."
+effects = Array[ExtResource("2_effect")]([SubResource("fx_fence_b1"), SubResource("fx_fence_b2")])
+
+[sub_resource type="Resource" id="ch_fence_c"]
+script = ExtResource("1_choice")
+label = "Leave."
+result_text = "You walk on."
+
+[resource]
+script = ExtResource("3_event")
+id = &"fence"
+title = "The Fence"
+body = "A fence in a moth-eaten coat buys and sells dice, no questions."
+art_note = "A fence holding open a moth-eaten coat lined with other people's dice."
+floors = Array[int]([2, 3])
+choices = Array[ExtResource("1_choice")]([SubResource("ch_fence_a"), SubResource("ch_fence_b"), SubResource("ch_fence_c")])
