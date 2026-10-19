@@ -27,6 +27,10 @@ var rules: Array = []
 ## Dice the player owns in the run bag (Cracked never shatters at <= 5).
 ## -1 = dice.size().
 var owned_dice_count: int = -1
+## The run's first table (the sandbox counts as one): only it gets the
+## Table 1 tutorial seeds and TH hints (Game Designer's
+## design/onboarding_hints_v1.md, in the design docs outside this repo).
+var first_table: bool = true
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.

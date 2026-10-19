@@ -90,7 +90,7 @@
  "wordmark_cream": {
   "size": [
    1201,
-   281
+   301
   ],
   "pivots_px": {
    "main_center": [
@@ -99,11 +99,11 @@
    ],
    "games_center": [
     600.4,
-    246.5
+    256.6
    ],
    "center": [
     600.4,
-    140.3
+    150.4
    ],
    "baseline_left": [
     0.4,
@@ -125,20 +125,20 @@
  },
  "wordmark_games_cream": {
   "size": [
-   466,
-   68
+   575,
+   88
   ],
   "pivots_px": {
    "center": [
-    233.1,
-    34.1
+    287.4,
+    44.2
    ]
   }
  },
  "wordmark_charcoal": {
   "size": [
    1201,
-   281
+   301
   ],
   "pivots_px": {
    "main_center": [
@@ -147,11 +147,11 @@
    ],
    "games_center": [
     600.4,
-    246.5
+    256.6
    ],
    "center": [
     600.4,
-    140.3
+    150.4
    ],
    "baseline_left": [
     0.4,
@@ -173,49 +173,51 @@
  },
  "wordmark_games_charcoal": {
   "size": [
-   466,
-   68
+   575,
+   88
   ],
   "pivots_px": {
    "center": [
-    233.1,
-    34.1
+    287.4,
+    44.2
    ]
   }
  },
  "_wordmark_geometry": {
   "games_center_offset_from_main_center_px_2x": [
    0.0,
-   162.1
+   172.1
   ],
-  "games_cap_ratio": 0.4,
+  "games_cap_ratio": 0.52,
+  "games_track_em": 0.36,
+  "games_width_ratio": 0.48,
   "main_line_width_px_2x": 1200.0
  },
  "logo_lockup_horizontal": {
   "size": [
    1517,
-   283
+   299
   ],
   "pivots_px": {}
  },
  "logo_lockup_horizontal_on_light": {
   "size": [
    1517,
-   283
+   299
   ],
   "pivots_px": {}
  },
  "logo_lockup_stacked": {
   "size": [
    1124,
-   688
+   707
   ],
   "pivots_px": {}
  },
  "logo_lockup_stacked_on_light": {
   "size": [
    1124,
-   688
+   707
   ],
   "pivots_px": {}
  },

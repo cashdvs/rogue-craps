@@ -6,4 +6,5 @@
 script = ExtResource("1_ir0t1")
 id = &"cold_hands"
 display_name = "Cold Hands"
-description = "No Hot Hand."
+description = "No Hot Hand. +1 hand."
+hands_delta = 1

@@ -1,8 +1,8 @@
-## Tiny Anvil boot splash ("Spark" direction).
+## Tiny Anvil Games boot splash ("Spark" direction).
 ##
 ## Plays once per boot: the anvil drops in, the hammer strikes, the anvil
-## flashes, sparks burst and the hero spark pops into place, "TINY ANVIL"
-## wipes in, hold, fade, then the next scene opens. Any key / click / tap /
+## flashes, sparks burst and the hero spark pops into place, "TINY ANVIL" +
+## "GAMES" wipe in, hold, fade, then the next scene opens. Any key / click / tap /
 ## pad button skips with a fast fade. SplashState (autoload) makes sure it
 ## never replays during the same boot.
 ##

@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_pool.gdshader" id="1_r7mxk"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_r7mxk")
+shader_parameter/pool_color = null
+shader_parameter/core_color = null
+shader_parameter/energy = null
+shader_parameter/core_energy = null
+shader_parameter/core_at = null
