@@ -147,6 +147,76 @@ static func remap_basis(physical_up: int, wanted: int, yaw: float = 0.0) -> Basi
 	return Basis(a_phys, quarter) * r
 
 
+# --- Lit / cold readability state (design section 4, art/ui/readability) -----------
+## The ember colours from the Art Director's die_state_reference.gdshader.
+const EMBER_MID := Color(0.910, 0.384, 0.165)   # #E8622A
+const EMBER_CORE := Color(1.000, 0.902, 0.659)  # #FFE6A8
+const PIP_MID_ENERGY := 0.9    # under the glow threshold: no bloom
+const PIP_CORE_ENERGY := 3.0   # over it: the only part that blooms
+const COLD_PIP_TO_BODY := 0.55
+## Tween times: lighting up is snappy, going cold is a little slower.
+const LIT_TIME := 0.08
+const COLD_TIME := 0.15
+## 0..1: how "lit" (scoring) and how "cold" (not scoring) this die looks.
+var _glow_tween: Tween
+
+
+## Shows the die as lit (scoring), cold (didn't score) or plain (both false).
+## Material only: no lights, no particles. `instant` skips the tween.
+func set_glow_state(lit: bool, cold: bool, instant: bool = false) -> void:
+	var to_lit := 1.0 if lit else 0.0
+	var to_cold := 1.0 if (cold and not lit) else 0.0
+	if _glow_tween != null:
+		_glow_tween.kill()
+		_glow_tween = null
+	var t := LIT_TIME if lit else COLD_TIME
+	if instant or not is_inside_tree():
+		_apply_glow(to_lit, to_cold)
+		return
+	var from_lit := glow_lit
+	var from_cold := glow_cold
+	_glow_tween = create_tween()
+	_glow_tween.tween_method(func(k: float) -> void:
+		_apply_glow(lerpf(from_lit, to_lit, k), lerpf(from_cold, to_cold, k)), 0.0, 1.0, t)
+
+
+## A brighter flare of the lit glow (Hot Hand): the pip cores burn hotter
+## for a moment and the rim brightens (still under the bloom threshold).
+func pulse_glow(seconds: float = 0.6) -> void:
+	if not is_inside_tree():
+		return
+	var tw := create_tween().set_ignore_time_scale(true)
+	tw.tween_method(func(k: float) -> void:
+		glow_boost = sin(k * PI)
+		_apply_glow(glow_lit, glow_cold), 0.0, 1.0, seconds)
+
+
+## 0..1 extra brightness from pulse_glow.
+var glow_boost: float = 0.0
+
+
+## Called by DieFaceArt._add_pips once the pips (and their cores) exist.
+func _apply_glow(lit: float, cold: float) -> void:
+	glow_lit = lit
+	glow_cold = cold
+	body_material.set_shader_parameter("state_rim_energy", 0.85 + 0.13 * glow_boost)
+	body_material.set_shader_parameter("die_lit", lit)
+	body_material.set_shader_parameter("die_cold", cold)
+	if pip_material == null:
+		return
+	# Cold pips are pulled 55% toward the (cold) body colour; lit pips go ember.
+	var body_col: Color = body_material.get_shader_parameter("albedo")
+	var cold_body := Color(body_col.get_luminance(), body_col.get_luminance() * 0.96, body_col.get_luminance() * 0.90) * Color(0.80, 0.78, 0.76)
+	var pip := _pip_color.lerp(cold_body, COLD_PIP_TO_BODY * cold * (1.0 - lit))
+	pip = pip.lerp(EMBER_MID, lit)
+	pip_material.set_shader_parameter("albedo", pip)
+	pip_material.set_shader_parameter("emission_color", EMBER_MID)
+	pip_material.set_shader_parameter("emission_energy", PIP_MID_ENERGY * lit)
+	pip_core_material.set_shader_parameter("energy", PIP_CORE_ENERGY * lit * (1.0 + 0.7 * glow_boost))
+	for c in _pip_cores:
+		c.visible = lit > 0.01
+
+
 # --- Mesh building ---------------------------------------------------------------
 
 

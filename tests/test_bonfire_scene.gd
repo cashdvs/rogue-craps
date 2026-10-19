@@ -157,7 +157,8 @@ func _run() -> void:
 	check(not s.pick_die(4), "clicking the cold 2 is refused")
 	check(s.pick_die(0) and s.pick_die(1) and s.pick_die(2) and r.throw_points() == 126, "pot 4-4-4 = 126")
 	check(not s.pick_die(3), "the 5 can't join the trips")
-	check(s.bhud.throw_label.text == "Trips  (30 + 12) x 3 = 126", "live formula (%s)" % s.bhud.throw_label.text)
+	# The live pot preview (how_bonfire_plays.md section 4).
+	check(s.bhud.throw_label.text == "TRIPS: (30+12) x3 = 126", "live pot preview (%s)" % s.bhud.throw_label.text)
 	await create_timer(0.3).timeout
 	check(s.throw_dice[2].global_position.distance_to(s.pot_slot(2)) < 0.01, "potted dice sit on the rail pot")
 	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "throw again: 2 cold dice back in the hand")

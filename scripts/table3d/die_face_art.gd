@@ -99,6 +99,7 @@ func make_coin() -> void:
 	if _pips_root != null:
 		_pips_root.free()
 		_pips_root = null
+		_pip_cores.clear()  # their pip cores went with them
 	var body := faces.get_node("Body") as MeshInstance3D
 	var cyl := CylinderMesh.new()
 	cyl.top_radius = CoinPhysics.RADIUS
@@ -155,6 +156,11 @@ func make_coin() -> void:
 
 
 var _pip_color: Color = Palette.PIT_BLACK
+## The pip material (all pips of this die share it) and the small hot "core"
+## disc inside each pip. Only the core is bright enough to bloom.
+var pip_material: ShaderMaterial
+var pip_core_material: ShaderMaterial
+var _pip_cores: Array[MeshInstance3D] = []
 
 ## Highest printed value a face label can carry (a d20's 20).
 const MAX_LABEL: int = 20
@@ -213,6 +219,18 @@ func _add_pips() -> void:
 	pip_mesh.radial_segments = 12
 	pip_mesh.rings = 1
 	var pip_mat := Toon.mat(_pip_color, Color.BLACK, {"roughness": 0.8, "ambient_energy": 0.1})
+	pip_material = pip_mat
+	# The pip core: an unshaded disc (~55% of the pip radius) just above the
+	# pip floor. It is what the Art Director's pip mask "G" channel meant;
+	# our pips are real meshes, so no mask texture is needed.
+	pip_core_material = Toon.fx(Color(1.000, 0.902, 0.659), 0.0, 1, false)
+	var core_mesh := CylinderMesh.new()
+	core_mesh.top_radius = pr * 0.55
+	core_mesh.bottom_radius = pr * 0.55
+	core_mesh.height = 0.005 * edge
+	core_mesh.radial_segments = 12
+	core_mesh.rings = 1
+	_pip_cores.clear()
 	var h := edge * 0.5
 	for value: int in PIPS:
 		var n := FACE_AXES[value] as Vector3
@@ -235,3 +253,23 @@ func _add_pips() -> void:
 			var pos := n * (h - 0.02 * edge) + u * spot.x * PIP_STEP * edge + v * spot.y * PIP_STEP * edge
 			mi.transform = Transform3D(Basis(u, n, u.cross(n)), pos)
 			_pips_root.add_child(mi)
+			var core := MeshInstance3D.new()
+			core.name = "PipCore"
+			core.mesh = core_mesh
+			core.material_override = pip_core_material
+			core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			core.position = Vector3(0, 0.031 * edge, 0)
+			core.visible = false
+			mi.add_child(core)
+			_pip_cores.append(core)
+	# New pips start in the die's current lit / cold look (DieVisual).
+	_apply_glow(glow_lit, glow_cold)
+
+
+## Lit / cold look hook: DieVisual overrides it (the art alone has none).
+var glow_lit: float = 0.0
+var glow_cold: float = 0.0
+
+
+func _apply_glow(_lit: float, _cold: float) -> void:
+	pass
