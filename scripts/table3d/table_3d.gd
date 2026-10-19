@@ -135,6 +135,10 @@ var hand_glow: MeshInstance3D
 var puck_body: StaticBody3D
 var bet_body: StaticBody3D
 var hud: CanvasLayer
+## Which renderer the table builds its fog / SSAO for ("" = the one running).
+## Tests set it before add_child to build the Mobile / Compatibility
+## fallbacks headless.
+var render_method: String = ""
 var grade: ColorRect
 var soul_meter: SoulMeter
 var stack: BankrollStack
@@ -559,14 +563,17 @@ func _make_environment() -> Environment:
 	e.fog_light_color = Color("#0E0B0C")
 	e.fog_density = 0.12
 	e.fog_sky_affect = 0.0
-	e.volumetric_fog_enabled = true
+	# Volumetric fog is Forward+ only; Compatibility (web) and Mobile warn
+	# every table if it's on (QA full run pass 1, Minor 9).
+	e.volumetric_fog_enabled = has_volumetric_fog(render_method)
 	e.volumetric_fog_density = 0.012
 	e.volumetric_fog_albedo = Color("#3A3032")
 	e.volumetric_fog_emission = Color.BLACK
 	e.volumetric_fog_anisotropy = 0.6
 	e.volumetric_fog_length = 12.0
 	e.volumetric_fog_detail_spread = 2.0
-	e.ssao_enabled = true
+	# SSAO: Forward+ only too; Mobile and Compatibility warn (#103 N5).
+	e.ssao_enabled = is_forward_plus(render_method)
 	e.ssao_radius = 0.25
 	e.ssao_intensity = 1.6
 	e.ssao_power = 1.5
@@ -587,27 +594,42 @@ func _make_environment() -> Environment:
 	return e
 
 
+## Is `method` ("" = the renderer running now) Forward+?
+static func is_forward_plus(method: String = "") -> bool:
+	if method == "":
+		method = RenderingServer.get_current_rendering_method()
+	return method == "forward_plus"
+
+
+## Can this renderer draw volumetric fog (FogVolume / FogMaterial)? Only
+## Forward+; the Compatibility renderer can't even compile a fog shader.
+static func has_volumetric_fog(method: String = "") -> bool:
+	return is_forward_plus(method)
+
+
 func _build_fog_and_smoke() -> void:
-	# Smoke swirling in the lamp cone (Forward+ volumetric fog).
-	var fv := FogVolume.new()
-	fv.name = "LampHaze"
-	fv.size = Vector3(1.4, 1.2, 1.4)
-	fv.position = Vector3(0, 0.75, -0.05)
-	var fm := FogMaterial.new()
-	fm.density = 0.04
-	var noise := NoiseTexture3D.new()
-	var fnl := FastNoiseLite.new()
-	fnl.frequency = 0.05
-	noise.noise = fnl
-	noise.width = 32
-	noise.height = 32
-	noise.depth = 32
-	fm.density_texture = noise
-	fv.material = fm
-	add_child(fv)
-	# Fallback cone for renderers without volumetric fog (Mobile/Compatibility).
-	if RenderingServer.get_current_rendering_method() != "forward_plus":
+	if has_volumetric_fog(render_method):
+		# Smoke swirling in the lamp cone (Forward+ volumetric fog).
+		var fv := FogVolume.new()
+		fv.name = "LampHaze"
+		fv.size = Vector3(1.4, 1.2, 1.4)
+		fv.position = Vector3(0, 0.75, -0.05)
+		var fm := FogMaterial.new()
+		fm.density = 0.04
+		var noise := NoiseTexture3D.new()
+		var fnl := FastNoiseLite.new()
+		fnl.frequency = 0.05
+		noise.noise = fnl
+		noise.width = 32
+		noise.height = 32
+		noise.depth = 32
+		fm.density_texture = noise
+		fv.material = fm
+		add_child(fv)
+	else:
+		# Fallback cone for renderers without volumetric fog (Mobile/Compatibility).
 		var cone := MeshInstance3D.new()
+		cone.name = "LampConeFallback"
 		cone.mesh = Toon.cylinder(0.55, 1.0, 24, 0.05)
 		cone.material_override = Toon.fx(Color("#FFB070", 0.05), 1.0, 1, true)
 		cone.position = Vector3(0, 0.85, -0.05)

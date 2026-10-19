@@ -19,12 +19,12 @@ Previews: `/workspace/dice/art/concept/studio_logo_final/splash_storyboard.png`.
 | sparks / hero | `spark.png` (83×81) | center (41.6, 40.6) | starts (1000.5, 401.4) → home (863.7, 382.2) | 3 |
 | sparks / burst | GPUParticles2D, `spark_particle.png` 64×64 white | center | emitter at (1000.5, 401.4) | 3 |
 | wordmark / main | `wordmark_main_cream.png` (1201×169) | center (600.4, 84.4) | (960.0, 630.0) | 1 |
-| wordmark / games | `wordmark_games_cream.png` (466×68) | center (233.1, 34.1) | (960.0, 711.0) | 1 |
+| wordmark / games | `wordmark_games_cream.png` (575×88) | center (287.4, 44.2) | (960.0, 716.0) | 1 |
 
 - Anvil x 993.3 centers the anvil's *bounding box* on screen (its base is right of center because of the horn).
 - Strike point = the top of the anvil face, 14.4 px right of the base center at 2x (`anvil.png` strike_point pivot (331.0, 0.6)).
 - At hammer rotation 0 the striking face sits on the strike point. At rotation 80° the head is straight up above the grip.
-- Single-sprite fallback: `wordmark_cream.png` (1201×281, TINY ANVIL + GAMES baked) with pivot main_center (600.4, 84.4) at (960, 630). Using it loses the GAMES delay.
+- Single-sprite fallback: `wordmark_cream.png` (1201×301, TINY ANVIL + GAMES baked) with pivot main_center (600.4, 84.4) at (960, 630). Using it loses the GAMES delay.
 
 ## Beat sheet
 | t (s) | Beat |
@@ -104,7 +104,7 @@ The pivot is the base center, so squash stays planted on the floor line.
 | prop | start | dur | from → to | trans / ease |
 |---|---|---|---|---|
 | modulate:a | 1.15 | 0.20 | 0 → 1 | LINEAR |
-| position:y | 1.15 | 0.30 | 721.0 → 711.0 | QUAD / OUT |
+| position:y | 1.15 | 0.30 | 726.0 → 716.0 | QUAD / OUT |
 | scale | 1.15 | 0.35 | (1.10, 1.0) → (1, 1) (reads as letters tracking in) | CUBIC / OUT |
 | modulate:a | 2.20 | 0.30 | 1 → 0 | SINE / IN |
 
