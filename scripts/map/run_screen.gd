@@ -102,9 +102,9 @@ func refresh() -> void:
 	quit_button.visible = map_view.visible
 	match run.screen:
 		S.MAP:
-			map_view.show_map(run.map, run.boss_name(), _boss_rules())
+			map_view.show_map(run.map, run.boss_name(), _boss_rules(), run.pending_twist_note())
 		S.EVENT:
-			event_view.show_event(run.event, run.progress)
+			event_view.show_event(run.event, run.progress, run.table_ahead())
 		S.TABLE:
 			_show_table()
 		S.REWARD:
@@ -292,7 +292,7 @@ func _show_shop() -> void:
 		if sd != null and run.progress.sell_value(d_i) > 0:
 			buttons.append(["Sell your %s (+%d Embers)" % [sd.display_name, run.progress.sell_value(d_i)],
 				func() -> void: run.sell_die(d_i); _show_shop()])
-	buttons.append(["Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
+	buttons.append(["Free reroll (%d left)" % run.progress.free_rerolls if run.progress.free_rerolls > 0 else "Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
 	buttons.append(["Leave", func() -> void: run.leave()])
 	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half.", "Your dice: " + bag_text()], buttons)
 
@@ -350,7 +350,7 @@ func _on_event_choice(i: int, picks: Array[Vector2i]) -> void:
 	var text := run.event.choices[i].result_text
 	var lines := run.choose_event(i, picks)
 	if run.screen == S.EVENT:
-		event_view.show_event(run.event, run.progress)
+		event_view.show_event(run.event, run.progress, run.table_ahead())
 		return
 	# Show the outcome over the event before going back to the map.
 	map_view.visible = false

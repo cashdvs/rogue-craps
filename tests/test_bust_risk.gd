@@ -115,8 +115,9 @@ func _rules() -> void:
 	# Greedy Pot: a pot needs 2 dice, so 2 dice light only on a pair: 30/36.
 	check(near(risk(plain(2), [&"greedy_pot"])["burn"], 30.0 / 36.0), "Greedy Pot, 2 dice: 5 in 6")
 	check(near(risk(plain(1), [&"greedy_pot"])["burn"], 2.0 / 3.0), "Greedy Pot, 1 die: a 1 or 5 alone still pots")
-	# Madame Shuffle on a single die: it's rerolled, still 2 in 3.
-	check(near(risk(plain(1), [&"madame_shuffle"])["burn"], 2.0 / 3.0), "Madame Shuffle, 1 die: 2 in 3")
+	# Madame Shuffle on a single die: if it lights (1 or 5, 1 in 3) she
+	# rerolls it, and the reroll burns 2 in 3: 2/3 + 1/3 * 2/3 = 8/9.
+	check(near(risk(plain(1), [&"madame_shuffle"])["burn"], 8.0 / 9.0), "Madame Shuffle, 1 die: 8 in 9")
 
 
 ## The exact numbers match what really happens when BonfireRun lands random

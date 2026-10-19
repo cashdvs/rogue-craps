@@ -1,0 +1,107 @@
+[gd_resource type="Resource" script_class="EventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/event_choice_data.gd" id="1_8mmae"]
+[ext_resource type="Script" path="res://scripts/data/event_effect_data.gd" id="2_f04hw"]
+[ext_resource type="Resource" path="res://resources/map/rules/cold_hands.tres" id="3_4jx6y"]
+[ext_resource type="Script" path="res://scripts/data/event_data.gd" id="4_dlf6t"]
+
+[sub_resource type="Resource" id="Resource_yw6ej"]
+script = ExtResource("2_f04hw")
+kind = 5
+amount = 5
+
+[sub_resource type="Resource" id="Resource_msgu7"]
+script = ExtResource("1_8mmae")
+label = "Max Soul +5"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_yw6ej")])
+
+[sub_resource type="Resource" id="Resource_qcdas"]
+script = ExtResource("2_f04hw")
+kind = 5
+amount = -10
+
+[sub_resource type="Resource" id="Resource_v4uha"]
+script = ExtResource("1_8mmae")
+label = "Max Soul -10"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_qcdas")])
+
+[sub_resource type="Resource" id="Resource_ftm1r"]
+script = ExtResource("2_f04hw")
+kind = 6
+die = &"mirror"
+
+[sub_resource type="Resource" id="Resource_mdnro"]
+script = ExtResource("1_8mmae")
+label = "Take a Mirror Die"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_ftm1r")])
+
+[sub_resource type="Resource" id="Resource_1j6i6"]
+script = ExtResource("2_f04hw")
+kind = 6
+
+[sub_resource type="Resource" id="Resource_8ybpu"]
+script = ExtResource("1_8mmae")
+label = "Take a Bone die"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_1j6i6")])
+
+[sub_resource type="Resource" id="Resource_f2e58"]
+script = ExtResource("2_f04hw")
+kind = 7
+amount = 2
+
+[sub_resource type="Resource" id="Resource_lp8lb"]
+script = ExtResource("1_8mmae")
+label = "Sell a die (+2)"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_f2e58")])
+
+[sub_resource type="Resource" id="Resource_ab4qg"]
+script = ExtResource("2_f04hw")
+kind = 7
+target = 2
+
+[sub_resource type="Resource" id="Resource_tiao1"]
+script = ExtResource("1_8mmae")
+label = "Lose a random die"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_ab4qg")])
+
+[sub_resource type="Resource" id="Resource_bexnj"]
+script = ExtResource("2_f04hw")
+kind = 8
+amount = 2
+
+[sub_resource type="Resource" id="Resource_34bs6"]
+script = ExtResource("1_8mmae")
+label = "2 free rerolls"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_bexnj")])
+
+[sub_resource type="Resource" id="Resource_1cw57"]
+script = ExtResource("2_f04hw")
+kind = 9
+rule = ExtResource("3_4jx6y")
+
+[sub_resource type="Resource" id="Resource_mmdc5"]
+script = ExtResource("1_8mmae")
+label = "Cold Hands next table"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_1cw57")])
+
+[sub_resource type="Resource" id="Resource_2uimu"]
+script = ExtResource("2_f04hw")
+kind = 1
+amount = -5
+
+[sub_resource type="Resource" id="Resource_nble4"]
+script = ExtResource("2_f04hw")
+kind = 8
+amount = 1
+
+[sub_resource type="Resource" id="Resource_4mwdj"]
+script = ExtResource("1_8mmae")
+label = "Embers -5, 1 free reroll"
+effects = Array[ExtResource("2_f04hw")]([SubResource("Resource_2uimu"), SubResource("Resource_nble4")])
+
+[resource]
+script = ExtResource("4_dlf6t")
+id = &"event_effects_demo"
+title = "Event effects (test fixture)"
+body = "Not in the run's event pool: one choice per new effect kind."
+choices = Array[ExtResource("1_8mmae")]([SubResource("Resource_msgu7"), SubResource("Resource_v4uha"), SubResource("Resource_mdnro"), SubResource("Resource_8ybpu"), SubResource("Resource_lp8lb"), SubResource("Resource_tiao1"), SubResource("Resource_34bs6"), SubResource("Resource_mmdc5"), SubResource("Resource_4mwdj")])
