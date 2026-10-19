@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialDieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_die_data.gd" id="1_025nr"]
+
+[resource]
+script = ExtResource("1_025nr")
+id = &"cracked"
+display_name = "Cracked Die"
+description = "x2 mult on its pot; 1 in 6 chance it shatters after scoring."
+faces = Array[int]([1, 2, 3, 4, 5, 6])

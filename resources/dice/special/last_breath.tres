@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpecialDieData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_die_data.gd" id="1_32vkg"]
+
+[resource]
+script = ExtResource("1_32vkg")
+id = &"last_breath"
+display_name = "Last Breath Die"
+description = "Potted from a rethrow of 1-2 dice: x3 mult."
+price = 24
+faces = Array[int]([1, 2, 3, 4, 5, 6])

@@ -1,15 +1,8 @@
 ## A face mod carved onto one face of a die (build content v0.3, events §2,
 ## Game Designer prices). Data only; resources/mods/*.tres.
 ##
-## TODO(scoring hook): BonfireScoring (scripts/core/bonfire_scoring.gd, PR #20)
-## doesn't read face mods yet. The table needs, per potted die face:
-##   WILD -> counts as any value; TWIN -> counts as two dice of its value;
-##   BLANK -> never lights; MULT_FACTOR -> the pot's mult x mult_factor (Hellfire 1.5);
-##   MULT_ADD -> +amount mult (Ember Pip 2, Blood 4 + amount_soul Soul); EMBER ->
-##   +amount Ember when potted (Gilded); HEAVY -> lands twice as often; STEP ->
-##   value or +-1 for runs; STAIR -> +amount base per die in its run; KINDLING ->
-##   the next rethrow can't bust.
-## Until that hook lands, mods are tracked on the run but don't change scores.
+## BonfireScoring (Godot Dev) scores every effect except HEAVY, which is a
+## roll weight the run puts on the TableDie (RunProgress.table_dice()).
 class_name FaceModData
 extends Resource
 

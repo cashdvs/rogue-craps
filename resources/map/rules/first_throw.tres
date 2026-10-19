@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RunRuleData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/run_rule_data.gd" id="1_diita"]
+
+[resource]
+script = ExtResource("1_diita")
+id = &"first_throw"
+display_name = "First Throw"
+description = "Bounties only count on a hand's first throw."
+params = {
+"throws": 1
+}

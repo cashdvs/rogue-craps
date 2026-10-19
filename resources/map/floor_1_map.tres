@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="MapGenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/map_gen_data.gd" id="1_mapgen"]
+
+[resource]
+script = ExtResource("1_mapgen")
