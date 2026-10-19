@@ -44,6 +44,9 @@ var _stamps: Dictionary = {}
 var _pending_stamps: Dictionary = {}
 var _pulse: Array = []
 var _t: float = 0.0
+## Top-left of the THROW / BANK column (1920x1080 design px). Kept clear of
+## the hand (bottom-right) at 16:9, phone landscape and phone portrait.
+const BUTTONS_POS := Vector2(184, 790)
 
 
 func _init() -> void:
@@ -69,7 +72,9 @@ func _init() -> void:
 	result_label = _label(64, Palette.BRASS_HI, Vector2(460, 380), Vector2(1000, 90))
 	result_label.modulate.a = 0.0
 	var col := VBoxContainer.new()
-	col.position = Vector2(1580, 760)
+	# Bottom-left, beside the Soul meter: the hand of dice sits bottom-right,
+	# and buttons over it ate the grab (QA full run pass 1, M1).
+	col.position = BUTTONS_POS
 	col.add_theme_constant_override("separation", 14)
 	add_child(col)
 	throw_button = _button("THROW  (Space)", 32, Palette.BURGUNDY)

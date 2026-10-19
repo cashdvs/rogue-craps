@@ -1,4 +1,9 @@
 ## QA full run pass 1 (qa/full_run_pass_1.md), Godot Dev's Majors:
+##   M1: a press-drag-release that starts on any die in the hand is a flick
+##       throw, never a THROW / BANK button press, at 16:9 (1920x1080),
+##       phone landscape (844x390 -> 2337x1080 canvas) and phone portrait
+##       (390x844 -> 1920x4155): the buttons sit clear of the hand, and even
+##       a button laid right over a die doesn't eat the grab.
 ##   M2: the tutorial plays on the run's FIRST table only (RunScreen, where
 ##       the table is a child of the current scene), and on the sandbox's
 ##       Table 1; not on later run tables, not in tests / tools.
@@ -26,10 +31,123 @@ func check(cond: bool, what: String) -> void:
 
 
 func _run() -> void:
+	await _m1_hand_grabs()
 	await _m2_tutorial()
 	await _m4_soul_meter()
 	print("test_bonfire_full_run_fixes: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+# --- M1 -----------------------------------------------------------------------------
+
+## A sandbox table inside a SubViewport of the given canvas size (what the
+## window stretches to at that aspect), framed like that screen.
+func _table_in(canvas: Vector2i, screen: Vector2) -> Array:
+	var sv := SubViewport.new()
+	sv.size = canvas
+	root.add_child(sv)
+	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+	s.setup = TableSetup.sandbox(t, 5)
+	s.tutorial_override = 0
+	s.test_speed = 10.0
+	sv.add_child(s)
+	await process_frame
+	await process_frame
+	s.camera.cam.current = true
+	if screen != Vector2(canvas):
+		s.fit_phone(screen)
+	s.camera.snap_home()
+	return [sv, s]
+
+
+func _wait_in_hand(s: Bonfire3D) -> void:
+	for k in 600:
+		if s.phase == Table3D.Phase.BET and not s.hand_moving():
+			return
+		await process_frame
+
+
+func _click_event(p: Vector2, down: bool) -> InputEventMouseButton:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = down
+	e.position = p
+	e.global_position = p
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
+	return e
+
+
+## Real input through the viewport (so the GUI gets its chance first):
+## press at p, drag up-left at `speed` px/s for 0.2 s, release.
+func _flick_from(sv: SubViewport, s: Bonfire3D, p: Vector2, speed: float) -> void:
+	_clock_t = 0.0
+	s.flick_clock = func() -> float: return _clock_t
+	var dir := Vector2(-0.55, -0.83).normalized()
+	sv.push_input(_click_event(p, true), true)
+	var t := 0.0
+	while t < 0.2:
+		t += 0.008
+		_clock_t = t
+		var mm := InputEventMouseMotion.new()
+		mm.position = p + dir * speed * t
+		mm.global_position = mm.position
+		mm.button_mask = MOUSE_BUTTON_MASK_LEFT
+		sv.push_input(mm, true)
+	sv.push_input(_click_event(p + dir * speed * t, false), true)
+	s.flick_clock = Callable()
+
+
+func _m1_hand_grabs() -> void:
+	var cases := [["16:9 1920x1080", Vector2i(1920, 1080), Vector2(1920, 1080)],
+		["phone landscape 844x390", Vector2i(2337, 1080), Vector2(844, 390)],
+		["phone portrait 390x844", Vector2i(1920, 4155), Vector2(390, 844)]]
+	for c in cases:
+		var made: Array = await _table_in(c[1], c[2])
+		var sv: SubViewport = made[0]
+		var s: Bonfire3D = made[1]
+		var presses := [0]
+		s.bhud.throw_pressed.connect(func() -> void: presses[0] += 1)
+		s.bhud.bank_pressed.connect(func() -> void: presses[0] += 1)
+		await _wait_in_hand(s)
+		var buttons := [s.bhud.throw_button.get_global_rect(), s.bhud.bank_button.get_global_rect()]
+		var n := s.dice.size()
+		for i in n:
+			await _wait_in_hand(s)
+			var p := s.camera.cam.unproject_position(s.dice[i].global_position)
+			# The die's screen footprint (~half a die across) is clear of both buttons.
+			var die_box := Rect2(p - Vector2(30, 30), Vector2(60, 60))
+			check(not buttons.any(func(r: Rect2) -> bool: return r.intersects(die_box)),
+				"%s: die %d at %s is clear of THROW / BANK" % [c[0], i, p.round()])
+			await _flick_and_check(sv, s, p, presses, "%s: die %d" % [c[0], i])
+		# Even with THROW laid right over a die, pressing that die grabs.
+		await _wait_in_hand(s)
+		var p0 := s.camera.cam.unproject_position(s.dice[0].global_position)
+		var col := s.bhud.throw_button.get_parent() as Control
+		var home := col.position
+		col.position = p0 - Vector2(40, 40)
+		await process_frame
+		check(s.bhud.throw_button.get_global_rect().has_point(p0), "%s: THROW moved over die 0 for the overlap check" % c[0])
+		await _flick_and_check(sv, s, p0, presses, "%s: die 0 under THROW" % c[0])
+		col.position = home
+		sv.queue_free()
+		await process_frame
+
+
+## Flick from p; it must start a flick throw (launch speed from the drag,
+## not the canned quick throw) and press no button. Then a fresh hand.
+func _flick_and_check(sv: SubViewport, s: Bonfire3D, p: Vector2, presses: Array, what: String) -> void:
+	var before: int = presses[0]
+	s.last_launch = {}
+	await _flick_from(sv, s, p, 4000.0)
+	var thrown := s.phase != Table3D.Phase.BET and s.phase != Table3D.Phase.HELD
+	var flick := float(s.last_launch.get("flick", 0.0))
+	var want := 4000.0 * s.sensitivity()
+	check(thrown and presses[0] == before, "%s: press-drag-release throws (phase %d) and presses no button (%d presses)" % [what, s.phase, presses[0] - before])
+	check(absf(flick - want) < want * 0.15, "%s: it's the flick (%.0f px/s, want ~%.0f), not a quick throw" % [what, flick, want])
+	if thrown:
+		await s.sequence_finished
+	s.new_run(11)
 
 
 # --- M2 -----------------------------------------------------------------------------

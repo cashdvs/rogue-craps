@@ -943,6 +943,24 @@ func _take_down() -> String:
 	return ""
 
 
+## The dice in the hand come first (QA M1): a press on them is a grab even
+## where a HUD control overlaps them. _input runs before the GUI, so the
+## press, and the drag and release that follow it, go straight to the
+## table's normal input and no button ever sees them.
+func _input(event: InputEvent) -> void:
+	var mb := event as InputEventMouseButton
+	var left := mb != null and mb.button_index == MOUSE_BUTTON_LEFT
+	var holding := phase == Phase.HELD and (event is InputEventMouseMotion or (left and not mb.pressed))
+	if holding or (left and mb.pressed and hand_grab_at(mb.position)):
+		get_viewport().set_input_as_handled()
+		_unhandled_input(event)
+
+
+## True if a press at screen point p would grab the dice waiting in the hand.
+func hand_grab_at(p: Vector2) -> bool:
+	return phase == Phase.BET and can_throw() == "" and _hand_contains(p)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	var tap := event as InputEventScreenTouch
