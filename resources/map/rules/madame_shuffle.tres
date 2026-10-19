@@ -11,3 +11,4 @@ kind = 1
 params = {
 "faces": [2, 4]
 }
+metadata/stopgap = "STOPGAP: reuses the Pit Boss handler (id pit_boss, faces 2/4) under her name until Godot Dev reworks the madame_shuffle table hook; then restore id = &\"madame_shuffle\" and re-sim (design/run_tuning_v1.md, boss addendum + M7)."
