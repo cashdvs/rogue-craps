@@ -4,7 +4,7 @@
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How the code fits together, who owns what, key signals, data files, recipes (die, face mod, event, boss) |
 | [DESIGN_INDEX.md](DESIGN_INDEX.md) | Where the design docs live and which are current or superseded |
-| [DESIGN.md](DESIGN.md) | Superseded craps-era design summary (kept for history) |
+| [DESIGN.md](DESIGN.md) | Short overview of Bonfire as it plays now (full rules: `how_bonfire_plays.md`, team design folder) |
 | [MODULES.md](MODULES.md) | Module ownership map: the game's sub-sections, who owns them, how to claim one |
 
 The full, living design and art documents are maintained by the Tiny Anvil Games team and aren't in

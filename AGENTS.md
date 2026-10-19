@@ -32,7 +32,7 @@ against **Dice of the Damned** by **Tiny Anvil Games**. Humans should also read
 
 | Doc | Why |
 |---|---|
-| [docs/DESIGN.md](docs/DESIGN.md) | Public design summary: pillars, core loop, craps rules, Coin and Soul, table goal, POC scope. |
+| [docs/DESIGN.md](docs/DESIGN.md) | Design overview of Bonfire as it plays now: run, table, shop, dice bag, twists and cheats. |
 | [docs/MODULES.md](docs/MODULES.md) | The feature modules, which files each owns, owners, and how to claim one. |
 | [REVIEWING.md](REVIEWING.md) | What reviewers check on every PR. |
 

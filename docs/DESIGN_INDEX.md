@@ -10,7 +10,7 @@ PM's approval.
 
 | Doc | Status | Notes |
 |---|---|---|
-| [docs/DESIGN.md](DESIGN.md) | **Superseded** (craps era) | Describes the craps proof of concept (Pass Line, Coin, 12-roll limit). Kept for history; don't edit it in a feature PR. Use the current docs below. |
+| [docs/DESIGN.md](DESIGN.md) | **Current** | Short overview of Bonfire as it plays on `main` (run, table, shop, dice bag, twists and cheats), with values pointed at the data files. Full rules: `how_bonfire_plays.md` below. Don't edit it in a feature PR. |
 | [docs/MODULES.md](MODULES.md) | Current for labels and claims | Status and planned paths predate the Bonfire loop; see [ARCHITECTURE.md](ARCHITECTURE.md) for today's files. |
 | `art/models/**/README.md`, `art/models/dice/SPECIAL_DICE.md` | Current | Per-asset hooks, locked art direction, special dice visuals. |
 | `assets/branding/studio/*.md` | Current | Boot splash motion spec and Godot notes. |
