@@ -78,7 +78,7 @@ func _format() -> void:
 	# Issue #70: Mister Wick under his own name, in cheat red; retuned lines.
 	var wick := TableRules.make(rule(&"mister_wick"))
 	check(wick is RuleColdSixes and wick.display_name == "Mister Wick" and wick.kind == TableRule.Kind.CHEAT, "mister_wick: Cold Sixes handler, own name, a boss cheat")
-	check(wick.description == "Snuffs the sixes: 6s never light. A bust costs 2 Soul." and not wick.can_light(null, 6) and wick.can_light(null, 5), "mister_wick: his line; 6s never light")
+	check(wick.description == "6s never light, and a bust costs 2 Soul." and not wick.can_light(null, 6) and wick.can_light(null, 5), "mister_wick: his line; 6s never light")
 	var vig := TableRules.make(rule(&"baron_vig"))
 	check(vig is RuleGreedyPot and vig.display_name == "Baron Vig" and vig.kind == TableRule.Kind.CHEAT and vig.min_pot(null) == 3, "baron_vig: Greedy Pot handler, own name, cheat, pot at least 3")
 	check(TableRules.make(rule(&"baron_vig", {"min_pot": 4})).min_pot(null) == 4, "baron_vig: the entry's own params win")

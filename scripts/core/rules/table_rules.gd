@@ -50,7 +50,7 @@ const INFO := {
 	&"straight_man": ["The Straight Man", "Runs of 3 don't count; runs of 4 or 5 still do.", TableRule.Kind.CHEAT],
 	&"collector": ["The Collector", "Face mods are off on the first throw.", TableRule.Kind.CHEAT],
 	&"bloodletter": ["The Bloodletter", "Soul costs are doubled.", TableRule.Kind.CHEAT],
-	&"mister_wick": ["Mister Wick", "Snuffs the sixes: 6s never light. A bust costs 2 Soul.", TableRule.Kind.CHEAT],
+	&"mister_wick": ["Mister Wick", "6s never light, and a bust costs 2 Soul.", TableRule.Kind.CHEAT],
 	&"baron_vig": ["Baron Vig", "Pot at least 3 dice every throw.", TableRule.Kind.CHEAT],
 	&"odds_bodkin": ["Odds Bodkin", "Bounties count only on each hand's first throw; +1 hand.", TableRule.Kind.CHEAT],
 }
