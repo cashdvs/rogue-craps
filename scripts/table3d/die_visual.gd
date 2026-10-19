@@ -52,6 +52,9 @@ const PIP_STEP: float = 0.23
 
 ## Edge length in meters.
 var edge: float = 0.08
+## &"d6" (the rounded cube) or &"coin" (Ferryman's Coin: a flat disc, heads
+## on local +Y, tails on -Y; see CoinPhysics and make_coin()).
+var shape: StringName = &"d6"
 ## The rotated part (body mesh + pips). Its basis is the "face remap".
 var faces: Node3D
 var body_material: ShaderMaterial
@@ -222,8 +225,10 @@ var _pips_root: Node3D
 
 
 ## Restyles the die: body colour, pip colour and the per-slot pip counts.
+## A label list that isn't 6 long (a data mismatch) warns and is padded with
+## the slot's own number / trimmed, so it can never index out of range.
 func set_look(body: Color, pip: Color, slot_labels: Array[int]) -> void:
-	labels = slot_labels.duplicate() if slot_labels.size() == 6 else [1, 2, 3, 4, 5, 6]
+	labels = safe_labels(slot_labels)
 	body_material.set_shader_parameter("albedo", body)
 	body_material.set_shader_parameter("shadow_color", body.darkened(0.55))
 	body_material.set_shader_parameter("emission_color", body)
@@ -231,12 +236,114 @@ func set_look(body: Color, pip: Color, slot_labels: Array[int]) -> void:
 	_add_pips()
 
 
-## The number shown on top (the slot's label).
+## The number shown on top (the slot's label). A coin shows its slot:
+## 1 = heads, 2 = tails.
 func shown_value() -> int:
-	return labels[up_value() - 1]
+	if shape == &"coin":
+		return up_slot()
+	var i := up_value() - 1
+	return labels[i] if i >= 0 and i < labels.size() else up_value()
+
+
+## The face SLOT on top: a d6 face 1..6 (FACE_AXES), a coin 1 (heads, +Y
+## up) or 2 (tails).
+func up_slot() -> int:
+	if shape == &"coin":
+		return CoinPhysics.face_slot(faces.global_transform.basis)
+	return up_value()
+
+
+## The FACE_AXES id where face `slot` sits on this mesh (what remap_basis
+## needs): itself on a d6 (clamped to 1..6), +Y (1) / -Y (6) on a coin.
+func mesh_face(slot: int) -> int:
+	if shape == &"coin":
+		return CoinPhysics.axis_id(slot)
+	return clampi(slot, 1, 6)
+
+
+## Distance from the centre to the face along FACE_AXES[axis] (decals sit
+## just above it): half the edge on a cube, half the thickness on a coin's
+## round faces.
+func face_half(axis: int) -> float:
+	if shape == &"coin" and (axis == CoinPhysics.AXIS_ID_HEADS or axis == CoinPhysics.AXIS_ID_TAILS):
+		return CoinPhysics.THICKNESS * 0.5
+	return edge * 0.5
+
+
+## Turns this die into Ferryman's Coin (procedural stand-in until the 3D
+## Artist's ferryman_d2.glb lands on main): a 0.10 m x 0.024 m 18-sided
+## disc, centred, with a brass HEADS face (+Y, a ring and a raised boss)
+## and an oxblood TAILS face (-Y, a ring and a bar).
+func make_coin() -> void:
+	shape = &"coin"
+	if _pips_root != null:
+		_pips_root.free()
+		_pips_root = null
+	var body := faces.get_node("Body") as MeshInstance3D
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = CoinPhysics.RADIUS
+	cyl.bottom_radius = CoinPhysics.RADIUS
+	cyl.height = CoinPhysics.THICKNESS
+	cyl.radial_segments = 18
+	cyl.rings = 1
+	body.mesh = cyl
+	body_material.set_shader_parameter("albedo", Palette.BRASS)
+	body_material.set_shader_parameter("shadow_color", Palette.BRASS.darkened(0.55))
+	body_material.set_shader_parameter("emission_color", Palette.BRASS)
+	_pips_root = Node3D.new()
+	_pips_root.name = "Pips"
+	faces.add_child(_pips_root)
+	var h := CoinPhysics.THICKNESS * 0.5
+	var heads_mat := Toon.mat(Palette.BRASS_HI, Color.BLACK, {"roughness": 0.5, "ambient_energy": 0.2})
+	var tails_mat := Toon.mat(Palette.BURGUNDY, Color.BLACK, {"roughness": 0.7, "ambient_energy": 0.1})
+	for side in [1.0, -1.0]:
+		var mat: Material = heads_mat if side > 0.0 else tails_mat
+		# The ring near the rim.
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = CoinPhysics.RADIUS * 0.70
+		tm.outer_radius = CoinPhysics.RADIUS * 0.82
+		tm.rings = 18
+		tm.ring_segments = 6
+		ring.mesh = tm
+		ring.material_override = mat
+		ring.scale = Vector3(1.0, 0.25, 1.0)
+		ring.position = Vector3(0, side * h, 0)
+		_pips_root.add_child(ring)
+		var mark := MeshInstance3D.new()
+		mark.material_override = mat
+		if side > 0.0:
+			# Heads: a raised round boss in the middle.
+			var boss := CylinderMesh.new()
+			boss.top_radius = CoinPhysics.RADIUS * 0.32
+			boss.bottom_radius = CoinPhysics.RADIUS * 0.36
+			boss.height = 0.003
+			boss.radial_segments = 18
+			mark.mesh = boss
+		else:
+			# Tails: a bar across the face.
+			var bar := BoxMesh.new()
+			bar.size = Vector3(CoinPhysics.RADIUS * 1.1, 0.003, CoinPhysics.RADIUS * 0.22)
+			mark.mesh = bar
+		mark.position = Vector3(0, side * (h + 0.0005), 0)
+		_pips_root.add_child(mark)
+	var blob := get_node("Blob") as MeshInstance3D
+	(blob.mesh as QuadMesh).size = Vector2.ONE * CoinPhysics.RADIUS * 2.4
 
 
 var _pip_color: Color = Palette.PIT_BLACK
+
+
+## `slot_labels` as exactly 6 labels 1..6 (pad with the slot number, trim
+## extras, clamp values to 1..6 since a cube can only print 1-6 pips),
+## warning when the input didn't fit.
+static func safe_labels(slot_labels: Array) -> Array[int]:
+	var out: Array[int] = [1, 2, 3, 4, 5, 6]
+	if slot_labels.size() != 6:
+		push_warning("DieVisual: %d face labels for a 6-faced mesh; padding / trimming to 6" % slot_labels.size())
+	for i in mini(slot_labels.size(), 6):
+		out[i] = clampi(int(slot_labels[i]), 1, 6)
+	return out
 
 
 func _add_pips() -> void:
@@ -256,7 +363,7 @@ func _add_pips() -> void:
 	var h := edge * 0.5
 	for value: int in PIPS:
 		var n := FACE_AXES[value] as Vector3
-		var shown: int = labels[value - 1]
+		var shown: int = clampi(labels[value - 1], 1, 6) if value - 1 < labels.size() else value
 		var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
 		u = (u - n * u.dot(n)).normalized()
 		var v := n.cross(u)

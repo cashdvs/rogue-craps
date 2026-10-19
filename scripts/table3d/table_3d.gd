@@ -1232,27 +1232,50 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 	sequence_finished.emit()
 
 
+## Start poses of the last simulate_throw() (the remap needs them).
+var _last_starts: Array[Transform3D] = []
+
+
+## The physics half of a throw, from the dice where they sit now: the
+## launch for this flick, the start poses (a coin starts at a random point
+## of its flip), each body's shape, then the warped simulation. Returns
+## the recording (also last_recording). Tests and tools call this to run
+## many real throws without the playback.
+func simulate_throw(velocity: Vector2, release_pos: Vector2) -> ThrowRecording:
+	var launch := launch_for(velocity, release_pos)
+	var starts: Array[Transform3D] = []
+	var body_shapes: Array[StringName] = []
+	for i in dice.size():
+		var d := dice[i]
+		var tr := d.global_transform
+		tr.origin.y = maxf(tr.origin.y, tuning.die_size * 0.75)
+		body_shapes.append(d.shape)
+		if d.shape == &"coin":
+			# A coin starts at a random point of its flip (about its spin
+			# axis), so the start pose in the hand can't decide the face.
+			tr = CoinPhysics.random_phase(tr, launch["spin"][i], _fx_rng)
+		starts.append(tr)
+	sim.set_body_shapes(body_shapes)
+	_sync_colliders()
+	_last_starts = starts
+	var rec: ThrowRecording = await sim.simulate(starts, launch["lin"], launch["spin"], _fx_rng.randi())
+	last_recording = rec
+	return rec
+
+
 ## The physical throw shared by both modes: simulate the real dice fast
 ## during the wind-up, remap faces to `values` (seeded), play it back and
 ## settle. Returns once every die shows its value.
 func _throw_dice(values: Array[int], velocity: Vector2, release_pos: Vector2) -> void:
-	# Throw the real physics dice (fast, during the wind-up) and record it.
-	var launch := launch_for(velocity, release_pos)
-	var starts: Array[Transform3D] = []
-	for d in dice:
-		var tr := d.global_transform
-		tr.origin.y = maxf(tr.origin.y, tuning.die_size * 0.75)
-		starts.append(tr)
-	_sync_colliders()
 	_windup()
 	var real_start := Time.get_ticks_msec()
-	var rec: ThrowRecording = await sim.simulate(starts, launch["lin"], launch["spin"], _fx_rng.randi())
-	last_recording = rec
+	var rec := await simulate_throw(velocity, release_pos)
+	var starts := _last_starts
 	# Face remap: pick the inner rotation that puts the wanted face where
 	# the physical top face ended up; blend into it during the first
 	# tumble frames so nothing pops (the dice spin 15-35 rad/s there).
 	for i in dice.size():
-		var want := DieVisual.remap_basis(rec.up_values[i], values[i], _fx_rng.randf_range(0.0, TAU))
+		var want := DieVisual.remap_basis(rec.up_values[i], dice[i].mesh_face(values[i]), _fx_rng.randf_range(0.0, TAU))
 		var visual_now := dice[i].faces.global_transform.basis.orthonormalized()
 		var start_body := starts[i].basis.orthonormalized()
 		_remap_from[i] = (start_body.inverse() * visual_now).get_rotation_quaternion()

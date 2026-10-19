@@ -109,6 +109,7 @@ func _ready() -> void:
 	all_dice = dice.duplicate()
 	for i in all_dice.size():
 		var td: TableDie = setup.dice[mini(i, setup.dice.size() - 1)]
+		td.normalize()  # a faces / mods / shape mismatch warns and is padded, never a SCRIPT ERROR
 		_die_of[all_dice[i]] = td
 		apply_die_look(all_dice[i], td)
 	bhud = BonfireHud.new()
@@ -264,22 +265,22 @@ func table_die(d: DieVisual) -> TableDie:
 func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	if td == null:
 		return
-	if td.faces != [1, 2, 3, 4, 5, 6]:
-		var lab: Array[int] = []
-		for v in td.faces:
-			lab.append(clampi(v, 1, 6))
-		lab.resize(6)
-		d.set_look(Palette.BONE, Palette.PIT_BLACK, lab)
+	if td.shape == &"coin":
+		d.make_coin()
+	elif td.faces != [1, 2, 3, 4, 5, 6]:
+		# DieVisual.safe_labels pads / trims a mismatched face list to 6.
+		d.set_look(Palette.BONE, Palette.PIT_BLACK, td.faces)
 	var old := d.faces.get_node_or_null("FaceMods")
 	if old != null:
 		old.free()
 	var root := Node3D.new()
 	root.name = "FaceMods"
 	d.faces.add_child(root)
-	for slot in range(1, 7):
+	# One decal per modded slot the mesh has (a coin: heads, tails).
+	for slot in range(1, mini(td.mods.size(), 2 if d.shape == &"coin" else 6) + 1):
 		var m := td.mod_at(slot)
 		if m != null:
-			_add_mod_decal(root, d, slot, m)
+			_add_mod_decal(root, d, d.mesh_face(slot), m)
 
 
 func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> void:
@@ -291,7 +292,7 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 	# Everything sits just above the pip tops (h + 0.01 e) so the die's ink
 	# outline pass can't swallow it; fills would hide the pips, so the
 	# coloured mods are a rim + tinted pips.
-	var lift := e * 0.5 + 0.014 * e
+	var lift := d.face_half(slot) + 0.014 * e
 	match m.effect:
 		FaceModData.Effect.MULT_FACTOR:
 			var c: Array[Color] = [HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR]
@@ -686,7 +687,7 @@ func _pick_values() -> Array[int]:
 		for i in dice.size():
 			var td := _td(i)
 			var slot := _rig[i] if _rig_is_slots else td.slot_for_value(_rig[i])
-			v.append(clampi(slot if slot > 0 else _rig[i], 1, 6))
+			v.append(clampi(slot if slot > 0 else _rig[i], 1, td.face_count()))
 		_rig.clear()
 		return v
 	for i in dice.size():
@@ -819,6 +820,13 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 		var axis: Vector3 = base["spin"][i]
 		axis = axis.normalized() if axis.length() > 0.001 else Vector3.RIGHT
 		spin.append(axis * spin_mag * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter)))
+		if i < n and dice[i].shape == &"coin":
+			# Ferryman's Coin: a hard end-over-end flip about a diameter plus
+			# extra lift, both growing with the flick, so it visibly flips.
+			var cn := dice[i].global_transform.basis.orthonormalized() * Vector3.UP
+			var flip := CoinPhysics.flip_axis(cn, lin[i], _fx_rng, deg_to_rad(bt.coin_axis_jitter_deg))
+			spin[i] = flip * lerpf(bt.coin_flip_min_rad_s, bt.coin_flip_max_rad_s, k) * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter))
+			lin[i].y += lerpf(bt.coin_lift_min_mps, bt.coin_lift_max_mps, k)
 	last_launch = {"lin": lin, "spin": spin, "speed": speed, "k": k, "flick": velocity.length()}
 	return last_launch
 
@@ -885,7 +893,7 @@ func _show_face_changes(th: TableThrow) -> void:
 		if i < throw_slots.size():
 			throw_slots[i] = slot
 		var phys := DieVisual.value_up(d.global_transform.basis)
-		var to := DieVisual.remap_basis(phys, slot).get_rotation_quaternion()
+		var to := DieVisual.remap_basis(phys, d.mesh_face(slot)).get_rotation_quaternion()
 		if i < _remap_to.size() and dice.has(d):
 			var k := dice.find(d)
 			_remap_from[k] = to

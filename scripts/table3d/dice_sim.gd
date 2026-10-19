@@ -43,6 +43,15 @@ var _rng := RandomNumberGenerator.new()
 var _mat: PhysicsMaterial
 ## Dice in the current throw (bodies past this stay parked and frozen).
 var active: int = 0
+## Shape per body (&"d6" box or &"coin" thin cylinder, see CoinPhysics); set
+## with set_body_shapes() before simulate().
+var shapes: Array[StringName] = []
+## Coin edge rule (_coin_on_felt): how long a slow coin may stand on its rim
+## or lean before it's tipped, and how many tips per throw.
+const COIN_STUCK_TIME: float = 0.05
+const COIN_MAX_NUDGES: int = 8
+var _coin_stuck: Array[float] = []
+var _coin_nudges: Array[int] = []
 
 
 func setup(t: TuningData, count: int = 2) -> void:
@@ -75,17 +84,55 @@ func ensure_bodies(n: int) -> void:
 		b.position = Vector3(i * 0.2, -1.0, 0.0)  # parked under the table
 		b.set_meta("die_index", i)
 		var cs := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3.ONE * tuning.die_size
-		cs.shape = box
+		cs.name = "Shape"
+		cs.shape = _box_shape()
 		b.add_child(cs)
 		add_child(b)
 		bodies.append(b)
+		shapes.append(&"d6")
 		_prev_lin.append(Vector3.ZERO)
 		_prev_ang.append(Vector3.ZERO)
 		_touching.append({})
 		_rest_since.append(-1.0)
 		_spun_up.append(false)
+		_coin_stuck.append(0.0)
+		_coin_nudges.append(0)
+
+
+func _box_shape() -> BoxShape3D:
+	var box := BoxShape3D.new()
+	box.size = Vector3.ONE * tuning.die_size
+	return box
+
+
+## Gives body i the collider and mass of its die's shape: a coin is a thin
+## CylinderShape3D (CoinPhysics.RADIUS x THICKNESS) at half a d6's mass; any
+## other shape is the d6 box (the table has no other meshes yet). Bodies
+## past the list keep their shape.
+func set_body_shapes(list: Array) -> void:
+	ensure_bodies(list.size())
+	for i in list.size():
+		var want: StringName = &"coin" if StringName(list[i]) == &"coin" else &"d6"
+		if shapes[i] == want:
+			continue
+		shapes[i] = want
+		var cs := bodies[i].get_node("Shape") as CollisionShape3D
+		cs.shape = CoinPhysics.make_shape() if want == &"coin" else _box_shape()
+		bodies[i].mass = tuning.die_mass * (CoinPhysics.MASS_FACTOR if want == &"coin" else 1.0)
+
+
+func is_coin(i: int) -> bool:
+	return i >= 0 and i < shapes.size() and shapes[i] == &"coin"
+
+
+## Height of body i's centre when it lies flat on the felt.
+func rest_height(i: int) -> float:
+	return CoinPhysics.THICKNESS * 0.5 if is_coin(i) else tuning.die_size * 0.5
+
+
+## Radius of body i's footprint on the felt (for pushing flattened dice apart).
+func footprint(i: int) -> float:
+	return CoinPhysics.RADIUS if is_coin(i) else tuning.die_size * 0.5
 
 
 ## Throws one die per entry of `starts` (1 or more) with the given velocities
@@ -114,6 +161,14 @@ func simulate(starts: Array[Transform3D], lin: Array[Vector3], ang: Array[Vector
 		_touching[i] = {}
 		_rest_since[i] = -1.0
 		_spun_up[i] = false
+		_coin_stuck[i] = 0.0
+		_coin_nudges[i] = 0
+	# Bodies not in this throw go back under the table. Left frozen where
+	# the last throw ended, they were invisible obstacles on the felt (on a
+	# rethrow, the potted dice's old landing spots).
+	for i in range(active, bodies.size()):
+		bodies[i].freeze = true
+		bodies[i].global_transform = Transform3D(Basis.IDENTITY, Vector3(i * 0.2, -1.0, 0.0))
 	# Speed the physics clock up: W times more ticks per second, each still
 	# 1/physics_hz long (time_scale stretches the step, ticks shrink it back).
 	_saved_ticks = Engine.physics_ticks_per_second
@@ -146,6 +201,9 @@ func _physics_process(_delta: float) -> void:
 	if _t >= assist_time():
 		_assist()
 		return
+	for i in active:
+		if is_coin(i):
+			_coin_on_felt(i, dt)
 	var at_rest := true
 	for i in active:
 		var b := bodies[i]
@@ -204,7 +262,9 @@ func _assist() -> void:
 			_rest_since[i] = -1.0
 		var drift := Vector3(b.linear_velocity.x, 0.0, b.linear_velocity.z) * minf(dur, 0.25) * 0.5
 		froms.append(from)
-		targets.append(_flat(Transform3D(from.basis, from.origin + drift)))
+		targets.append(_flat(Transform3D(from.basis, from.origin + drift), i))
+		_rec.rest_tilt_deg[i] = CoinPhysics.tilt_deg(from.basis) if is_coin(i) else 0.0
+		_rec.end_moving[i] = moving
 	_separate(targets, froms)
 	for i in active:
 		var b := bodies[i]
@@ -235,6 +295,10 @@ func _nudge_cocked() -> bool:
 	for i in active:
 		var b := bodies[i]
 		var basis := b.global_transform.basis.orthonormalized()
+		if is_coin(i):
+			if _nudge_coin(i):
+				any = true
+			continue
 		var up := DieVisual.value_up(basis)
 		var d := (basis * (DieVisual.FACE_AXES[up] as Vector3)).dot(Vector3.UP)
 		var too_high := b.global_position.y > tuning.die_size * 0.62
@@ -250,6 +314,80 @@ func _nudge_cocked() -> bool:
 	return any
 
 
+## The coin edge rule, checked every tick (not only once everything has
+## stopped, since the settle assist can start first):
+##  - Felt is soft: a coin rolling on its rim like a wheel loses that roll
+##    fast (rolling resistance; Jolt has none). Only the spin about the
+##    coin's own normal is damped, and only while it is low and steep on the
+##    felt, so the end-over-end flip in the air is untouched.
+##  - A coin that is nearly still but standing on its rim (or leaning on a
+##    die / rail) for COIN_STUCK_TIME gets the tip-over nudge (_nudge_coin),
+##    at most COIN_MAX_NUDGES times per throw.
+func _coin_on_felt(i: int, dt: float) -> void:
+	var b := bodies[i]
+	var basis := b.global_transform.basis.orthonormalized()
+	var tilt := CoinPhysics.tilt_deg(basis)
+	if b.global_position.y <= CoinPhysics.RADIUS + 0.01 and tilt >= 45.0:
+		var n := basis * Vector3.UP
+		var roll := n * b.angular_velocity.dot(n)
+		b.angular_velocity -= roll * clampf(CoinPhysics.FELT_ROLL_DAMP * dt, 0.0, 1.0)
+	# "Stuck": nearly still; on its rim, also slowly rolling / rocking there.
+	var slow := b.linear_velocity.length() < 0.12 and b.angular_velocity.length() < 2.0
+	if CoinPhysics.is_on_edge(basis) and b.global_position.y <= CoinPhysics.RADIUS + 0.01:
+		slow = b.linear_velocity.length() < 0.35 and b.angular_velocity.length() < 7.0
+	if tilt > CoinPhysics.COCKED_DEG and slow:
+		_coin_stuck[i] += dt
+	else:
+		_coin_stuck[i] = 0.0
+	if _coin_stuck[i] >= COIN_STUCK_TIME and _coin_nudges[i] < COIN_MAX_NUDGES:
+		_coin_stuck[i] = 0.0
+		_coin_nudges[i] += 1
+		_nudge_coin(i)
+
+
+## A coin at rest must lie flat on the felt. Standing on its edge (within
+## CoinPhysics.EDGE_DEG of vertical), leaning on a die / rail (more than
+## COCKED_DEG off flat) or lying on top of a die, it gets a tip-over nudge:
+## a little hop plus a spin about the horizontal axis that topples it
+## (random direction, so the nudge doesn't pick the face). Returns true if
+## nudged.
+func _nudge_coin(i: int) -> bool:
+	var b := bodies[i]
+	var basis := b.global_transform.basis.orthonormalized()
+	var tilt := CoinPhysics.tilt_deg(basis)
+	var too_high := b.global_position.y > rest_height(i) + 0.02
+	if tilt <= CoinPhysics.COCKED_DEG and not too_high:
+		return false
+	if CoinPhysics.is_on_edge(basis):
+		_rec.edge_nudges += 1
+	var n := basis * Vector3.UP
+	# Topple axis: horizontal, at right angles to the face normal's lean.
+	var lean := Vector3(n.x, 0.0, n.z)
+	var axis := Vector3.UP.cross(lean.normalized()) if lean.length() > 0.001 else Vector3.RIGHT
+	var to_center := Vector3(-b.global_position.x, 0.0, -b.global_position.z).normalized()
+	var on_felt := CoinPhysics.is_on_edge(basis) and b.global_position.y <= CoinPhysics.RADIUS + 0.01
+	# Which way to tip: on its rim, a coin flip (so the nudge never picks
+	# the face); leaning on something, the way it is already falling.
+	var sgn := 1.0 if _rng.randf() < 0.5 else -1.0
+	if not CoinPhysics.is_on_edge(basis):
+		var ahead := n + axis.cross(n) * 0.01
+		sgn = 1.0 if absf(ahead.dot(Vector3.UP)) > absf(n.dot(Vector3.UP)) else -1.0
+	var w := axis * sgn * _rng.randf_range(9.0, 12.0)
+	b.angular_velocity = w
+	if on_felt:
+		# Tip about the rim where it touches the felt (the contact point
+		# stays put), firmly enough to pass the rim's balance point (~14 deg
+		# for a 0.024 m thick coin). Spinning it about its centre instead
+		# just scrubs the rim on the felt and it stands back up.
+		b.linear_velocity = w.cross(Vector3(0, b.global_position.y, 0))
+	else:
+		# Leaning on a die / rail, or on top of one: a small hop toward the
+		# middle too, so it comes away from what holds it up.
+		b.linear_velocity = Vector3(0, 0.4, 0) + to_center * 0.15
+	_rec.nudges += 1
+	return true
+
+
 func _finish(already_flat: bool = false) -> void:
 	running = false
 	Engine.physics_ticks_per_second = _saved_ticks
@@ -261,7 +399,9 @@ func _finish(already_flat: bool = false) -> void:
 	var targets: Array[Transform3D] = []
 	for i in active:
 		lasts.append(bodies[i].global_transform.orthonormalized())
-		targets.append(_flat(lasts[i]))
+		targets.append(_flat(lasts[i], i))
+		if not already_flat:
+			_rec.rest_tilt_deg[i] = CoinPhysics.tilt_deg(lasts[i].basis) if is_coin(i) else 0.0
 	if not already_flat:
 		_separate(targets, lasts)
 	for i in active:
@@ -275,7 +415,11 @@ func _finish(already_flat: bool = false) -> void:
 		for k in steps:
 			var p := float(k + 1) / float(steps)
 			(_rec.frames[i] as Array).append(last.interpolate_with(target, p))
+		# Coin: cube face 1 (+Y, heads) or 6 (-Y, tails), so the cube remap
+		# math works unchanged; CoinPhysics.slot_for_axis_id() reads it.
 		_rec.up_values[i] = DieVisual.value_up(target.basis)
+		if is_coin(i):
+			_rec.up_values[i] = CoinPhysics.axis_id(CoinPhysics.face_slot(target.basis))
 		# Physically at rest: when it stopped for good (or the end of the
 		# assist / settle-to-flat frames if it never stopped on its own).
 		var end_t := float((_rec.frames[i] as Array).size() - 1) * _rec.dt
@@ -301,12 +445,13 @@ func _finish(already_flat: bool = false) -> void:
 ## targets apart on the felt (the higher die, the one that was stacked,
 ## moves; otherwise both), staying inside the rails.
 func _separate(targets: Array[Transform3D], from: Array[Transform3D]) -> void:
-	var min_d := tuning.die_size * 1.05
 	var lim := Table3DBuilder.FELT_HALF - Vector2.ONE * tuning.die_size * 0.75
 	for it in 16:
 		var moved := false
 		for i in targets.size():
 			for j in range(i + 1, targets.size()):
+				# Two cubes: 1.05 edges apart (as before); a coin needs its radius.
+				var min_d := (footprint(i) + footprint(j)) * 1.05
 				var a := Vector2(targets[i].origin.x, targets[i].origin.z)
 				var c := Vector2(targets[j].origin.x, targets[j].origin.z)
 				var d := a.distance_to(c)
@@ -332,8 +477,16 @@ func _separate(targets: Array[Transform3D], from: Array[Transform3D]) -> void:
 
 
 ## The nearest orientation that sits perfectly flat, resting on the felt,
-## kept inside the felt (the walls should already guarantee that).
-func _flat(t: Transform3D) -> Transform3D:
+## kept inside the felt (the walls should already guarantee that). Body i
+## (optional) picks the shape: a coin lies on heads or tails, never its rim.
+func _flat(t: Transform3D, i: int = -1) -> Transform3D:
+	if is_coin(i):
+		var cpos := t.origin
+		var clim := Table3DBuilder.FELT_HALF - Vector2.ONE * tuning.die_size * 0.75
+		cpos.x = clampf(cpos.x, -clim.x, clim.x)
+		cpos.z = clampf(cpos.z, -clim.y, clim.y)
+		cpos.y = rest_height(i)
+		return Transform3D(CoinPhysics.flat_basis(t.basis, _rng), cpos)
 	var b := t.basis.orthonormalized()
 	var up := DieVisual.value_up(b)
 	var axis_world := b * (DieVisual.FACE_AXES[up] as Vector3)

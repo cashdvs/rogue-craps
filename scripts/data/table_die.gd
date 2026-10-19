@@ -104,6 +104,8 @@ func normalize() -> void:
 		push_warning("TableDie: unknown shape '%s', using d6" % _shape)
 		_shape = &"d6"
 	var n := faces_for_shape(_shape)
+	if faces.size() != n or mods.size() != n:
+		push_warning("TableDie %s: %d faces / %d mods for shape %s (%d); padding / trimming" % [id, faces.size(), mods.size(), _shape, n])
 	if faces.size() != n:
 		var defaults := default_values(shape)
 		var old := faces.duplicate()
@@ -123,7 +125,11 @@ func roll_slot(rng: RandomNumberGenerator) -> int:
 	return rng.randi_range(1, faces.size())
 
 
+## Value on face slot `slot` (clamped to the faces there are; an empty face
+## list, a data mismatch, reads as the slot number).
 func value_at(slot: int) -> int:
+	if faces.is_empty():
+		return slot
 	return faces[clampi(slot - 1, 0, faces.size() - 1)]
 
 
