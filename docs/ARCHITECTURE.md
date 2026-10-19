@@ -3,6 +3,17 @@
 How the code fits together, who owns what, and how to add content. Short on purpose: read the
 `##` doc comment at the top of any script for the details. Paths are relative to the repo root.
 
+## Glossary
+
+- **Pot / bank:** after a throw you *pot* one combo from the lit dice; its points go into the hand's pot. *Bank* ends the hand and keeps the pot; banked points turn into Embers when the table ends. A bust loses the unbanked pot.
+- **Bust:** a throw where nothing lights. You lose the hand's pot (and pending bounty ticks) and some Soul.
+- **Hot Hand:** all 5 dice potted in one hand. You get every die back, and every later pot that hand gets +1 mult.
+- **Kindling:** a face mod (Kindling Face). Potting a Kindling face means the next throw can't bust.
+- **Seal:** a reward that levels a combo (each level adds base and mult to it). Rare Seals (Transference, Black, Ashen) are used on the spot.
+- **Elite:** a harder Table node on the map that plays with one random **twist**.
+- **Twist vs cheat:** both are table rules (`RunRuleData`). A *twist* is an Elite's rule (e.g. Cold Sixes, Short Table); a *cheat* is the boss's own rule, named after the boss (e.g. Madame Shuffle). On Floor 3 the boss also adds a twist.
+- **Re-sit:** missing the boss doesn't end the run straight away; you get one re-sit (`RunData.boss_resits`) of the boss table.
+
 ## The big picture
 
 ```
@@ -42,7 +53,8 @@ studio_splash.tscn ──▶ title.tscn ──Play──▶ run.tscn (RunScreen)
 | **Audio** | Sound Designer | `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` |
 | **Art pipeline** | Art Director (look, sign-off), 3D Artist (meshes) | `art/models/`, `*.import` for art, `fonts/`, `assets/branding/` |
 | **Review and QA tests** | QA Tester | `tests/qa_/`, PR review and merges |
-| **CI, tools, contributor docs** | PM | `.github/`, `run_tests.sh`, `project.godot`, `tools/`, `*.md` at the root, `docs/` |
+| **CI, contributor docs** | PM | `.github/`, `run_tests.sh`, `project.godot`, `*.md` at the root, `docs/` |
+| **Tools** | shared (Godot Dev / Systems Dev; per-tool owners in the sections below, e.g. `tools/bake_sfx.gd` is Sound Designer's) | `tools/` |
 | **Design and numbers** | Game Designer | design docs ([DESIGN_INDEX.md](DESIGN_INDEX.md)); every tuning number in `.tres` |
 
 Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run.gd`,
@@ -162,7 +174,7 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
   - `die_visual.gd` reads which face is up and draws the lit and cold looks.
 - **Ask Godot Dev before touching:** `bonfire_3d.gd`, `table_3d.gd`, `dice_sim.gd`, `die_visual.gd`, `bonfire_run.gd`, `bonfire_scoring.gd`, `scripts/core/rules/`, and `bonfire_tuning.tres`. The Game Designer sets those numbers.
 - **Testing table changes:**
-  - Run `./run_tests.sh` (headless Godot 4.7, all `tests/test_*.gd` plus QA's `tests/qa_/`). Never edit `tests/qa_*`.
+  - Run `./run_tests.sh` (headless Godot 4.7, all `tests/test_*.gd` plus QA's `tests/qa_/`). `tests/qa_/` is QA's: you may add checks, but never loosen, skip or delete an existing one.
   - Table tests are `tests/test_bonfire_*.gd`, `test_table_3d.gd` and `test_leave_table.gd`. Use `new_run(seed)` and `rig_faces()` for deterministic results.
   - For anything that changes how the table looks, attach a capture from `tools/capture_bonfire.gd` or `tools/capture_readability.gd`.
   - For throw feel, use `tools/measure_throw_momentum.gd`.
@@ -176,7 +188,7 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
 - To add an effect: write a node in `scripts/fx/` that connects to the relevant `table.events` signal, keep its timing inside the spec's pot-time budget, and add a test under `tests/` that emits the signal and checks the result.
 - Art direction rules: dice glow only (lit ember versus cold matte grey) and never show fire. Flat toon flipbook fire is allowed only on board props such as the brazier and candles.
 - Ask first: new signals or payload changes go to Godot Dev. Don't edit `table_3d.gd`, scoring, or `dice_sim` to make an effect work. Ask VFX Dev before changing the trigger grammar or cue timing.
-- Test headless: `./run_tests.sh` from the project root, using Godot 4.7.2 (any install; set $GODOT if needed). Never edit `tests/qa_*`.
+- Test headless: `./run_tests.sh` from the project root, using Godot 4.7.2 (any install; set $GODOT if needed). `tests/qa_/` is QA's: you may add checks, but never loosen, skip or delete an existing one.
 
 <!-- Note from VFX Dev: the first FX PRs aren't merged yet, so folder and file names may change slightly; a correction will follow. -->
 
@@ -185,14 +197,14 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
 <!-- SECTION: Sound Designer — audio (owner text; replace freely) -->
 ## Audio
 - **Module:** `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` (owner: Sound Designer; ask there or in the PR). `audio/music/` is planned.
-- **Playback:** `SfxManager` (a plain Node; each table creates its own) plays named events through a pool of round-robin `AudioStreamPlayer`s on the `SFX` bus: `sfx.play(event, pitch, vol_db, jitter)`. Physics and feel hooks: `play_throw(flick_speed_px_s)`, `play_impact(kind, speed_mps, material, die_id)` and `play_mod_trigger(row_id, tier, intensity, hit_ms)`. `CrowdLayers` (`set_pot_fraction`, `nudge`) runs the crowd loops. Each event's parameters and timing are listed in `scripts/audio/README.md`.
+- **Playback:** `SfxManager` (a plain Node; each table creates its own) plays named events through a pool of round-robin `AudioStreamPlayer`s on the `SFX` bus: `sfx.play(event, pitch, vol_db, jitter)`. Physics and feel hooks: `play_throw(flick_speed_px_s)`, `play_impact(kind, speed_mps, material, die_id)` and (coming) `play_mod_trigger(row_id, tier, intensity, hit_ms)`. `CrowdLayers` (`set_pot_fraction`, and the coming `nudge`) runs the crowd loops. Each event's parameters and timing are listed in `scripts/audio/README.md`.
 - **Lookup order:** `audio/sfx/<event>_NN.wav` takes (rotated randomly, never the same take twice in a row), then `audio/sfx/<event>.wav`, then procedural synthesis from the `*Synth` scripts. A missing file therefore never makes the game silent.
 - **Sources:** every shipped sound so far is generated by code (`SfxSynth`, `BonfireSynth`, `ThrowSynth`, etc.). Each synth has a static `bake_all()`, and `godot --headless --path . --script res://tools/bake_sfx.gd` re-bakes all of them, byte for byte. `audio/sfx/SOURCES.md` logs where every file came from and its licence. Only add self-made or verified CC0 or commercially free sounds, and log each one there.
 - **Format:** WAV, 16-bit PCM, mono, 22,050 Hz (44.1 kHz only when it genuinely needs it), peak 0.85, ideally under 60 KB per one-shot. Import uses `compress/mode=2`, and loops set `edit/loop_mode` to forward in their `.import`. Commit the `.wav`, `.import` and `.uid` files, never `.godot/`.
-- **Adding a sound:** write a recipe in the relevant synth and add it to `bake_all()` (or drop in a logged CC0 file). Bake it, add the event to the README, and cover it in that synth's `tests/test_*_sfx.gd`. Call it from game code by event name only. Keep game numbers in `TuningData` and audio curves in the audio module.
+- **Adding a sound:** write a recipe in the relevant synth and add it to `bake_all()` (or drop in a logged CC0 file). Bake it, add the event to the README, and cover it in that synth's `tests/test_*_sfx.gd`. Call it from game code by event name only. Keep game numbers in `BonfireTuning` (`resources/tuning/bonfire_tuning.tres`) or `RunData`, and audio curves in the audio module.
 - **Rules:** sound randomness is cosmetic and may use the unseeded RNG; game randomness must go through `DiceRoller`. No fire or crackle textures on dice sounds. Audio PRs need a capture attached and follow AGENTS.md (`audio/...` branches, 400 lines or fewer, one module).
 
-> Audio PRs in flight: `CrowdLayers`, `BonfireSynth`, `play_mod_trigger()` and the `<event>_NN.wav` takes aren't on `main` yet (as of e1cf25b); `SfxManager`, `SfxSynth`, `ThrowSynth`, `play_throw()` and `play_impact()` are.
+> Audio PRs in flight: only `SfxManager.play_mod_trigger()` and `CrowdLayers.nudge()` aren't on `main` yet (as of fad5622). `SfxManager` (`play`, `play_throw()`, `play_impact()`), `CrowdLayers` (`set_pot_fraction()`), `SfxSynth`, `BonfireSynth`, `ThrowSynth` and the `<event>_NN.wav` takes are.
 
 <!-- SECTION: Art Director — art direction (owner text; replace freely) -->
 ## Art direction
@@ -219,4 +231,4 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
   3. Put face art (pips, numerals) in the mesh or in one face texture.
 - **Colliders:** gameplay colliders are code-built by the Godot devs (a 0.08 m BoxShape3D for d6s), so meshes ship without collision. Any visual overhang past the box needs Godot Dev's sign-off and must be recorded in SPECIAL_DICE.md.
 - **Tests:** add or extend `tests/test_*` for face orientation, tri budget and extents, then run `./run_tests.sh`.
-- **Branches:** `art/<topic>`, rebase-only, PR label `module:art-import`.
+- **Branches:** `art/<topic>`, PR label `module:art-import`. Update a pushed branch by merging `main` in (CONTRIBUTING.md §6).

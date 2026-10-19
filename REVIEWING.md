@@ -18,18 +18,18 @@ Embers, Dealer/taunts, UI, Shaders, Audio, Fonts, Art import, QA tests, Tools/CI
 - `scripts/table/table_scene.gd` is touched by Feel, UI and Betting: keep edits small and say which part changed.
 
 ## 1. Gate checks (all must pass)
-- [ ] **CI green:** the required `tests` check passes once the workflow is live in `.github/workflows/`.
-      Until then, the gate is a local run: `./run_tests.sh` exits 0 on the PR head in a clean
-      worktree (it includes `tests/qa_/qa_*.gd`).
-- [ ] `godot --headless --path . --quit-after 300` prints no script errors, warnings or crashes.
+- [ ] **CI green:** the required `tests` check (`.github/workflows/ci.yml`) passes. Locally,
+      `./run_tests.sh` exits 0 on the PR head in a clean worktree (it includes `tests/qa_/qa_*.gd`).
+- [ ] Smoke runs, as in CI: `godot --headless --path . --quit-after 900` (main scene) and
+      `godot --headless --path . res://scenes/bonfire.tscn --quit-after 300` print no script
+      errors, warnings or crashes.
 - [ ] No new `push_error`/`WARNING` output in the test run beyond what tests trigger on purpose.
 
 ## 2. Conformance
 - [ ] Follows AGENTS.md (conventions, folder layout, PR rules) and fills in the PR template.
 - [ ] Stays within the module(s) it claims (see Modules above).
 - [ ] Behavior changes come with tests in `tests/test_*.gd` (scenes: smoke/input tests).
-- [ ] **`tests/qa_/`:** contributors may **add** checks there, but must never weaken or remove an
-      existing one (no loosened tolerances, deleted checks, or skipped scripts). QA owns the folder.
+- [ ] `tests/qa_/` is QA's: you may add checks, but never loosen, skip or delete an existing one. (No loosened tolerances, deleted checks or skipped scripts.)
 - [ ] Doesn't edit `docs/DESIGN.md` in a feature PR (open an issue instead).
 - [ ] Small and focused: one concern, roughly ≤ 400 changed lines of code (excluding generated
       `.uid`/`.tres`/`.import`). Clean commit messages, no unrelated reformatting.
@@ -48,7 +48,7 @@ Embers, Dealer/taunts, UI, Shaders, Audio, Fonts, Art import, QA tests, Tools/CI
     commits, **squash** instead: a rebase merge drops them silently.
   - `main` stays linear: nothing lands on `main` with a merge commit. Merge commits are fine
     between stacked feature branches.
-- **Author merge (PM ruling, Oct 19 2026):** the only exception to "QA merges" is a typo or link fix
+- **Author merge:** the only exception to "QA merges" is a typo or link fix
   of under about 10 lines, which its author may merge after QA approves. Anything in §5 is never
   self-merged.
 - **Otherwise:** request changes. Every comment gives `file:line`, what is wrong, why, and a concrete fix.

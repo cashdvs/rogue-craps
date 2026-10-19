@@ -11,7 +11,7 @@ A 3D, top-down dice roguelite set in an underworld casino, by **Tiny Anvil Games
 
 - **Bonfire tables:** throw 5 dice, pot a scoring combo from the dice that light up, then bank
   the points or throw the rest again. Nothing lights = bust (you lose the hand's pot and Soul).
-  Clear a table by banking every required **bounty** (Pair of 6s, Run of 4, ...) within its hands.
+  Clear a table by banking every required **bounty** (Two Pairs, Run of 4, ...) within its hands.
 - **The run:** 3 floors, each a branching Slay the Spire-style map of Table, Elite, Event, Shop
   and Rest nodes, with a **boss** at the top who cheats (one rule-bending twist).
 - **Build:** tables pay **Embers**. Spend them in the **Shop** on special dice for your

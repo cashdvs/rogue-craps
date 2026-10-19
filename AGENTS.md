@@ -81,14 +81,13 @@ export GODOT=~/tools/godot/godot
 ./run_tests.sh
 
 # 3) Run one test file
-"$GODOT" --headless --path . --script res://tests/test_poc_table.gd
-"$GODOT" --headless --path . --script res://tests/test_table_3d.gd   # 3D table + real physics
+"$GODOT" --headless --path . --script res://tests/test_run_screen.gd
 
-# 4) Play (needs a display). Main scene = the boot splash, which opens the 3D table
-#    ([boot] next_scene in project.godot). Run a table directly to skip the splash:
+# 4) Play (needs a display). Main scene = the studio splash, then the title screen
+#    ([boot] next_scene in project.godot); Play starts a run (scenes/run.tscn). Shortcuts:
 "$GODOT" --path .
-"$GODOT" --path . res://scenes/table_3d.tscn
-"$GODOT" --path . res://scenes/table.tscn
+"$GODOT" --path . res://scenes/run.tscn       # straight to a new run (the map)
+"$GODOT" --path . res://scenes/bonfire.tscn   # one sandbox table, no run
 # Editor
 "$GODOT" --editor --path .
 ```
@@ -213,6 +212,8 @@ Check [docs/MODULES.md](docs/MODULES.md) for where new systems should go.
 - **Comments for beginners.** Studio code is written to be read by people learning Godot. Start
   each script with a `##` doc comment saying what it does and *why*; explain non-obvious rules
   (e.g. cite the design doc section). Keep comments true when you change code.
+- **Newcomer-readable code (Cash's rule):** every public function and signal gets a `##` doc
+  comment, and scripts stay under ~400 lines (split them before they grow past that).
 - **Logic separate from scenes/UI.** Rules and numbers go in `scripts/core/` as `RefCounted`
   classes with no nodes, so they can be unit-tested headless. Views (`scripts/table/`) only
   display state and forward input. Never put a craps rule in a view.
@@ -266,8 +267,8 @@ needs it, because it rewrites files in `resources/`.
 3. **Stay in your module.** Only touch files owned by the module you're working on
    ([docs/MODULES.md](docs/MODULES.md)). If you must touch another module's files, keep it
    minimal and explain why in the PR. A "module" is a feature module from MODULES.md, not a
-   folder. **`tests/qa_/`** (owned by QA): you may **add** checks, but never weaken or remove
-   existing ones. Don't edit `docs/DESIGN.md` in a feature PR.
+   folder. `tests/qa_/` is QA's: you may add checks, but never loosen, skip or delete an existing one.
+   Don't edit `docs/DESIGN.md` in a feature PR.
 4. **Never commit `.godot/`** (the import cache; it's in `.gitignore`), editor settings, builds,
    or files over ~20 MB (REVIEWING.md §5; smaller art/audio binaries are fine). Do commit the
    `*.uid` files Godot creates next to new scripts, and the `*.import` files next to new assets.

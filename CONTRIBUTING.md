@@ -38,9 +38,8 @@ how the code fits together is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A
   (generated `.uid` / `.tres` / `.import` don't count). Split bigger work into a series.
 - **Tests are required** for any behavior change: add or extend a headless test in
   `tests/test_*.gd` (a new file with that name runs automatically). Copy the pattern of the file
-  you extend (`_check(cond, name)`, then `quit(1 if _failed > 0 else 0)`). Seed anything random.
-- **`tests/qa_/` belongs to QA.** You may *add* checks there; changing or removing an existing one
-  needs QA's approval.
+  you extend (`_check(...)` or `check(...)`, then `quit(1 if _failed > 0 else 0)`). Seed anything random.
+- `tests/qa_/` is QA's: you may add checks, but never loosen, skip or delete an existing one.
 - **Run it locally** before you push: `./run_tests.sh` must exit 0, and a smoke run of the table
   (`"$GODOT" --headless --path . res://scenes/bonfire.tscn --quit-after 300`) must print no
   `SCRIPT ERROR`.
@@ -63,13 +62,13 @@ how the code fits together is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A
 
 - **Asking for review:** open a PR against `main` and mark it "Ready for review" (drafts aren't reviewed). Fill in the PR template, name the module(s) from docs/MODULES.md, and say how you tested it. QA picks up ready PRs; you don't need to ping anyone.
 - **What QA checks:** CI's `tests` check is green; `./run_tests.sh` passes; the PR stays inside the module(s) it claims; behavior changes have a test that fails without them; names are clear; public functions and signals have `##` doc comments; scripts stay under ~400 lines and the PR is around 400 changed lines of code or less; new data, systems or signals are documented in docs/ARCHITECTURE.md or the folder README. A PR that would confuse a newcomer gets "changes requested", even if it works.
-- **tests/qa_/:** QA owns it. You may add checks there, but never loosen, skip or delete an existing one.
+- `tests/qa_/` is QA's: you may add checks, but never loosen, skip or delete an existing one.
 - **What blocks a merge:** red CI, failing tests, script errors in the headless smoke run, missing tests, out-of-scope changes, secrets or network code, and unlicensed assets. Rules or balance changes, PRs touching more than 2 modules, CI or repo config, and new dependencies go to PM, who decides before anything merges.
 - **Who merges:** QA merges every PR, docs-only ones included; auto-merge isn't used. The one exception: a typo or link fix of under about 10 lines may be merged by its author once QA has approved it (PM ruling, Oct 19 2026).
 - **Merge method:** `main` keeps a linear history: anything landing on `main` is squashed or rebased, never merged with a merge commit. Team PRs are merged by rebase (commits kept) unless the branch contains merge commits, in which case they're squashed. **Julian's (@julian17874) PRs and outside contributors' PRs are squash-merged**, whatever their commit history looks like, so you don't need to tidy your commits. QA reviews them to the same standard as the team's, with a welcoming tone.
 - **Stacked PRs:** a rebase merge rewrites commit IDs, so a PR based on another unmerged PR will conflict once that one lands. Base on `main` when you can. If you must stack, say so in the PR; QA merges the stack top-down into each base branch and puts the bottom PR into `main` last.
-- **Never rebase-merge a branch that contains merge commits**: GitHub's rebase merge drops them silently (this lost the table integration in #21–#23). Inside a stack, merge commits between feature branches are fine; when such a branch lands on `main`, it's squashed.
-- **Fixing review comments:** push new commits to the same branch. If asked to rebase, rebase onto `main` and push with `--force-with-lease`, never plain `--force`.
+- **Branches containing merge commits are squash-merged (never rebase-merged, since that silently drops them).** This lost the table integration in #21–#23. Inside a stack, merge commits between feature branches are fine.
+- **Fixing review comments:** push new commits to the same branch. To update a branch you've already pushed, merge `main` in; don't rebase it (§6).
 
 ## 5. What gets escalated (PM decides)
 
@@ -80,7 +79,7 @@ delegated approvals to PM). Say so in the PR (template checkbox) so it's flagged
   (`resources/tuning/*.tres`, floor and run `.tres`). These numbers come from the Game Designer.
 - **CI and repo config:** `.github/`, `run_tests.sh`, `project.godot`, export presets,
   `.gitignore`, `LICENSE`, and the contributor docs (this file, AGENTS.md, REVIEWING.md,
-  docs/MODULES.md).
+  docs/MODULES.md, docs/DESIGN.md).
 - **Dependencies or secrets:** any new addon, plugin or library; anything that looks like a key,
   token or network call (those are refused outright).
 - **Big assets:** any file over **~20 MB** (smaller art/audio binaries are fine with a source and
@@ -98,10 +97,9 @@ Damned"**, and copyright **"© 2026 Tiny Anvil Games"**. Never put signing keys 
 - **Commit subject:** short, imperative, prefixed with the module or area:
   `shop: show the reroll price on the button`, `events: test greyed-out choices`.
   Explain *why* in the body when it isn't obvious. One logical change per commit.
-- **Updating your branch:** rebase on `main`, and push with `--force-with-lease` only on your
-  own PR branch (§7). If the branch is shared or other PRs are stacked on it, merge `main` in
-  instead of rebasing: merge commits are fine on feature branches, and the PR is squashed
-  when it lands on `main` (§4).
+- **Updating your branch:** once a branch is pushed, update it by merging `main` in; don't rebase
+  it. Merge commits are fine on feature branches; the PR is then squashed when it lands on `main`
+  (§4). Before your first push you may rebase freely. Never force-push without approval (§7).
 - **PR title** = a good commit subject (outside PRs are squash-merged into it).
 - **PR body:** the template. Bots end it with a role line (§7).
 
@@ -116,8 +114,8 @@ The team is Cash (owner), a few humans with write access (like Julian) and sever
   in the "Author" line of the template.
 - **Nobody pushes to `main`.** Everything lands through a reviewed PR.
 - **No force-push without approval.** Never force-push `main`, a branch someone else owns, or a
-  branch other PRs are stacked on, without PM's OK. The one routine exception is rebasing your
-  own PR branch when the reviewer asks (`--force-with-lease`).
+  branch other PRs are stacked on, without PM's OK. Pushed branches are updated by merging `main`
+  in (§6), so routine work never needs a force-push.
 - **QA merges every PR**, bots' docs-only PRs included ([REVIEWING.md §4](REVIEWING.md)). Only a
   typo or link fix of under about 10 lines may be merged by its author, after QA approves; anything
   in §5 never self-merges.

@@ -32,7 +32,7 @@ Module(s): <!-- from docs/MODULES.md, e.g. shop, map-events. Touched another own
 - [ ] No `.godot/`, builds or editor settings; new `*.uid` / `*.import` files included
 - [ ] **Escalation:** this PR changes core rules or balance, CI or repo config, dependencies or
       secrets, adds a file over ~20 MB, or touches more than 2 modules (PM decides; see CONTRIBUTING.md §5)
-- [ ] I agree my contribution is assigned/licensed to Tiny Anvil Games per [LICENSE](../LICENSE)
+- [ ] I agree my contribution is assigned/licensed to Tiny Anvil Games per [LICENSE](https://github.com/cashdvs/rogue-craps/blob/main/LICENSE)
 
 <!-- Bots: keep the next line, with your role. Humans: delete it. -->
 Role: <!-- e.g. Systems Dev -->
