@@ -1,5 +1,5 @@
 {
- "_doc": "Tiny Anvil splash. Times in seconds from scene start. Positions are node positions in a 1920x1080 layout (1x). Every sprite is drawn at base scale 0.5 (PNGs are 2x); 'scale' values below are MULTIPLIERS on that base. Each Sprite2D has centered=false and offset=-pivot_px so the node position IS the pivot. rotation in degrees (Godot: positive = clockwise). Easing names = Godot Tween TRANS_*/EASE_*. 'set' = instant assignment at 'at'.",
+ "_doc": "Tiny Anvil Games splash. Times in seconds from scene start. Positions are node positions in a 1920x1080 layout (1x). Every sprite is drawn at base scale 0.5 (PNGs are 2x); 'scale' values below are MULTIPLIERS on that base. Each Sprite2D has centered=false and offset=-pivot_px so the node position IS the pivot. rotation in degrees (Godot: positive = clockwise). Easing names = Godot Tween TRANS_*/EASE_*. 'set' = instant assignment at 'at'.",
  "total": 2.5,
  "skip": {
   "ignore_input_before": 0.15,
