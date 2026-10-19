@@ -56,7 +56,7 @@ func _test_data() -> void:
 			kinds.append(e.kind)
 	_check(kinds.has(K.MAX_SOUL) and kinds.has(K.GIVE_DIE) and kinds.has(K.SELL_DIE) and kinds.has(K.FREE_SHOP_REROLL)
 		and kinds.has(K.NEXT_TABLE_TWIST), "data: every new effect kind loads from an event .tres")
-	_check(_ch(&"mirror").effects[0].die == &"mirror" and _ch(&"twist").effects[0].rule.id == &"cold_hands", "data: die id and twist rule are data")
+	_check(_ch(&"mirror").effects[0].die == DiceIds.DIE_MIRROR and _ch(&"twist").effects[0].rule.id == &"cold_hands", "data: die id and twist rule are data")
 	var ids: Array = []
 	for e in _run.events:
 		ids.append(e.id)
@@ -93,7 +93,7 @@ func _test_give_die() -> void:
 	var p := RunProgress.new(_run)
 	var n := p.dice.size()
 	_apply(&"mirror", p)
-	_check(p.dice.size() == n + 1 and p.dice[n].special_id == &"mirror", "give die: a Mirror Die joins the bag")
+	_check(p.dice.size() == n + 1 and p.dice[n].special_id == DiceIds.DIE_MIRROR, "give die: a Mirror Die joins the bag")
 	var b := RunProgress.new(_run)
 	_apply(&"bone", b)
 	_check(b.dice.size() == n + 1 and b.dice[n].special_id == &"" and b.dice[n].shape == DiceIds.DIE_BONE and b.die_name(n) == "Bone",
@@ -106,18 +106,20 @@ func _test_give_die() -> void:
 	var keg := EventChoiceData.new()
 	var e := EventEffectData.new()
 	e.kind = EventEffectData.Kind.GIVE_DIE
-	e.die = &"powder_keg"
+	e.die = DiceIds.DIE_POWDER_KEG
 	keg.effects.assign([e])
 	EventApplier.apply(keg, q, RandomNumberGenerator.new())
-	_check(q.dice[q.dice.size() - 1].shape == &"powder_keg" and q.dice[q.dice.size() - 1].faces[4] == &"twin", "give die: a shaped die arrives with its pre-carved faces")
+	_check(q.dice[q.dice.size() - 1].shape == DiceIds.DIE_POWDER_KEG and q.dice[q.dice.size() - 1].faces[4] == &"twin", "give die: a shaped die arrives with its pre-carved faces")
 
 
 func _test_sell_die() -> void:
 	var p := RunProgress.new(_run)
-	_check(EventApplier.why_not(_ch(&"sell"), p) == "You have no die to spare." and _apply(&"sell", p, [Vector2i(0, 0)])[0].begins_with("refused"),
+	_check(EventApplier.why_not(_ch(&"sell"), p) == "You need 6+ dice to give one up." and _apply(&"sell", p, [Vector2i(0, 0)])[0].begins_with("refused"),
 		"sell die: at the starting bag size the choice is greyed")
-	p.add_die(&"mirror")
+	p.add_die(DiceIds.DIE_MIRROR)
 	var e0 := p.embers
+	_check(EventApplier.sell_payout(_ch(&"sell").effects[0], p, 5) == 8 and EventApplier.sell_payout(_ch(&"sell").effects[0], p, 0) == 2,
+		"sell die: the picker's payout line is sell value + bonus (Mirror 8, plain 2)")
 	_check(EventApplier.picks_needed(_ch(&"sell")) == 1, "sell die: a picked sell needs one pick")
 	_check(_apply(&"sell", p, [Vector2i(9, 0)])[0].begins_with("refused") and p.dice.size() == 6, "sell die: an invalid die pick changes nothing")
 	var lines := _apply(&"sell", p, [Vector2i(5, 3)])
@@ -129,14 +131,14 @@ func _test_sell_die() -> void:
 	_apply(&"sell", q, [Vector2i(2, 0)])
 	_check(q.dice.size() == 5 and q.embers == e1 + 2, "sell die: a plain die sells for 0 (+ bonus); any die may be picked")
 	var r := RunProgress.new(_run)
-	r.add_die(&"mirror")
+	r.add_die(DiceIds.DIE_MIRROR)
 	var before: Array = []
 	for d in r.dice:
 		before.append(d.id)
 	_apply(&"sell_random", r, [], 4)
 	_check(r.dice.size() == 5 and EventApplier.picks_needed(_ch(&"sell_random")) == 0, "sell die: RANDOM needs no pick and removes one die")
 	var a := RunProgress.new(_run)
-	a.add_die(&"mirror")
+	a.add_die(DiceIds.DIE_MIRROR)
 	var two := EventChoiceData.new()
 	for i in 2:
 		var e := EventEffectData.new()
@@ -229,7 +231,7 @@ func _test_flow() -> void:
 	_check(not lines.is_empty() and run.screen == S.MAP and run.progress.free_rerolls == 2, "flow: MapRun.choose_event applies the effect and returns to the map")
 	var view := EventView.new()
 	var p := RunProgress.new(_run)
-	p.add_die(&"mirror")
+	p.add_die(DiceIds.DIE_MIRROR)
 	view._progress = p
 	var e: EventEffectData = _ch(&"sell").effects[0]
 	_check(view._pick_allowed(e, Vector2i(5, 2), [] as Array[Vector2i]) and not view._pick_allowed(e, Vector2i(5, 3), [Vector2i(5, 0)] as Array[Vector2i])

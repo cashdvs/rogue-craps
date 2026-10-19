@@ -49,9 +49,9 @@ static func why_not(choice: EventChoiceData, p: RunProgress, table_ahead: bool =
 		elif e.kind == K.GIVE_DIE and not p.can_add_die():
 			return "Your bag is full (%d dice)." % p.data.max_dice
 		elif e.kind == K.SELL_DIE and not p.can_lose_die():
-			return "You have no die to spare."
+			return "You need %d+ dice to give one up." % (p.data.starting_dice + 1)
 		elif e.kind == K.NEXT_TABLE_TWIST and not table_ahead:
-			return "No table left on this floor."
+			return "No Table left on this floor."
 	if _only_heals(choice) and p.soul >= p.max_soul:
 		return "Your Soul is already full."
 	if soul_cost > 0 and p.soul <= soul_cost:
@@ -61,6 +61,25 @@ static func why_not(choice: EventChoiceData, p: RunProgress, table_ahead: bool =
 	if choice.requires_face_mod and not p.has_face_mod():
 		return "You have no face mod to give."
 	return ""
+
+
+## Tooltip lines (strings_v1 §10) explaining a choice's lasting effects:
+## a max-Soul cut and an event twist.
+static func tips(choice: EventChoiceData) -> Array[String]:
+	var out: Array[String] = []
+	for e in choice.effects:
+		if e.kind == K.MAX_SOUL and e.amount < 0:
+			out.append("A lower max Soul also lowers your Soul to match.")
+		elif e.kind == K.NEXT_TABLE_TWIST:
+			out.append("An event twist applies to your next Table, not Elites or Bosses.")
+			out.append("An unplayed event twist ends when you leave the floor.")
+	return out
+
+
+## Embers selling die `die_i` through SELL_DIE effect `e` pays: its sell
+## value plus the effect's bonus.
+static func sell_payout(e: EventEffectData, p: RunProgress, die_i: int) -> int:
+	return p.sell_value(die_i) + e.amount
 
 
 ## How many (die, face) picks the view must collect before apply().

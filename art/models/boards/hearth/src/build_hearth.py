@@ -377,4 +377,5 @@ def main():
     print("TRIS %s" % TRIS)
 
 
-main()
+if __name__ == "__main__":  # build_dressing.py imports the helpers above
+    main()

@@ -1,0 +1,69 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/ember_seam.tres" id="1_vdqvn"]
+[ext_resource type="Shader" path="res://art/models/boards/hearth/shaders/hearth_toon_detail.gdshader" id="2_bqn8j"]
+[ext_resource type="Texture2D" path="res://art/models/boards/hearth/textures/rail_carve.png" id="3_3t3x6"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_vdqvn")
+shader = ExtResource("2_bqn8j")
+shader_parameter/albedo = Color(0.352941, 0.0862745, 0.12549, 1)
+shader_parameter/shadow_color = Color(0.164706, 0.0392157, 0.0627451, 1)
+shader_parameter/mid_tint = 0.68
+shader_parameter/wrap = null
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = null
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = null
+shader_parameter/ambient_energy = null
+shader_parameter/spec_size = null
+shader_parameter/spec_color = null
+shader_parameter/spec_strength = null
+shader_parameter/rim_color = Color(0.541176, 0.227451, 0.25098, 1)
+shader_parameter/rim_power = null
+shader_parameter/rim_strength = 0.15
+shader_parameter/emission_color = null
+shader_parameter/emission_energy = null
+shader_parameter/roughness = 0.55
+shader_parameter/use_overlay = null
+shader_parameter/overlay_tint = null
+shader_parameter/grime = null
+shader_parameter/grime_color = null
+shader_parameter/flash = null
+shader_parameter/flash_color = null
+shader_parameter/scorch = null
+shader_parameter/chip_mode = null
+shader_parameter/notch_color = null
+shader_parameter/ring_color = null
+shader_parameter/chip_radius = null
+shader_parameter/use_carve = true
+shader_parameter/carve_tex = ExtResource("3_3t3x6")
+shader_parameter/carve_tile_u = null
+shader_parameter/carve_normal = 1.6
+shader_parameter/carve_cavity = 0.6
+shader_parameter/carve_skip_u = Vector2(0.06, 4.07)
+shader_parameter/carve_brass = 0.5
+shader_parameter/carve_brass_color = Color(0.627451, 0.47843137, 0.20392157, 1)
+shader_parameter/carve_brass_emit = 0.12
+shader_parameter/carve_dim_u = null
+shader_parameter/carve_dim = 0.85
+shader_parameter/carve_edge_dim = 0.15
+shader_parameter/carve_rim_dim = 1.0
+shader_parameter/rim_emit = null
+shader_parameter/rim_emit_color = null
+shader_parameter/rim_emit_width = null
+shader_parameter/rim_emit_up = null
+shader_parameter/use_scratches = true
+shader_parameter/scratch_u = null
+shader_parameter/scratch_amount = null
+shader_parameter/scratch_lip = null
+shader_parameter/drip_mode = null
+shader_parameter/drip_top = null
+shader_parameter/drip_grow = null
+shader_parameter/drip_period = null
+shader_parameter/drip_scroll = null
+shader_parameter/drip_sheen = null
+shader_parameter/drip_sheen_amount = null
