@@ -6,8 +6,8 @@
 script = ExtResource("1_u5mc0")
 id = &"pit_boss"
 display_name = "The Pit Boss"
-description = "One random face value is locked each hand and never lights (shown on the felt)."
+description = "Each hand, one number from 2 to 6 never lights."
 kind = 1
 params = {
-"faces": [1, 2, 3, 4, 5, 6]
+"faces": [2, 3, 4, 5, 6]
 }

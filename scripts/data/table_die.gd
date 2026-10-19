@@ -9,14 +9,10 @@
 class_name TableDie
 extends RefCounted
 
-## Every shape the table knows, with its face count.
-## (Local copy until Systems Dev's #107 merges; then use DiceIds.SHAPES.)
+## Every shape the table knows, with its face count: DiceIds.SHAPES (#107).
 ## talus = the Knucklebone's astragalus: 4 resting faces (1, 3, 4, 6), not a
 ## d4. The Powder Keg is a d6 printed [1, 1, 2, 2, 3, 3] (never a d3 body).
-const SHAPE_FACES := {
-	&"coin": 2, &"d3": 3, &"d4": 4, &"d6": 6, &"d8": 8, &"d10": 10, &"d12": 12, &"d20": 20,
-	&"talus": 4,
-}
+const SHAPE_FACES := DiceIds.SHAPES
 
 var id: StringName = &"bone"
 var display_name: String = "Bone"
