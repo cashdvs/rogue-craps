@@ -67,6 +67,9 @@ extends Resource
 @export var boss_embers: int = 25
 ## Boss misses allowed before the run ends (spec: one re-sit).
 @export var boss_resits: int = 1
+## Nerve uses per table (design/nerve_v1.md): turn one die one face. Refills
+## every table, boss re-sits included.
+@export var nerve_uses: int = 1
 
 ## Chance a Seal offer is a rare Seal (build content: about 1 in 10).
 @export_range(0.0, 1.0) var rare_seal_chance: float = 0.1

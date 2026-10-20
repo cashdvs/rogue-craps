@@ -25,6 +25,8 @@ var bust_soul_loss: int = -1
 var seal_bonus: Dictionary[StringName, Vector2i] = {}
 ## The run's first table (TableSetup.first_table: the tutorial seeds).
 var first_table: bool = false
+## Nerve uses per table (RunData.nerve_uses -> TableSetup.nerve_uses).
+var nerve_uses: int = 1
 
 
 ## The rules' ids, in order.
@@ -54,6 +56,7 @@ func to_table_setup(base: BonfireTuning) -> TableSetup:
 	if "run_embers" in ts:
 		ts.set("run_embers", run_embers)
 	ts.first_table = first_table
+	ts.nerve_uses = nerve_uses
 	return ts
 
 
