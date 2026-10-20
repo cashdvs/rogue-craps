@@ -31,6 +31,9 @@ var state: NerveState = NerveState.new()
 var landed: Array[int] = []
 ## The throw the run landed (rules applied); nudges start from it.
 var base: TableThrow
+## True once a die was potted this throw: Nerve is closed until the next
+## throw (nudges and undo refused with nerve_potted_refusal).
+var pot_closed: bool = false
 ## True after the Nerve button: the next die click picks a die to turn.
 var armed: bool = false
 ## The throw index whose arrows are showing (-1 = none).
@@ -82,6 +85,7 @@ func open_throw(th: TableThrow) -> void:
 			var td := th.die(i)
 			var copy := td != null and NerveState.is_copy_die(td) and i < landed.size()
 			by_hid[h] = landed[i] if copy else th.slots[i]
+	pot_closed = false
 	state.begin_throw(by_hid)
 	# Deferred: the table moves to its waiting phase later this frame.
 	changed.emit.call_deferred()
@@ -95,13 +99,18 @@ func close_throw() -> void:
 	changed.emit()
 
 
-## A die went into the pot or came back out (BonfireRun.toggle). While any
-## die is potted, potted dice can't be turned and the nudge can't be
-## undone; NerveTable checks run.potted itself. NerveState.mark_potted()
-## is NOT called here: it commits the nudge, so a pot then unpot that
-## cancel out would spend a pending nudge (QA, #126). close_throw()
-## commits for good on rethrow / bank.
+## A die went into the pot or came back out (BonfireRun.toggle). Any
+## completed pot closes Nerve for this throw (nerve_v1.md lines 10-11): a
+## pending nudge is spent (mark_potted commits) and no new nudge or undo is
+## allowed, even after the die is unpotted. Presses and drags never pot
+## (handle_input decides on release), so only a real pot gets here.
 func on_potted() -> void:
+	if not run.potted.is_empty():
+		pot_closed = true
+		for i in run.potted:
+			var h := hid(i)
+			if h >= 0:
+				state.mark_potted(h)
 	changed.emit()
 
 
@@ -183,6 +192,9 @@ func score(slots_by_hid: Array) -> int:
 
 ## The Nerve button: the next die click picks the die to turn.
 func arm() -> bool:
+	if pot_closed:
+		refuse("nerve_potted_refusal")
+		return false
 	if not can_show() or state.uses_left() <= 0:
 		refuse("nerve_used_refusal")
 		return false
@@ -197,7 +209,7 @@ func nudge(i: int, dir: int) -> int:
 	var h := hid(i)
 	if not can_show() or h < 0:
 		return -1
-	if run.potted.has(i):
+	if pot_closed or run.potted.has(i):
 		refuse("nerve_potted_refusal")
 		return -1
 	if not state.can_nudge_dir(h, dir):
@@ -215,6 +227,9 @@ func nudge(i: int, dir: int) -> int:
 
 ## Undoes the pending nudge on throw die [param i]; true if there was one.
 func undo(i: int) -> bool:
+	if pot_closed:
+		refuse("nerve_potted_refusal")
+		return false
 	var h := hid(i)
 	var from := state.slots[h] if h >= 0 else 0
 	var back := state.undo(h) if h >= 0 else -1
@@ -233,11 +248,11 @@ func tap(i: int) -> bool:
 	if not can_show():
 		return false
 	var h := hid(i)
-	if h >= 0 and state.nudged_die() == h and run.potted.is_empty():
+	if h >= 0 and state.nudged_die() == h and not pot_closed:
 		return undo(i)
 	if not armed and not run.bust_pending:
 		return false
-	if run.potted.has(i):
+	if pot_closed or run.potted.has(i):
 		refuse("nerve_potted_refusal")
 	elif state.pick(h):
 		armed = false

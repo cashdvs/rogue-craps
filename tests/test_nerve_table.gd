@@ -175,8 +175,8 @@ func drag(s: Bonfire3D, i: int, dy: float) -> bool:
 
 ## QA #126: the press no longer pots; the release decides (drag = nudge).
 func drag_flow() -> void:
-	var s := await make_table()
-	var n := s.nerve
+	var s: Bonfire3D = await make_table()
+	var n: NerveTable = s.nerve
 	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
 	await process_frame
 	check(s.die_at_screen(s.camera.cam.unproject_position(s.throw_dice[4].global_position)) == 4, "die 4 is under its screen point")
@@ -185,7 +185,20 @@ func drag_flow() -> void:
 	check(drag(s, 0, -60.0) and s.run.potted.is_empty() and n.state.nudged_die() == n.hid(4), "a drag on another lit die after the nudge: no pot, nudge still pending")
 	check(drag(s, 0, 4.0) and s.run.potted.has(0), "a short press-release pots as before")
 	check(drag(s, 0, 0.0) and not s.run.potted.has(0), "and again unpots it")
-	check(n.state.nudged_die() == n.hid(4) and n.tap(4) and s.run.throw_faces[4] == 6 and n.state.uses_left() == 1, "pot then unpot cancel out: the nudge was still pending, undo works")
+	check(n.state.nudged_die() < 0 and n.state.uses_left() == 0, "pot then unpot: the pot spent the nudge (nerve_v1 lines 10-11)")
+	check(not n.undo(4) and s.run.throw_faces[4] == 5 and s.why_label.text == NerveText.get_text("nerve_potted_refusal"), "pot then unpot can't undo (nerve_potted_refusal)")
+	s.queue_free()
+	await process_frame
+	# Nerve unused: pot one die, and no other die can be nudged (even unpotted).
+	s = await make_table()
+	n = s.nerve
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	await process_frame
+	check(drag(s, 0, 0.0) and s.run.potted.has(0) and n.state.uses_left() == 1, "pot a 3 with Nerve unused")
+	check(n.nudge(4, NerveState.DOWN) == -1 and s.run.throw_faces[4] == 6 and s.why_label.text == NerveText.get_text("nerve_potted_refusal"), "no nudge on another die after any pot")
+	check(drag(s, 4, 60.0) and s.run.throw_faces[4] == 6 and not s.run.potted.has(4), "a drag after a pot: no nudge, no pot")
+	s.pick_die(0)
+	check(s.run.potted.is_empty() and n.nudge(3, NerveState.UP) == -1 and not n.arm(), "still closed after the unpot")
 	s.queue_free()
 	await process_frame
 
