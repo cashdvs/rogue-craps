@@ -24,8 +24,10 @@ const DRAG_PX: float = 28.0
 var table: Node
 var run: BonfireRun
 var state: NerveState = NerveState.new()
-## The throw as it landed, before any rule changed it (throw index -> slot).
-## Copy dice are re-copied from here after a nudge.
+## The slots the dice physically landed on, before any rule (throw index ->
+## slot), set by the table just before land_throw. Only read once, when the
+## throw opens: a copy die's landed slot goes into NerveState (it can't be
+## nudged), so NerveState.landed_slots() is where copies re-copy from.
 var landed: Array[int] = []
 ## The throw the run landed (rules applied); nudges start from it.
 var base: TableThrow
@@ -77,7 +79,9 @@ func open_throw(th: TableThrow) -> void:
 	for i in th.size():
 		var h := hid(i)
 		if h >= 0 and h < by_hid.size():
-			by_hid[h] = th.slots[i]
+			var td := th.die(i)
+			var copy := td != null and NerveState.is_copy_die(td) and i < landed.size()
+			by_hid[h] = landed[i] if copy else th.slots[i]
 	state.begin_throw(by_hid)
 	# Deferred: the table moves to its waiting phase later this frame.
 	changed.emit.call_deferred()
@@ -123,6 +127,7 @@ func lights(slots_by_hid: Array) -> bool:
 
 ## The throw with these faces: copies re-run from where they landed.
 func throw_for(slots_by_hid: Array) -> TableThrow:
+	var at_land := state.landed_slots()
 	var vals: Array[int] = []
 	var sl: Array[int] = []
 	var mods: Array = []
@@ -130,8 +135,8 @@ func throw_for(slots_by_hid: Array) -> TableThrow:
 		var td := base.die(i)
 		var h := hid(i)
 		var s: int = int(slots_by_hid[h]) if h >= 0 and h < slots_by_hid.size() else base.slots[i]
-		if td != null and NerveState.is_copy_die(td) and i < landed.size():
-			s = landed[i]  # a copy die copies again from scratch
+		if td != null and NerveState.is_copy_die(td) and h >= 0 and h < at_land.size():
+			s = at_land[h]  # a copy die copies again from scratch
 		sl.append(s)
 		vals.append(td.value_at(s) if td != null else s)
 		mods.append(td.mod_at(s) if td != null else null)
@@ -192,8 +197,7 @@ func nudge(i: int, dir: int) -> int:
 	if not can_show() or h < 0:
 		return -1
 	if not state.can_nudge_dir(h, dir):
-		var why := state.refusal(h)
-		refuse(why if why != "" else ("nerve_high_refusal" if dir > 0 else "nerve_low_refusal"))
+		refuse(state.refusal(h, dir))
 		return -1
 	var from := state.slots[h]
 	var to := state.nudge(h, dir, score)

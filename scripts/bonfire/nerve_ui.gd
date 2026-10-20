@@ -130,4 +130,4 @@ func _place_arrows() -> void:
 		var b: Button = pair[0]
 		var ok := nerve.state.can_nudge_dir(h, pair[1])
 		b.disabled = not ok
-		b.tooltip_text = "" if ok else NerveText.dir_refusal(pair[1])
+		b.tooltip_text = "" if ok else NerveText.get_text(nerve.state.refusal(h, pair[1]))

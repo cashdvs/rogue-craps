@@ -25,12 +25,8 @@ const TEXT: Dictionary[String, String] = {
 }
 
 
-## The text for strings_v1 id [param id] ("" if unknown, e.g. NerveState's
-## internal "not_in_throw", which the table never shows).
+## The text for strings_v1 id [param id] ("" if unknown or empty: then
+## nothing is shown).
 static func get_text(id: String) -> String:
 	return TEXT.get(id, "")
 
-
-## The refusal for a greyed-out arrow: can't go higher / lower.
-static func dir_refusal(dir: int) -> String:
-	return get_text("nerve_high_refusal" if dir > 0 else "nerve_low_refusal")

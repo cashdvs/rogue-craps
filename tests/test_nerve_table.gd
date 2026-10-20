@@ -83,6 +83,8 @@ func nudge_flow() -> void:
 	await process_frame
 	check(s.nerve_ui.up_button.visible and s.nerve_ui.up_button.disabled and not s.nerve_ui.down_button.disabled, "the 6: up arrow greyed out, down open")
 	check(s.nerve_ui.up_button.tooltip_text == NerveText.get_text("nerve_high_refusal"), "greyed arrow says why")
+	check(n.nudge(4, NerveState.UP) == -1 and s.why_label.text == NerveText.get_text("nerve_high_refusal"), "nudging the 6 up: refusal(i, UP) text")
+	check(n.state.refusal(n.hid(2)) == "" and not n.state.can_nudge_dir(n.hid(4), NerveState.UP), "gates use can_nudge_dir, not an empty refusal")
 	var key := InputEventKey.new()
 	key.keycode = KEY_DOWN
 	key.pressed = true
