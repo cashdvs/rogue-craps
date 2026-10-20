@@ -59,6 +59,10 @@ func _run() -> void:
 	root.add_child(s)
 	await process_frame
 	await process_frame
+	# These checks expect plain busts (no Nerve rescue pause): no Nerve.
+	s.setup.nerve_uses = 0
+	s.new_run(5)
+	await process_frame
 	var r := s.run
 	var t := s.bonfire_tuning
 	check(s.dice.size() == 5 and r.state == BonfireRun.State.AIM, "5 dice in the hand")

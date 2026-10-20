@@ -36,6 +36,7 @@ func throw_faces(s: Bonfire3D, faces: Array[int]) -> Array:
 func make_table(st: TableSetup, fallback: bool, tutorial: int = 0) -> Bonfire3D:
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
+	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	s.test_speed = 10.0
 	s.tutorial_override = tutorial
 	root.add_child(s)
@@ -269,6 +270,7 @@ func _tutorial_tests(t: BonfireTuning) -> void:
 	# As the real game: the table is the current scene.
 	s = (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = TableSetup.sandbox(t, 5)
+	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	s.test_speed = 10.0
 	root.add_child(s)
 	current_scene = s
@@ -306,6 +308,7 @@ func _tutorial_tests(t: BonfireTuning) -> void:
 	await process_frame
 	s = (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = TableSetup.sandbox(t, 5)
+	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	root.add_child(s)
 	current_scene = s
 	s.new_run(5)

@@ -71,6 +71,7 @@ func _run() -> void:
 	# (b) The final bust: HANDS LEFT is current when hand_result fires.
 	st = TableSetup.sandbox(t, 2)
 	st.starting_soul = 1
+	st.nerve_uses = 0  # about the bust itself: no Nerve rescue pause
 	s = await table(st)
 	var at_result: Array = []
 	s.hand_result.connect(func(_r: Dictionary) -> void: at_result.append([s.run.hands_left, s.bhud.hands_label.text]))

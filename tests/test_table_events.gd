@@ -80,6 +80,7 @@ func _run() -> void:
 	st.table_seed = 5
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
+	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	s.tutorial_override = 0
 	s.test_speed = 10.0
 	sv.add_child(s)
@@ -203,6 +204,7 @@ func new_table(old: Bonfire3D, st: TableSetup) -> Bonfire3D:
 	st.table_seed = 5
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
+	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	s.tutorial_override = 0
 	s.test_speed = 10.0
 	# TableEvents exists from the start of _ready: listen before new_run runs.

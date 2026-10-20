@@ -70,6 +70,9 @@ var setup: TableSetup
 var _die_of: Dictionary = {}
 ## The physical face slots of the current throw (index = throw_dice index).
 var throw_slots: Array[int] = []
+## Nerve (nerve_v1.md): the table side (NerveTable) and its HUD (NerveUi).
+var nerve: NerveTable
+var nerve_ui: NerveUi
 var _soul_before: int = 0
 var _finished_sent: bool = false
 ## events.table_cleared went out for this table (once per table).
@@ -207,6 +210,7 @@ func new_run(seed_value: int = -1) -> void:
 		start = mini(start, setup.max_soul)
 	run = BonfireRun.new(bonfire_tuning, setup.goal, start, setup.dice.size())
 	run.seal_steps = setup.seal_steps
+	_start_nerve()
 	if setup.max_soul > 0:
 		run.max_soul = setup.max_soul
 	run.owned_dice_count = setup.owned_dice_count if setup.owned_dice_count >= 0 else setup.dice.size()
@@ -454,6 +458,7 @@ func throw_again() -> bool:
 		_refuse(why if why != "" else "Pot at least one lit die first.")
 		return false
 	bhud.tutorial.on_action(&"rethrow")
+	nerve.close_throw()
 	pot_dice.append_array(potted_now)
 	# Back to the home framing (the reveal left the camera zoomed in on the
 	# dice): the count-up and its fire play on the pot row, and the next
@@ -726,6 +731,7 @@ func bank() -> Dictionary:
 	var all_pot: Array[DieVisual] = pot_dice.duplicate()
 	all_pot.append_array(potted_now)
 	var hold := _display_snapshot(sel)
+	nerve.close_throw()
 	var r := run.bank()
 	phase = Phase.RESOLVE
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
@@ -793,6 +799,7 @@ func pick_die(i: int) -> bool:
 		_set_why("That die doesn't score with this combo (a pot is exactly ONE combo).")
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
+	nerve.on_potted()
 	_layout_throw()
 	if not run.potted.is_empty():
 		bhud.tutorial.on_action(&"potted")
@@ -1031,6 +1038,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	var th := TableThrow.make(values, mods, tds, run.rng)
 	th.slots = slots.duplicate()
 	th.positions = _felt_pos.duplicate()
+	nerve.landed = slots.duplicate()
 	var ok := run.land_throw(th)
 	_compute_throw_claims()
 	events.triggers_resolved.emit(landing_triggers(th, ok))
@@ -1057,7 +1065,16 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		_set_why("Kindling saved it: nothing lit, but no bust. Throw the %d dice again." % run.cold)
 		_to_hand()
 		phase = Phase.BET
+	elif not ok and run.bust_pending:
+		# Nerve can save it: wait for the rescue prompt (NerveUi).
+		# The rescue prompt (NerveUi) says it; HN1 only the first time.
+		_set_why("")
+		onboarding.on_nerve_rescue()
+		for d in throw_dice:
+			_set_cold(d)
+		phase = Phase.BET
 	elif ok:
+		nerve.open_throw(th)
 		for i in throw_dice.size():
 			if i in lit:
 				_set_lit(throw_dice[i], true)
@@ -1363,6 +1380,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if ((mb != null and mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed) or (tap != null and tap.pressed)) and fast_forward_juice():
 		get_viewport().set_input_as_handled()
 		return
+	if nerve != null and run != null and nerve.handle_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and run != null \
 			and run.state == BonfireRun.State.PICK and phase == Phase.BET:
 		var i := die_at_screen(mb.position)
@@ -1445,6 +1465,27 @@ func _end_sequence_after_forfeit() -> void:
 	Engine.time_scale = 1.0
 	_refresh_hud()
 	sequence_finished.emit()
+
+
+## Nerve (nerve_v1.md): builds Nerve for this table from setup.nerve_uses.
+func _start_nerve() -> void:
+	if nerve == null:
+		nerve = NerveTable.new()
+		add_child(nerve)
+		nerve_ui = NerveUi.new()
+		bhud.add_child(nerve_ui)
+		nerve_ui.setup(nerve)
+	var tds: Array[TableDie] = []
+	for d in all_dice:
+		tds.append(_die_of.get(d, TableDie.new()))
+	nerve.start(self, run, tds, setup.nerve_uses)
+
+
+## The rescue prompt's Bust: the held bust happens now.
+func nerve_bust() -> void:
+	run.confirm_bust()
+	await _bust()
+	_refresh_hud()
 
 
 func _bust() -> void:
