@@ -70,6 +70,8 @@ n = 4
 [resource]
 script = ExtResource("13_rgtap")
 display_name = "Floor 2"
+hands = 4
+boss_hands = 5
 map = ExtResource("12_rew8i")
 common_bounties = Array[ExtResource("1_ypktt")]([SubResource("b_triple"), SubResource("b_run3"), SubResource("b_two_pairs")])
 featured_bounties = Array[ExtResource("1_ypktt")]([SubResource("Resource_1ruv5")])

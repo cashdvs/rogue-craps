@@ -65,8 +65,8 @@ func _test_goals() -> void:
 				good = good and has
 			ok[f] = ok[f] and good
 	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, 1 bonus")
-	_check(ok[1], "goals: floor 2 has 3 incl. Run of 4, 5 hands")
-	_check(ok[2], "goals: floor 3 has 4 incl. Run of 4, 5 hands")
+	_check(ok[1], "goals: floor 2 has 3 incl. Run of 4, 4 hands")
+	_check(ok[2], "goals: floor 3 has 4 incl. Run of 4, 4 hands")
 	var boss_ok := true
 	for f in 3:
 		var run := MapRun.new(_data, 5)
