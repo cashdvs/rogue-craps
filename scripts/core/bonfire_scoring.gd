@@ -10,10 +10,18 @@ class_name BonfireScoring
 extends RefCounted
 
 
+## Highest face value the table handles (a d20; NonStdDice.MAX_FACE).
+const MAX_FACE: int = NonStdDice.MAX_FACE
+
+
+## How many dice show each value: c[v] for v in 0..MAX_FACE (non-d6 dice,
+## design/nonstandard_dice.md §2: numbers are numbers). Values outside
+## 0..MAX_FACE are clamped there (a data error, never an index error).
 static func _counts(faces: Array) -> Array[int]:
-	var c: Array[int] = [0, 0, 0, 0, 0, 0, 0]
+	var c: Array[int] = []
+	c.resize(MAX_FACE + 1)
 	for f in faces:
-		c[clampi(int(f), 1, 6)] += 1
+		c[clampi(int(f), 0, MAX_FACE)] += 1
 	return c
 
 
@@ -56,7 +64,9 @@ static func _run_gap(faces: Array) -> int:
 static func matches(c: BonfireCombo, faces: Array, gap: bool = false) -> bool:
 	match c.kind:
 		BonfireCombo.Kind.SINGLE:
-			return faces.size() == 1 and c.single_faces.has(int(faces[0]))
+			# Faces above 6 light alone too (§3): (5 + face) x 1 with the
+			# tuning's Single (base 5, mult 1).
+			return faces.size() == 1 and (c.single_faces.has(int(faces[0])) or int(faces[0]) > 6)
 		BonfireCombo.Kind.N_OF_A_KIND:
 			return faces.size() == c.n and _shape(faces) == [c.n]
 		BonfireCombo.Kind.RUN:
@@ -175,6 +185,9 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 		var eff := -1 if no_mods and not (m != null and m.is_curse) else _effect(d)
 		if eff != FaceModData.Effect.WILD and eff != FaceModData.Effect.STEP and cold.has(v):
 			return bad
+		# A face of value 0 or less (a Blank, the coin's Tails) never scores (§2).
+		if not NonStdDice.scores(v) and eff != FaceModData.Effect.WILD:
+			return bad
 		match eff:
 			FaceModData.Effect.BLANK:
 				return bad
@@ -218,8 +231,11 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 	var gap_ok := specials.has(&"wanderer")
 	var best := bad
 	var best_rank := -1
-	var step_opts := _step_options(steps, cold)
-	for assign in _wild_assignments(wilds, cold):
+	# Wild / Step reach (§5): values 1-6, higher only up to the highest face
+	# a die in the tray can show (ctx wild_max, e.g. 8 with a Lantern d8).
+	var top := maxi(int(ctx.get("wild_max", 6)), 6)
+	var step_opts := NonStdDice.step_options(steps, cold, top)
+	for assign in NonStdDice.wild_assignments(wilds, cold, top):
 		for st: Array in step_opts:
 			var all: Array[int] = vals.duplicate()
 			all.append_array(assign)
@@ -236,6 +252,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 			var stair := stairs * all.size() if c.kind == BonfireCombo.Kind.RUN else 0
 			var a := adds
 			var f := factor
+			# Caltrop / Knucklebone add to these (NonStdDice.apply_special).
+			var acc := {"adds": 0, "seal_base": 0, "seal_up": false}
 			for sp in specials:
 				match sp:
 					&"twin_flame":
@@ -246,6 +264,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 							f *= t.coven_factor
 					&"cracked":
 						f *= t.cracked_factor
+					&"caltrop", &"knucklebone":
+						NonStdDice.apply_special(sp, c, t, ctx, acc)
 					&"blood_pact":
 						var missing := maxi(int(ctx.get("max_soul", 0)) - int(ctx.get("soul", 0)), 0)
 						a += missing / maxi(t.blood_pact_soul_step, 1)
@@ -253,13 +273,16 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 						var n := int(ctx.get("throw_size", 0))
 						if bool(ctx.get("is_rethrow", false)) and n >= 1 and n <= t.last_breath_max_dice:
 							f *= t.last_breath_factor
+			a += int(acc["adds"])
+			var seal_base: int = acc["seal_base"]
+			var seal_up: bool = acc["seal_up"]
 			var mult := c.mult + mult_bonus + a
-			var pts := floori((c.base + stair + sum) * mult * f + 0.000001)
+			var pts := floori((c.base + seal_base + stair + sum) * mult * f + 0.000001)
 			var rank := t.combos.find(c)
 			var gv := _run_gap(all) if c.kind == BonfireCombo.Kind.RUN and gap_ok else 0
 			if pts > int(best["points"]) or (pts == int(best["points"]) and rank > best_rank) or not best["valid"]:
 				best = {"valid": true, "all_used": true, "points": pts, "combo": c.id, "name": c.display_name,
-					"base": c.base + stair, "stair": stair, "faces_sum": sum, "mult": mult, "adds": a, "factor": f,
+					"base": c.base + seal_base + stair, "stair": stair, "seal_up": seal_up, "faces_sum": sum, "mult": mult, "adds": a, "factor": f,
 					"values": all, "soul_cost": soul_cost, "embers": embers, "kindling": kindling, "specials": specials,
 					"gapped": gv > 0, "bounty_values": _close_gap(all, gv), "blood_refused": blood_refused}
 				best_rank = rank
@@ -275,41 +298,6 @@ static func _close_gap(vals: Array, gap_value: int) -> Array:
 	return out
 
 
-## Every choice of value for each Step face: its value or +-1 (1-6, not cold).
-static func _step_options(steps: Array[int], cold: Array) -> Array:
-	var out: Array = [[]]
-	for v in steps:
-		var next: Array = []
-		for prefix: Array in out:
-			for o in [v, v - 1, v + 1]:
-				if o >= 1 and o <= 6 and not cold.has(o):
-					var p := prefix.duplicate()
-					p.append(o)
-					next.append(p)
-		out = next
-	return out
-
-
-## Every multiset of `n` values 1-6 not in `cold` (order doesn't matter).
-static func _wild_assignments(n: int, cold: Array = []) -> Array:
-	var out: Array = []
-	var cur: Array[int] = []
-	_assign_rec(n, 1, cur, out, cold)
-	return out
-
-
-static func _assign_rec(n: int, from: int, cur: Array[int], out: Array, cold: Array) -> void:
-	if cur.size() == n:
-		out.append(cur.duplicate())
-		return
-	for v in range(from, 7):
-		if cold.has(v):
-			continue
-		cur.append(v)
-		_assign_rec(n, v, cur, out, cold)
-		cur.pop_back()
-
-
 ## "(base + faces) x mult = N" for the HUD ("x1.5" shown when a mod factor applies).
 static func formula(s: Dictionary) -> String:
 	if not s.get("valid", false):
@@ -317,6 +305,77 @@ static func formula(s: Dictionary) -> String:
 	var f := float(s.get("factor", 1.0))
 	var ftxt := "" if is_equal_approx(f, 1.0) else (" x%s" % str(snappedf(f, 0.01)))
 	return "%s  (%d + %d) x %d%s = %d" % [s["name"], s["base"], s["faces_sum"], s["mult"], ftxt, s["points"]]
+
+
+## The live pot preview (how_bonfire_plays.md section 4):
+## "TRIPS: (30+12) x3 = 126". The mult already includes Hot Hand and +mult
+## faces; a x factor (Hellfire, Coven...) is shown before the "=".
+static func preview(s: Dictionary) -> String:
+	if not s.get("valid", false):
+		return ""
+	var f := float(s.get("factor", 1.0))
+	var ftxt := "" if is_equal_approx(f, 1.0) else (" x%s" % str(snappedf(f, 0.01)))
+	return "%s: (%d+%d) x%d%s = %d" % [String(s["name"]).to_upper(), s["base"], s["faces_sum"], s["mult"], ftxt, s["points"]]
+
+
+## What changed the numbers in a preview, one short note each, e.g.
+## ["Hot Hand +1 mult", "Hellfire x1.5"]. dice = the potted dice (as for
+## score_selection), s = its result, mult_bonus = the Hot Hand bonus.
+static func factor_notes(dice: Array, s: Dictionary, t: BonfireTuning, mult_bonus: int = 0, ctx: Dictionary = {}) -> Array[String]:
+	var out: Array[String] = []
+	if not s.get("valid", false):
+		return out
+	if mult_bonus > 0:
+		out.append("Hot Hand +%d mult" % mult_bonus)
+	var no_mods: bool = ctx.get("no_mods", false)
+	var combo: BonfireCombo = null
+	for c: BonfireCombo in t.combos:
+		if c.id == StringName(s.get("combo", &"")):
+			combo = c
+	var is_run := combo != null and combo.kind == BonfireCombo.Kind.RUN
+	for x in dice:
+		var m: FaceModData = _die(x).get("mod")
+		if m == null or (no_mods and not m.is_curse):
+			continue
+		var nm := m.display_name if m.display_name != "" else String(m.id).capitalize()
+		match int(m.effect):
+			FaceModData.Effect.MULT_FACTOR:
+				out.append("%s x%s" % [nm, str(snappedf(m.mult_factor, 0.01))])
+			FaceModData.Effect.MULT_ADD:
+				if not (m.soul_cost > 0 and s.get("blood_refused", false)):
+					out.append("%s +%d mult" % [nm, m.amount])
+			FaceModData.Effect.STAIR:
+				if is_run:
+					out.append("%s +%d base per die" % [nm, m.amount])
+			FaceModData.Effect.EMBER:
+				out.append("%s +%d Embers" % [nm, m.amount])
+			FaceModData.Effect.TWIN:
+				out.append("%s counts twice" % nm)
+			FaceModData.Effect.KINDLING:
+				out.append("%s: next throw can't bust" % nm)
+	for sp: StringName in s.get("specials", []):
+		match sp:
+			&"twin_flame":
+				if combo != null and (_is_kind(combo, BonfireCombo.Kind.N_OF_A_KIND, 2) or combo.kind == BonfireCombo.Kind.TWO_PAIR):
+					out.append("Twin Flame +%d mult" % t.twin_flame_mult)
+			&"coven":
+				if combo != null and (_is_kind(combo, BonfireCombo.Kind.N_OF_A_KIND, 3) or combo.kind == BonfireCombo.Kind.FULL_HOUSE):
+					out.append("Coven x%s" % str(snappedf(t.coven_factor, 0.01)))
+			&"cracked":
+				out.append("Cracked x%s" % str(snappedf(t.cracked_factor, 0.01)))
+			&"blood_pact":
+				var missing := maxi(int(ctx.get("max_soul", 0)) - int(ctx.get("soul", 0)), 0)
+				var a := missing / maxi(t.blood_pact_soul_step, 1)
+				if a > 0:
+					out.append("Blood Pact +%d mult" % a)
+			&"last_breath":
+				var n := int(ctx.get("throw_size", 0))
+				if bool(ctx.get("is_rethrow", false)) and n >= 1 and n <= t.last_breath_max_dice:
+					out.append("Last Breath x%s" % str(snappedf(t.last_breath_factor, 0.01)))
+			&"wanderer":
+				if s.get("gapped", false):
+					out.append("Wanderer skips a value")
+	return out
 
 
 ## Every subset of the throw (as index arrays) that exactly forms a combo.
@@ -387,7 +446,8 @@ static func plain_values(dice: Array) -> Array[int]:
 				out.append(int(d["value"]))
 				out.append(int(d["value"]))
 			_:
-				out.append(int(d["value"]))
+				if NonStdDice.scores(int(d["value"])):
+					out.append(int(d["value"]))
 	return out
 
 
@@ -398,28 +458,28 @@ static func bounty_contains(b: BountyData, faces: Array) -> bool:
 	var c := _counts(faces)
 	match b.kind:
 		BountyData.Kind.N_OF_A_KIND:
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				if (b.face == 0 or b.face == f) and c[f] >= b.n:
 					return true
 			return false
 		BountyData.Kind.RUN, BountyData.Kind.STRAIGHT_5:
 			var need := 5 if b.kind == BountyData.Kind.STRAIGHT_5 else b.n
 			var run := 0
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				run = run + 1 if c[f] > 0 else 0
 				if run >= need:
 					return true
 			return false
 		BountyData.Kind.TWO_PAIR:
 			var pairs := 0
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				if c[f] >= 2:
 					pairs += 1
 			return pairs >= 2
 		BountyData.Kind.FULL_HOUSE:
-			for f in range(1, 7):
+			for f in range(1, MAX_FACE + 1):
 				if c[f] >= 3:
-					for g in range(1, 7):
+					for g in range(1, MAX_FACE + 1):
 						if g != f and c[g] >= 2:
 							return true
 			return false

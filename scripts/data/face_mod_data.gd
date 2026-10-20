@@ -11,6 +11,15 @@ enum Effect { MULT_FACTOR, WILD, TWIN, BLANK, MULT_ADD, EMBER, HEAVY, STEP, STAI
 @export var id: StringName = &""
 @export var display_name: String = ""
 @export_multiline var description: String = ""
+## Second tooltip line (strings_v1.md "details" row): the rest of the
+## rule that didn't fit the short line. Empty = none.
+@export var details: String = ""
+
+
+## The tooltip: the short line, then the details line if any.
+func tooltip() -> String:
+	return description if details == "" else "%s\n%s" % [description, details]
+
 @export var effect: Effect = Effect.MULT_FACTOR
 ## MULT_FACTOR only: the pot's mult is multiplied by this when the face scores.
 @export var mult_factor: float = 1.0

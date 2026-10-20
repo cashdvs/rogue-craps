@@ -6,6 +6,6 @@
 script = ExtResource("1_ewpli")
 id = &"heavy"
 display_name = "Heavy Face"
-description = "Lands twice as often."
+description = "This face lands twice as often."
 effect = 6
 price = 6

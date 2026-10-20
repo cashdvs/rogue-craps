@@ -75,6 +75,13 @@ func _test_points_cap() -> void:
 		r.forfeit()
 		same = same and BonfireRun.points_to_embers(_tuning, pts) == int(r.table_summary["points_embers"]) and r.embers - e0 == int(r.table_summary["points_embers"])
 	_check(same and BonfireRun.points_to_embers(_tuning, 750) == 5, "P1: over 500 points the shared preview (points_to_embers) matches what's paid")
+	var hud := BonfireHud.new()
+	root.add_child(hud)
+	var hr := BonfireRun.new(_tuning, _tuning.table_goal, 30, 5)
+	hr.points = 750
+	hud.refresh(hr, true)
+	_check(hud.points_label.text == "points 750 → +5 Embers", "P1: the HUD's points preview is capped like the payout (%s)" % hud.points_label.text)
+	hud.free()
 	var bare := BonfireTuning.new()
 	bare.table_goal = _tuning.table_goal
 	_check(bare.points_embers_cap == 0 and _points_embers(bare, 900) == 9, "P1: no cap set (field absent) = uncapped, 900 pays 9")

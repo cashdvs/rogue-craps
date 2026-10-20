@@ -6,6 +6,6 @@
 script = ExtResource("1_su6b3")
 id = &"step"
 display_name = "Step Face"
-description = "Counts as its value or +-1, for runs only."
+description = "In a run, counts as one higher or one lower."
 effect = 7
 price = 6
