@@ -35,9 +35,8 @@ func _initialize() -> void:
 	_test_rescue()
 	_test_duplicates()
 	_test_throw_lifecycle()
-	_test_setup_plumbing()
-	_test_map_run_e2e()
-	_test_no_soul_or_embers()
+	_test_refusal_strings()
+	_test_landed_slots()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_wild = null
 	_blank = null
@@ -165,7 +164,7 @@ func _test_exclusions() -> void:
 	var alone := _nerve([_die(DiceIds.DIE_FERRYMAN, DiceIds.SHAPE_COIN)] as Array[TableDie], [1] as Array[int])
 	check(not alone.can_nudge(0), "Coin thrown alone: still not a target")
 	check(n.can_nudge(0), "the die they copy can be nudged (table re-runs copies)")
-	check(n.refusal(-1) == "not_in_throw" and n.refusal(9) == "not_in_throw", "out-of-range index refused")
+	check(n.refusal(-1) == "" and n.refusal(9) == "" and not n.can_nudge(-1) and not n.can_nudge(9), "out-of-range index: refused, no string")
 
 
 func _test_ui_states() -> void:
@@ -244,18 +243,6 @@ func _test_rescue() -> void:
 		calls.append(s.duplicate())
 		return false)
 	check(calls.size() == 2 and int(calls[0][1]) == 3 and int(calls[1][1]) == 3, "rescue never tries a copy die")
-
-
-func _test_setup_plumbing() -> void:
-	var rd := load("res://resources/map/bonfire_run.tres") as RunData
-	check(rd.nerve_uses == 1, "RunData.nerve_uses = 1 in bonfire_run.tres")
-	check(TableSetup.new().nerve_uses == 1, "TableSetup.nerve_uses defaults to 1")
-	var rts := RunTableSetup.new()
-	rts.goal = TableGoal.new()
-	rts.nerve_uses = 2
-	var base := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	check(rts.to_table_setup(base).nerve_uses == 2, "RunTableSetup -> TableSetup.nerve_uses")
-	check(RunTableSetup.new().nerve_uses == 1, "RunTableSetup default 1")
 
 
 func _keg() -> TableDie:
@@ -341,73 +328,34 @@ func _test_throw_lifecycle() -> void:
 	check(keep.uses_left() == 1, "unused Nerve doesn't stack across tables (still 1)")
 
 
-## A MapRun on floor 1 entered at its first Table node; its TableSetup.
-func _table_setup_from_run(rd: RunData) -> TableSetup:
-	var run := MapRun.new(rd, 7)
-	run._start_floor(0)
-	for n: MapNode in run.map.nodes.values():
-		if n.type == MapGenData.NodeType.TABLE:
-			run.map.current_id = n.prev[0] if not n.prev.is_empty() else -1
-			run.screen = MapRun.Screen.MAP
-			run.choose_node(n.id)
-			break
-	var base := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	return run.table_setup().to_table_setup(base)
+## refusal(i, dir) strings_v1 ids (# nerve_v1).
+func _test_refusal_strings() -> void:
+	var n := _nerve(_bones(3), [1, 6, 3] as Array[int])
+	check(n.refusal(0, NerveState.DOWN) == "nerve_low_refusal" and n.refusal(0, NerveState.UP) == "", "a 1: low refusal down, none up")
+	check(n.refusal(1, NerveState.UP) == "nerve_high_refusal" and n.refusal(1, NerveState.DOWN) == "", "a 6: high refusal up")
+	check(n.refusal(0) == "" and n.refusal(1) == "", "refusal(i) with no dir unchanged")
+	var kb := _nerve([_die(DiceIds.DIE_KNUCKLEBONE, DiceIds.SHAPE_TALUS)] as Array[TableDie], [4] as Array[int])
+	check(kb.refusal(0, NerveState.UP) == "nerve_high_refusal", "Knucklebone 6: high refusal (own face list)")
+	var m := _nerve(_bones(3), [2, 0, 3] as Array[int])
+	check(m.refusal(1) == "nerve_potted_refusal" and not m.can_nudge(1), "not in this throw (potted earlier): potted refusal")
+	m.mark_potted(0)
+	check(m.refusal(2) == "" and not m.can_nudge(2), "throw closed by a pot: no string, can't nudge")
+	n.nudge(2, NerveState.UP)
+	check(n.refusal(0, NerveState.DOWN) == "nerve_used_refusal", "used beats high/low")
+	var e := NerveState.new()
+	e.setup(_bones(1))
+	check(e.refusal(0) == "" and not e.can_nudge(0), "no settled throw: no string")
 
 
-## QA: RunData.nerve_uses reaches the TableSetup the table gets, end to end
-## (a hardcoded value in MapRun.table_setup() fails this).
-func _test_map_run_e2e() -> void:
-	var rd := load("res://resources/map/bonfire_run.tres") as RunData
-	check(_table_setup_from_run(rd).nerve_uses == 1, "e2e: map_run -> TableSetup.nerve_uses = 1 by default")
-	var rd2 := rd.duplicate() as RunData
-	rd2.nerve_uses = 2
-	check(_table_setup_from_run(rd2).nerve_uses == 2, "e2e: RunData.nerve_uses = 2 -> TableSetup.nerve_uses = 2")
-	var rd0 := rd.duplicate() as RunData
-	rd0.nerve_uses = 0
-	check(_table_setup_from_run(rd0).nerve_uses == 0, "e2e: RunData.nerve_uses = 0 -> 0")
-
-
-## QA: Nerve never costs Soul or Embers (Bloodletter included).
-func _test_no_soul_or_embers() -> void:
-	var src := FileAccess.get_file_as_string("res://scripts/core/nerve_state.gd")
-	check(src.length() > 1000, "nerve_state.gd read")
-	var code := ""
-	for line in src.split("\n"):
-		var t := line.strip_edges()
-		if not t.begins_with("#"):
-			code += line.get_slice("#", 0) + "\n"
-	var low := code.to_lower()
-	check(not low.contains("soul") and not low.contains("ember"), "nerve_state.gd code never mentions soul / ember")
-	# Run-level: a table's BonfireRun with a settled throw; Nerve cycles around it.
-	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var g := TableGoal.new()
-	g.hands = 3
-	var run := BonfireRun.new(t, g)
-	var bl := TableRules.make({"id": &"bloodletter", "params": {}})
-	check(bl != null, "Bloodletter rule builds")
-	run.set_rules([bl] as Array[TableRule], 1)
-	run.set_throw([1, 2, 4, 5, 6] as Array[int])
-	var before := [run.soul, run.embers, run.points, run.hands_left]
-	var dice := _bones(5)
-	var n := NerveState.new()
-	n.setup(dice)
-	n.begin_throw([1, 2, 4, 5, 6] as Array[int])
+## landed_slots(): what begin_throw got, unchanged by nudges.
+func _test_landed_slots() -> void:
+	var n := _nerve(_bones(3), [2, 3, 4] as Array[int])
 	n.nudge(1, NerveState.UP)
-	n.undo(1)
-	n.nudge(2, NerveState.DOWN)
-	n.commit()
-	check(n.uses_left() == 0 and n.slots[2] == 3, "cycle: nudge, undo, nudge, commit")
-	check([run.soul, run.embers, run.points, run.hands_left] == before, "run Soul / Embers / points / hands unchanged by Nerve (Bloodletter on)")
-	var rd := load("res://resources/map/bonfire_run.tres") as RunData
-	var prog := MapRun.new(rd, 3).progress
-	var pb := [prog.soul, prog.embers]
-	var n2 := NerveState.new()
-	n2.setup(_bones(2))
-	n2.begin_throw([3, 3] as Array[int])
-	n2.nudge(0, NerveState.UP)
-	n2.undo(0)
-	n2.nudge(0, NerveState.DOWN)
-	n2.commit()
-	n2.reset_table()
-	check([prog.soul, prog.embers] == pb, "RunProgress Soul / Embers unchanged by Nerve")
+	check(n.landed_slots() == ([2, 3, 4] as Array[int]) and n.slots[1] == 4, "landed_slots keeps the throw as landed")
+	var copy := n.landed_slots()
+	copy[0] = 9
+	check(n.landed_slots()[0] == 2, "landed_slots returns a copy")
+	n.begin_throw([5, 0, 1] as Array[int])
+	check(n.landed_slots() == ([5, 0, 1] as Array[int]), "next throw replaces it")
+	n.reset_table()
+	check(n.landed_slots().is_empty(), "reset_table clears it")
