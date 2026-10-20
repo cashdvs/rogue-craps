@@ -86,7 +86,7 @@ func _test_dice() -> void:
 		"events: picked faces bounded by the die's face count")
 	run.progress.add_die(&"powder_keg")
 	_check(not run.free_face(Vector2i(6, 4)) and run.free_face(Vector2i(6, 3)), "picks: the Keg's Twin 3s are taken, its 2s are free")
-	var m := RunProgress.new(_run)
+	var m := RunProgress.new(roomy)
 	m.add_die(&"mirror")
 	m.add_die(&"cracked")
 	_check(m.dice[5].shape == &"bone" and m.dice[5].faces.size() == 6 and m.table_dice()[6].special == &"cracked", "specials: Mirror / Cracked stay d6 specials")
@@ -101,7 +101,9 @@ func _add_fx() -> EventEffectData:
 
 
 func _test_table() -> void:
-	var p := RunProgress.new(_run)
+	var roomy := _run.duplicate() as RunData
+	roomy.max_dice = 7  # a sixth and seventh die (the bag cap is 6)
+	var p := RunProgress.new(roomy)
 	p.add_die(&"powder_keg")
 	p.add_die(&"ferryman")
 	p.set_face(5, 2, &"heavy")
