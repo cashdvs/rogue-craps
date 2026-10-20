@@ -73,6 +73,16 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 | `MapRun.screen_changed(screen)` | `scripts/core/map/map_run.gd` | `MAP`, `TABLE`, `EVENT`, `SHOP`, `REST`, `REWARD`, `RUN_WON`, `RUN_OVER`; `RunScreen.refresh()` redraws |
 | `RunProgress.changed`, `run_ended` | `scripts/core/run/run_progress.gd` | Soul, Embers, dice or Seals changed; Soul hit 0 |
 | `MapView.node_pressed(id)`, `EventView.choice_made(i, picks)` | `scripts/map/` | UI → `MapRun.choose_node()` / `choose_event()` |
+| `TableSetup.run_embers` | `scripts/data/table_setup.gd`, set from `RunTableSetup.run_embers` (`MapRun.table_setup()`: `progress.embers`) | run mode: the run's Embers before this table. The HUD shows it plus the table's payout ("EMBERS n"); `TableOutcome.embers` stays the payout only |
+| `RunSeals` (`seal_level`, `add_seal_levels`, `seal_bonus`, `record_bank(s)`, `most_banked`, `transference`; `changed`) | `scripts/core/run/run_seals.gd` (base of `RunProgress`) | Seal levels per combo, the rare Seals' moves (Transference, Black, Ashen) and the combos banked this run |
+| `RunSummary.title(run)`, `reason_line(run)`, `lines(run)` | `scripts/core/map/run_summary.gd` | run end screens: the real reason the run ended (`MapRun.end_reason`) and a short summary (floor reached, tables cleared, Embers earned, final bag, seed) |
+| `RunProfile.map_key_seen()`, `mark_map_key_seen()`, `file_path()` | `scripts/core/run/run_profile.gd` | per-profile flags that outlive a run (for now: the map key has opened by itself once), saved to `user://profile.cfg`; tests set `path` to a scratch file (`tests/support/profile_guard.gd`), and `--script` runs without a `path` write no file |
+| `DieCardInfo.from_run(progress, i)`, `mod_name()` | `scripts/ui/die_card_info.gd` | plain data for one die card: name, ability line, shape, every face (value, mod id, mod name) and, in pick mode, the next mod's price. The table can fill one from a `TableDie` |
+| `DieCard.create(info, read_only)`, `set_die(...)`; `face_picked(face_index)` | `scripts/ui/die_card.gd` | one die's card built in code: "name - ability", the next mod's price, one button per face with "Face n: mod" tooltips. Read-only cards disable every face; otherwise `allowed` decides which faces can be picked |
+| `DicePanel.build(progress, opts)`, `seal_lines()`; `picked(Vector2i(die, face))` | `scripts/map/dice_panel.gd` | the "Your dice" view: a `DieCard` per die plus the "Your Seals" strip. Read-only from the map; in pick mode (shop, Rest carve, events) it replaces the old face picker |
+| `TablePreview.boss_rules(run)`, `dice_row(progress, on_open)`, `add_boss_sign(...)` | `scripts/map/table_preview.gd` | pieces of `RunScreen`'s table preview, split out to keep `run_screen.gd` small: the boss rule line, the mini dice row and the boss intro sign |
+| `MapKey.all_lines()` | `scripts/map/map_key.gd` | the map key: one line per node type plus the path and re-sit rules, docked on the map's right edge. Opens by itself on a profile's first map (`RunProfile`), collapsed from Floor 2 on; the Key button or K toggles it |
+| `MiniDiceRow.build(progress)`, `tile_text()`; `opened` | `scripts/map/mini_dice_row.gd` | the table preview's mini dice row: one tile per die in table order under "Your dice · n/max"; any tile opens the read-only `DicePanel` |
 
 ## The run, map and shop (Systems Dev)
 
