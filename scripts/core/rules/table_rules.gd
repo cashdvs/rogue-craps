@@ -41,7 +41,7 @@ const INFO := {
 	&"cold_sixes": ["Cold Sixes", "6s never light, but you get +1 hand.", TableRule.Kind.TWIST],
 	&"first_throw": ["First Throw", "Bounties count only on each hand's first 2 throws; +1 hand.", TableRule.Kind.TWIST],
 	&"short_table": ["Short Table", "4 hands.", TableRule.Kind.TWIST],
-	&"heavy_burn": ["Heavy Burn", "A bust costs 3 Soul.", TableRule.Kind.TWIST],
+	&"heavy_burn": ["Heavy Toll", "A bust costs 3 Soul.", TableRule.Kind.TWIST],
 	&"greedy_pot": ["Greedy Pot", "Pot at least 2 dice every throw, but you get +1 hand.", TableRule.Kind.TWIST],
 	&"cold_hands": ["Cold Hands", "No Hot Hand, but you get +1 hand.", TableRule.Kind.TWIST],
 	&"madame_shuffle": ["Madame Shuffle", "After each throw, she rerolls one random lit die.", TableRule.Kind.CHEAT],

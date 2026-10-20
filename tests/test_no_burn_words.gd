@@ -19,13 +19,6 @@ const DIRS := ["res://scripts/bonfire", "res://scripts/core", "res://scripts/dat
 const SKIP_FILES := ["res://scripts/core/poc_table.gd"]
 ## Content names the Game Designer keeps (the Twin Flame die), not prose.
 const NAMES := ["Twin Flame"]
-## Still to rename, owned by Systems Dev (run data): the Heavy Burn twist's
-## display name. Only these exact spots are let through; remove them once
-## it is renamed.
-const PENDING := {
-	"res://resources/map/rules/heavy_burn.tres": "Heavy Burn",
-	"res://scripts/core/rules/table_rules.gd": "Heavy Burn",
-}
 ## Lines that name a node, not show text.
 const NODE_NAME := "(\\bname\\s*=|get_node|find_child|has_node|NodePath|\\$\")"
 const WORDS := "\\b(burn|burns|burned|burning|fire|flame|flames)\\b"
@@ -73,8 +66,6 @@ func _run() -> void:
 						# like a label ("Burn") on a line that isn't naming a node.
 						if label_word.search(s) == null or node_line.search(code) != null:
 							continue
-					if PENDING.get(path, "") == s:
-						continue
 					for n in NAMES:
 						s = s.replace(n, "")
 					if word.search(s) != null:
