@@ -31,11 +31,13 @@ func throw_faces(s: Bonfire3D, faces: Array[int]) -> void:
 	await s.sequence_finished
 
 
-func make_table() -> Bonfire3D:
+func make_table(fourth: TableDie = null) -> Bonfire3D:
 	var tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var st := TableSetup.sandbox(tuning, 5)
 	st.table_seed = 5
 	st.starting_soul = 9
+	if fourth != null:
+		st.dice[3] = fourth
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
 	s.test_speed = 10.0
@@ -51,6 +53,7 @@ func _run() -> void:
 	await nudge_flow()
 	await rescue_save()
 	await rescue_bust()
+	await repeated_values()
 	run_side()
 	print("nerve_table: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -109,7 +112,7 @@ func rescue_save() -> void:
 	await to_rescue(s)
 	check(s.run.bust_pending and s.run.soul == soul and not s.run.is_over(), "nothing lit + a nudge would light: the bust waits")
 	check(s.nerve_ui.visible and s.nerve_ui.rescue_panel.visible and s.nerve_ui.rescue_label.text == NerveText.get_text("nerve_bust_save"), "the rescue prompt shows (nerve_bust_save)")
-	var opts := s.nerve.state.rescue_options(s.nerve.lights)
+	var opts := s.nerve.state.rescue_options(s.nerve.lights, s.nerve.score)
 	check(not opts.is_empty(), "rescue_options lists the saving nudges (%s)" % str(opts))
 	var i := s.nerve.index_of(int(opts[0]["die"])) if not opts.is_empty() else 0
 	check(s.nerve.arm() and s.nerve.tap(i), "Nerve, then pick the die")
@@ -126,6 +129,26 @@ func rescue_bust() -> void:
 	s.nerve.take_bust()
 	await create_timer(1.0).timeout
 	check(not s.run.bust_pending and s.run.soul < soul, "Bust: the held bust happens (Soul %d -> %d)" % [soul, s.run.soul])
+	s.queue_free()
+	await process_frame
+
+
+## A die with two 3 faces (slot 3 plain, slot 4 x3 mult): nudging its 2
+## up lands on the face that scores best (score_fn), not the first 3.
+func repeated_values() -> void:
+	var keg := TableDie.new(&"twin3", "Twin Three")
+	keg.faces.assign([1, 2, 3, 3, 4, 5])
+	var m := FaceModData.new()
+	m.id = &"test_x3"
+	m.effect = FaceModData.Effect.MULT_FACTOR
+	m.mult_factor = 3.0
+	keg.mods = [null, null, null, m, null, null]
+	var s := await make_table(keg)
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	await process_frame
+	var to := s.nerve.nudge(3, NerveState.UP)
+	check(to == 4 and s.run.throw_faces[3] == 3 and s.run.throw_mods[3] == m, "repeated 3s: the x3 face (slot 4) wins over the plain first 3 (got slot %d)" % to)
+	check(s.throw_dice[3].up_slot() == 4 or s.throw_dice[3].shape == &"coin", "the felt shows slot 4")
 	s.queue_free()
 	await process_frame
 

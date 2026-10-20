@@ -37,6 +37,7 @@ func _make_table() -> Bonfire3D:
 	setup.goal = goal
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = setup
+	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	s.tutorial_override = 0
 	s.test_speed = 10.0
 	root.add_child(s)

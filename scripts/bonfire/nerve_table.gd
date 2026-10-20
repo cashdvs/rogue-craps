@@ -104,7 +104,7 @@ func on_potted() -> void:
 ## would light something.
 func _on_bust_hold() -> bool:
 	open_throw(run.last_throw)
-	return state.any_nudge_lights(lights)
+	return state.any_nudge_lights(lights, score)
 
 
 ## True while Nerve can be seen: a settled throw waiting for the player
@@ -165,35 +165,12 @@ func points_of(th: TableThrow) -> int:
 	return best
 
 
-## nerve_v1 ruling on repeated values (Powder Keg 1-1-2-2-3-3): land on the
-## slot of that value that scores best, never a Blank or Blood face if
-## another slot has the same value.
-func best_slot(h: int, to: int) -> int:
-	var td: TableDie = state.dice[h]
-	var v := td.value_at(to)
-	var cands: Array[int] = []
-	var plain: Array[int] = []
-	for k in range(1, td.face_count() + 1):
-		if td.value_at(k) != v:
-			continue
-		cands.append(k)
-		var m := td.mod_at(k)
-		if m == null or (m.effect != FaceModData.Effect.BLANK and m.soul_cost <= 0):
-			plain.append(k)
-	if not plain.is_empty():
-		cands = plain
-	if cands.size() < 2:
-		return cands[0] if not cands.is_empty() else to
-	var best := cands[0]
-	var best_pts := -1
-	for k in cands:
-		var trial := state.slots.duplicate()
-		trial[h] = k
-		var pts := points_of(throw_for(trial))
-		if pts > best_pts:
-			best = k
-			best_pts = pts
-	return best
+## NerveState's score_fn: the best single pot with these faces (by handful
+## id), with the same rule_ctx as the lit check. NerveState uses it to pick
+## among faces showing the same value (Powder Keg): best score wins, a tie
+## goes to the first slot, Blank / Blood faces only if nothing else.
+func score(slots_by_hid: Array) -> int:
+	return points_of(throw_for(slots_by_hid))
 
 
 # --- Player actions ----------------------------------------------------------
@@ -219,10 +196,9 @@ func nudge(i: int, dir: int) -> int:
 		refuse(why if why != "" else ("nerve_high_refusal" if dir > 0 else "nerve_low_refusal"))
 		return -1
 	var from := state.slots[h]
-	if state.nudge(h, dir) < 0:
+	var to := state.nudge(h, dir, score)
+	if to < 0:
 		return -1
-	var to := best_slot(h, state.slots[h])
-	state.slots[h] = to
 	_apply()
 	table.events.die_nudged.emit(table.event_id(table.throw_dice[i]), from, to, dir)
 	table._set_why(NerveText.get_text("nerve_undo"))
