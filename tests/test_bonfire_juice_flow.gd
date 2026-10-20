@@ -157,9 +157,9 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	j.calls.clear()
 	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "[%s] throw again stays synchronous" % tag)
 	check(s.bhud.countup.is_playing(), "[%s] committing the pot starts the count-up" % tag)
-	check(r.pot == 126 and s.bhud.pot_label.text == "POT 0", "[%s] HUD pot holds until the count-up lands; state is already 126 (%s)" % [tag, s.bhud.pot_label.text])
+	check(r.pot == 126 and s.bhud.pot_label.text == "Pot 0", "[%s] HUD pot holds until the count-up lands; state is already 126 (%s)" % [tag, s.bhud.pot_label.text])
 	await s.bhud.countup.finished
-	check(s.bhud.pot_label.text == "POT 126" and s.bhud.display_hold.is_empty(), "[%s] the pot lands with the count-up (%s)" % [tag, s.bhud.pot_label.text])
+	check(s.bhud.pot_label.text == "Pot 126" and s.bhud.display_hold.is_empty(), "[%s] the pot lands with the count-up (%s)" % [tag, s.bhud.pot_label.text])
 	# The pot row is on the felt, in view, and solid for the next throw.
 	var on_felt := true
 	for k in 12:
@@ -201,7 +201,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	await s.bhud.countup.finished
 	await process_frame
 	check(j.calls.has("fx:hot_hand_glow") and j.calls.has("fx:ember_trail") and not has_prefix(j.calls, "art:fire_trail"), "[%s] Hot Hand glow pulse + ember trail, no fire (%s)" % [tag, str(j.calls)])
-	check(s.bhud.result_label.text.begins_with("HOT HAND"), "[%s] HOT HAND banner (%s)" % [tag, s.bhud.result_label.text])
+	check(s.bhud.result_label.text.begins_with("Hot Hand"), "[%s] Hot Hand banner (%s)" % [tag, s.bhud.result_label.text])
 	await create_timer(0.6).timeout
 	# Bank: count-up, embers flow, CLAIMED stamps.
 	res = await throw_faces(s, [1, 2, 3, 6, 6] as Array[int])
@@ -233,7 +233,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	click.position = Vector2(960, 540)
 	s._unhandled_input(click)
 	check(not s.bhud.countup.is_playing() and s.bhud.countup.fast_forwarded, "[%s] click fast-forwards the count-up" % tag)
-	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "POT %d" % s.run.pot, "[%s] fast-forward shows the final HUD numbers at once (%s)" % [tag, s.bhud.pot_label.text])
+	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "Pot %d" % s.run.pot, "[%s] fast-forward shows the final HUD numbers at once (%s)" % [tag, s.bhud.pot_label.text])
 	s.test_speed = 10.0
 	# Instant: no hold at all.
 	await create_timer(0.3).timeout
@@ -243,7 +243,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	s.pick_die(0); s.pick_die(1)
 	var pot_now := s.run.pot
 	s.throw_again()
-	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "POT %d" % s.run.pot and s.run.pot > pot_now, "[%s] Instant: HUD numbers update immediately (%s)" % [tag, s.bhud.pot_label.text])
+	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "Pot %d" % s.run.pot and s.run.pot > pot_now, "[%s] Instant: HUD numbers update immediately (%s)" % [tag, s.bhud.pot_label.text])
 	s.set_speed_mode(0)
 	s.queue_free()
 	await process_frame

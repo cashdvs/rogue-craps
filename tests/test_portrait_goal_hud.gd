@@ -217,7 +217,7 @@ func _feedback(s: Bonfire3D, g: PortraitGoalHud) -> void:
 	check(g.stamped.has(&"triple") and g.has_stamp(&"triple"), "a CLAIMED stamp lands on the Triple row")
 	check((g.rows[&"triple"] as Label).text.begins_with("[x]"), "Triple row shows [x]")
 	check(g.pulsing.is_empty(), "pulse stops after the bank")
-	_banner_clear(s, g, "BANKED")
+	_banner_clear(s, g, "Banked")
 	await create_timer(1.8).timeout
 	check(not g.has_stamp(&"triple") and (g.rows[&"triple"] as Label).text.begins_with("[x]"), "the stamp fades; the row stays claimed")
 	# Hand 2: two pairs pending, then the last die busts.

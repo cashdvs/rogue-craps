@@ -128,7 +128,7 @@ func _ready() -> void:
 	stack.visible = false
 	info_box.visible = false
 	puck.visible = false
-	help_label.text = "Grab the dice and flick (Space: quick throw). Click burning dice to pot ONE combo.\nB: Bank   Space: throw the rest   T: speed 1x/2x/Instant   R: reduced motion"
+	help_label.text = "Grab the dice and flick (Space: quick throw). Click lit dice to pot ONE combo.\nB: Bank   Space: throw the rest   T: speed 1x/2x/Instant   R: reduced motion"
 	(table.felt_material as ShaderMaterial).set_shader_parameter("use_overlay", false)
 	all_dice = dice.duplicate()
 	for i in all_dice.size():
@@ -232,7 +232,7 @@ func new_run(seed_value: int = -1) -> void:
 	_reset_hand_dice()
 	pause_menu.set_forfeit_enabled(true)
 	phase = Phase.BET
-	_set_why("Grab the %d dice and flick them. Scoring dice catch fire." % run.cold)
+	_set_why("Grab the %d dice and flick them. Dice that can score glow." % run.cold)
 	onboarding.on_table_start()
 	_refresh_hud()
 
@@ -451,7 +451,7 @@ func throw_again() -> bool:
 	var hold := _display_snapshot(sel)
 	var rt := run.rethrow()
 	if rt.is_empty():
-		_refuse(why if why != "" else "Pot at least one burning die first.")
+		_refuse(why if why != "" else "Pot at least one lit die first.")
 		return false
 	bhud.tutorial.on_action(&"rethrow")
 	pot_dice.append_array(potted_now)
@@ -496,7 +496,7 @@ func _hot_hand_moment() -> void:
 		d.visible = true
 		d.scale = Vector3.ONE
 	juice.hot_hand(list)
-	bhud.flash("HOT HAND x%d" % run.hot_hands if run.hot_hands > 1 else "HOT HAND!", Palette.EMBER)
+	bhud.flash("Hot Hand x%d: +%d mult" % [run.hot_hands, run.mult_bonus()], Palette.EMBER)
 	var fly := bonfire_tuning.juice_hot_hand_fly_time if not reduced_motion else 0.22
 	if speed_mode == 2:
 		fly = 0.05
@@ -712,7 +712,7 @@ func fast_forward_juice() -> bool:
 
 func bank() -> Dictionary:
 	if phase != Phase.BET or not run.can_continue():
-		_refuse("Pot at least one burning die to bank.")
+		_refuse("Pot at least one lit die to bank.")
 		return {}
 	bhud.tutorial.on_action(&"bank")
 	fast_forward_juice()
@@ -733,7 +733,7 @@ func bank() -> Dictionary:
 	if bhud.countup.is_playing():
 		await bhud.countup.finished
 	# Bank: embers flow to the pile, each claimed bounty gets its wax stamp.
-	bhud.flash("BANKED +%d" % int(r["gain"]), Palette.BRASS_HI)
+	bhud.flash("Banked +%d" % int(r["gain"]), Palette.BRASS_HI)
 	events.banked.emit(int(r["gain"]))
 	juice.bank_sound()
 	juice.crowd_pot(0)
@@ -948,7 +948,7 @@ func can_throw() -> String:
 	if run.is_over():
 		return "The table is over. Continue." if is_run_mode() else "The table is over. Restart."
 	if run.state != BonfireRun.State.AIM:
-		return "Pot your burning dice, then Throw again or Bank."
+		return "Pot your lit dice, then Throw again or Bank."
 	return ""
 
 
@@ -1045,7 +1045,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	throw_resolved.emit(values, lit)
 	if not ok and run.free_rethrow:
 		# Nonstandard dice: a full throw that lit nothing is thrown again free.
-		bhud.flash("NOTHING BURNED  FREE THROW", Palette.BONE)
+		bhud.flash("NOTHING LIT  FREE THROW", Palette.BONE)
 		_set_why("A full throw can't bust. Throw the %d dice again." % run.cold)
 		_to_hand()
 		phase = Phase.BET
@@ -1054,7 +1054,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		bhud.flash("KINDLING!  NO BUST", Palette.EMBER)
 		sfx.play(&"rim_hit", 1.3, -4.0)
 		_embers(_dice_center(), 14, 6)
-		_set_why("Kindling caught it: nothing burned, but no bust. Throw the %d dice again." % run.cold)
+		_set_why("Kindling saved it: nothing lit, but no bust. Throw the %d dice again." % run.cold)
 		_to_hand()
 		phase = Phase.BET
 	elif ok:
@@ -1065,7 +1065,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 			else:
 				_set_cold(throw_dice[i])
 		sfx.play(&"rim_hit", 0.8, -6.0)
-		_set_why("%d burning. Click dice into the pot: one combo per throw." % lit.size())
+		_set_why("%d lit. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
 		onboarding.on_lit_settle()
 	else:
@@ -1468,7 +1468,7 @@ func _bust() -> void:
 	onboarding.on_bust(int(r["soul_lost"]), lost_cards)
 	_embers(_dice_center(), 24, 10)
 	_taunt(&"bonfire_bust")
-	_set_why("Nothing caught fire. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
+	_set_why("Nothing lit. Bust: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
 	# HANDS LEFT etc. now, not after the beat (a final bust ends the table
 	# and the end screen shows over this HUD; QA full run pass 1).
 	_refresh_hud()

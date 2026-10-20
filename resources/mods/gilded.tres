@@ -6,7 +6,7 @@
 script = ExtResource("1_038mw")
 id = &"gilded"
 display_name = "Gilded Face"
-description = "+1 Ember when potted."
+description = "+1 Ember when you pot it; you keep it if you bust."
 effect = 5
 amount = 1
 price = 6

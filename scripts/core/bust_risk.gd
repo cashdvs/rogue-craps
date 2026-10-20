@@ -242,12 +242,12 @@ static func _any_combo(dice: Array, t: BonfireTuning, ctx: Dictionary) -> bool:
 	return false
 
 
-## "1 in 3", "2 in 3", "8%", "<1%", or "can't burn".
+## "1 in 3", "2 in 3", "8%", "<1%", "no" (can't bust) or "a sure" (always busts).
 static func odds_text(p: float) -> String:
 	if p <= 0.0000001:
-		return "can't burn"
+		return "no"
 	if p >= 0.9999999:
-		return "always burns"
+		return "a sure"
 	for d in range(2, 13):
 		for k in range(1, d):
 			if absf(float(k) / float(d) - p) < 0.002:
@@ -257,10 +257,13 @@ static func odds_text(p: float) -> String:
 	return "%d%%" % roundi(p * 100.0)
 
 
-## The rethrow prompt: "Throw 2 cold dice: 1 in 3 burns".
+## The rethrow prompt (strings_v1, the TH5 wording): "2 cold dice: 1 in 3
+## chance nothing lights". Can't bust: "2 cold dice: they can't bust".
 static func prompt(n: int, risk: Dictionary, hot: bool = false) -> String:
 	var odds := String(risk.get("text", ""))
-	var what := ("Hot Hand: throw all %d dice" % n) if hot else ("Throw %d cold %s" % [n, "die" if n == 1 else "dice"])
-	if odds == "can't burn" or odds == "always burns":
-		return "%s: %s" % [what, odds]
-	return "%s: %s burns" % [what, odds]
+	var what := ("Hot Hand, all %d dice" % n) if hot else ("%d cold %s" % [n, "die" if n == 1 else "dice"])
+	if odds == "no":
+		return "%s: %s can't bust" % [what, "it" if n == 1 else "they"]
+	if odds == "a sure":
+		return "%s: a sure bust" % what
+	return "%s: %s chance nothing lights" % [what, odds]

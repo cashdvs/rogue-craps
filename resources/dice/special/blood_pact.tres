@@ -6,6 +6,6 @@
 script = ExtResource("1_u3s3g")
 id = &"blood_pact"
 display_name = "Blood Pact Die"
-description = "When scored: +1 mult per 5 missing Soul."
+description = "When potted: +1 mult for every 5 Soul you are missing."
 price = 18
 faces = Array[int]([1, 2, 3, 4, 5, 6])

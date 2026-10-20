@@ -352,7 +352,7 @@ static func factor_notes(dice: Array, s: Dictionary, t: BonfireTuning, mult_bonu
 			FaceModData.Effect.TWIN:
 				out.append("%s counts twice" % nm)
 			FaceModData.Effect.KINDLING:
-				out.append("%s: next throw can't burn" % nm)
+				out.append("%s: next throw can't bust" % nm)
 	for sp: StringName in s.get("specials", []):
 		match sp:
 			&"twin_flame":

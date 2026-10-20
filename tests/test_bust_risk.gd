@@ -78,11 +78,11 @@ func _text() -> void:
 	check(BustRisk.odds_text(1.0 / 3.0) == "1 in 3", "1/3 reads '1 in 3'")
 	check(BustRisk.odds_text(1.0 / 12.0) == "1 in 12", "1/12 reads '1 in 12'")
 	check(BustRisk.odds_text(7.0 / 54.0) == "13%", "7/54 reads '13%'")
-	check(BustRisk.odds_text(0.0) == "can't burn", "0 reads 'can't burn'")
+	check(BustRisk.odds_text(0.0) == "no", "0 reads 'no' (chance)")
 	check(BustRisk.odds_text(0.004) == "<1%", "tiny reads '<1%'")
-	check(BustRisk.prompt(2, risk(plain(2))) == "Throw 2 cold dice: 1 in 3 burns", "the design's example prompt")
-	check(BustRisk.prompt(1, risk(plain(1))) == "Throw 1 cold die: 2 in 3 burns", "1 die: singular")
-	check(BustRisk.prompt(5, risk(plain(5)), true) == "Hot Hand: throw all 5 dice: can't burn", "Hot Hand prompt")
+	check(BustRisk.prompt(2, risk(plain(2))) == "2 cold dice: 1 in 3 chance nothing lights", "the TH5 wording")
+	check(BustRisk.prompt(1, risk(plain(1))) == "1 cold die: 2 in 3 chance nothing lights", "1 die: singular")
+	check(BustRisk.prompt(5, risk(plain(5)), true) == "Hot Hand, all 5 dice: they can't bust", "Hot Hand prompt")
 
 
 func _weights_and_mods() -> void:

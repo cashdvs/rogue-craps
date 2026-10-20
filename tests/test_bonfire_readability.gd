@@ -3,7 +3,7 @@
 ##   - a die that can't join bounces back with a "doesn't score" callout;
 ##   - the live pot preview "TRIPS: (30+12) x3 = 126" and its factor notes;
 ##   - the rethrow prompt with the exact bust risk;
-##   - bounty cards: PENDING ghost "PENDING · bank to lock", then the CLAIMED seal;
+##   - bounty cards: PENDING ghost "Pending: bank to claim it.", then the CLAIMED seal;
 ##   - the TABLE CLEARED banner at the clearing bank (never blocks input);
 ##   - the combo table printed on the felt (no side panel), swapped by aspect;
 ##   - the debug throw overlay: off by default, shows the numbers when on.
@@ -140,8 +140,8 @@ func _scene() -> void:
 	s.pick_die(2)
 	s._refresh_hud()
 	check(s.bhud.throw_label.text == "TRIPS: (30+12) x3 = 126", "pot preview (%s)" % s.bhud.throw_label.text)
-	check(s.bhud.risk_label.text == "Throw 2 cold dice: 1 in 3 burns", "rethrow risk (%s)" % s.bhud.risk_label.text)
-	check(s.bhud.card_header.text == "CLAIM ALL 3 · 5 hands", "card header (%s)" % s.bhud.card_header.text)
+	check(s.bhud.risk_label.text == "2 cold dice: 1 in 3 chance nothing lights", "rethrow risk (%s)" % s.bhud.risk_label.text)
+	check(s.bhud.card_header.text == "Claim all 3 bounties · 5 hands left", "card header (%s)" % s.bhud.card_header.text)
 	check(s.bhud.points_label.text == "points 0 → +0 Embers", "points as income (%s)" % s.bhud.points_label.text)
 	# Throw the 2 cold dice: the prompt in AIM says the same.
 	check(s.throw_again(), "throw the 2 cold dice")
@@ -149,8 +149,8 @@ func _scene() -> void:
 	s._refresh_hud()
 	# Bounty card: the potted Triple is pending (ghost), then the claimed seal.
 	var card: BountyCard = s.bhud.bounty_cards[&"triple"]
-	check(card.state == "pending" and card.ghost.visible and card.pending_label.visible and card.pending_label.text == "PENDING · bank to lock", "Triple card PENDING · bank to lock (%s)" % card.state)
-	check(s.bhud.throw_label.text == "Throw 2 cold dice: 1 in 3 burns", "AIM prompt with the risk (%s)" % s.bhud.throw_label.text)
+	check(card.state == "pending" and card.ghost.visible and card.pending_label.visible and card.pending_label.text == "Pending: bank to claim it.", "Triple card PENDING · bank to lock (%s)" % card.state)
+	check(s.bhud.throw_label.text == "2 cold dice: 1 in 3 chance nothing lights", "AIM prompt with the risk (%s)" % s.bhud.throw_label.text)
 	await throw_faces(s, [1, 5] as Array[int])
 	s.pick_die(0)
 	await s.bank()

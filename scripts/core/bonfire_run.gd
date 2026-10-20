@@ -373,7 +373,7 @@ func is_hot() -> bool:
 ## "" if the current selection may be thrown on, else why not.
 func rethrow_block_reason() -> String:
 	if not can_continue():
-		return "Pot at least one burning die first."
+		return "Pot at least one lit die first."
 	if is_hot() and not hot_hand_allowed():
 		return "No Hot Hand at this table: bank it."
 	return ""
