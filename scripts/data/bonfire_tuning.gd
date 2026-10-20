@@ -34,6 +34,10 @@ extends Resource
 @export var blood_pact_soul_step: int = 5
 ## Bellows: while in the handful, each Hot Hand adds this instead of hot_hand_mult_bonus.
 @export var bellows_hot_hand_mult_bonus: int = 2
+## Caltrop d4 (nonstandard_dice.md §10): a Run containing it gets + this mult.
+@export var caltrop_run_mult: int = 2
+## Knucklebone (§10): its "one Seal level" comes from the run's RunData
+## seal_base_step / seal_mult_step (NonStdDice.seal_steps), not from here.
 
 @export_group("Juice (scoring count-up, moments)")
 ## Score tiers (bonfire_map_events_juice.md section 3): points < [0] = 0
