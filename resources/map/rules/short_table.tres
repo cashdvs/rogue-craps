@@ -6,5 +6,5 @@
 script = ExtResource("1_7e5h3")
 id = &"short_table"
 display_name = "Short Table"
-description = "4 hands."
+description = "{hands} hands."
 hands_delta = -1

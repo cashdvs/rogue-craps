@@ -1,7 +1,7 @@
 ## The event screen: title, art slot (the art, or a placeholder showing the
 ## art note), body text and 2-3 choices. A choice you can't take is greyed
 ## out with the reason as a tooltip. Choices that need a face picked open a
-## FacePicker first. View only: emits choice_made(i, picks).
+## DicePanel (pick mode) first. View only: emits choice_made(i, picks).
 class_name EventView
 extends Control
 
@@ -26,6 +26,8 @@ func _ready() -> void:
 	panel.add_child(_box)
 
 
+## Show event `e` with its choices (greyed with a reason when not allowed).
+## table_ahead: a regular Table is still reachable (MapRun.table_ahead).
 func show_event(e: EventData, p: RunProgress, table_ahead: bool = true) -> void:
 	_event = e
 	_progress = p
@@ -53,6 +55,7 @@ func show_event(e: EventData, p: RunProgress, table_ahead: bool = true) -> void:
 			_box.add_child(RunTheme.label("   " + why, 18, RunTheme.ASH))
 
 
+## Show a chosen choice's result text and log, then `done` on Continue.
 func show_result(text: String, lines: Array[String], done: Callable) -> void:
 	_clear()
 	_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
@@ -94,10 +97,10 @@ func _on_choice(i: int) -> void:
 	for e in c.effects:
 		if not e.needs_pick():
 			continue
-		var picker := FacePicker.new()
+		var picker := DicePanel.new()
 		var verb: String = "Pick a face mod to give up." if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
 			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else "Pick a face for the %s" % e.mod.display_name)
-		picker.build(_progress, verb, func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks))
+		picker.build(_progress, {"prompt": verb, "seals": false, "allowed": func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks)})
 		_clear()
 		_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
 		_box.add_child(picker)

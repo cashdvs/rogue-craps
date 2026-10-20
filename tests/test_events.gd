@@ -71,7 +71,7 @@ func _test_greying() -> void:
 	_check(EventApplier.can_choose(_ch(&"devils_deal", 0), _p(0, 9)), "grey: can sign at 9 Soul")
 	_check(not EventApplier.can_choose(_ch(&"devils_deal", 1), _p(14)) and EventApplier.can_choose(_ch(&"devils_deal", 1), _p(15)),
 		"grey: Hellfire for coin needs 15 Embers")
-	var p := _p(50)
+	var p := _p(50, 30)
 	_check(not EventApplier.can_choose(_ch(&"altar", 0), p) and not EventApplier.can_choose(_ch(&"altar", 1), p)
 		and not EventApplier.can_choose(_ch(&"ember_merchant", 1), p), "grey: Altar / selling need a face mod")
 	p.set_face(0, 0, &"blank")
