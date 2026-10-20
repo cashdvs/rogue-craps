@@ -31,7 +31,7 @@ func throw_faces(s: Bonfire3D, faces: Array[int]) -> void:
 	await s.sequence_finished
 
 
-func make_table(fourth: TableDie = null) -> Bonfire3D:
+func make_table(fourth: TableDie = null, hints: int = -1) -> Bonfire3D:
 	var tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var st := TableSetup.sandbox(tuning, 5)
 	st.table_seed = 5
@@ -41,6 +41,8 @@ func make_table(fourth: TableDie = null) -> Bonfire3D:
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
 	s.test_speed = 10.0
+	if hints >= 0:
+		s.tutorial_override = hints
 	root.add_child(s)
 	await process_frame
 	await process_frame
@@ -54,6 +56,8 @@ func _run() -> void:
 	await rescue_save()
 	await rescue_bust()
 	await repeated_values()
+	await drag_flow()
+	await hn1_once()
 	run_side()
 	print("nerve_table: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -151,6 +155,55 @@ func repeated_values() -> void:
 	var to := s.nerve.nudge(3, NerveState.UP)
 	check(to == 4 and s.run.throw_faces[3] == 3 and s.run.throw_mods[3] == m, "repeated 3s: the x3 face (slot 4) wins over the plain first 3 (got slot %d)" % to)
 	check(s.throw_dice[3].up_slot() == 4 or s.throw_dice[3].shape == &"coin", "the felt shows slot 4")
+	s.queue_free()
+	await process_frame
+
+
+## A mouse press + release on die [param i], [param dy] px apart (up < 0).
+func drag(s: Bonfire3D, i: int, dy: float) -> bool:
+	var at: Vector2 = s.camera.cam.unproject_position(s.throw_dice[i].global_position)
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = at
+	var up := down.duplicate() as InputEventMouseButton
+	up.pressed = false
+	up.position = at + Vector2(0, dy)
+	var took := s.nerve.handle_input(down)
+	return s.nerve.handle_input(up) and took
+
+
+## QA #126: the press no longer pots; the release decides (drag = nudge).
+func drag_flow() -> void:
+	var s := await make_table()
+	var n := s.nerve
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	await process_frame
+	check(s.die_at_screen(s.camera.cam.unproject_position(s.throw_dice[4].global_position)) == 4, "die 4 is under its screen point")
+	check(drag(s, 4, 60.0) and s.run.throw_faces[4] == 5 and s.run.potted.is_empty(), "drag a lit 6 down: nudged to 5, not potted")
+	check(n.state.nudged_die() == n.hid(4) and n.state.uses_left() == 0, "the nudge is pending (undoable)")
+	check(drag(s, 0, -60.0) and s.run.potted.is_empty() and n.state.nudged_die() == n.hid(4), "a drag on another lit die after the nudge: no pot, nudge still pending")
+	check(drag(s, 0, 4.0) and s.run.potted.has(0), "a short press-release pots as before")
+	check(drag(s, 0, 0.0) and not s.run.potted.has(0), "and again unpots it")
+	check(n.state.nudged_die() == n.hid(4) and n.tap(4) and s.run.throw_faces[4] == 6 and n.state.uses_left() == 1, "pot then unpot cancel out: the nudge was still pending, undo works")
+	s.queue_free()
+	await process_frame
+
+
+## PM Oct 20: HN1 on the first rescue a profile sees, then only the prompt.
+func hn1_once() -> void:
+	var s := await make_table(null, 1)
+	await to_rescue(s)
+	var tut := s.bhud.tutorial
+	check(s.run.bust_pending and tut.current == &"hn1_nerve" and tut.label.text == NerveText.get_text("HN1"), "first rescue: HN1 shows (%s)" % tut.current)
+	check(s.nerve_ui.rescue_label.text == NerveText.get_text("nerve_bust_save"), "with the short prompt")
+	s.nerve.take_bust()
+	await create_timer(1.0).timeout
+	while s.phase != Table3D.Phase.BET or s.run.state != BonfireRun.State.AIM:
+		await process_frame
+	await to_rescue(s)
+	check(s.run.bust_pending and s.nerve_ui.rescue_panel.visible, "second rescue: the prompt shows")
+	check(tut.current != &"hn1_nerve" and int(tut.seen.get(&"hn1_nerve", 0)) == 1, "second rescue: no HN1 (seen once)")
 	s.queue_free()
 	await process_frame
 

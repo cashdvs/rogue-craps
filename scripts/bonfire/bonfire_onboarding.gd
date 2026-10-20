@@ -179,6 +179,12 @@ func on_bust(soul_lost: int, lost_cards: Array) -> void:
 		hint(&"th9_bust", {"soul": soul_lost})
 
 
+## Nerve's bust rescue is waiting (nerve_v1.md): HN1, once per profile
+## (hints_seen, like the other hints).
+func on_nerve_rescue() -> void:
+	hint(&"hn1_nerve")
+
+
 ## After a pick that leaves a valid pot: TH3 if it would claim a bounty
 ## (HB4 if a bigger combo claims it), TH4 when Bank and Rethrow are both on
 ## offer, TH5 (with the exact odds) when the rethrow would be 1-3 dice. One

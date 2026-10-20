@@ -1067,8 +1067,9 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 		phase = Phase.BET
 	elif not ok and run.bust_pending:
 		# Nerve can save it: wait for the rescue prompt (NerveUi).
-		bhud.flash(NerveText.get_text("nerve_bust_save"), Palette.BONE)
-		_set_why(NerveText.get_text("HN1"))
+		# The rescue prompt (NerveUi) says it; HN1 only the first time.
+		_set_why("")
+		onboarding.on_nerve_rescue()
 		for d in throw_dice:
 			_set_cold(d)
 		phase = Phase.BET

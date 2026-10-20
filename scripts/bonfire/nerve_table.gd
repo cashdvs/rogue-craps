@@ -95,12 +95,13 @@ func close_throw() -> void:
 	changed.emit()
 
 
-## Dice went into the pot: they (and an undo) are locked.
+## A die went into the pot or came back out (BonfireRun.toggle). While any
+## die is potted, potted dice can't be turned and the nudge can't be
+## undone; NerveTable checks run.potted itself. NerveState.mark_potted()
+## is NOT called here: it commits the nudge, so a pot then unpot that
+## cancel out would spend a pending nudge (QA, #126). close_throw()
+## commits for good on rethrow / bank.
 func on_potted() -> void:
-	for i in run.potted:
-		var h := hid(i)
-		if h >= 0:
-			state.mark_potted(h)
 	changed.emit()
 
 
@@ -196,6 +197,9 @@ func nudge(i: int, dir: int) -> int:
 	var h := hid(i)
 	if not can_show() or h < 0:
 		return -1
+	if run.potted.has(i):
+		refuse("nerve_potted_refusal")
+		return -1
 	if not state.can_nudge_dir(h, dir):
 		refuse(state.refusal(h, dir))
 		return -1
@@ -229,11 +233,13 @@ func tap(i: int) -> bool:
 	if not can_show():
 		return false
 	var h := hid(i)
-	if h >= 0 and state.nudged_die() == h and not run.potted.has(i):
+	if h >= 0 and state.nudged_die() == h and run.potted.is_empty():
 		return undo(i)
 	if not armed and not run.bust_pending:
 		return false
-	if state.pick(h):
+	if run.potted.has(i):
+		refuse("nerve_potted_refusal")
+	elif state.pick(h):
 		armed = false
 		arrows_die = i
 	else:
@@ -243,8 +249,11 @@ func tap(i: int) -> bool:
 
 
 ## Mouse / keys while the throw waits. True if Nerve handled the event.
-##   - a click: tap() (picking, undo);
-##   - a drag up or down on a die: nudge it straight away;
+##   - a press on a die only remembers it: nothing is potted yet, because
+##     a drag may follow (QA, #126);
+##   - its release decides: moved DRAG_PX or more up / down = a nudge;
+##     less = a tap (undo, a pick after the Nerve button) or, if Nerve has
+##     no use for it, the table's normal pot;
 ##   - Up / Down keys while the arrows show: nudge that die.
 func handle_input(event: InputEvent) -> bool:
 	if not can_show():
@@ -253,22 +262,19 @@ func handle_input(event: InputEvent) -> bool:
 	var mb := event as InputEventMouseButton
 	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT:
 		if mb.pressed:
-			var i: int = table.die_at_screen(mb.position)
-			if i >= 0 and tap(i):
-				return true
-			_press_die = i
+			_press_die = table.die_at_screen(mb.position)
 			_press_at = mb.position
-			return false
+			return _press_die >= 0
 		var was := _press_die
 		_press_die = -1
+		if was < 0:
+			return false
 		var dy := _press_at.y - mb.position.y
-		if was >= 0 and absf(dy) >= DRAG_PX:
-			# The press potted it; a drag means "turn it" instead.
-			if run.potted.has(was):
-				table.pick_die(was)
+		if absf(dy) >= DRAG_PX:
 			nudge(was, NerveState.UP if dy > 0 else NerveState.DOWN)
-			return true
-		return false
+		elif not tap(was):
+			table.pick_die(was)
+		return true
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and arrows_die >= 0:
 		if key.keycode == KEY_UP or key.keycode == KEY_DOWN:
@@ -297,9 +303,7 @@ func refuse(id: String) -> void:
 	var text := NerveText.get_text(id)
 	if text == "":
 		return
-	table._refuse(text)
-	if table.bhud != null:
-		table.bhud.flash(text, Palette.BONE)
+	table._refuse(text)  # the why line (a big flash ran off-screen: QA #126)
 
 
 func _close_ui() -> void:
