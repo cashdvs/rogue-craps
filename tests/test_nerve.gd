@@ -33,6 +33,8 @@ func _initialize() -> void:
 	_test_ui_states()
 	_test_mods()
 	_test_rescue()
+	_test_duplicates()
+	_test_throw_lifecycle()
 	_test_setup_plumbing()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_wild = null
@@ -252,3 +254,86 @@ func _test_setup_plumbing() -> void:
 	var base := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	check(rts.to_table_setup(base).nerve_uses == 2, "RunTableSetup -> TableSetup.nerve_uses")
 	check(RunTableSetup.new().nerve_uses == 1, "RunTableSetup default 1")
+
+
+func _keg() -> TableDie:
+	return _die(DiceIds.DIE_POWDER_KEG, DiceIds.SHAPE_D6, [1, 1, 2, 2, 3, 3])
+
+
+func _test_duplicates() -> void:
+	var blood: FaceModData = load("res://resources/mods/blood.tres")
+	check(_blank.id == &"blank" and blood.id == &"blood", "mod ids: blank / blood")
+	var keg := _keg()
+	check(NerveState.candidate_slots(keg, 2, NerveState.UP) == ([3, 4] as Array[int]), "Keg 1 up: candidates slots 3, 4 (both 2s)")
+	check(NerveState.candidate_slots(keg, 6, NerveState.UP).is_empty(), "Keg 3 up: none")
+	# No score_fn: first slot in face-list order.
+	var n := _nerve([keg] as Array[TableDie], [1] as Array[int])
+	check(n.nudge(0, NerveState.UP) == 3, "no score_fn: first slot (3)")
+	# score_fn picks the best; a tie goes to the first slot.
+	var k2 := _keg()
+	var a := _nerve([k2] as Array[TableDie], [1] as Array[int])
+	var calls: Array = []
+	var prefer4 := func(sl: Array) -> int:
+		calls.append(int(sl[0]))
+		return 10 if int(sl[0]) == 4 else 5
+	check(a.nudge(0, NerveState.UP, prefer4) == 4 and calls == [3, 4], "score_fn: best face (slot 4) wins")
+	var tie := _nerve([_keg()] as Array[TableDie], [1] as Array[int])
+	check(tie.nudge(0, NerveState.UP, func(_sl: Array) -> int: return 7) == 3, "score_fn tie: first slot")
+	var bone := _nerve(_bones(1), [2] as Array[int])
+	var ncalls := [0]
+	bone.nudge(0, NerveState.UP, func(_sl: Array) -> int:
+		ncalls[0] += 1
+		return 0)
+	check(ncalls[0] == 0, "one candidate: score_fn not called")
+	# Blank / Blood avoided when another face with that value isn't one.
+	var kb := _keg()
+	kb.mods[2] = _blank
+	var b := _nerve([kb] as Array[TableDie], [1] as Array[int])
+	check(b.nudge(0, NerveState.UP, func(sl: Array) -> int: return 99 if int(sl[0]) == 3 else 0) == 4, "never a Blank face when the other 2 is plain (even if score_fn prefers it)")
+	check(NerveState.target_slot(kb, 1, NerveState.UP) == 4, "no score_fn: first non-Blank slot")
+	var kd := _keg()
+	kd.mods[2] = blood
+	var d := _nerve([kd] as Array[TableDie], [2] as Array[int])
+	check(d.nudge(0, NerveState.UP) == 4, "never the opt-in Blood face when the other 2 isn't")
+	var ka := _keg()
+	ka.mods[2] = _blank
+	ka.mods[3] = blood
+	var all_bad := _nerve([ka] as Array[TableDie], [1] as Array[int])
+	check(all_bad.nudge(0, NerveState.UP) == 3, "every candidate Blank/Blood: first slot")
+	var all_bad2 := _nerve([ka] as Array[TableDie], [1] as Array[int])
+	check(all_bad2.nudge(0, NerveState.UP, func(sl: Array) -> int: return 5 if int(sl[0]) == 4 else 1) == 4, "every candidate Blank/Blood: score_fn still picks")
+	# Down works the same way.
+	var dn := _nerve([_keg()] as Array[TableDie], [6] as Array[int])
+	check(dn.nudge(0, NerveState.DOWN, func(sl: Array) -> int: return 3 if int(sl[0]) == 4 else 1) == 4, "Keg 3 down: score_fn picks among the 2s")
+	# rescue_options reports the slot nudge() would pick.
+	var dice: Array[TableDie] = [_keg(), TableDie.new()]
+	var r := _nerve(dice, [1, 2] as Array[int])
+	var lit := func(sl: Array) -> bool: return int(sl[0]) > 0 and dice[0].value_at(int(sl[0])) == dice[1].value_at(int(sl[1]))
+	var opts := r.rescue_options(lit, func(sl: Array) -> int: return 2 if int(sl[0]) == 4 else 1)
+	check(opts.size() >= 1 and int(opts[0]["die"]) == 0 and int(opts[0]["slot"]) == 4, "rescue_options uses score_fn's slot")
+	check(r.any_nudge_lights(lit, Callable()), "any_nudge_lights without score_fn")
+
+
+## Confirmed (Game Designer): potting closes Nerve for that throw; unused
+## Nerve carries over within the table and resets at the next table.
+func _test_throw_lifecycle() -> void:
+	var n := _nerve(_bones(4), [2, 3, 4, 5] as Array[int])
+	n.mark_potted(0)
+	check(not n.can_nudge(1) and not n.can_nudge(0) and n.nudge(1, NerveState.UP) == -1 and n.uses_left() == 1, "pot closes Nerve for this throw (Nerve kept)")
+	check(not n.any_nudge_lights(func(_s: Array) -> bool: return true), "pot: no rescue on this throw")
+	n.begin_throw([0, 3, 4, 5] as Array[int])
+	check(n.can_nudge(1) and n.uses_left() == 1, "unused Nerve carries to the next throw")
+	n.commit()
+	n.begin_throw([0, 0, 4, 5] as Array[int])
+	check(n.can_nudge(2) and n.uses_left() == 1, "still carried after a rethrow with no nudge")
+	n.nudge(2, NerveState.UP)
+	n.mark_potted(2)
+	n.begin_throw([0, 0, 0, 3] as Array[int])
+	check(not n.can_nudge(3) and n.uses_left() == 0, "used: spent for the rest of the table")
+	n.reset_table()
+	n.begin_throw([1, 2, 3, 4] as Array[int])
+	check(n.uses_left() == 1 and n.can_nudge(0), "next table: reset to 1")
+	var keep := _nerve(_bones(2), [2, 3] as Array[int])
+	keep.commit()
+	keep.reset_table()
+	check(keep.uses_left() == 1, "unused Nerve doesn't stack across tables (still 1)")
