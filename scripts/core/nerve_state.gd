@@ -158,32 +158,85 @@ func can_nudge_dir(die_index: int, dir: int) -> bool:
 	return target_slot(dice[die_index], slots[die_index], dir) > 0
 
 
-## Face slot die [param d] turns to from [param slot] going [param dir]: the
-## next distinct printed value up or down on its own face list, no wrap.
-## With repeated values (Powder Keg 1-1-2-2-3-3) the first slot holding that
-## value in face-list order. 0 if there is none.
-static func target_slot(d: TableDie, slot: int, dir: int) -> int:
+## Mod ids never auto-picked when another face with the same value lacks them:
+## Blank (a curse) and the opt-in Blood face.
+const AVOID_MOD_IDS: Array[StringName] = [&"blank", &"blood"]
+
+
+## Every slot on die [param d] showing the next distinct printed value from
+## [param slot] going [param dir] (no wrap), in face-list order; empty if none.
+static func candidate_slots(d: TableDie, slot: int, dir: int) -> Array[int]:
+	var out: Array[int] = []
 	if slot < 1 or slot > d.face_count() or (dir != UP and dir != DOWN):
-		return 0
+		return out
 	var v := d.value_at(slot)
-	var best := 0
 	var best_v := 0
 	for k in range(1, d.face_count() + 1):
 		var w := d.value_at(k)
 		if (w - v) * dir <= 0:
 			continue
-		if best == 0 or (w - best_v) * dir < 0:
-			best = k
+		if out.is_empty() or (w - best_v) * dir < 0:
+			out.clear()
 			best_v = w
+		if w == best_v:
+			out.append(k)
+	return out
+
+
+## True if slot [param k] of [param d] carries a Blank or Blood mod.
+static func is_avoided(d: TableDie, k: int) -> bool:
+	var m := d.mod_at(k)
+	return m != null and AVOID_MOD_IDS.has(m.id)
+
+
+## Face slot die [param d] turns to from [param slot] going [param dir]
+## without a scorer: the first non-Blank / non-Blood slot holding the next
+## value, else the first such slot. 0 if there is none.
+static func target_slot(d: TableDie, slot: int, dir: int) -> int:
+	var c := candidate_slots(d, slot, dir)
+	for k in c:
+		if not is_avoided(d, k):
+			return k
+	return c[0] if not c.is_empty() else 0
+
+
+## The slot die [param die_index] would turn to going [param dir] (0 if
+## none). When the next value is on several faces (Powder Keg 1-1-2-2-3-3),
+## Blank / Blood faces are dropped unless every candidate is one, then
+## [param score_fn] (slots: Array -> int, the Wild best-value scorer, e.g.
+## BonfireScoring.best_points on the throw) picks the best; ties and no
+## score_fn go to the first slot in face-list order. No player pick.
+func choose_slot(die_index: int, dir: int, score_fn: Callable = Callable()) -> int:
+	var d := dice[die_index]
+	var c := candidate_slots(d, slots[die_index], dir)
+	var keep: Array[int] = []
+	for k in c:
+		if not is_avoided(d, k):
+			keep.append(k)
+	if keep.is_empty():
+		keep = c
+	if keep.is_empty():
+		return 0
+	if keep.size() == 1 or not score_fn.is_valid():
+		return keep[0]
+	var best := keep[0]
+	var best_score := -1
+	for k in keep:
+		var trial := slots.duplicate()
+		trial[die_index] = k
+		var sc := int(score_fn.call(trial))
+		if sc > best_score:
+			best_score = sc
+			best = k
 	return best
 
 
 ## Nudges die [param die_index] one face in [param dir]; returns the new face
-## slot, or -1 if refused. Nerve is then pending (undoable) until commit().
-func nudge(die_index: int, dir: int) -> int:
+## slot, or -1 if refused. [param score_fn]: see choose_slot(). Nerve is then pending (undoable) until commit().
+func nudge(die_index: int, dir: int, score_fn: Callable = Callable()) -> int:
 	if not can_nudge_dir(die_index, dir):
 		return -1
-	var to := target_slot(dice[die_index], slots[die_index], dir)
+	var to := choose_slot(die_index, dir, score_fn)
 	_nudged_die = die_index
 	_from_slot = slots[die_index]
 	slots[die_index] = to
@@ -221,12 +274,13 @@ func cancel_pick() -> void:
 ## per die, 0 = not in throw) and returns true if anything lights after the
 ## table re-runs copies and the lit check (boss filters included, so a 6
 ## nudged up under Wick / Cold Sixes stays cold).
-func any_nudge_lights(lit_fn: Callable) -> bool:
-	return not rescue_options(lit_fn).is_empty()
+func any_nudge_lights(lit_fn: Callable, score_fn: Callable = Callable()) -> bool:
+	return not rescue_options(lit_fn, score_fn).is_empty()
 
 
-## Every legal nudge that would light something: [{die, dir, slot}, ...].
-func rescue_options(lit_fn: Callable) -> Array[Dictionary]:
+## Every legal nudge that would light something: [{die, dir, slot}, ...];
+## the slot is the one nudge() would pick with the same [param score_fn].
+func rescue_options(lit_fn: Callable, score_fn: Callable = Callable()) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	if _nudged_die >= 0:
 		return out
@@ -235,7 +289,7 @@ func rescue_options(lit_fn: Callable) -> Array[Dictionary]:
 			if not can_nudge_dir(i, dir):
 				continue
 			var trial := slots.duplicate()
-			trial[i] = target_slot(dice[i], slots[i], dir)
+			trial[i] = choose_slot(i, dir, score_fn)
 			if lit_fn.call(trial):
 				out.append({"die": i, "dir": dir, "slot": trial[i]})
 	return out
