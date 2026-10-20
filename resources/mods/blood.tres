@@ -6,7 +6,7 @@
 script = ExtResource("1_6fya2")
 id = &"blood"
 display_name = "Blood Face"
-description = "+4 mult; costs 1 Soul when scored."
+description = "+4 mult when potted; costs 1 Soul."
 effect = 4
 amount = 4
 soul_cost = 1

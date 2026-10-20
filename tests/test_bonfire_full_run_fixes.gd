@@ -1,4 +1,5 @@
-## QA full run pass 1 (qa/full_run_pass_1.md), Godot Dev's Majors:
+## QA full run pass 1 (qa/full_run_pass_1.md), Godot Dev's Majors, part 1
+## (part 2: test_bonfire_full_run_fixes_2.gd):
 ##   M1: a press-drag-release that starts on any die in the hand is a flick
 ##       throw, never a THROW / BANK button press, at 16:9 (1920x1080),
 ##       phone landscape (844x390 -> 2337x1080 canvas) and phone portrait
@@ -7,105 +8,22 @@
 ##   M2: the tutorial plays on the run's FIRST table only (RunScreen, where
 ##       the table is a child of the current scene), and on the sandbox's
 ##       Table 1; not on later run tables, not in tests / tools.
-##   M4: running out of hands uncleared burns the Soul meter by the table's
-##       penalty; a cleared table burns nothing.
-##   Minor 9: volumetric fog (FogVolume + Environment) and SSAO only on
-##       Forward+; Mobile / Compatibility get the fallback cone instead
-##       (built for each renderer via Table3D.render_method; also checked for
-##       real under xvfb with --rendering-method gl_compatibility).
 ##   #103 F1: while picking, a click on a thrown die under THROW / BANK pots
 ##       the die (or shakes it if unlit) and presses no button.
-##   #103 N6: a table that ends mid-tutorial hides the hint panel.
 ##   godot --headless --path . --script res://tests/test_bonfire_full_run_fixes.gd
-extends SceneTree
-
-var _passed: int = 0
-var _failed: int = 0
-## The fake flick clock (seconds) the gestures run on.
-var _clock_t: float = 0.0
+extends "res://tests/full_run_fixes_base.gd"
 
 
 func _initialize() -> void:
 	_run.call_deferred()
 
 
-func check(cond: bool, what: String) -> void:
-	if cond:
-		_passed += 1
-	else:
-		_failed += 1
-		print("FAIL  ", what)
-
-
 func _run() -> void:
 	await _m1_hand_grabs()
 	await _m2_tutorial()
-	await _m4_soul_meter()
-	await _fog_compat()
 	await _f1_pick_under_buttons()
-	await _n6_tutorial_hidden_at_end()
 	print("test_bonfire_full_run_fixes: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
-
-
-# --- M1 -----------------------------------------------------------------------------
-
-## A sandbox table inside a SubViewport of the given canvas size (what the
-## window stretches to at that aspect), framed like that screen.
-func _table_in(canvas: Vector2i, screen: Vector2) -> Array:
-	var sv := SubViewport.new()
-	sv.size = canvas
-	root.add_child(sv)
-	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
-	s.setup = TableSetup.sandbox(t, 5)
-	s.tutorial_override = 0
-	s.test_speed = 10.0
-	sv.add_child(s)
-	await process_frame
-	await process_frame
-	s.camera.cam.current = true
-	if screen != Vector2(canvas):
-		s.fit_phone(screen)
-	s.camera.snap_home()
-	return [sv, s]
-
-
-func _wait_in_hand(s: Bonfire3D) -> void:
-	for k in 600:
-		if s.phase == Table3D.Phase.BET and not s.hand_moving():
-			return
-		await process_frame
-
-
-func _click_event(p: Vector2, down: bool) -> InputEventMouseButton:
-	var e := InputEventMouseButton.new()
-	e.button_index = MOUSE_BUTTON_LEFT
-	e.pressed = down
-	e.position = p
-	e.global_position = p
-	e.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
-	return e
-
-
-## Real input through the viewport (so the GUI gets its chance first):
-## press at p, drag up-left at `speed` px/s for 0.2 s, release.
-func _flick_from(sv: SubViewport, s: Bonfire3D, p: Vector2, speed: float) -> void:
-	_clock_t = 0.0
-	s.flick_clock = func() -> float: return _clock_t
-	var dir := Vector2(-0.55, -0.83).normalized()
-	sv.push_input(_click_event(p, true), true)
-	var t := 0.0
-	while t < 0.2:
-		t += 0.008
-		_clock_t = t
-		var mm := InputEventMouseMotion.new()
-		mm.position = p + dir * speed * t
-		mm.global_position = mm.position
-		mm.button_mask = MOUSE_BUTTON_MASK_LEFT
-		sv.push_input(mm, true)
-	sv.push_input(_click_event(p + dir * speed * t, false), true)
-	s.flick_clock = Callable()
 
 
 func _m1_hand_grabs() -> void:
@@ -142,46 +60,6 @@ func _m1_hand_grabs() -> void:
 		col.position = home
 		sv.queue_free()
 		await process_frame
-
-
-## Flick from p; it must start a flick throw (launch speed from the drag,
-## not the canned quick throw) and press no button. Then a fresh hand.
-func _flick_and_check(sv: SubViewport, s: Bonfire3D, p: Vector2, presses: Array, what: String) -> void:
-	var before: int = presses[0]
-	s.last_launch = {}
-	await _flick_from(sv, s, p, 4000.0)
-	var thrown := s.phase != Table3D.Phase.BET and s.phase != Table3D.Phase.HELD
-	var flick := float(s.last_launch.get("flick", 0.0))
-	var want := 4000.0 * s.sensitivity()
-	check(thrown and presses[0] == before, "%s: press-drag-release throws (phase %d) and presses no button (%d presses)" % [what, s.phase, presses[0] - before])
-	check(absf(flick - want) < want * 0.15, "%s: it's the flick (%.0f px/s, want ~%.0f), not a quick throw" % [what, flick, want])
-	if thrown:
-		await s.sequence_finished
-	s.new_run(11)
-
-
-# --- M2 -----------------------------------------------------------------------------
-
-## GameSettings with a throwaway file, tutorial on and not seen yet.
-func _fresh_settings() -> Dictionary:
-	var gs := root.get_node_or_null("GameSettings")
-	if gs == null:
-		return {}
-	var old := {"path": gs.path, "enabled": gs.tutorial_enabled, "seen": gs.tutorial_seen}
-	gs.path = "user://test_full_run_fixes_settings.cfg"
-	gs.tutorial_enabled = true
-	gs.tutorial_seen = false
-	return old
-
-
-func _restore_settings(old: Dictionary) -> void:
-	var gs := root.get_node_or_null("GameSettings")
-	if gs == null or old.is_empty():
-		return
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(gs.path))
-	gs.path = old["path"]
-	gs.tutorial_enabled = old["enabled"]
-	gs.tutorial_seen = old["seen"]
 
 
 func _m2_tutorial() -> void:
@@ -262,102 +140,6 @@ func _m2_tutorial() -> void:
 	_restore_settings(old)
 
 
-# --- M4 -----------------------------------------------------------------------------
-
-## tutorial: Bonfire3D.tutorial_override (0 = off, 1 = on).
-func _one_hand_table(goal_required: int, tutorial: int = 0) -> Bonfire3D:
-	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var setup := TableSetup.sandbox(t, 5)
-	var goal := t.table_goal.duplicate() as TableGoal
-	goal.hands = 1
-	goal.bonus = []
-	goal.required = goal.required.slice(0, goal_required)
-	setup.goal = goal
-	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
-	s.setup = setup
-	s.tutorial_override = tutorial
-	s.test_speed = 10.0
-	root.add_child(s)
-	return s
-
-
-func _m4_soul_meter() -> void:
-	# Lost: bank one single on the last hand with every bounty unticked.
-	var s := _one_hand_table(3)
-	await process_frame
-	var start := s.run.soul
-	s.rig_faces([1, 2, 3, 4, 6] as Array[int])
-	s.quick_throw()
-	await s.sequence_finished
-	s.pick_die(0)
-	await s.bank()
-	var penalty := int(s.run.table_summary.get("timeout_soul", 0))
-	check(s.run.is_over() and s.run.state != BonfireRun.State.CLEARED and penalty == 9, "out of hands uncleared: -9 Soul (got %d)" % penalty)
-	check(s.soul_meter.soul == s.run.soul and s.soul_meter.soul == start - penalty, "the Soul meter drops to %d (shows %d)" % [start - penalty, s.soul_meter.soul])
-	check(s.bhud.end_body.text.contains("Soul %d" % s.soul_meter.soul), "end panel and meter agree")
-	s.queue_free()
-	await process_frame
-	# Cleared on the last hand: no end-of-table Soul cost, nothing burns.
-	s = _one_hand_table(1)
-	await process_frame
-	start = s.run.soul
-	var want: Array[int] = []
-	for v in DiceIcons.pattern(s.run.goal.required[0]):
-		want.append(int(v))
-	while want.size() < 5:
-		want.append(6 if not want.has(6) else 2)
-	s.rig_faces(want)
-	s.quick_throw()
-	await s.sequence_finished
-	for i in DiceIcons.pattern(s.run.goal.required[0]).size():
-		s.pick_die(i)
-	await s.bank()
-	check(s.run.state == BonfireRun.State.CLEARED, "the one-bounty table clears (%s)" % BonfireRun.State.keys()[s.run.state])
-	check(s.run.soul == start and s.soul_meter.soul == start, "cleared: no Soul lost, the meter stays at %d (shows %d)" % [start, s.soul_meter.soul])
-	s.queue_free()
-	await process_frame
-
-
-# --- Minor 9 ------------------------------------------------------------------------
-
-func _fog_compat() -> void:
-	for method in ["gl_compatibility", "mobile", "forward_plus"]:
-		var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
-		s.tutorial_override = 0
-		s.render_method = method
-		root.add_child(s)
-		await process_frame
-		var plus: bool = method == "forward_plus"
-		var env: Environment = s.world_env.environment
-		check((s.find_child("LampHaze", true, false) != null) == plus, "%s: FogVolume (fog shader) %s" % [method, "built" if plus else "not built"])
-		check((s.find_child("LampConeFallback", true, false) != null) == (not plus), "%s: fallback light cone %s" % [method, "absent" if plus else "built"])
-		check(env.volumetric_fog_enabled == plus and env.ssao_enabled == plus, "%s: volumetric fog and SSAO %s" % [method, "on" if plus else "off"])
-		s.queue_free()
-		await process_frame
-
-
-# --- #103 F1 ------------------------------------------------------------------------
-
-## Lays the button column so `button`'s centre sits on screen point p.
-func _button_over(s: Bonfire3D, button: Button, p: Vector2) -> void:
-	var col := button.get_parent() as Control
-	col.position += p - button.get_global_rect().get_center()
-
-
-func _click(sv: SubViewport, p: Vector2) -> void:
-	sv.push_input(_click_event(p, true), true)
-	sv.push_input(_click_event(p, false), true)
-
-
-func _idle(s: Bonfire3D) -> void:
-	for k in 600:
-		if s.phase == Table3D.Phase.BET and not s.bhud.countup.is_playing():
-			break
-		await process_frame
-	for k in 12:
-		await process_frame
-
-
 func _f1_pick_under_buttons() -> void:
 	var made: Array = await _table_in(Vector2i(1920, 1080), Vector2(1920, 1080))
 	var sv: SubViewport = made[0]
@@ -396,30 +178,4 @@ func _f1_pick_under_buttons() -> void:
 	check(not s.run.potted.has(4) and s.run.potted.size() == 3, "F1: the click under BANK on an unlit die is refused (potted %s)" % str(s.run.potted))
 	check(presses[0] == 0 and s.run.hands_left == hands and s.run.state == BonfireRun.State.PICK, "F1: ...and doesn't bank the hand (hands %d)" % s.run.hands_left)
 	sv.queue_free()
-	await process_frame
-
-
-# --- #103 N6 ------------------------------------------------------------------------
-
-func _n6_tutorial_hidden_at_end() -> void:
-	var s := _one_hand_table(3, 1)
-	await process_frame
-	s.quick_throw()
-	await s.sequence_finished
-	# Pot the first burning die that makes a legal pot on its own.
-	for i in s.throw_dice.size():
-		if s.is_lit(s.throw_dice[i]) and s.pick_die(i):
-			if s.run.can_continue():
-				break
-			s.pick_die(i)
-	if not s.run.can_continue():
-		# No single die scores alone: pot the pair the tutorial throw lands.
-		for i in s.throw_dice.size():
-			if s.is_lit(s.throw_dice[i]) and not s.run.can_continue():
-				s.pick_die(i)
-	check(s.bhud.tutorial.active and s.bhud.tutorial.visible, "N6 setup: a tutorial hint is showing mid-table")
-	await s.bank()
-	check(s.bhud.end_panel.visible and s.run.is_over(), "N6: the one-hand table ends (end panel up)")
-	check(not s.bhud.tutorial.visible and not s.bhud.tutorial.active, "N6: the hint panel is hidden under the end panel, no more hints")
-	s.queue_free()
 	await process_frame

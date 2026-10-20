@@ -5,6 +5,14 @@
 ## hand = HOT HAND: all dice back, +1 mult on every later pot this hand.
 ## Table goal (TableGoal): bank every required bounty within the hands.
 ##
+## Clearing (how_bonfire_plays.md §2.8): once every required bounty is
+## banked the table is CLEARED (`cleared` = true, the clear Embers are paid
+## right then) but it stays open. The player can keep throwing the hands
+## that are left to chase the bonus bounty and more points, or leave()
+## between hands. A bust while chasing costs Soul as usual but never undoes
+## the clear or a banked bounty. When the hands run out a cleared table ends
+## as CLEARED (no timeout penalty); an uncleared one as FAILED.
+##
 ## Table rules (Elite twists, boss cheats, special-die abilities) are
 ## TableRule handlers (set_rules); every moment they hook is also emitted on
 ## `table_event` (hand_start, throw_landed, pot, bank, bust, die_shattered,
@@ -46,6 +54,9 @@ var ticks: Dictionary = {}
 var pending: Dictionary = {}
 var last_result: Dictionary = {}
 var forfeited: bool = false
+## True from the bank that claimed the last required bounty, for good (a later
+## bust, running out of hands or leaving never turns it back off).
+var cleared: bool = false
 ## Filled when the table ends: {"points_embers", "clear_embers", "soul_lost", ...}.
 var table_summary: Dictionary = {}
 ## Active rule handlers (TableRules.build); special-die handlers first.
@@ -60,6 +71,13 @@ var throws_this_hand: int = 0
 var kindling_armed: bool = false
 ## The last landed throw lit nothing but Kindling saved it (no bust).
 var kindling_saved: bool = false
+## Knucklebone Seal steps (TableSetup.seal_steps); empty = default RunData.
+var seal_steps: Dictionary = {}
+## The last landed throw got a free rethrow (§4, NonStdDice.try_free_rethrow),
+## and how many in a row (MAX_FREE_RETHROWS then it busts).
+var free_rethrow: bool = false
+var free_rethrows_in_a_row: int = 0
+const MAX_FREE_RETHROWS: int = NonStdDice.MAX_FREE_RETHROWS
 ## TableDie (or null) per die of this throw.
 var throw_table_dice: Array = []
 ## The last landed throw (with the rules' face changes).
@@ -116,6 +134,7 @@ func _start_hand() -> void:
 	pending.clear()
 	throws_this_hand = 0
 	kindling_armed = false
+	free_rethrows_in_a_row = 0
 	hand_combos.clear()
 	throw_table_dice.clear()
 	state = State.AIM
@@ -134,7 +153,7 @@ func mult_bonus() -> int:
 ## What the rules say right now, as BonfireScoring's ctx.
 func rule_ctx() -> Dictionary:
 	var cold_values: Array[int] = []
-	for v in range(1, 7):
+	for v in range(1, BonfireScoring.MAX_FACE + 1):
 		for r in rules:
 			if not r.can_light(self, v):
 				cold_values.append(v)
@@ -151,8 +170,48 @@ func rule_ctx() -> Dictionary:
 	var n := throw_faces.size()
 	return {"cold_values": cold_values, "no_mods": no_mods, "excluded_combos": excluded,
 		"min_dice": mini(min_pot, n) if min_pot > 0 else 1, "soul": soul, "max_soul": max_soul,
-		"throw_size": n, "is_rethrow": throws_this_hand > 1,
+		"throw_size": n, "is_rethrow": throws_this_hand > 1, "wild_max": wild_max(), "seal_steps": seal_steps,
 		"blood_cost": func(raw: int) -> int: return soul_cost(raw, &"blood")}
+
+
+## The Wild / Step cap for this tray (NonStdDice, §5).
+func wild_max() -> int:
+	return NonStdDice.wild_max(throw_table_dice)
+
+
+## The ctx for a throw of `n` dice that hasn't happened yet (the rethrow
+## prompt's bust risk): like rule_ctx(), but sized for those n dice.
+func next_throw_ctx(n: int) -> Dictionary:
+	var ctx := rule_ctx()
+	var min_pot := 0
+	for r in rules:
+		min_pot = maxi(min_pot, r.min_pot(self))
+	ctx["throw_size"] = n
+	ctx["min_dice"] = mini(min_pot, n) if min_pot > 0 else 1
+	ctx["is_rethrow"] = throws_this_hand >= 1
+	return ctx
+
+
+## The rules that change faces after the dice settle, for BustRisk.
+func throw_effects() -> Array:
+	var out: Array = []
+	for r in rules:
+		if r is RuleMadameShuffle:
+			out.append({"kind": &"shuffle", "count": int(r.param("count", 1))})
+		elif r is DieMirror and not out.any(func(e: Dictionary) -> bool: return e["kind"] == &"mirror"):
+			out.append({"kind": &"mirror"})  # one entry covers every Mirror die
+	return out
+
+
+## Chance the next throw of these dice (TableDie or null) burns, exactly
+## (BustRisk). `kindling`: a Kindling face is armed for it (can't burn).
+## A throw that would get the §4 free rethrow (NonStdDice) can't burn
+## either: lighting nothing just throws it again ("free_rethrow": true).
+func next_throw_risk(table_dice: Array, kindling: bool = false) -> Dictionary:
+	var free := NonStdDice.next_throw_is_free(self, table_dice)
+	var out := BustRisk.chance(table_dice, tuning, next_throw_ctx(table_dice.size()), throw_effects(), kindling or free)
+	out["free_rethrow"] = free
+	return out
 
 
 func bounties_count() -> bool:
@@ -228,7 +287,10 @@ func land_throw(th: TableThrow) -> bool:
 	var saved := kindling_armed
 	kindling_armed = false
 	kindling_saved = false
+	free_rethrow = false
 	if lit().is_empty():
+		if NonStdDice.try_free_rethrow(self, th.size(), cold):
+			return false
 		if saved:
 			throw_faces.clear()
 			throw_mods.clear()
@@ -239,6 +301,7 @@ func land_throw(th: TableThrow) -> bool:
 			return false
 		_bust()
 		return false
+	free_rethrows_in_a_row = 0
 	if not tuning.bounty_requires_pot and bounties_count():
 		_add_pending(BonfireScoring.plain_values(throw_dice()))
 	state = State.PICK
@@ -310,7 +373,7 @@ func is_hot() -> bool:
 ## "" if the current selection may be thrown on, else why not.
 func rethrow_block_reason() -> String:
 	if not can_continue():
-		return "Pot at least one burning die first."
+		return "Pot at least one lit die first."
 	if is_hot() and not hot_hand_allowed():
 		return "No Hot Hand at this table: bank it."
 	return ""
@@ -417,12 +480,20 @@ func _bust() -> void:
 func _finish(r: Dictionary) -> Dictionary:
 	hands_left -= 1
 	pending.clear()
-	if r["kind"] == &"bank" and unticked_required() == 0:
-		_end_table(State.CLEARED)
-	elif soul <= 0:
+	# The bank that claims the last required bounty clears the table: the
+	# clear Embers are locked in now, and the table stays open.
+	r["cleared_now"] = false
+	if r["kind"] == &"bank" and not cleared and unticked_required() == 0:
+		cleared = true
+		embers += goal.clear_embers
+		r["cleared_now"] = true
+		table_event.emit(&"table_cleared", {})
+	if soul <= 0:
 		_end_table(State.RUN_OVER)
 	elif hands_left <= 0:
-		_end_table(State.FAILED)
+		# Out of hands: a cleared table simply ends (the "auto-leave"); an
+		# uncleared one has failed (timeout Soul in _end_table).
+		_end_table(State.CLEARED if cleared else State.FAILED)
 	else:
 		_start_hand()
 	r["state"] = state
@@ -435,32 +506,56 @@ func _finish(r: Dictionary) -> Dictionary:
 
 func _end_table(st: State) -> void:
 	var converted := points / maxi(tuning.points_per_ember, 1)
-	var clear := goal.clear_embers if st == State.CLEARED else 0
+	# The clear Embers were already paid at the clearing bank (see _finish).
+	var clear := goal.clear_embers if cleared else 0
 	var soul_lost := 0
 	if st == State.FAILED:
 		soul_lost = soul_cost(unticked_required() * goal.timeout_soul_per_bounty, &"timeout")
 		soul = maxi(soul - soul_lost, 0)
 		if soul <= 0:
 			st = State.RUN_OVER
-	embers += converted + clear
+	embers += converted
+	# The hand is over: its pot was banked or lost, nothing is potted any
+	# more (else hand_pot() shows the last pot twice on the end panel; QA).
+	pot = 0
+	potted.clear()
 	table_summary = {"points_embers": converted, "clear_embers": clear, "timeout_soul": soul_lost, "points": points}
 	state = st
 	table_event.emit(&"table_end", {"state": st})
 
 
+## Can the player leave now? Only a cleared table, only between hands (no
+## throw made yet this hand).
+func can_leave() -> bool:
+	return cleared and not is_over() and state == State.AIM and throws_this_hand == 0
+
+
+## Leave a cleared table between hands: it ends as CLEARED (points convert,
+## no timeout penalty). False if not allowed right now (see can_leave).
+func leave() -> bool:
+	if not can_leave():
+		return false
+	_end_table(State.CLEARED)
+	last_result = {"kind": &"leave", "state": state, "points": points, "soul": soul}
+	return true
+
+
 ## Give up the table (run mode): ends it like running out of hands
 ## (timeout Soul per unticked required bounty, points still convert to
 ## Embers, no clear bonus); the hand in progress is lost. False if over.
+## On a table that is already cleared it is a Leave instead: the hand in
+## progress is lost, but the clear and the banked bounties stand (not
+## counted as forfeited, so the run still sees a cleared table).
 func forfeit() -> bool:
 	if is_over():
 		return false
-	forfeited = true
+	forfeited = not cleared
 	pending.clear()
 	pot = 0
 	potted.clear()
 	throw_faces.clear()
 	throw_mods.clear()
-	_end_table(State.FAILED)
+	_end_table(State.CLEARED if cleared else State.FAILED)
 	last_result = {"kind": &"forfeit", "state": state, "points": points, "soul": soul}
 	return true
 

@@ -6,7 +6,7 @@
 [sub_resource type="Resource" id="b_triple"]
 script = ExtResource("2_bounty")
 id = &"triple"
-display_name = "Triple"
+display_name = "Trips"
 description = "Pot three of a kind."
 kind = 0
 n = 3
@@ -16,7 +16,7 @@ bonus_embers = 0
 script = ExtResource("2_bounty")
 id = &"run3"
 display_name = "Run of 3"
-description = "Pot three in a row."
+description = "Pot three numbers in a row."
 kind = 1
 n = 3
 bonus_embers = 0
@@ -24,8 +24,8 @@ bonus_embers = 0
 [sub_resource type="Resource" id="b_two_pairs"]
 script = ExtResource("2_bounty")
 id = &"two_pairs"
-display_name = "Two Pairs"
-description = "Pot two different pairs."
+display_name = "Two Pair"
+description = "Pot two different pairs in one pot."
 kind = 2
 n = 2
 bonus_embers = 0

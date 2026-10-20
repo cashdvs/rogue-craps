@@ -6,6 +6,6 @@
 script = ExtResource("1_32vkg")
 id = &"last_breath"
 display_name = "Last Breath Die"
-description = "Potted from a rethrow of 1-2 dice: x3 mult."
+description = "Pot it from a rethrow of 1 or 2 dice: x3 mult."
 price = 24
 faces = Array[int]([1, 2, 3, 4, 5, 6])

@@ -19,7 +19,7 @@ func on_throw_landed(_run: BonfireRun, th: TableThrow) -> void:
 		var best := -1
 		var best_d := INF
 		for j in th.size():
-			if j == i or th.special(j) == &"mirror":
+			if j == i or th.special(j) == &"mirror" or th.special(j) == &"ferryman":
 				continue
 			var dist := 0.0
 			if th.positions.size() == th.size():

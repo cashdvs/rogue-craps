@@ -8,6 +8,15 @@ extends Resource
 @export var id: StringName = &""
 @export var display_name: String = ""
 @export_multiline var description: String = ""
+## Second tooltip line (strings_v1.md "details" row): the rest of the
+## rule that didn't fit the short line. Empty = none.
+@export var details: String = ""
+
+
+## The tooltip: the short line, then the details line if any.
+func tooltip() -> String:
+	return description if details == "" else "%s\n%s" % [description, details]
+
 ## Shop price in Embers; it sells for RunData.die_sell_percent of this.
 @export var price: int = 12
 ## Value on each face slot (slot k = faces[k-1]), as TableDie.faces.

@@ -6,6 +6,6 @@
 script = ExtResource("1_yhbmd")
 id = &"hellfire"
 display_name = "Hellfire Face"
-description = "x1.5 to the pot's score per Hellfire face scored (after the mult, rounded down)."
+description = "x1.5 to the score when you pot it."
 mult_factor = 1.5
 price = 14

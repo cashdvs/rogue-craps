@@ -36,9 +36,12 @@ TRIM, TRIM2 = 24, 23
 PHI = (1.0 + 5 ** 0.5) / 2.0
 D6_VOLUME = 0.08 ** 3  # the Bone d6's bounding volume (AD: match bounding volume, not edge length)
 BEVEL_COMP = 1.025  # the bevels eat ~2.5% of the rest volume
-# PM, Oct 19: non-d6 dice cap their max per-axis half-extent at 0.050 m (Tithe passes at 0.0507 by ruling). These three
-# were over and are scaled down uniformly (PC and mobile by the same factor, computed from the PC extent).
+# PM, Oct 19: non-d6 dice cap their max per-axis half-extent at 0.050 m. These three were over and are scaled down
+# uniformly (PC and mobile by the same factor, computed from the PC extent).
 EXTENT_CAP = {"caltrop_d4": 0.050, "knucklebone_talus": 0.050, "lantern_d8": 0.050}
+# Fixed uniform factors (PC and mobile alike). Tithe d10: its unscaled max half-extent was 0.0507 m by our PC measure and
+# 0.0509 m by a convex hull of the mobile mesh (Godot Dev's test_die_hull_extent); scaled from the larger to 0.0498 m.
+SCALE_FIXED = {"tithe_d10": 0.0498 / 0.0509}
 # Godot Dev builds the hulls from the mobile meshes, so mobile extents must match PC within ~0.5 mm. Mobile LODs chamfer
 # with 1 bevel segment, which cuts corners deeper than the PC round bevel; main() searches this multiplier on the mobile
 # chamfer offset per die so the mobile extents land on the PC ones.
@@ -684,6 +687,7 @@ def assemble(name, spec, ks=None, fit=None):
     if ks is None:
         ext = max(max(abs(v.co[i]) for v in bm.verts) for i in range(3))
         ks = EXTENT_CAP[name] / ext if name in EXTENT_CAP and ext > EXTENT_CAP[name] else 1.0
+        ks = SCALE_FIXED.get(name, ks)
     for v in bm.verts:
         v.co *= ks  # uniform: directions, UVs and the centroid at the origin are unchanged
     if fit:

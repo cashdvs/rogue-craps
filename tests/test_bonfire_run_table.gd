@@ -160,7 +160,7 @@ func _run() -> void:
 	await process_frame
 	check(not paused and r.is_over() and r.forfeited and r.state == BonfireRun.State.FAILED, "confirm forfeits the table")
 	check(r.soul == soul_now - unticked * 3, "forfeit: -3 Soul per unticked required bounty")
-	check(s.bhud.end_panel.visible and s.bhud.end_title.text == "TABLE FORFEITED", "end panel shows the forfeit")
+	check(s.bhud.end_panel.visible and s.bhud.end_title.text == "You left the table", "end panel shows the forfeit")
 	check(got.is_empty(), "finished waits for CONTINUE")
 	s.bhud.continue_pressed.emit()
 	check(got.size() == 1, "CONTINUE emits finished once")
@@ -187,6 +187,7 @@ func _run() -> void:
 	r3.toggle(1)
 	r3.toggle(2)
 	r3.bank()
+	check(r3.cleared and not r3.is_over() and r3.leave(), "cleared: the table stays open until Leave")
 	var o3 := TableOutcome.from_run(r3, 30)
 	check(o3.cleared and not o3.forfeited and o3.soul_delta == 0 and o3.hands_used == 1, "cleared outcome")
 	check(o3.points == r3.points and o3.embers == r3.points / tuning.points_per_ember + g0.clear_embers, "cleared outcome: Embers include the clear bonus")

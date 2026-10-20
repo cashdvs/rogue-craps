@@ -157,9 +157,9 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	j.calls.clear()
 	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "[%s] throw again stays synchronous" % tag)
 	check(s.bhud.countup.is_playing(), "[%s] committing the pot starts the count-up" % tag)
-	check(r.pot == 126 and s.bhud.pot_label.text == "POT 0", "[%s] HUD pot holds until the count-up lands; state is already 126 (%s)" % [tag, s.bhud.pot_label.text])
+	check(r.pot == 126 and s.bhud.pot_label.text == "Pot 0", "[%s] HUD pot holds until the count-up lands; state is already 126 (%s)" % [tag, s.bhud.pot_label.text])
 	await s.bhud.countup.finished
-	check(s.bhud.pot_label.text == "POT 126" and s.bhud.display_hold.is_empty(), "[%s] the pot lands with the count-up (%s)" % [tag, s.bhud.pot_label.text])
+	check(s.bhud.pot_label.text == "Pot 126" and s.bhud.display_hold.is_empty(), "[%s] the pot lands with the count-up (%s)" % [tag, s.bhud.pot_label.text])
 	# The pot row is on the felt, in view, and solid for the next throw.
 	var on_felt := true
 	for k in 12:
@@ -177,7 +177,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(solid == s.pot_dice.size() and solid == 3, "[%s] one solid collider per potted die (%d)" % [tag, solid])
 	check(s.bhud.countup.total_label.text == "126" and s.bhud.countup.banner_label.text == "TRIPS!", "[%s] count-up lands on 126 with the Trips banner" % tag)
 	check(has_prefix(j.calls, "fb:lift") or has_prefix(j.calls, "art:lift"), "[%s] dice lift (%s)" % [tag, str(j.calls)])
-	check(has_prefix(j.calls, "fb:fire") or has_prefix(j.calls, "art:fire"), "[%s] flames on the pot" % tag)
+	check(has_prefix(j.calls, "fx:glow_") and not has_prefix(j.calls, "fb:fire") and not has_prefix(j.calls, "art:fire"), "[%s] the pot GLOWS (no fire on dice) (%s)" % [tag, str(j.calls)])
 	check(j.calls.has("sfx:mult_slam") or j.calls.has("sfx:dice_drop(fb)"), "[%s] slam sound hook" % tag)
 	await create_timer(0.3).timeout
 	# Bust: snuff, ash, flask crack, the pending Triple stamp crumbles.
@@ -191,7 +191,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	await s.sequence_finished
 	await create_timer(0.3).timeout
 	check(j.calls.has("sfx:soul_flask_crack") or j.calls.has("sfx:soul_burn(fb)"), "[%s] Soul flask crack sound after the bust (%s)" % [tag, str(j.calls)])
-	# Hot Hand: all dice ignite, banner, fly back with fire.
+	# Hot Hand: all dice glow, banner, fly back with ember trails.
 	res = await throw_faces(s, [3, 3, 3, 5, 5] as Array[int])
 	await s.sequence_finished
 	for i in 5:
@@ -200,8 +200,8 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(s.throw_again() and s.dice.size() == 5 and s.pot_dice.is_empty(), "[%s] Hot Hand still scoops all 5 back at once" % tag)
 	await s.bhud.countup.finished
 	await process_frame
-	check(has_prefix(j.calls, "fb:hot_hand") or has_prefix(j.calls, "art:hot_hand"), "[%s] Hot Hand ignite (%s)" % [tag, str(j.calls)])
-	check(s.bhud.result_label.text.begins_with("HOT HAND"), "[%s] HOT HAND banner (%s)" % [tag, s.bhud.result_label.text])
+	check(j.calls.has("fx:hot_hand_glow") and j.calls.has("fx:ember_trail") and not has_prefix(j.calls, "art:fire_trail"), "[%s] Hot Hand glow pulse + ember trail, no fire (%s)" % [tag, str(j.calls)])
+	check(s.bhud.result_label.text.begins_with("Hot Hand"), "[%s] Hot Hand banner (%s)" % [tag, s.bhud.result_label.text])
 	await create_timer(0.6).timeout
 	# Bank: count-up, embers flow, CLAIMED stamps.
 	res = await throw_faces(s, [1, 2, 3, 6, 6] as Array[int])
@@ -216,7 +216,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(bank_state.size() == 1 and int(bank_state[0][0]) > pts_before and str(bank_state[0][1]).begins_with("points %d " % pts_before),
 		"[%s] bank: points stay at %d on the HUD while the count-up plays (state already %s)" % [tag, pts_before, str(bank_state)])
 	check(s.bhud.points_label.text.begins_with("points %d " % r.points) and s.bhud.coin_label.text == "EMBERS %d" % ((s.setup.run_embers if s.setup != null else 0) + r.embers), "[%s] bank: points + Embers land after the count-up (EMBERS = run balance + table payout)" % tag)
-	check(b["kind"] == &"bank" and r.state == BonfireRun.State.CLEARED, "[%s] bank clears the table" % tag)
+	check(b["kind"] == &"bank" and r.cleared, "[%s] bank clears the table" % tag)
 	check(s.bhud.has_stamp(&"two_pairs") or s.bhud.has_stamp(&"run_three") or not (b["ticked"] as Array).is_empty() and s.bhud.has_stamp(b["ticked"][0]), "[%s] claimed bounty gets the CLAIMED stamp (%s)" % [tag, str(b["ticked"])])
 	check(j.calls.has("sfx:bank") or j.calls.has("sfx:chip_collect(fb)"), "[%s] bank sound (%s)" % [tag, str(j.calls)])
 	# A click fast-forwards a running count-up.
@@ -233,7 +233,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	click.position = Vector2(960, 540)
 	s._unhandled_input(click)
 	check(not s.bhud.countup.is_playing() and s.bhud.countup.fast_forwarded, "[%s] click fast-forwards the count-up" % tag)
-	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "POT %d" % s.run.pot, "[%s] fast-forward shows the final HUD numbers at once (%s)" % [tag, s.bhud.pot_label.text])
+	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "Pot %d" % s.run.pot, "[%s] fast-forward shows the final HUD numbers at once (%s)" % [tag, s.bhud.pot_label.text])
 	s.test_speed = 10.0
 	# Instant: no hold at all.
 	await create_timer(0.3).timeout
@@ -243,7 +243,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	s.pick_die(0); s.pick_die(1)
 	var pot_now := s.run.pot
 	s.throw_again()
-	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "POT %d" % s.run.pot and s.run.pot > pot_now, "[%s] Instant: HUD numbers update immediately (%s)" % [tag, s.bhud.pot_label.text])
+	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "Pot %d" % s.run.pot and s.run.pot > pot_now, "[%s] Instant: HUD numbers update immediately (%s)" % [tag, s.bhud.pot_label.text])
 	s.set_speed_mode(0)
 	s.queue_free()
 	await process_frame
@@ -277,10 +277,11 @@ func _tutorial_tests(t: BonfireTuning) -> void:
 	s.new_run(5)
 	await process_frame
 	await process_frame
-	check(s.bhud.tutorial.active and s.bhud.tutorial.shown.is_empty(), "Table 1: the tutorial starts (first hint on landing)")
+	check(s.bhud.tutorial.active and s.bhud.tutorial.current == &"th0_throw", "Table 1: the tutorial starts with the throw prompt (TH0)")
 	check(gs.tutorial_seen, "'seen' saved")
 	var cf := ConfigFile.new()
 	check(cf.load(TEST_SETTINGS) == OK and bool(cf.get_value("options", "tutorial_seen", false)), "'seen' persisted to the settings file")
+	check(cf.get_value("options", "hints_seen", {}).has(&"th0_throw"), "the hint's own 'shown' flag persisted (hints_seen)")
 	await create_timer(0.3).timeout
 	s.quick_throw()
 	var res: Array = await s.throw_resolved
@@ -289,14 +290,14 @@ func _tutorial_tests(t: BonfireTuning) -> void:
 	for d in s.throw_dice:
 		faces.append(d.shown_value())
 	var want: Array[int] = t.tutorial_first_throw.duplicate()
-	check(faces == want, "seeded first throw: a pair + a run of 3 (%s)" % str(faces))
-	check(s.bhud.tutorial.current == 0 and s.bhud.tutorial.label.text.begins_with("Glowing dice score"), "hint 1 after the first landing")
-	s.pick_die(0); s.pick_die(1)
-	check(s.bhud.tutorial.current == 1, "hint 2 once the pot is valid")
+	check(faces == want, "seeded first throw: 2-3-4 + 4-4, the 6 cold (%s)" % str(faces))
+	check(s.bhud.tutorial.current == &"th1_lit" and s.bhud.tutorial.label.text.begins_with("Glowing dice can score"), "TH1 after the first landing")
+	s.pick_die(0); s.pick_die(1); s.pick_die(2)
+	check(s.bhud.tutorial.current != &"th1_lit", "potting closes TH1")
 	s.bhud.tutorial.skip()
 	check(not s.bhud.tutorial.active and not s.bhud.tutorial.visible, "SKIP hides the tutorial")
 	s.throw_again()
-	check(not s.bhud.tutorial.visible and s.bhud.tutorial.current == -1 and s.bhud.tutorial.shown.size() == 2, "no more hints after skipping")
+	check(not s.bhud.tutorial.visible and s.bhud.tutorial.current == &"", "no more tutorial hints after skipping")
 	s.new_run(5)
 	await process_frame
 	check(not s.bhud.tutorial.active, "shown once: the next table has no tutorial")

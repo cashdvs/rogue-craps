@@ -84,15 +84,6 @@ func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bo
 	calls.append([&"impact", kind, speed_mps, material, die_id])
 	return true
 """
-## The no-hooks path: a plain Node with only what that path calls (play,
-## has_event), so it stays hook-free whatever SfxManager grows.
-const SFX_FALLBACK_SRC := """extends Node
-var calls: Array = []
-func play(event: StringName, _pitch: float = 1.0, _volume_db: float = 0.0, _jitter: float = 0.06) -> void:
-	calls.append([&"play", event])
-func has_event(_event: StringName) -> bool:
-	return true
-"""
 
 
 func _sfx_stub(src: String) -> Node:
@@ -104,47 +95,51 @@ func _sfx_stub(src: String) -> Node:
 
 
 func _test_sfx_hooks(s: Table3D) -> void:
+	# The throw / impact sounds belong to the feel layer (scripts/fx/,
+	# TableAudio): the table only emits events.dice_thrown / die_impact and
+	# never calls the SfxManager hooks or the old fallbacks itself.
 	var real_sfx := s.sfx
 	var stub := _sfx_stub(SFX_STUB_SRC)
 	s.add_child(stub)
 	s.sfx = stub
-	# Throw: the raw flick speed (game px/s) reaches play_throw, no dice_shake.
+	var fx := s.get_node_or_null("TableAudio")
+	if fx != null and fx.has_method("unbind"):
+		fx.call("unbind")
+	var thrown_ev: Array = []
+	var impact_ev: Array = []
+	var on_thrown := func(v: float) -> void: thrown_ev.append(v)
+	var on_impact := func(k: StringName, v: float, m: StringName, id: int) -> void: impact_ev.append([k, v, m, id])
+	s.events.dice_thrown.connect(on_thrown)
+	s.events.die_impact.connect(on_impact)
 	_bet(s)
 	s.throw(Table3D.QUICK_THROW)
 	await s.sequence_finished
-	var throws: Array = stub.calls.filter(func(e: Array) -> bool: return e[0] == &"throw")
-	check(throws.size() == 1 and is_equal_approx(float(throws[0][1]), Table3D.QUICK_THROW.length()), "play_throw gets the flick speed %.0f px/s once (%s)" % [Table3D.QUICK_THROW.length(), str(throws)])
-	check(not stub.calls.has([&"play", &"dice_shake"]), "play_throw replaces the fixed dice_shake")
-	var impacts: Array = stub.calls.filter(func(e: Array) -> bool: return e[0] == &"impact")
-	check(impacts.size() >= 1, "a real throw calls play_impact (%d)" % impacts.size())
+	check(thrown_ev.size() == 1 and is_equal_approx(float(thrown_ev[0]), Table3D.QUICK_THROW.length()), "events.dice_thrown gets the flick speed %.0f px/s once (%s)" % [Table3D.QUICK_THROW.length(), str(thrown_ev)])
+	check(not stub.calls.any(func(e: Array) -> bool: return e[0] == &"throw" or e[0] == &"impact" or e == [&"play", &"dice_shake"]),
+		"the table plays no throw / impact sound itself (%s)" % str(stub.calls))
+	check(impact_ev.size() >= 1, "a real throw emits die_impact (%d)" % impact_ev.size())
 	var floor_ok := true
-	for e: Array in impacts:
-		if float(e[2]) < s.tuning.impact_min_speed or int(e[4]) < 0 or int(e[4]) >= s.dice.size() or not (e[1] is StringName) or not (e[3] is StringName):
+	for e: Array in impact_ev:
+		if float(e[1]) < s.tuning.impact_min_speed or int(e[3]) < 0 or int(e[3]) >= s.dice.size() or not (e[0] is StringName) or not (e[2] is StringName):
 			floor_ok = false
-	check(floor_ok, "play_impact args: kind/material StringName, speed >= floor, valid die_id")
+	check(floor_ok, "die_impact args: kind/material StringName, speed >= floor, valid die_id")
 	# Contacts: die_id passes through; the 0.3 m/s floor and 0.05 s filter hold.
+	impact_ev.clear()
 	stub.calls.clear()
 	s._last_impact.fill(-1.0)
 	s._play_t = 0.0
 	s._on_contact({"t": 0.0, "die": 1, "kind": &"rail", "speed": s.tuning.impact_min_speed - 0.05, "impulse": 0.001, "other": -1})
-	check(stub.calls.is_empty(), "under-floor contact: no play_impact")
+	check(impact_ev.is_empty(), "under-floor contact: no die_impact")
 	s._play_t = 1.0
 	s._on_contact({"t": 1.0, "die": 1, "kind": &"rail", "speed": 2.5, "impulse": 0.01, "other": -1})
 	s._play_t = 1.01
 	s._on_contact({"t": 1.01, "die": 1, "kind": &"felt", "speed": 2.0, "impulse": 0.01, "other": -1})
-	check(stub.calls.size() == 1 and stub.calls[0][1] == &"rail" and is_equal_approx(float(stub.calls[0][2]), 2.5) and stub.calls[0][3] == StringName(s.dice[1].material) and int(stub.calls[0][4]) == 1, "play_impact(&\"rail\", 2.5, material, 1), throttled after (%s)" % str(stub.calls))
+	check(impact_ev.size() == 1 and impact_ev[0][0] == &"rail" and is_equal_approx(float(impact_ev[0][1]), 2.5) and impact_ev[0][2] == StringName(s.dice[1].material) and int(impact_ev[0][3]) == s.event_id(s.dice[1]),
+		"die_impact(&\"rail\", 2.5, material, die 1), throttled after (%s)" % str(impact_ev))
+	check(stub.calls.is_empty(), "contacts play no sound on the table (%s)" % str(stub.calls))
 	s._play_t = -1.0
-	# Without the hooks the old events still play.
-	var fb := _sfx_stub(SFX_FALLBACK_SRC)
-	s.add_child(fb)
-	s.sfx = fb
-	s.thrown.emit(1500.0)
-	s._last_impact.fill(-1.0)
-	s._play_t = 2.0
-	s._on_contact({"t": 2.0, "die": 0, "kind": &"backboard", "speed": 2.0, "impulse": 0.01, "other": -1})
-	s._play_t = -1.0
-	check(not fb.has_method("play_throw") and not fb.has_method("play_impact"), "fallback stub has no hooks")
-	check(fb.calls.has([&"play", &"dice_shake"]) and fb.calls.has([&"play", &"rim_hit"]), "fallback: dice_shake and rim_hit without the hooks (%s)" % str(fb.calls))
+	s.events.dice_thrown.disconnect(on_thrown)
+	s.events.die_impact.disconnect(on_impact)
 	s.sfx = real_sfx
 	# Stale/speculative contacts: a die that rested elsewhere and is thrown
 	# from the hand must not log a phantom hit at release (the previous rest
@@ -167,7 +162,6 @@ func _test_sfx_hooks(s: Table3D) -> void:
 	check(at_release == 0, "no contact logged on the release tick (%d)" % at_release)
 	check(worst <= cap, "contact speeds stay physical: max %.2f m/s <= %.2f" % [worst, cap])
 	stub.queue_free()
-	fb.queue_free()
 	await process_frame
 
 

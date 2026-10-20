@@ -157,7 +157,8 @@ func _run() -> void:
 	check(not s.pick_die(4), "clicking the cold 2 is refused")
 	check(s.pick_die(0) and s.pick_die(1) and s.pick_die(2) and r.throw_points() == 126, "pot 4-4-4 = 126")
 	check(not s.pick_die(3), "the 5 can't join the trips")
-	check(s.bhud.throw_label.text == "Trips  (30 + 12) x 3 = 126", "live formula (%s)" % s.bhud.throw_label.text)
+	# The live pot preview (how_bonfire_plays.md section 4).
+	check(s.bhud.throw_label.text == "TRIPS: (30+12) x3 = 126", "live pot preview (%s)" % s.bhud.throw_label.text)
 	await create_timer(0.3).timeout
 	check(s.throw_dice[2].global_position.distance_to(s.pot_slot(2)) < 0.01, "potted dice sit on the rail pot")
 	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "throw again: 2 cold dice back in the hand")
@@ -177,8 +178,9 @@ func _run() -> void:
 	s.pick_die(0); s.pick_die(1); s.pick_die(2)
 	check(r.throw_points() == (20 + 6) * 3, "run of 3 at mult 2+1")
 	var b: Dictionary = await s.bank()
-	check(b["kind"] == &"bank" and r.state == BonfireRun.State.CLEARED, "banking the last required bounty clears the table")
-	check(s.bhud.end_panel.visible and s.can_throw() != "" and s.bhud.bounty_rows[&"two_pairs"].text.begins_with("[x]"), "cleared screen; checklist ticked")
+	check(b["kind"] == &"bank" and r.cleared and not r.is_over(), "banking the last required bounty clears the table (it stays open)")
+	check(s.can_leave_now() and s.bhud.leave_button.visible and s.leave(), "Leave table right after the clearing bank")
+	check(r.state == BonfireRun.State.CLEARED and s.bhud.end_panel.visible and s.can_throw() != "" and s.bhud.bounty_rows[&"two_pairs"].text.begins_with("[x]"), "cleared screen; checklist ticked")
 	check(r.embers == 5 + 10 + r.points / 100, "Embers: bonus + clear + points/100 (%d)" % r.embers)
 	s.bhud.restart_pressed.emit()
 	await process_frame

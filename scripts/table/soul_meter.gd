@@ -200,5 +200,5 @@ func _draw() -> void:
 	# Value above, label below.
 	var vc := Palette.DANGER if low else Palette.SOUL_FLAME
 	Palette.draw_ink_text(self, Vector2(FRAME.x * 0.5, -34), str(soul), 48, vc, 8, true)
-	Palette.draw_ink_text(self, Vector2(FRAME.x * 0.5, FRAME.y + 30), "SOUL", 30, Palette.BONE, 6, true)
+	Palette.draw_ink_text(self, Vector2(FRAME.x * 0.5, FRAME.y + 30), "Soul", 30, Palette.BONE, 6, true)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
