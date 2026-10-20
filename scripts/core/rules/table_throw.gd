@@ -68,6 +68,20 @@ func set_value(i: int, value: int, by: StringName) -> void:
 	values[i] = value
 
 
+## Die i now counts as `value` but keeps the face it landed on (slot and
+## that face's mod): a copy that is a natural face (Ferryman's Coin).
+func copy_value(i: int, value: int, by: StringName) -> void:
+	var from := values[i]
+	values[i] = value
+	changes.append({"index": i, "from": from, "to": value, "slot": slots[i] if i < slots.size() else 0, "by": by})
+
+
+## Die i's face now has mod `m` (e.g. a lone Tails turns Blank).
+func set_mod(i: int, m: FaceModData, by: StringName) -> void:
+	mods[i] = m
+	changes.append({"index": i, "from": values[i], "to": values[i], "slot": slots[i] if i < slots.size() else 0, "by": by, "mod": m})
+
+
 ## Rerolls die i with its own face weights.
 func reroll(i: int, by: StringName) -> void:
 	var td := die(i)

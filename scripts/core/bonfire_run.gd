@@ -71,6 +71,13 @@ var throws_this_hand: int = 0
 var kindling_armed: bool = false
 ## The last landed throw lit nothing but Kindling saved it (no bust).
 var kindling_saved: bool = false
+## Knucklebone Seal steps (TableSetup.seal_steps); empty = default RunData.
+var seal_steps: Dictionary = {}
+## The last landed throw got a free rethrow (§4, NonStdDice.try_free_rethrow),
+## and how many in a row (MAX_FREE_RETHROWS then it busts).
+var free_rethrow: bool = false
+var free_rethrows_in_a_row: int = 0
+const MAX_FREE_RETHROWS: int = NonStdDice.MAX_FREE_RETHROWS
 ## TableDie (or null) per die of this throw.
 var throw_table_dice: Array = []
 ## The last landed throw (with the rules' face changes).
@@ -127,6 +134,7 @@ func _start_hand() -> void:
 	pending.clear()
 	throws_this_hand = 0
 	kindling_armed = false
+	free_rethrows_in_a_row = 0
 	hand_combos.clear()
 	throw_table_dice.clear()
 	state = State.AIM
@@ -145,7 +153,7 @@ func mult_bonus() -> int:
 ## What the rules say right now, as BonfireScoring's ctx.
 func rule_ctx() -> Dictionary:
 	var cold_values: Array[int] = []
-	for v in range(1, 7):
+	for v in range(1, BonfireScoring.MAX_FACE + 1):
 		for r in rules:
 			if not r.can_light(self, v):
 				cold_values.append(v)
@@ -162,8 +170,13 @@ func rule_ctx() -> Dictionary:
 	var n := throw_faces.size()
 	return {"cold_values": cold_values, "no_mods": no_mods, "excluded_combos": excluded,
 		"min_dice": mini(min_pot, n) if min_pot > 0 else 1, "soul": soul, "max_soul": max_soul,
-		"throw_size": n, "is_rethrow": throws_this_hand > 1,
+		"throw_size": n, "is_rethrow": throws_this_hand > 1, "wild_max": wild_max(), "seal_steps": seal_steps,
 		"blood_cost": func(raw: int) -> int: return soul_cost(raw, &"blood")}
+
+
+## The Wild / Step cap for this tray (NonStdDice, §5).
+func wild_max() -> int:
+	return NonStdDice.wild_max(throw_table_dice)
 
 
 ## The ctx for a throw of `n` dice that hasn't happened yet (the rethrow
@@ -192,8 +205,13 @@ func throw_effects() -> Array:
 
 ## Chance the next throw of these dice (TableDie or null) burns, exactly
 ## (BustRisk). `kindling`: a Kindling face is armed for it (can't burn).
+## A throw that would get the §4 free rethrow (NonStdDice) can't burn
+## either: lighting nothing just throws it again ("free_rethrow": true).
 func next_throw_risk(table_dice: Array, kindling: bool = false) -> Dictionary:
-	return BustRisk.chance(table_dice, tuning, next_throw_ctx(table_dice.size()), throw_effects(), kindling)
+	var free := NonStdDice.next_throw_is_free(self, table_dice)
+	var out := BustRisk.chance(table_dice, tuning, next_throw_ctx(table_dice.size()), throw_effects(), kindling or free)
+	out["free_rethrow"] = free
+	return out
 
 
 func bounties_count() -> bool:
@@ -269,7 +287,10 @@ func land_throw(th: TableThrow) -> bool:
 	var saved := kindling_armed
 	kindling_armed = false
 	kindling_saved = false
+	free_rethrow = false
 	if lit().is_empty():
+		if NonStdDice.try_free_rethrow(self, th.size(), cold):
+			return false
 		if saved:
 			throw_faces.clear()
 			throw_mods.clear()
@@ -280,6 +301,7 @@ func land_throw(th: TableThrow) -> bool:
 			return false
 		_bust()
 		return false
+	free_rethrows_in_a_row = 0
 	if not tuning.bounty_requires_pot and bounties_count():
 		_add_pending(BonfireScoring.plain_values(throw_dice()))
 	state = State.PICK

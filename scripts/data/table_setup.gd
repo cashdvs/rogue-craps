@@ -31,6 +31,9 @@ var owned_dice_count: int = -1
 ## Table 1 tutorial seeds and TH hints (Game Designer's
 ## design/onboarding_hints_v1.md, in the design docs outside this repo).
 var first_table: bool = true
+## The run's Seal steps for the Knucklebone (NonStdDice.seal_steps(run_data));
+## empty = res://resources/map/bonfire_run.tres.
+var seal_steps: Dictionary = {}
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.
