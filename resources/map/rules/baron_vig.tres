@@ -9,7 +9,8 @@
 script = ExtResource("1_bvig")
 id = &"baron_vig"
 display_name = "Baron Vig"
-description = "Pot at least 3 dice every throw."
+description = "Pot at least 3 dice every throw; -1 hand."
+hands_delta = -1
 kind = 1
 params = {
 "min_pot": 3
