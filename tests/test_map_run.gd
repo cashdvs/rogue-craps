@@ -229,7 +229,7 @@ func _test_rules_and_seals() -> void:
 	run.rules = [short, heavy] as Array[RunRuleData]
 	var setup := run.table_setup()
 	var g := run.goal
-	_check(setup.bust_soul_loss == 3 and setup.rule_ids() == ([&"short_table", &"heavy_burn"] as Array[StringName]), "rules: Heavy Burn sets bust 3; ids passed in the setup")
+	_check(setup.bust_soul_loss == 3 and setup.rule_ids() == ([&"short_table", &"heavy_burn"] as Array[StringName]), "rules: Heavy Toll sets bust 3; ids passed in the setup")
 	var hands_ok: bool = false
 	for s in 30:
 		var r2 := MapRun.new(_data, s)

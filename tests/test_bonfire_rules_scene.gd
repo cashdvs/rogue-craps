@@ -55,7 +55,7 @@ func _run() -> void:
 	check(r.soul == 30 and r.max_soul == 30, "starting Soul 50 clamped to max Soul 30 (%d)" % r.soul)
 	check(r.rules.size() == 3 and r.has_rule(&"madame_shuffle") and r.has_rule(&"pit_boss"), "setup.rules -> handlers on the run")
 	var rows := s.bhud.rule_rows()
-	check(s.bhud.rules_panel.visible and rows.size() == 3 and rows[0].begins_with("Madame Shuffle|After each throw") and rows[2].begins_with("Heavy Burn|"), "HUD lists each rule: name + one line (%s)" % str(rows))
+	check(s.bhud.rules_panel.visible and rows.size() == 3 and rows[0].begins_with("Madame Shuffle|After each throw") and rows[2].begins_with("Heavy Toll|"), "HUD lists each rule: name + one line (%s)" % str(rows))
 	var L := (r.rules[1] as RulePitBoss).locked
 	check(s.felt_label.visible and s.felt_label.text == "LOCKED  %d" % L, "Pit Boss lock on the felt (%s)" % s.felt_label.text)
 	check(rows[1].contains("Locked this hand: %d" % L), "Pit Boss HUD line names the lock")

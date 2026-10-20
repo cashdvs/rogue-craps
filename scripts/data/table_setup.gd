@@ -21,7 +21,7 @@ var run_mode: bool = true
 ## Each entry: {"id": StringName, "params": Dictionary}, e.g.
 ##   [{"id": &"cold_sixes", "params": {"face": 6}}, {"id": &"pit_boss", "params": {}}]
 ## Optional "name" / "description" override the HUD text; a RunRuleData
-## resource is accepted as an entry too. Short Table / Heavy Burn are
+## resource is accepted as an entry too. Short Table / Heavy Toll are
 ## labels only: set goal.hands / tuning.bust_soul_loss for them.
 var rules: Array = []
 ## Dice the player owns in the run bag (Cracked never shatters at <= 5).

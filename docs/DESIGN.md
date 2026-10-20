@@ -90,7 +90,7 @@ sell a die for part of its price (`die_sell_percent`).
 
 Both are table rules (`RunRuleData`, `resources/map/rules/`):
 
-- A **twist** is an Elite's rule: Cold Sixes, Cold Hands, First Throw, Greedy Pot, Heavy Burn
+- A **twist** is an Elite's rule: Cold Sixes, Cold Hands, First Throw, Greedy Pot, Heavy Toll
   and Short Table.
 - A **cheat** is a boss's own rule, named after the boss: Madame Shuffle, The Pit Boss, The
   Collector, The Bloodletter, Ashmouth and The Straight Man.

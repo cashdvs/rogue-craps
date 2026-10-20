@@ -19,7 +19,7 @@ var owned_dice_count: int = 0
 var run_embers: int = 0
 ## Twist / cheat ids and params, for the table to enforce.
 var rules: Array[RunRuleData] = []
-## Soul per bust after rules (Heavy Burn); -1 = the table's normal value.
+## Soul per bust after rules (Heavy Toll); -1 = the table's normal value.
 var bust_soul_loss: int = -1
 ## Combo id -> base / mult the run's Seals add (x = base, y = mult).
 var seal_bonus: Dictionary[StringName, Vector2i] = {}
@@ -65,7 +65,7 @@ func to_table_setup(base: BonfireTuning) -> TableSetup:
 
 
 ## TableSetup.rules: one {"id", "params"} per twist / cheat, in order.
-## Short Table / Heavy Burn are labels at the table; their hands / bust cost
+## Short Table / Heavy Toll are labels at the table; their hands / bust cost
 ## are already in goal.hands / tuning.bust_soul_loss. A rule whose text
 ## depends on the hands ("{hands} hands.") also sends its filled-in
 ## "description" so the table HUD shows the real number.
