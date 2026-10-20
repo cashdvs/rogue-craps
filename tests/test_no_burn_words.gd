@@ -1,9 +1,11 @@
 ## strings_v1 (Game Designer): no burn or fire words in player-facing text.
 ## Scans every string literal in the game scripts and resources for the
 ## whole words burn / burns / burned / fire / flame. Skipped (not player
-## text): comments, StringName ids (&"..."), node paths and file paths, and
-## single-word ids with no space (shader params, signal names, props such
-## as the bonfire / brazier pieces).
+## text): comments, StringName ids (&"..."), file and node paths, node
+## names (`name = "..."`, get_node / find_child), and one-word ids
+## (snake_case or lower case: shader params, signal names, props such as
+## the bonfire / brazier pieces). A one-word label like "Burn" or "BURN"
+## (starts with a capital) IS player text and is checked (QA nit).
 ##   godot --headless --path . --script res://tests/test_no_burn_words.gd
 extends SceneTree
 
@@ -15,11 +17,17 @@ var _failed: int = 0
 const DIRS := ["res://scripts/bonfire", "res://scripts/core", "res://scripts/data",
 	"res://scripts/map", "res://scripts/ui", "res://resources"]
 const SKIP_FILES := ["res://scripts/core/poc_table.gd"]
-## Content names the Game Designer keeps (a die and a twist), not prose.
-const NAMES := ["Twin Flame", "Heavy Burn"]
-## Known prose still to reword, reported to the Game Designer (not in
-## strings_v1's list). Keep this empty once it is reworded.
-const KNOWN := ["The ink burns into your skin."]
+## Content names the Game Designer keeps (the Twin Flame die), not prose.
+const NAMES := ["Twin Flame"]
+## Still to rename, owned by Systems Dev (run data): the Heavy Burn twist's
+## display name. Only these exact spots are let through; remove them once
+## it is renamed.
+const PENDING := {
+	"res://resources/map/rules/heavy_burn.tres": "Heavy Burn",
+	"res://scripts/core/rules/table_rules.gd": "Heavy Burn",
+}
+## Lines that name a node, not show text.
+const NODE_NAME := "(\\bname\\s*=|get_node|find_child|has_node|NodePath|\\$\")"
 const WORDS := "\\b(burn|burns|burned|burning|fire|flame|flames)\\b"
 
 
@@ -39,6 +47,9 @@ func _run() -> void:
 	var word := RegEx.create_from_string("(?i)" + WORDS)
 	# A string literal that isn't a StringName: "..." not preceded by & or ^.
 	var lit := RegEx.create_from_string("(?<![&^])\"((?:[^\"\\\\]|\\\\.)*)\"")
+	var node_line := RegEx.create_from_string(NODE_NAME)
+	# A one-word label: starts with a capital (Burn, BURN), letters only.
+	var label_word := RegEx.create_from_string("^[A-Z][A-Za-z]*[!.]?$")
 	var hits: Array[String] = []
 	var files := 0
 	for d in DIRS:
@@ -55,8 +66,11 @@ func _run() -> void:
 				for m in lit.search_all(code):
 					var s := m.get_string(1)
 					if not s.contains(" "):
-						continue  # an id, path or prop name, not a sentence
-					if KNOWN.has(s):
+						# One word: an id / path / node name, unless it reads
+						# like a label ("Burn") on a line that isn't naming a node.
+						if label_word.search(s) == null or node_line.search(code) != null:
+							continue
+					if PENDING.get(path, "") == s:
 						continue
 					for n in NAMES:
 						s = s.replace(n, "")
