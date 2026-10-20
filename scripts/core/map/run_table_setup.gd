@@ -27,6 +27,9 @@ var seal_bonus: Dictionary[StringName, Vector2i] = {}
 var first_table: bool = false
 ## Nerve uses per table (RunData.nerve_uses -> TableSetup.nerve_uses).
 var nerve_uses: int = 1
+## Knucklebone Seal steps {combo id: Vector2i(base, mult)} from RunData's
+## seal_base_step / seal_mult_step (NonStdDice.seal_steps); -> TableSetup.seal_steps.
+var seal_steps: Dictionary = {}
 
 
 ## The rules' ids, in order.
@@ -57,6 +60,7 @@ func to_table_setup(base: BonfireTuning) -> TableSetup:
 		ts.set("run_embers", run_embers)
 	ts.first_table = first_table
 	ts.nerve_uses = nerve_uses
+	ts.seal_steps = seal_steps.duplicate()
 	return ts
 
 
