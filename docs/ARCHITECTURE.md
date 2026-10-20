@@ -69,6 +69,7 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 | `Bonfire3D.finished(outcome: TableOutcome)` | `scripts/bonfire/bonfire_3d.gd` | fires once when the table ends; the only way a table reports back (cleared, Soul, Embers, bounties, banked combos, shattered dice) |
 | `Bonfire3D.throw_resolved(faces, lit)`, `hand_result(result)` | same | per-throw and per-hand results, for HUD and tests |
 | `BonfireRun.table_event(event, data)` | `scripts/core/bonfire_run.gd` | today's hook for juice and audio: `hand_start`, `throw_landed`, `pot`, `bank`, `bust`, `die_shattered`, `kindling_saved`, `table_cleared` (the clearing bank; the table stays open until Leave), `table_end`. Being replaced by `table.events` (`scripts/bonfire/table_events.gd`, readability PR) |
+| `NerveState` (`can_nudge`, `can_nudge_dir`, `nudge`, `undo`, `commit`, `mark_potted`, `uses_left`, `ui_state`, `rescue_options` / `any_nudge_lights`) | `scripts/core/nerve_state.gd` (Systems Dev; pure logic, `tests/test_nerve.gd`) | Nerve (`design/nerve_v1.md`): once per table, turn one unpotted die from this throw to the adjacent value on its face list (no wrap; Coin and Mirror excluded; repeated values auto-pick via `score_fn`). The table builds it from `TableSetup.nerve_uses`, calls `begin_throw` when a throw settles and `reset_table` for each table or boss re-sit, and re-runs copies and the lit check after a nudge. Never costs Soul or Embers |
 | `MapRun.screen_changed(screen)` | `scripts/core/map/map_run.gd` | `MAP`, `TABLE`, `EVENT`, `SHOP`, `REST`, `REWARD`, `RUN_WON`, `RUN_OVER`; `RunScreen.refresh()` redraws |
 | `RunProgress.changed`, `run_ended` | `scripts/core/run/run_progress.gd` | Soul, Embers, dice or Seals changed; Soul hit 0 |
 | `MapView.node_pressed(id)`, `EventView.choice_made(i, picks)` | `scripts/map/` | UI → `MapRun.choose_node()` / `choose_event()` |
@@ -98,7 +99,7 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 
 | File | Class | Holds |
 |---|---|---|
-| `resources/map/bonfire_run.tres` | `RunData` | the run: floors, Soul, handful size, pools (`events`, `special_dice`, `face_mods`), Seal steps, rewards, shop and rest numbers |
+| `resources/map/bonfire_run.tres` | `RunData` | the run: floors, Soul, handful size, pools (`events`, `special_dice`, `face_mods`), Seal steps, rewards, shop and rest numbers, `nerve_uses` (Nerve per table; `MapRun.table_setup()` -> `RunTableSetup` -> `TableSetup.nerve_uses`) |
 | `resources/map/floor_1..3.tres` | `FloorData` | per floor: map rules, bounty pools and counts, hands, clear Embers, Elite twists, boss pool and boss bounties/hands |
 | `resources/map/floor_1_map.tres` | `MapGenData` | map shape and node weights |
 | `resources/map/rules/*.tres` | `RunRuleData` | Elite twists (`kind` TWIST) and boss cheats (`kind` CHEAT): name, text, `hands_delta`, `bust_soul_loss`, `params` |

@@ -36,6 +36,8 @@ func _initialize() -> void:
 	_test_duplicates()
 	_test_throw_lifecycle()
 	_test_setup_plumbing()
+	_test_map_run_e2e()
+	_test_no_soul_or_embers()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_wild = null
 	_blank = null
@@ -337,3 +339,75 @@ func _test_throw_lifecycle() -> void:
 	keep.commit()
 	keep.reset_table()
 	check(keep.uses_left() == 1, "unused Nerve doesn't stack across tables (still 1)")
+
+
+## A MapRun on floor 1 entered at its first Table node; its TableSetup.
+func _table_setup_from_run(rd: RunData) -> TableSetup:
+	var run := MapRun.new(rd, 7)
+	run._start_floor(0)
+	for n: MapNode in run.map.nodes.values():
+		if n.type == MapGenData.NodeType.TABLE:
+			run.map.current_id = n.prev[0] if not n.prev.is_empty() else -1
+			run.screen = MapRun.Screen.MAP
+			run.choose_node(n.id)
+			break
+	var base := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	return run.table_setup().to_table_setup(base)
+
+
+## QA: RunData.nerve_uses reaches the TableSetup the table gets, end to end
+## (a hardcoded value in MapRun.table_setup() fails this).
+func _test_map_run_e2e() -> void:
+	var rd := load("res://resources/map/bonfire_run.tres") as RunData
+	check(_table_setup_from_run(rd).nerve_uses == 1, "e2e: map_run -> TableSetup.nerve_uses = 1 by default")
+	var rd2 := rd.duplicate() as RunData
+	rd2.nerve_uses = 2
+	check(_table_setup_from_run(rd2).nerve_uses == 2, "e2e: RunData.nerve_uses = 2 -> TableSetup.nerve_uses = 2")
+	var rd0 := rd.duplicate() as RunData
+	rd0.nerve_uses = 0
+	check(_table_setup_from_run(rd0).nerve_uses == 0, "e2e: RunData.nerve_uses = 0 -> 0")
+
+
+## QA: Nerve never costs Soul or Embers (Bloodletter included).
+func _test_no_soul_or_embers() -> void:
+	var src := FileAccess.get_file_as_string("res://scripts/core/nerve_state.gd")
+	check(src.length() > 1000, "nerve_state.gd read")
+	var code := ""
+	for line in src.split("\n"):
+		var t := line.strip_edges()
+		if not t.begins_with("#"):
+			code += line.get_slice("#", 0) + "\n"
+	var low := code.to_lower()
+	check(not low.contains("soul") and not low.contains("ember"), "nerve_state.gd code never mentions soul / ember")
+	# Run-level: a table's BonfireRun with a settled throw; Nerve cycles around it.
+	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var g := TableGoal.new()
+	g.hands = 3
+	var run := BonfireRun.new(t, g)
+	var bl := TableRules.make({"id": &"bloodletter", "params": {}})
+	check(bl != null, "Bloodletter rule builds")
+	run.set_rules([bl] as Array[TableRule], 1)
+	run.set_throw([1, 2, 4, 5, 6] as Array[int])
+	var before := [run.soul, run.embers, run.points, run.hands_left]
+	var dice := _bones(5)
+	var n := NerveState.new()
+	n.setup(dice)
+	n.begin_throw([1, 2, 4, 5, 6] as Array[int])
+	n.nudge(1, NerveState.UP)
+	n.undo(1)
+	n.nudge(2, NerveState.DOWN)
+	n.commit()
+	check(n.uses_left() == 0 and n.slots[2] == 3, "cycle: nudge, undo, nudge, commit")
+	check([run.soul, run.embers, run.points, run.hands_left] == before, "run Soul / Embers / points / hands unchanged by Nerve (Bloodletter on)")
+	var rd := load("res://resources/map/bonfire_run.tres") as RunData
+	var prog := MapRun.new(rd, 3).progress
+	var pb := [prog.soul, prog.embers]
+	var n2 := NerveState.new()
+	n2.setup(_bones(2))
+	n2.begin_throw([3, 3] as Array[int])
+	n2.nudge(0, NerveState.UP)
+	n2.undo(0)
+	n2.nudge(0, NerveState.DOWN)
+	n2.commit()
+	n2.reset_table()
+	check([prog.soul, prog.embers] == pb, "RunProgress Soul / Embers unchanged by Nerve")
