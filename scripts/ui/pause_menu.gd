@@ -88,7 +88,10 @@ func _build_confirm(center: Control) -> void:
 	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(q)
 	var why := Label.new()
-	why.text = "The hand in play is lost and every unclaimed\nbounty costs Soul, like running out of hands."
+	# strings_v1 (Game Designer): one exact sentence; the label wraps it.
+	why.text = "The hand in play is lost. Every unclaimed bounty costs Soul, like running out of hands."
+	why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	why.custom_minimum_size = Vector2(640, 0)
 	why.label_settings = Palette.label_settings(26, Palette.BONE, 4)
 	why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(why)

@@ -39,6 +39,11 @@ func _run() -> void:
 		check(not txt.contains("\"Triple\"") and not txt.contains("\"Two Pairs\""), "%s: Trips / Two Pair" % f)
 	check(BustRisk.prompt(3, {"text": "1 in 12"}) == "3 cold dice: 1 in 12 chance nothing lights", "rethrow prompt")
 	check(BustRisk.prompt(1, {"text": BustRisk.odds_text(1.0)}) == "1 cold die: a sure bust", "sure bust")
+	# Can't bust: "it" for one die, "they" for more.
+	check(BustRisk.prompt(1, {"text": BustRisk.odds_text(0.0)}) == "1 cold die: it can't bust", "can't bust, 1 die: 'it' (%s)" % BustRisk.prompt(1, {"text": BustRisk.odds_text(0.0)}))
+	check(BustRisk.prompt(2, {"text": BustRisk.odds_text(0.0)}) == "2 cold dice: they can't bust", "can't bust, 2 dice: 'they' (%s)" % BustRisk.prompt(2, {"text": BustRisk.odds_text(0.0)}))
+	# Pause menu leave-confirm line (strings_v1, exact).
+	check(FileAccess.get_file_as_string("res://scripts/ui/pause_menu.gd").contains("\"The hand in play is lost. Every unclaimed bounty costs Soul, like running out of hands.\""), "pause leave-confirm text")
 	# The table HUD after a throw: no player-facing "burn" anywhere.
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.tutorial_override = 0
