@@ -27,6 +27,9 @@ var rules: Array = []
 ## Dice the player owns in the run bag (Cracked never shatters at <= 5).
 ## -1 = dice.size().
 var owned_dice_count: int = -1
+## Run mode: the run's Embers before this table. The HUD shows this plus the
+## table's payout; TableOutcome.embers stays the payout only.
+var run_embers: int = 0
 ## The run's first table (the sandbox counts as one): only it gets the
 ## Table 1 tutorial seeds and TH hints (Game Designer's
 ## design/onboarding_hints_v1.md, in the design docs outside this repo).
@@ -34,6 +37,9 @@ var first_table: bool = true
 ## The run's Seal steps for the Knucklebone (NonStdDice.seal_steps(run_data));
 ## empty = res://resources/map/bonfire_run.tres.
 var seal_steps: Dictionary = {}
+## Nerve uses per table (design/nerve_v1.md; RunData.nerve_uses). The table
+## builds NerveState with it and refills it each table, boss re-sits too.
+var nerve_uses: int = 1
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.

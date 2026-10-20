@@ -30,6 +30,11 @@ var rules: Array[RunRuleData] = []
 var boss_misses: int = 0
 ## Tables finished this run (the first one gets the tutorial seeds).
 var tables_played: int = 0
+## Tables (any kind) cleared this run, for the end summary.
+var tables_cleared: int = 0
+## Why the run ended: &"soul" (Soul ran out), &"boss" (missed the boss and
+## its re-sit), &"contract" (last boss beaten without every piece), &"won".
+var end_reason: StringName = &""
 
 ## Reward screen: Seal options (combo ids, or rare Seal ids) and Elite dice.
 var seal_options: Array[StringName] = []

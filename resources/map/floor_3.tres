@@ -61,6 +61,8 @@ n = 4
 [resource]
 script = ExtResource("16_4i6il")
 display_name = "Floor 3"
+hands = 4
+boss_hands = 5
 map = ExtResource("15_rs5l7")
 min_bounties = 4
 max_bounties = 4

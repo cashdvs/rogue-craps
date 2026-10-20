@@ -34,6 +34,10 @@ var _panel_box: VBoxContainer
 var _table: Bonfire3D
 ## Map screen: "Quit to title" (asks first; the run is lost).
 var quit_button: Button
+## Map screen: "Your dice" (D) and "Key" (K) on the top bar.
+var bag_button: Button
+var key_button: Button
+var map_key: MapKey
 ## Boss intro sign (BossSign), or null. Tests / captures read it.
 var boss_sign: TextureRect
 ## Tests: treat the window as this many pixels tall when picking @1x / @2x
@@ -82,27 +86,77 @@ func _ready() -> void:
 	quit_button.offset_top = 8
 	quit_button.pressed.connect(ask_quit)
 	_ui.add_child(quit_button)
+	bag_button = _bar_button("Your dice", -480, show_dice)
+	key_button = _bar_button("Key", -620, func() -> void: map_key.visible = not map_key.visible)
+	map_key = MapKey.new()
+	_ui.add_child(map_key)
 	new_run(run_seed)
 
 
+## Start a new run (seed < 0 = random) and show its map.
 func new_run(seed_value: int) -> void:
 	if seed_value < 0:
 		seed_value = randi()
 	run = MapRun.new(run_data, seed_value)
 	run.screen_changed.connect(func(_s: S) -> void: refresh())
 	run.progress.changed.connect(_refresh_bar)
+	# Opens by itself once per profile (RunProfile), then only via Key / K.
+	map_key.visible = not RunProfile.map_key_seen()
+	if map_key.visible:
+		RunProfile.mark_map_key_seen()
+	run.screen_changed.connect(func(_s: S) -> void:
+		if run.floor_index > 0 and run.screen == S.MAP and run.map.current_id == -1:
+			map_key.visible = false)
 	refresh()
 
 
+func _bar_button(text: String, left: float, on_press: Callable) -> Button:
+	var b := RunTheme.button(text, 20)
+	b.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	b.offset_left = left
+	b.offset_right = left + 220 if text != "Key" else left + 120
+	b.offset_top = 8
+	b.pressed.connect(on_press)
+	_ui.add_child(b)
+	return b
+
+
+## K toggles the map key, D opens / closes "Your dice" (map only).
+func _unhandled_input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or k.echo or run.screen != S.MAP or _table != null:
+		return
+	if k.keycode == KEY_K and map_view.visible:
+		map_key.visible = not map_key.visible
+	elif k.keycode == KEY_D:
+		refresh() if not map_view.visible else show_dice()
+
+
+## The read-only "Your dice" view (dice cards + Your Seals), from the map.
+func show_dice() -> void:
+	map_view.visible = false
+	for b in [quit_button, bag_button, key_button, map_key]:
+		b.visible = false
+	_panel_root.visible = true
+	var dp := DicePanel.new()
+	dp.build(run.progress, {"combos": bonfire_tuning.combos})
+	_panel("Your dice", [], [["Close", refresh]], dp)
+
+
+## Show the screen for run.screen and update the bar.
 func refresh() -> void:
 	_refresh_bar()
 	map_view.visible = run.screen == S.MAP
 	event_view.visible = run.screen == S.EVENT
 	_panel_root.visible = not (map_view.visible or event_view.visible)
 	quit_button.visible = map_view.visible
+	bag_button.visible = map_view.visible
+	key_button.visible = map_view.visible
+	if not map_view.visible:
+		map_key.visible = false
 	match run.screen:
 		S.MAP:
-			map_view.show_map(run.map, run.boss_name(), _boss_rules(), run.pending_twist_note())
+			map_view.show_map(run.map, run.boss_name(), TablePreview.boss_rules(run), run.pending_twist_note())
 		S.EVENT:
 			event_view.show_event(run.event, run.progress, run.table_ahead())
 		S.TABLE:
@@ -113,20 +167,16 @@ func refresh() -> void:
 			_show_rest()
 		S.SHOP:
 			_show_shop()
-		S.RUN_WON:
-			_panel("Run Won", ["The contract is whole: %d/%d pieces. (Placeholder win screen.)" % [run.progress.contract_pieces, run_data.contract_pieces_to_win]],
-				[["New run", func() -> void: new_run(-1)]])
-		S.RUN_OVER:
-			_panel("Out of Soul", ["Your run ends on %s." % run.floor_data().display_name], [["New run", func() -> void: new_run(-1)]])
+		S.RUN_WON, S.RUN_OVER:
+			var lines: Array = [RunSummary.reason_line(run)]
+			lines.append_array(RunSummary.lines(run))
+			_panel(RunSummary.title(run), lines, [["New run", func() -> void: new_run(-1)], ["Quit to title", quit_to_title]])
 
 
 func _refresh_bar() -> void:
 	var p := run.progress
-	var seals: Array[String] = []
-	for c in p.seal_levels.keys():
-		seals.append("%s Lv%d" % [c, p.seal_levels[c] + 1])
-	_bar.text = "%s   Soul %d/%d   Embers %d   Dice %d   Contract %d   Seals: %s" % [run.floor_data().display_name,
-		p.soul, p.max_soul, p.embers, p.dice.size(), p.contract_pieces, "none" if seals.is_empty() else ", ".join(seals)]
+	_bar.text = "%s   Soul %d/%d   Embers %d   Dice %d   Contract %d   Seals %d   Seed %d" % [run.floor_data().display_name,
+		p.soul, p.max_soul, p.embers, p.dice.size(), p.contract_pieces, run.owned_seals().size(), run.run_seed]
 
 
 ## Fill the centre panel: a title, text lines, and [label, callable(, disabled)] buttons.
@@ -146,16 +196,6 @@ func _panel(title: String, lines: Array, buttons: Array, extra: Control = null) 
 		_panel_box.add_child(b)
 
 
-## The floor boss's cheat (and Floor 3's extra twist), for the map.
-func _boss_rules() -> String:
-	var out: Array[String] = []
-	if run.boss != null:
-		out.append(run.boss.description)
-	if run.boss_twist != null:
-		out.append("Twist: %s - %s" % [run.boss_twist.display_name, run.boss_twist.description])
-	return " / ".join(out)
-
-
 ## Confirm before leaving the run for the title screen.
 func ask_quit() -> void:
 	map_view.visible = false
@@ -165,6 +205,7 @@ func ask_quit() -> void:
 		[["Quit to title", quit_to_title], ["Keep playing", refresh]])
 
 
+## Leave the run for the title screen (no confirm; ask_quit asks first).
 func quit_to_title() -> void:
 	get_tree().change_scene_to_file(TITLE_SCENE)
 
@@ -175,9 +216,9 @@ func _show_table() -> void:
 	for b in g.required:
 		names.append(b.display_name)
 	var lines: Array = ["Bounties: " + ", ".join(names), "Bonus: " + (g.bonus[0].display_name if not g.bonus.is_empty() else "none"),
-		"Hands: %d" % g.hands]
+		"Hands: %d" % g.hands, "Miss: -%d Soul per unclaimed bounty." % g.timeout_soul_per_bounty]
 	for r in run.rules:
-		lines.append("%s: %s - %s" % ["Cheat" if r.kind == RunRuleData.Kind.CHEAT else "Twist", r.display_name, r.description])
+		lines.append("%s: %s - %s" % ["Cheat" if r.kind == RunRuleData.Kind.CHEAT else "Twist", r.display_name, r.text(g.hands)])
 	if run.table_type == NT.BOSS:
 		if run.boss_misses > 0:
 			lines.append("Re-sit: one more miss ends the run.")
@@ -185,17 +226,9 @@ func _show_table() -> void:
 	if stubs_enabled():
 		buttons.append(["Stub: clear", func() -> void: run.quick_resolve(true)])
 		buttons.append(["Stub: miss", func() -> void: run.quick_resolve(false)])
-	_panel(g.display_name, lines, buttons)
-	boss_sign = null
-	if run.table_type == NT.BOSS:
-		boss_sign = BossSign.make_sign(run.boss, _px_height(), _layout_width())
-		if boss_sign != null:
-			# The sign is the header: it replaces the boss-name title.
-			var title := _panel_box.get_child(0)
-			_panel_box.remove_child(title)
-			title.queue_free()
-			_panel_box.add_child(boss_sign)
-			_panel_box.move_child(boss_sign, 0)
+	_panel(g.display_name, lines, buttons, TablePreview.dice_row(run.progress, show_dice))
+	boss_sign = TablePreview.add_boss_sign(_panel_box, run, _px_height(), get_viewport().get_visible_rect().size.x) \
+		if run.table_type == NT.BOSS else null
 
 
 ## Window height in pixels (for @1x / @2x sign art).
@@ -203,10 +236,7 @@ func _px_height() -> int:
 	return sign_px_height if sign_px_height > 0 else get_window().size.y
 
 
-func _layout_width() -> float:
-	return get_viewport().get_visible_rect().size.x
-
-
+## Dev stub buttons at tables: only with debug_table_stubs in a debug build.
 func stubs_enabled() -> bool:
 	return debug_table_stubs and OS.is_debug_build()
 
@@ -244,7 +274,7 @@ func _show_reward() -> void:
 	for i in run.seal_options.size():
 		var id := run.seal_options[i]
 		var txt: String = ("%s (rare Seal)" % String(id).capitalize()) if run.is_rare_seal(id) \
-			else "%s Seal -> Lv%d" % [String(id).capitalize(), run.progress.seal_level(id) + 2]
+			else "%s Seal -> Lv%d" % [String(id).capitalize(), run.progress.seal_level(id) + 1]
 		buttons.append([txt, func() -> void: _seal_with_params(id, func(params: Dictionary) -> bool: return run.take_seal(i, params)),
 			not _seal_possible(id)])
 	buttons.append(["Skip (+%d Embers)" % run_data.seal_skip_embers, func() -> void: run.take_seal(-1)])
@@ -275,10 +305,11 @@ func _show_shop() -> void:
 		if run.shop_mods[i] != null:
 			var m := run.shop_mods[i]
 			var low := run.cheapest_mod_price(i)
-			buttons.append(["%s - from %d Embers (+%d%% per mod on the die)" % [m.display_name, maxi(low, m.price), run_data.mod_price_step_percent], func() -> void:
+			buttons.append([mod_offer_text(i), func() -> void:
 				_pick("Pick a face for the %s" % m.display_name, func(at: Vector2i) -> void:
 					run.buy_mod(i, at)
-					_show_shop(), func(at: Vector2i) -> bool: return run.can_buy_mod_at(i, at)), low < 0 or e < low])
+					_show_shop(), func(at: Vector2i) -> bool: return run.can_buy_mod_at(i, at),
+					func(d: int) -> int: return run.progress.mod_price(m, d)), low < 0 or e < low])
 	for i in run.shop_seals.size():
 		if run.shop_seals[i] != &"":
 			var id := run.shop_seals[i]
@@ -294,7 +325,17 @@ func _show_shop() -> void:
 				func() -> void: run.sell_die(d_i); _show_shop()])
 	buttons.append(["Free reroll (%d left)" % run.progress.free_rerolls if run.progress.free_rerolls > 0 else "Reroll - %d Embers" % run.reroll_price(), func() -> void: run.shop_reroll(); _show_shop(), e < run.reroll_price()])
 	buttons.append(["Leave", func() -> void: run.leave()])
-	_panel("The Ember Shop", ["A mod costs more for each mod already on that die. Dice sell for half.", "Your dice: " + bag_text()], buttons)
+	_panel("The Ember Shop", ["Each mod on a die makes its next mod cost more; pick the die to see its price. Dice sell for half.", "Your dice: " + bag_text()], buttons)
+
+
+## Shop label for mod offer i: its price range over your dice, e.g.
+## "Twin Face - 9 to 27 Embers, by die" (one price: "9 Embers").
+func mod_offer_text(i: int) -> String:
+	var m := run.shop_mods[i]
+	var r := run.mod_price_range(i)
+	if r.x < 0:
+		return "%s - no free face" % m.display_name
+	return "%s - %d Embers" % [m.display_name, r.x] if r.x == r.y else "%s - %d to %d Embers, by die" % [m.display_name, r.x, r.y]
 
 
 ## The handful by name and shape, e.g. "Bone, Powder Keg (6 faces), Ferryman's Coin (2 faces), Mirror Die".
@@ -306,9 +347,10 @@ func bag_text() -> String:
 	return ", ".join(names)
 
 
-func _pick(prompt: String, done: Callable, allowed: Callable = Callable()) -> void:
-	var picker := FacePicker.new()
-	picker.build(run.progress, prompt, allowed if allowed.is_valid() else func(at: Vector2i) -> bool: return run.free_face(at))
+func _pick(prompt: String, done: Callable, allowed: Callable = Callable(), price: Callable = Callable()) -> void:
+	var picker := DicePanel.new()
+	picker.build(run.progress, {"prompt": prompt, "seals": false, "price": price,
+		"allowed": allowed if allowed.is_valid() else func(at: Vector2i) -> bool: return run.free_face(at)})
 	picker.picked.connect(done)
 	_panel("Carve", [], [["Back", refresh]], picker)
 

@@ -198,6 +198,24 @@ func _init() -> void:
 var display_hold: Dictionary = {}
 
 
+## The Bonfire3D above this HUD, found once in _ready (null standalone).
+var _table: Bonfire3D
+
+
+func _ready() -> void:
+	var n: Node = get_parent()
+	while n != null and not (n is Bonfire3D):
+		n = n.get_parent()
+	_table = n as Bonfire3D
+
+
+## The run's Embers before this table (TableSetup.run_embers), so EMBERS
+## shows the player's balance; 0 for the sandbox or without the field.
+func _run_embers() -> int:
+	var st: TableSetup = _table.setup if _table != null else null
+	return int(st.get("run_embers")) if st != null and "run_embers" in st else 0
+
+
 ## Seconds the "Leave? Tap again" question waits for the second tap.
 const LEAVE_CONFIRM_S: float = 2.0
 const LEAVE_TEXT := "Leave table"
@@ -229,7 +247,7 @@ func _reset_leave_ask() -> void:
 
 
 func refresh(run: BonfireRun, can_act: bool) -> void:
-	coin_label.text = "EMBERS %d" % int(display_hold.get("embers", run.embers))
+	coin_label.text = "EMBERS %d" % (_run_embers() + int(display_hold.get("embers", run.embers)))
 	# Points are income (section 4): "points 572 → +5 Embers".
 	var pts := int(display_hold.get("points", run.points))
 	points_label.text = "points %d → +%d Embers" % [pts, pts / maxi(run.tuning.points_per_ember, 1)]

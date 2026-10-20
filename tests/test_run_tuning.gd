@@ -67,12 +67,14 @@ func _test_tuning_v1() -> void:
 	_check(f2.max_bounties == 3 and _bounty_ids(f2.featured_bounties) == [&"run4"] and f2.clear_embers == 12
 		and f2.bonus_bounties.size() == 2 and f2.bonus_bounties.all(func(b): return b.bonus_embers == 6),
 		"tuning v1: floor 2 max 3, featured Run of 4, clear 12, bonuses 6")
+	_check(f2.hands == 4 and f2.boss_hands == 5 and f3.boss_hands == 5 and f1.boss_hands == 7,
+		"addendum 4 (Nerve): floors 2/3 hands 4, boss_hands 5; floor 1 boss 7 unchanged")
 	var fh: BountyData = f3.bonus_bounties[0] if f3.bonus_bounties.size() > 0 else null
-	_check(f3.hands == 5 and _bounty_ids(f3.featured_bounties) == [&"run4"] and f3.clear_embers == 14
+	_check(f3.hands == 4 and _bounty_ids(f3.featured_bounties) == [&"run4"] and f3.clear_embers == 14
 		and _bounty_ids(f3.bonus_bounties) == [&"bonus_full_house", &"bonus_quads"]
 		and fh.kind == BountyData.Kind.FULL_HOUSE and fh.n == 5
 		and f3.bonus_bounties.all(func(b): return b.bonus_embers == 8),
-		"tuning v1: floor 3 hands 5, featured Run of 4, clear 14, bonus Full House/Quads at 8")
+		"tuning v1: floor 3 hands 4 (Nerve retune), featured Run of 4, clear 14, bonus Full House/Quads at 8")
 	_check(f3.boss_bounties.is_empty() and f3.boss_min_bounties == 4 and f3.boss_max_bounties == 4 and not f3.boss_adds_twist,
 		"tuning v1: floor 3 boss draws 4 from the floor pool, no twist")
 	var wick: RunRuleData = f3.boss_cheats[0]
@@ -110,9 +112,9 @@ func _test_tuning_addendum_2() -> void:
 		"addendum 2: Floor 3 boss pool = Mister Wick, Baron Vig, Odds Bodkin")
 	var vig: RunRuleData = f3.boss_cheats[1]
 	var bod: RunRuleData = f3.boss_cheats[2]
-	_check(vig.kind == RunRuleData.Kind.CHEAT and str(vig.params) == str({"min_pot": 3}) and vig.hands_delta == 0
+	_check(vig.kind == RunRuleData.Kind.CHEAT and str(vig.params) == str({"min_pot": 3}) and vig.hands_delta == -1
 		and bod.kind == RunRuleData.Kind.CHEAT and str(bod.params) == str({"throws": 1}) and bod.hands_delta == 1,
-		"addendum 2: Vig min_pot 3, Bodkin throws 1 / hands_delta +1")
+		"addendum 2/4: Vig min_pot 3 / hands_delta -1, Bodkin throws 1 / hands_delta +1")
 	var seen: Dictionary = {}
 	var hok := true
 	for s in 200:
@@ -121,11 +123,11 @@ func _test_tuning_addendum_2() -> void:
 		_enter(run, NT.BOSS)
 		var n: String = run.boss.display_name
 		seen[n] = true
-		var want_h: int = 7 if n == "Odds Bodkin" else 6
+		var want_h: int = {"Odds Bodkin": 6, "Mister Wick": 5, "Baron Vig": 4}.get(n, -1)
 		hok = hok and run.goal.hands == want_h and run.goal.required.size() == 4 and run.rules.size() == 1
 	_check(seen.has("Mister Wick") and seen.has("Baron Vig") and seen.has("Odds Bodkin") and seen.size() == 3,
 		"addendum 2: all 3 Floor 3 bosses appear across 200 seeds (%d seen)" % seen.size())
-	_check(hok, "addendum 2: Odds Bodkin boss tables have 7 hands, Wick and Vig have 6")
+	_check(hok, "addendum 4: Odds Bodkin boss tables have 6 hands, Wick 5, Vig 4")
 
 
 ## run_tuning_v1 addendum: Floor 1/2 bosses and the Elite twists.
