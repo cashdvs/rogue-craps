@@ -34,6 +34,9 @@ var first_table: bool = true
 ## The run's Seal steps for the Knucklebone (NonStdDice.seal_steps(run_data));
 ## empty = res://resources/map/bonfire_run.tres.
 var seal_steps: Dictionary = {}
+## Nerve uses per table (design/nerve_v1.md; RunData.nerve_uses). The table
+## builds NerveState with it and refills it each table, boss re-sits too.
+var nerve_uses: int = 1
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.
