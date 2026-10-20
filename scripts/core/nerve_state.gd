@@ -38,6 +38,7 @@ var _nudged_die: int = -1
 var _from_slot: int = 0
 var _picking: int = -1
 var _throw_open: bool = false
+var _landed: Array[int] = []
 
 
 ## Sets up the table's dice and refills Nerve (start of a table).
@@ -55,6 +56,7 @@ func reset_table() -> void:
 	_from_slot = 0
 	_picking = -1
 	_throw_open = false
+	_landed.clear()
 	slots.clear()
 	slots.resize(dice.size())
 	slots.fill(0)
@@ -70,6 +72,8 @@ func reset_table() -> void:
 func begin_throw(throw_slots: Array[int]) -> void:
 	commit()
 	slots.assign(throw_slots)
+	_landed.assign(throw_slots)
+	_landed.resize(dice.size())
 	slots.resize(dice.size())
 	potted.resize(dice.size())
 	potted.fill(false)
@@ -127,33 +131,53 @@ static func is_copy_die(d: TableDie) -> bool:
 		or d.shape == DiceIds.SHAPE_COIN
 
 
-## Why die [param die_index] can't be nudged: "" if it can, else a strings_v1
-## id (nerve_used_refusal, nerve_copy_refusal, nerve_potted_refusal) or
-## "not_in_throw".
-func refusal(die_index: int) -> String:
+## Why die [param die_index] can't be nudged, as a strings_v1 id
+## (# nerve_v1): nerve_used_refusal, nerve_copy_refusal, nerve_potted_refusal
+## (potted, or not in this throw because it was potted earlier), and with
+## [param dir] (UP / DOWN) nerve_high_refusal / nerve_low_refusal at the end
+## of the face list. "" when no string fits (index out of range, no settled
+## throw, or this throw already closed by a pot) and when it can be nudged:
+## use can_nudge() / can_nudge_dir() for yes / no.
+func refusal(die_index: int, dir: int = 0) -> String:
+	var why := _blocked(die_index)
+	if why == "" and dir != 0 and target_slot(dice[die_index], slots[die_index], dir) <= 0:
+		return "nerve_high_refusal" if dir > 0 else "nerve_low_refusal"
+	return "" if why == _CLOSED else why
+
+
+const _CLOSED := "_closed"
+
+
+## refusal() without dir, plus _CLOSED for "no string fits".
+func _blocked(die_index: int) -> String:
 	if die_index < 0 or die_index >= dice.size():
-		return "not_in_throw"
+		return _CLOSED
 	if uses_left() <= 0:
 		return "nerve_used_refusal"
 	if is_copy_die(dice[die_index]):
 		return "nerve_copy_refusal"
-	if potted[die_index]:
+	if potted[die_index] or (_throw_open and slots[die_index] <= 0):
 		return "nerve_potted_refusal"
-	if not _throw_open or slots[die_index] <= 0:
-		return "not_in_throw"
+	if not _throw_open:
+		return _CLOSED
 	return ""
+
+
+## Face slots as the throw landed (begin_throw's input), before any nudge.
+func landed_slots() -> Array[int]:
+	return _landed.duplicate()
 
 
 ## True if die [param die_index] can be nudged now (Nerve left, an unpotted
 ## non-copy die from this throw, and at least one direction has a face).
 func can_nudge(die_index: int) -> bool:
-	return refusal(die_index) == "" and (can_nudge_dir(die_index, UP) or can_nudge_dir(die_index, DOWN))
+	return _blocked(die_index) == "" and (can_nudge_dir(die_index, UP) or can_nudge_dir(die_index, DOWN))
 
 
 ## True if die [param die_index] can go [param dir] (UP / DOWN) now; false at
 ## the end of its face list (no wrap). Greys out the arrow.
 func can_nudge_dir(die_index: int, dir: int) -> bool:
-	if refusal(die_index) != "":
+	if _blocked(die_index) != "":
 		return false
 	return target_slot(dice[die_index], slots[die_index], dir) > 0
 
