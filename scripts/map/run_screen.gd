@@ -117,7 +117,7 @@ func refresh() -> void:
 			_panel("Run Won", ["The contract is whole: %d/%d pieces. (Placeholder win screen.)" % [run.progress.contract_pieces, run_data.contract_pieces_to_win]],
 				[["New run", func() -> void: new_run(-1)]])
 		S.RUN_OVER:
-			_panel("Your Soul Burns Out", ["The run is over on %s." % run.floor_data().display_name], [["New run", func() -> void: new_run(-1)]])
+			_panel("Out of Soul", ["Your run ends on %s." % run.floor_data().display_name], [["New run", func() -> void: new_run(-1)]])
 
 
 func _refresh_bar() -> void:

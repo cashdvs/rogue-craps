@@ -1461,7 +1461,7 @@ func _bust() -> void:
 	onboarding.on_bust(int(r["soul_lost"]), lost_cards)
 	_embers(_dice_center(), 24, 10)
 	_taunt(&"bonfire_bust")
-	_set_why("Nothing lit. BUST: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
+	_set_why("Nothing lit. Bust: pot of %d lost, -%d Soul." % [int(r["lost_pot"]), int(r["soul_lost"])])
 	# HANDS LEFT etc. now, not after the beat (a final bust ends the table
 	# and the end screen shows over this HUD; QA full run pass 1).
 	_refresh_hud()

@@ -42,6 +42,8 @@ func _run() -> void:
 	# Can't bust: "it" for one die, "they" for more.
 	check(BustRisk.prompt(1, {"text": BustRisk.odds_text(0.0)}) == "1 cold die: it can't bust", "can't bust, 1 die: 'it' (%s)" % BustRisk.prompt(1, {"text": BustRisk.odds_text(0.0)}))
 	check(BustRisk.prompt(2, {"text": BustRisk.odds_text(0.0)}) == "2 cold dice: they can't bust", "can't bust, 2 dice: 'they' (%s)" % BustRisk.prompt(2, {"text": BustRisk.odds_text(0.0)}))
+	# The bust status line (sentence case; the big BUST callout art stays caps).
+	check(FileAccess.get_file_as_string("res://scripts/bonfire/bonfire_3d.gd").contains("\"Nothing lit. Bust: pot of %d lost, -%d Soul.\""), "bust line text")
 	# Pause menu leave-confirm line (strings_v1, exact).
 	check(FileAccess.get_file_as_string("res://scripts/ui/pause_menu.gd").contains("\"The hand in play is lost. Every unclaimed bounty costs Soul, like running out of hands.\""), "pause leave-confirm text")
 	# The table HUD after a throw: no player-facing "burn" anywhere.
