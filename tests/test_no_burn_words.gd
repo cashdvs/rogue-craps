@@ -45,8 +45,9 @@ func check(cond: bool, what: String) -> void:
 
 func _run() -> void:
 	var word := RegEx.create_from_string("(?i)" + WORDS)
-	# A string literal that isn't a StringName: "..." not preceded by & or ^.
-	var lit := RegEx.create_from_string("(?<![&^])\"((?:[^\"\\\\]|\\\\.)*)\"")
+	# Every quoted token on its own, with an optional & or ^ in front (so a
+	# StringName like &"id" is its own token and can't hide the text after it).
+	var lit := RegEx.create_from_string("[&^]?\"((?:[^\"\\\\]|\\\\.)*)\"")
 	var node_line := RegEx.create_from_string(NODE_NAME)
 	# A one-word label: starts with a capital (Burn, BURN), letters only.
 	var label_word := RegEx.create_from_string("^[A-Z][A-Za-z]*[!.]?$")
@@ -64,6 +65,8 @@ func _run() -> void:
 					continue  # a comment
 				var code := lines[i]
 				for m in lit.search_all(code):
+					if m.get_string(0).begins_with("&") or m.get_string(0).begins_with("^"):
+						continue  # a StringName / NodePath id
 					var s := m.get_string(1)
 					if not s.contains(" "):
 						# One word: an id / path / node name, unless it reads

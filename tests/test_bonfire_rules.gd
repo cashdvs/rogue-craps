@@ -84,7 +84,7 @@ func _format() -> void:
 	check(TableRules.make(rule(&"baron_vig", {"min_pot": 4})).min_pot(null) == 4, "baron_vig: the entry's own params win")
 	var bod := TableRules.make(rule(&"odds_bodkin"))
 	check(bod is RuleFirstThrow and bod.display_name == "Odds Bodkin" and bod.kind == TableRule.Kind.CHEAT and int(bod.param("throws", 0)) == 1, "odds_bodkin: First Throw handler, own name, cheat, first throw only")
-	check(vig.description == "Pot at least 3 dice every throw." and bod.description.ends_with("+1 hand."), "baron_vig / odds_bodkin: strings_v1 lines")
+	check(vig.description == "Pot at least 3 dice every throw; -1 hand." and bod.description.ends_with("+1 hand."), "baron_vig / odds_bodkin: strings_v1 lines")
 	check(TableRules.make(rule(&"straight_man")).description.contains("runs of 4"), "Straight Man line: runs of 4 count")
 	check(TableRules.make(rule(&"first_throw")).description.contains("first 2 throws"), "First Throw line: the first 2 throws")
 	check(TableRules.make(rule(&"madame_shuffle")).description.contains("random lit die"), "Madame Shuffle line: one random lit die")

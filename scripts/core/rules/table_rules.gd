@@ -51,7 +51,7 @@ const INFO := {
 	&"collector": ["The Collector", "Face mods are off on the first throw.", TableRule.Kind.CHEAT],
 	&"bloodletter": ["The Bloodletter", "Every Soul cost is doubled.", TableRule.Kind.CHEAT],
 	&"mister_wick": ["Mister Wick", "6s never light, and a bust costs 2 Soul.", TableRule.Kind.CHEAT],
-	&"baron_vig": ["Baron Vig", "Pot at least 3 dice every throw.", TableRule.Kind.CHEAT],
+	&"baron_vig": ["Baron Vig", "Pot at least 3 dice every throw; -1 hand.", TableRule.Kind.CHEAT],
 	&"odds_bodkin": ["Odds Bodkin", "Bounties count only on each hand's first throw; +1 hand.", TableRule.Kind.CHEAT],
 }
 ## Special dice with a table-side handler (scoring-only ones live in
