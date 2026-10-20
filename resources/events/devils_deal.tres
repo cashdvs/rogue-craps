@@ -17,7 +17,7 @@ mod = ExtResource("3_pjcwm")
 [sub_resource type="Resource" id="Resource_wbwl3"]
 script = ExtResource("1_6pq6f")
 label = "Sign in blood: -8 Soul, a Hellfire Face."
-result_text = "The ink burns into your skin."
+result_text = "The ink sets into your skin."
 effects = Array[ExtResource("2_4bvqr")]([SubResource("Resource_gul3v"), SubResource("Resource_04bib")])
 
 [sub_resource type="Resource" id="Resource_rp36m"]

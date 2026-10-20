@@ -128,6 +128,20 @@ func cheapest_mod_price(i: int) -> int:
 	return best
 
 
+## Lowest and highest price of mod offer i over dice with a free face
+## (x = low, y = high); (-1, -1) if no die can take it.
+func mod_price_range(i: int) -> Vector2i:
+	var out := Vector2i(-1, -1)
+	if i < 0 or i >= shop_mods.size() or shop_mods[i] == null:
+		return out
+	for d in progress.dice.size():
+		if progress.dice[d].free_faces().is_empty() and not progress.dice[d].faces.has(RunDie.BLANK):
+			continue
+		var p := progress.mod_price(shop_mods[i], d)
+		out = Vector2i(p if out.x < 0 else mini(out.x, p), maxi(out.y, p))
+	return out
+
+
 ## Buy mod offer i onto a picked face; the price escalates per mod on that die.
 func buy_mod(i: int, pick: Vector2i) -> bool:
 	if i < 0 or i >= shop_mods.size() or shop_mods[i] == null or not free_face(pick) \

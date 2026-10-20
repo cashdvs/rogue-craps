@@ -52,6 +52,8 @@ static func why_not(choice: EventChoiceData, p: RunProgress, table_ahead: bool =
 			return "You need %d+ dice to give one up." % (p.data.starting_dice + 1)
 		elif e.kind == K.NEXT_TABLE_TWIST and not table_ahead:
 			return "No Table left on this floor."
+	if _only_heals(choice) and p.soul >= p.max_soul:
+		return "Your Soul is already full."
 	if soul_cost > 0 and p.soul <= soul_cost:
 		return "Not enough Soul."
 	if ember_cost > p.embers:
@@ -179,6 +181,18 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 					p.set_face(at.x, at.y, &"")
 				last = at
 	return lines
+
+
+## The choice's only gain is Soul (anything else it does is a cost), e.g.
+## the Altar's "give a face mod, +15 Soul": pointless at full Soul.
+static func _only_heals(choice: EventChoiceData) -> bool:
+	var heals := false
+	for e in choice.effects:
+		if e.kind == K.SOUL and e.amount > 0:
+			heals = true
+		elif not ((e.kind == K.EMBERS or e.kind == K.SOUL) and e.amount <= 0) and e.kind != K.REMOVE_FACE_MOD:
+			return false
+	return heals
 
 
 static func _all_free(p: RunProgress) -> Array[Vector2i]:

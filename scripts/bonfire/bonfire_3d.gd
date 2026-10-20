@@ -1053,7 +1053,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	throw_resolved.emit(values, lit)
 	if not ok and run.free_rethrow:
 		# Nonstandard dice: a full throw that lit nothing is thrown again free.
-		bhud.flash("NOTHING LIT  FREE THROW", Palette.BONE)
+		bhud.flash("Nothing lit: free rethrow", Palette.BONE)
 		_set_why("A full throw can't bust. Throw the %d dice again." % run.cold)
 		_to_hand()
 		phase = Phase.BET

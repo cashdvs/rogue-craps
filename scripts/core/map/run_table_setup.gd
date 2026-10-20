@@ -15,9 +15,11 @@ var seed_value: int = 0
 ## Every die the player owns (can exceed the dice brought to the table);
 ## the table's Cracked floor reads it (TableSetup.owned_dice_count).
 var owned_dice_count: int = 0
+## The run's Ember balance before this table (the table HUD adds its payout).
+var run_embers: int = 0
 ## Twist / cheat ids and params, for the table to enforce.
 var rules: Array[RunRuleData] = []
-## Soul per bust after rules (Heavy Burn); -1 = the table's normal value.
+## Soul per bust after rules (Heavy Toll); -1 = the table's normal value.
 var bust_soul_loss: int = -1
 ## Combo id -> base / mult the run's Seals add (x = base, y = mult).
 var seal_bonus: Dictionary[StringName, Vector2i] = {}
@@ -30,6 +32,7 @@ var nerve_uses: int = 1
 var seal_steps: Dictionary = {}
 
 
+## The rules' ids, in order.
 func rule_ids() -> Array[StringName]:
 	var out: Array[StringName] = []
 	for r in rules:
@@ -53,6 +56,8 @@ func to_table_setup(base: BonfireTuning) -> TableSetup:
 	ts.run_mode = true
 	ts.rules = rule_entries()
 	ts.owned_dice_count = owned_dice_count
+	if "run_embers" in ts:
+		ts.set("run_embers", run_embers)
 	ts.first_table = first_table
 	ts.nerve_uses = nerve_uses
 	ts.seal_steps = seal_steps.duplicate()
@@ -60,12 +65,17 @@ func to_table_setup(base: BonfireTuning) -> TableSetup:
 
 
 ## TableSetup.rules: one {"id", "params"} per twist / cheat, in order.
-## Short Table / Heavy Burn are labels at the table; their hands / bust cost
-## are already in goal.hands / tuning.bust_soul_loss.
+## Short Table / Heavy Toll are labels at the table; their hands / bust cost
+## are already in goal.hands / tuning.bust_soul_loss. A rule whose text
+## depends on the hands ("{hands} hands.") also sends its filled-in
+## "description" so the table HUD shows the real number.
 func rule_entries() -> Array:
 	var out: Array = []
 	for r in rules:
-		out.append({"id": r.id, "params": r.params.duplicate(true)})
+		var e := {"id": r.id, "params": r.params.duplicate(true)}
+		if r.description.contains("{hands}"):
+			e["description"] = r.text(goal.hands if goal != null else 0)
+		out.append(e)
 	return out
 
 

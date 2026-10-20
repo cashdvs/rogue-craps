@@ -49,6 +49,7 @@ func _enter(run: MapRun, type: int) -> bool:
 
 func _test_goals() -> void:
 	var ok: Array[bool] = [true, true, true]
+	var m5_none := 0
 	for s in 40:
 		var run := MapRun.new(_data, s)
 		for f in 3:
@@ -57,16 +58,21 @@ func _test_goals() -> void:
 			var g := run.goal
 			var fd: FloorData = _data.floors[f]
 			var n: int = g.required.size()
-			var good: bool = n >= fd.min_bounties and n <= fd.max_bounties and g.hands == fd.hands and g.bonus.size() == 1
+			# Exactly 1 bonus, except the explicit M5 fallback-to-none case.
+			var want_bonus := 0 if _m5_none(fd.bonus_bounties, g.required) else 1
+			if want_bonus == 0:
+				m5_none += 1
+			var good: bool = n >= fd.min_bounties and n <= fd.max_bounties and g.hands == fd.hands and g.bonus.size() == want_bonus
 			if not fd.featured_bounties.is_empty():
 				var has: bool = false
 				for b in g.required:
 					has = has or fd.featured_bounties.has(b)
 				good = good and has
 			ok[f] = ok[f] and good
-	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, 1 bonus")
-	_check(ok[1], "goals: floor 2 has 3 incl. Run of 4, 4 hands")
-	_check(ok[2], "goals: floor 3 has 4 incl. Run of 4, 4 hands")
+	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, exactly 1 bonus (%d M5 fallback-to-none tables over 3 floors)" % m5_none)
+	_test_m5_detector()
+	_check(ok[1], "goals: floor 2 has 3-4 incl. Run of 4 or Full House, 4 hands")
+	_check(ok[2], "goals: floor 3 has 4 incl. Quads or Run of 5, 4 hands")
 	var boss_ok := true
 	for f in 3:
 		var run := MapRun.new(_data, 5)
@@ -223,7 +229,7 @@ func _test_rules_and_seals() -> void:
 	run.rules = [short, heavy] as Array[RunRuleData]
 	var setup := run.table_setup()
 	var g := run.goal
-	_check(setup.bust_soul_loss == 3 and setup.rule_ids() == ([&"short_table", &"heavy_burn"] as Array[StringName]), "rules: Heavy Burn sets bust 3; ids passed in the setup")
+	_check(setup.bust_soul_loss == 3 and setup.rule_ids() == ([&"short_table", &"heavy_burn"] as Array[StringName]), "rules: Heavy Toll sets bust 3; ids passed in the setup")
 	var hands_ok: bool = false
 	for s in 30:
 		var r2 := MapRun.new(_data, s)
@@ -320,8 +326,9 @@ func _test_rule_ids() -> void:
 			_enter(run, t)
 			for e: Dictionary in run.table_setup().to_table_setup(base).rules:
 				seen_ids[e["id"]] = true
-				ok = ok and e.keys().size() == 2 and allowed.has(e["id"]) and str(e["params"]) in allowed[e["id"]]
-	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} with known ids (%d seen)" % seen_ids.size())
+				var keys_ok: bool = e.keys().size() == 2 or (e.keys().size() == 3 and e.has("description") and not str(e["description"]).contains("{"))
+				ok = ok and keys_ok and allowed.has(e["id"]) and str(e["params"]) in allowed[e["id"]]
+	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} (+ a filled-in description for {hands} text) with known ids (%d seen)" % seen_ids.size())
 	var r2 := MapRun.new(_data, 3)
 	r2.progress.add_die(&"cracked")
 	r2.progress.add_die(&"mirror")
@@ -345,3 +352,38 @@ func _test_full_run() -> void:
 		if _play(s).screen == S.RUN_WON:
 			wins += 1
 	_check(wins == 20, "run: every seed reaches the final boss (stub tables)")
+
+
+## The M5 fallback-to-none case, identified explicitly (MapRun.pick_bonus):
+## every bonus in the pool repeats a required bounty (same kind and size),
+## including the pool's Full House, so whatever is drawn falls back to none.
+func _m5_none(pool: Array[BountyData], required: Array[BountyData]) -> bool:
+	if pool.is_empty():
+		return true
+	var fh_clash := true
+	for b in pool:
+		if b.kind == BountyData.Kind.FULL_HOUSE:
+			fh_clash = MapRun._repeats(b, required)
+	if not fh_clash:
+		return false
+	for b in pool:
+		if not MapRun._repeats(b, required):
+			return false
+	return true
+
+
+## _m5_none() agrees with MapRun.pick_bonus: none only if Full House clashes too.
+func _test_m5_detector() -> void:
+	var mk := func(kind: BountyData.Kind, n: int) -> BountyData:
+		var b := BountyData.new()
+		b.kind = kind
+		b.n = n
+		return b
+	var run4: BountyData = mk.call(BountyData.Kind.RUN, 4)
+	var fh: BountyData = mk.call(BountyData.Kind.FULL_HOUSE, 3)
+	var pool: Array[BountyData] = [mk.call(BountyData.Kind.RUN, 4), mk.call(BountyData.Kind.FULL_HOUSE, 3)]
+	var rng := RandomNumberGenerator.new()
+	var both: Array[BountyData] = [run4, fh]
+	var one: Array[BountyData] = [run4]
+	_check(_m5_none(pool, both) and MapRun.pick_bonus(pool, both, rng) == null, "M5 detector: Run of 4 + Full House required -> none")
+	_check(not _m5_none(pool, one) and MapRun.pick_bonus(pool, one, rng) != null, "M5 detector: only Run of 4 required -> not none")

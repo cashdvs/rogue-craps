@@ -1,6 +1,6 @@
 ## Headless tests for run_tuning_v1: floor 2/3 table data, the Floor 3 boss
 ## pool (Mister Wick, Baron Vig, Odds Bodkin), the Elite twist cut (no Short
-## Table / Heavy Burn), and the Floor 1/2 boss bounty counts. Split out of
+## Table / Heavy Toll), and the Floor 1/2 boss bounty counts. Split out of
 ## test_map_run.gd so that file stays under ~400 lines.
 ##
 ## Run:
@@ -137,7 +137,7 @@ func _test_tuning_addendum() -> void:
 	var f3: FloorData = _data.floors[2]
 	var four := ["cold_sixes", "first_throw", "greedy_pot", "cold_hands"]
 	_check(_rule_names(f1.elite_twists) == four and _rule_names(f2.elite_twists) == four and _rule_names(f3.elite_twists) == four,
-		"addendum: every floor's Elites = Cold Sixes, First Throw, Greedy Pot, Cold Hands (no Short Table / Heavy Burn)")
+		"addendum: every floor's Elites = Cold Sixes, First Throw, Greedy Pot, Cold Hands (no Short Table / Heavy Toll)")
 	_check(f1.boss_bounties.is_empty() and f1.boss_min_bounties == 3 and f1.boss_max_bounties == 3, "addendum: floor 1 boss draws 3 from the floor pool")
 	var x2: BountyData = f2.boss_bounties[0] if f2.boss_bounties.size() == 1 else null
 	_check(x2 != null and x2.id == &"two_pairs_x2" and x2.kind == BountyData.Kind.TWO_PAIR and x2.n == 2 and x2.count_needed == 2
