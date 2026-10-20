@@ -1,0 +1,367 @@
+## Nerve on the table (design/nerve_v1.md): once per table the player turns
+## one settled die one face up or down. NerveState (scripts/core) owns the
+## rules (uses, which dice, undo); this node is the glue between it, the
+## BonfireRun and the 3D dice:
+##   - after a throw lands it opens the throw on NerveState (begin_throw);
+##   - a nudge re-runs the copy dice (Mirror, Ferryman) and the lit check
+##     with the boss filters, but no boss cheat fires again (Madame Shuffle
+##     doesn't reroll), then turns the dice on the felt (DieVisual.set_face);
+##   - when a throw would bust but a nudge would light something, the run
+##     waits (BonfireRun.bust_hold) and the HUD offers the rescue.
+## NerveState counts dice by "handful id" (the die's place in the table's
+## dice, setup.dice); the run counts by its place in this throw. hid() and
+## index_of() turn one into the other.
+class_name NerveTable
+extends Node
+
+## Anything shown changed (uses, picking, a nudge, the rescue pause).
+signal changed
+
+## Drag on a die this far (pixels, up or down) and it is a nudge.
+const DRAG_PX: float = 28.0
+
+## The Bonfire3D table (untyped: the two scripts refer to each other).
+var table: Node
+var run: BonfireRun
+var state: NerveState = NerveState.new()
+## The throw as it landed, before any rule changed it (throw index -> slot).
+## Copy dice are re-copied from here after a nudge.
+var landed: Array[int] = []
+## The throw the run landed (rules applied); nudges start from it.
+var base: TableThrow
+## True after the Nerve button: the next die click picks a die to turn.
+var armed: bool = false
+## The throw index whose arrows are showing (-1 = none).
+var arrows_die: int = -1
+## A press on a die that may become a drag: its throw index and position.
+var _press_die: int = -1
+var _press_at: Vector2 = Vector2.ZERO
+
+
+## A new table: [param uses] Nerves (setup.nerve_uses, 1 by default).
+func start(t: Node, r: BonfireRun, table_dice: Array[TableDie], uses: int) -> void:
+	table = t
+	run = r
+	state = NerveState.new()
+	state.setup(table_dice, uses)
+	run.bust_hold = _on_bust_hold
+	base = null
+	_close_ui()
+	changed.emit()
+
+
+# --- Indices ---------------------------------------------------------------
+
+## Throw index -> handful id (NerveState's die index).
+func hid(i: int) -> int:
+	if i < 0 or i >= table.throw_dice.size():
+		return -1
+	return int(table.throw_dice[i].get_meta(&"handful_id", i))
+
+
+## Handful id -> throw index (-1 if that die isn't in this throw).
+func index_of(h: int) -> int:
+	for i in table.throw_dice.size():
+		if hid(i) == h:
+			return i
+	return -1
+
+
+# --- Throw lifecycle ---------------------------------------------------------
+
+## The run just landed [param th]: open it for Nerve.
+func open_throw(th: TableThrow) -> void:
+	base = th
+	var by_hid: Array[int] = []
+	by_hid.resize(state.dice.size())  # 0 = not in this throw
+	for i in th.size():
+		var h := hid(i)
+		if h >= 0 and h < by_hid.size():
+			by_hid[h] = th.slots[i]
+	state.begin_throw(by_hid)
+	# Deferred: the table moves to its waiting phase later this frame.
+	changed.emit.call_deferred()
+
+
+## Rethrow or bank: a pending nudge is kept for good.
+func close_throw() -> void:
+	state.commit()
+	base = null
+	_close_ui()
+	changed.emit()
+
+
+## Dice went into the pot: they (and an undo) are locked.
+func on_potted() -> void:
+	for i in run.potted:
+		var h := hid(i)
+		if h >= 0:
+			state.mark_potted(h)
+	changed.emit()
+
+
+## BonfireRun.bust_hold: the throw lit nothing. Hold the bust if a nudge
+## would light something.
+func _on_bust_hold() -> bool:
+	open_throw(run.last_throw)
+	return state.any_nudge_lights(lights)
+
+
+## True while Nerve can be seen: a settled throw waiting for the player
+## (not during the boss intro, the roll or the count-up).
+func can_show() -> bool:
+	return base != null and run != null and not run.is_over() \
+			and table.phase == Table3D.Phase.BET and run.state == BonfireRun.State.PICK
+
+
+# --- The lit check after a nudge ---------------------------------------------
+
+## NerveState's lit_fn: does anything light with these faces (by handful id)?
+func lights(slots_by_hid: Array) -> bool:
+	return not lit_of(throw_for(slots_by_hid)).is_empty()
+
+
+## The throw with these faces: copies re-run from where they landed.
+func throw_for(slots_by_hid: Array) -> TableThrow:
+	var vals: Array[int] = []
+	var sl: Array[int] = []
+	var mods: Array = []
+	for i in base.size():
+		var td := base.die(i)
+		var h := hid(i)
+		var s: int = int(slots_by_hid[h]) if h >= 0 and h < slots_by_hid.size() else base.slots[i]
+		if td != null and NerveState.is_copy_die(td) and i < landed.size():
+			s = landed[i]  # a copy die copies again from scratch
+		sl.append(s)
+		vals.append(td.value_at(s) if td != null else s)
+		mods.append(td.mod_at(s) if td != null else null)
+	var th := TableThrow.make(vals, mods, base.dice, base.rng)
+	th.slots = sl
+	th.positions = base.positions.duplicate()
+	# Only the copy dice run again: no boss cheat fires twice.
+	for r in run.rules:
+		if r is DieMirror or r is DieFerryman:
+			r.on_throw_landed(run, th)
+	return th
+
+
+## Lit throw indices of [param th], boss filters included (rule_ctx).
+func lit_of(th: TableThrow) -> Array[int]:
+	var saved := run.throw_faces.duplicate()
+	var lit := RuleMadameShuffle.lit_now(run, th)
+	run.throw_faces = saved
+	return lit
+
+
+## Best single pot of [param th] (0 = nothing lights).
+func points_of(th: TableThrow) -> int:
+	var dice: Array = []
+	for i in th.size():
+		dice.append(BonfireScoring.make_die(th.values[i], th.mods[i], th.special(i)))
+	var saved := run.throw_faces.duplicate()
+	run.throw_faces = th.values.duplicate()
+	var best := BonfireScoring.best_points(dice, run.tuning, run.mult_bonus(), run.rule_ctx())
+	run.throw_faces = saved
+	return best
+
+
+## nerve_v1 ruling on repeated values (Powder Keg 1-1-2-2-3-3): land on the
+## slot of that value that scores best, never a Blank or Blood face if
+## another slot has the same value.
+func best_slot(h: int, to: int) -> int:
+	var td: TableDie = state.dice[h]
+	var v := td.value_at(to)
+	var cands: Array[int] = []
+	var plain: Array[int] = []
+	for k in range(1, td.face_count() + 1):
+		if td.value_at(k) != v:
+			continue
+		cands.append(k)
+		var m := td.mod_at(k)
+		if m == null or (m.effect != FaceModData.Effect.BLANK and m.soul_cost <= 0):
+			plain.append(k)
+	if not plain.is_empty():
+		cands = plain
+	if cands.size() < 2:
+		return cands[0] if not cands.is_empty() else to
+	var best := cands[0]
+	var best_pts := -1
+	for k in cands:
+		var trial := state.slots.duplicate()
+		trial[h] = k
+		var pts := points_of(throw_for(trial))
+		if pts > best_pts:
+			best = k
+			best_pts = pts
+	return best
+
+
+# --- Player actions ----------------------------------------------------------
+
+## The Nerve button: the next die click picks the die to turn.
+func arm() -> bool:
+	if not can_show() or state.uses_left() <= 0:
+		refuse("nerve_used_refusal")
+		return false
+	armed = true
+	changed.emit()
+	return true
+
+
+## Turns throw die [param i] one face [param dir] (NerveState.UP / DOWN).
+## Returns the new face slot, or -1 (refused; the reason is shown).
+func nudge(i: int, dir: int) -> int:
+	var h := hid(i)
+	if not can_show() or h < 0:
+		return -1
+	if not state.can_nudge_dir(h, dir):
+		var why := state.refusal(h)
+		refuse(why if why != "" else ("nerve_high_refusal" if dir > 0 else "nerve_low_refusal"))
+		return -1
+	var from := state.slots[h]
+	if state.nudge(h, dir) < 0:
+		return -1
+	var to := best_slot(h, state.slots[h])
+	state.slots[h] = to
+	_apply()
+	table.events.die_nudged.emit(table.event_id(table.throw_dice[i]), from, to, dir)
+	table._set_why(NerveText.get_text("nerve_undo"))
+	return to
+
+
+## Undoes the pending nudge on throw die [param i]; true if there was one.
+func undo(i: int) -> bool:
+	var h := hid(i)
+	var from := state.slots[h] if h >= 0 else 0
+	var back := state.undo(h) if h >= 0 else -1
+	if back < 0:
+		return false
+	_apply()
+	var dir := NerveState.DOWN if from > back else NerveState.UP
+	table.events.die_nudged.emit(table.event_id(table.throw_dice[i]), from, back, dir)
+	return true
+
+
+## A click on settled die [param i]. Returns true if Nerve used it (then
+## the table doesn't pot it): the nudged die (undo), or a die picked after
+## the Nerve button or in the rescue pause (shows the arrows).
+func tap(i: int) -> bool:
+	if not can_show():
+		return false
+	var h := hid(i)
+	if h >= 0 and state.nudged_die() == h and not run.potted.has(i):
+		return undo(i)
+	if not armed and not run.bust_pending:
+		return false
+	if state.pick(h):
+		armed = false
+		arrows_die = i
+	else:
+		refuse(state.refusal(h))
+	changed.emit()
+	return true
+
+
+## Mouse / keys while the throw waits. True if Nerve handled the event.
+##   - a click: tap() (picking, undo);
+##   - a drag up or down on a die: nudge it straight away;
+##   - Up / Down keys while the arrows show: nudge that die.
+func handle_input(event: InputEvent) -> bool:
+	if not can_show():
+		_press_die = -1
+		return false
+	var mb := event as InputEventMouseButton
+	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT:
+		if mb.pressed:
+			var i: int = table.die_at_screen(mb.position)
+			if i >= 0 and tap(i):
+				return true
+			_press_die = i
+			_press_at = mb.position
+			return false
+		var was := _press_die
+		_press_die = -1
+		var dy := _press_at.y - mb.position.y
+		if was >= 0 and absf(dy) >= DRAG_PX:
+			# The press potted it; a drag means "turn it" instead.
+			if run.potted.has(was):
+				table.pick_die(was)
+			nudge(was, NerveState.UP if dy > 0 else NerveState.DOWN)
+			return true
+		return false
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and arrows_die >= 0:
+		if key.keycode == KEY_UP or key.keycode == KEY_DOWN:
+			nudge(arrows_die, NerveState.UP if key.keycode == KEY_UP else NerveState.DOWN)
+			return true
+		if key.keycode == KEY_ESCAPE:
+			state.cancel_pick()
+			_close_ui()
+			changed.emit()
+			return true
+	return false
+
+
+## The rescue's Bust button: take the bust now.
+func take_bust() -> void:
+	if not run.bust_pending:
+		return
+	_close_ui()
+	base = null
+	changed.emit()
+	table.nerve_bust()
+
+
+## Shows a refusal (a strings_v1 id) as a callout and the why line.
+func refuse(id: String) -> void:
+	var text := NerveText.get_text(id)
+	if text == "":
+		return
+	table._refuse(text)
+	if table.bhud != null:
+		table.bhud.flash(text, Palette.BONE)
+
+
+func _close_ui() -> void:
+	armed = false
+	arrows_die = -1
+	_press_die = -1
+
+
+# --- After a nudge or undo ----------------------------------------------------
+
+## Re-runs copies and the lit check for NerveState's faces, turns the dice
+## on the felt and refreshes their lit / cold look.
+func _apply() -> void:
+	var th := throw_for(state.slots)
+	run.relight(th)
+	arrows_die = -1
+	var animate: bool = not table.reduced_motion and table.speed_mode != 2
+	for i in th.size():
+		var shown: int = table.throw_slots[i] if i < table.throw_slots.size() else 0
+		if th.slots[i] != shown:
+			show_face(i, th.slots[i], animate)
+	var lit := run.lit()
+	for i in table.throw_dice.size():
+		if run.potted.has(i):
+			continue
+		if i in lit:
+			table._set_lit(table.throw_dice[i], true)
+		else:
+			table._set_cold(table.throw_dice[i])
+	table.last_values = run.throw_faces.duplicate()
+	table._refresh_hud()
+	changed.emit()
+
+
+## Turns throw die [param i] to face [param slot] on the felt and keeps the
+## table's face bookkeeping (throw_slots, the d6 remap) in step.
+func show_face(i: int, slot: int, animate: bool) -> void:
+	var d: DieVisual = table.throw_dice[i]
+	var q := d.set_face(slot, animate)
+	if i < table.throw_slots.size():
+		table.throw_slots[i] = slot
+	var k: int = table.dice.find(d)
+	if k >= 0 and k < table._remap_to.size():
+		table._remap_from[k] = q
+		table._remap_to[k] = q
