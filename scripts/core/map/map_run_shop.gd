@@ -60,13 +60,70 @@ func _roll_shop() -> void:
 	while shop_mods.size() < data.shop_mods and not mpool.is_empty():
 		shop_mods.append(mpool.pop_at(rng.randi_range(0, mpool.size() - 1)))
 	shop_seals = _seal_offers(rng, data.shop_seals)
+	shop_premium_seal = _premium_offer(rng)
+
+
+## The guaranteed rare Seal (P4): one of RunData.rare_seals, preferring one the
+## normal slots don't already offer; &"" when the slot is off. Drawn last so
+## the other offers keep their seeds.
+func _premium_offer(rng: RandomNumberGenerator) -> StringName:
+	if data.shop_premium_rare_price <= 0 or data.rare_seals.is_empty():
+		return &""
+	var pool: Array[StringName] = []
+	for r in data.rare_seals:
+		if not shop_seals.has(r):
+			pool.append(r)
+	if pool.is_empty():
+		pool = data.rare_seals.duplicate()
+	return pool[rng.randi_range(0, pool.size() - 1)]
+
+
+## Price of the guaranteed rare Seal (P4).
+func premium_seal_price() -> int:
+	return floor_price(data.shop_premium_rare_price)
+
+
+## Buy the guaranteed rare Seal (params as seal_usable: Transference / Ashen
+## need {"from", "to"}). It doesn't raise the combo Seal step.
+func buy_premium_seal(params: Dictionary = {}) -> bool:
+	var id := shop_premium_seal
+	if id == &"" or screen != Screen.SHOP or progress.embers < premium_seal_price() or not seal_usable(id, params):
+		return false
+	_pay(premium_seal_price())
+	_grant_seal(id, params)
+	shop_premium_seal = &""
+	return true
+
+
+## This floor's shop markup in % (P5): shop_floor_price_percent[floor], the
+## last entry past its end, 0 if empty.
+func floor_price_percent() -> int:
+	var pcts := data.shop_floor_price_percent
+	return pcts[mini(floor_index, pcts.size() - 1)] if not pcts.is_empty() else 0
+
+
+## `base` Embers with this floor's markup, rounded half up (22.5 -> 23).
+func floor_price(base: int) -> int:
+	return (base * (100 + floor_price_percent()) + 50) / 100
+
+
+## Final price of die offer i on this floor; -1 if there's none.
+func die_price(i: int) -> int:
+	if i < 0 or i >= shop_dice.size() or shop_dice[i] == null:
+		return -1
+	return floor_price(shop_dice[i].price)
+
+
+## Final price of `mod` on die die_i: its per-die escalated price, then the floor markup.
+func shop_mod_price(mod: FaceModData, die_i: int) -> int:
+	return floor_price(progress.mod_price(mod, die_i))
 
 
 ## Shop price of Seal `id` (rare: flat; combo: rises per Seal bought this visit).
 func seal_price(id: StringName) -> int:
 	if is_rare_seal(id):
-		return data.shop_rare_seal_price
-	return data.shop_seal_price + data.shop_seal_step * shop_seals_bought
+		return floor_price(data.shop_rare_seal_price)
+	return floor_price(data.shop_seal_price + data.shop_seal_step * shop_seals_bought)
 
 
 ## 0 while free rerolls (events) are banked; they don't raise the step.
@@ -99,7 +156,7 @@ func shop_reroll() -> bool:
 
 ## Buy die offer i (bag not full, affordable).
 func buy_die(i: int) -> bool:
-	if i < 0 or i >= shop_dice.size() or shop_dice[i] == null or not progress.can_add_die() or not _pay(shop_dice[i].price):
+	if i < 0 or i >= shop_dice.size() or shop_dice[i] == null or not progress.can_add_die() or not _pay(die_price(i)):
 		return false
 	progress.add_die(shop_dice[i].id)
 	shop_dice[i] = null
@@ -110,7 +167,7 @@ func buy_die(i: int) -> bool:
 ## escalated price is affordable)?
 func can_buy_mod_at(i: int, at: Vector2i) -> bool:
 	return i >= 0 and i < shop_mods.size() and shop_mods[i] != null and free_face(at) \
-		and progress.mod_price(shop_mods[i], at.x) <= progress.embers
+		and shop_mod_price(shop_mods[i], at.x) <= progress.embers
 
 
 ## The lowest escalated price of mod offer i over dice with a free face; -1
@@ -122,7 +179,7 @@ func cheapest_mod_price(i: int) -> int:
 	for d in progress.dice.size():
 		if progress.dice[d].free_faces().is_empty() and not progress.dice[d].faces.has(RunDie.BLANK):
 			continue
-		var price := progress.mod_price(shop_mods[i], d)
+		var price := shop_mod_price(shop_mods[i], d)
 		if best < 0 or price < best:
 			best = price
 	return best
@@ -137,7 +194,7 @@ func mod_price_range(i: int) -> Vector2i:
 	for d in progress.dice.size():
 		if progress.dice[d].free_faces().is_empty() and not progress.dice[d].faces.has(RunDie.BLANK):
 			continue
-		var p := progress.mod_price(shop_mods[i], d)
+		var p := shop_mod_price(shop_mods[i], d)
 		out = Vector2i(p if out.x < 0 else mini(out.x, p), maxi(out.y, p))
 	return out
 
@@ -145,7 +202,7 @@ func mod_price_range(i: int) -> Vector2i:
 ## Buy mod offer i onto a picked face; the price escalates per mod on that die.
 func buy_mod(i: int, pick: Vector2i) -> bool:
 	if i < 0 or i >= shop_mods.size() or shop_mods[i] == null or not free_face(pick) \
-			or not _pay(progress.mod_price(shop_mods[i], pick.x)):
+			or not _pay(shop_mod_price(shop_mods[i], pick.x)):
 		return false
 	progress.set_face(pick.x, pick.y, shop_mods[i].id)
 	shop_mods[i] = null
@@ -162,6 +219,22 @@ func buy_seal(i: int, params: Dictionary = {}) -> bool:
 		shop_seals_bought += 1
 	_grant_seal(shop_seals[i], params)
 	shop_seals[i] = &""
+	return true
+
+
+## Soul Draught price (P3): shop_soul_price + shop_soul_step per Draught
+## bought this run.
+func soul_price() -> int:
+	return floor_price(data.shop_soul_price + data.shop_soul_step * soul_draughts_bought)
+
+
+## Buy a Soul Draught: +shop_soul_amount max Soul and heal as much (any
+## number per visit; each raises the next price).
+func buy_soul() -> bool:
+	if data.shop_soul_amount <= 0 or not _pay(soul_price()):
+		return false
+	soul_draughts_bought += 1
+	progress.change_max_soul(data.shop_soul_amount)
 	return true
 
 

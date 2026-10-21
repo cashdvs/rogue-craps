@@ -41,7 +41,7 @@ func _test_basics() -> void:
 	_check(p.soul == 35 and p.max_soul == 35 and p.embers == 0 and p.dice.size() == 5, "start: Soul 35/35, 0 Embers, 5 dice")
 	_check(p.change_soul(5) == 0 and p.change_soul(-10) == -10 and p.soul == 25, "soul: clamped to max")
 	_check(p.change_embers(-3) == 0 and p.change_embers(7) == 7, "embers: never below 0")
-	_check(p.add_die(&"coven") and p.add_die(&"extra") and not p.add_die(&"mirror") and p.dice.size() == 7, "dice: max 7")
+	_check(p.add_die(&"coven") and not p.add_die(&"extra") and p.dice.size() == _run.max_dice and _run.max_dice == 6, "dice: max 6 (economy v1 P2)")
 	var ended: Array[bool] = [false]
 	p.run_ended.connect(func() -> void: ended[0] = true)
 	_check(p.change_soul(-99) == -25 and p.is_over() and ended[0], "soul: 0 ends the run")
@@ -92,17 +92,17 @@ func _price(id: String) -> int:
 func _test_prices() -> void:
 	var ok: bool = true
 	for pair in [["ember_pip", 6], ["gilded", 6], ["heavy", 6], ["step", 6], ["kindling", 6], ["blood", 6],
-			["wild", 9], ["twin", 9], ["stair", 9], ["hellfire", 14]]:
+			["wild", 14], ["twin", 9], ["stair", 9], ["hellfire", 14]]:
 		ok = ok and _price(pair[0]) == pair[1]
-	_check(ok and _run.face_mods.size() == 10, "prices: 10 face mods at 6 / 9 / 14")
+	_check(ok and _run.face_mods.size() == 10, "prices: 10 face mods at 6 / 9 / 14 (Wild 14, economy v1)")
 	var dice_ok: bool = true
 	var prices: Dictionary = {}
 	for d in _run.special_dice:
 		prices[d.id] = d.price
-	for pair in [[&"extra", 18], [&"mirror", 12], [&"cracked", 12], [&"twin_flame", 18], [&"wanderer", 18],
+	for pair in [[&"extra", 18], [&"mirror", 18], [&"cracked", 18], [&"twin_flame", 18], [&"wanderer", 18],
 			[&"bellows", 18], [&"blood_pact", 18], [&"coven", 24], [&"last_breath", 24]]:
 		dice_ok = dice_ok and prices.get(pair[0], -1) == pair[1]
-	_check(dice_ok and _run.special_dice.size() == 9, "prices: 9 special dice at 12 / 18 / 24 (Extra Die 18)")
+	_check(dice_ok and _run.special_dice.size() == 9, "prices: 9 special dice at 18 / 24 (economy v1: Extra, Mirror, Cracked 18)")
 	var p := RunProgress.new(_run)
 	var hell: FaceModData = load("res://resources/mods/hellfire.tres")
 	_check(p.mod_price(hell, 0) == 14, "prices: Hellfire 14 on a fresh die")
@@ -158,7 +158,9 @@ func _test_table_dice() -> void:
 	for d in _run.special_dice:
 		all_defined = all_defined and d.faces == ([1, 2, 3, 4, 5, 6] as Array[int]) and d.weights.is_empty()
 	_check(_run.special_dice.size() == 9 and all_defined, "special dice: plain Bone 1-6, equal weights (GD spec)")
-	var q := RunProgress.new(_run)
+	var roomy := _run.duplicate() as RunData
+	roomy.max_dice = 7
+	var q := RunProgress.new(roomy)
 	q.add_die(&"cracked")
 	q.add_die(&"cracked")
 	var ids: Array[StringName] = []

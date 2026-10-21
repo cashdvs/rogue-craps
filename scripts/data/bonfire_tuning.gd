@@ -10,6 +10,9 @@ extends Resource
 @export var hot_hand_mult_bonus: int = 1
 ## Points convert to Embers at table end: floor(points / points_per_ember).
 @export var points_per_ember: int = 100
+## At most this many Embers from points per table (economy_balance_v1 P1);
+## 0 = uncapped (the default when a tuning file doesn't set it).
+@export var points_embers_cap: int = 0
 ## true: bounties tick only from potted dice (pending until Bank, lost on a
 ## bust). false: any throw where the pattern lands ticks it (still pending).
 @export var bounty_requires_pot: bool = true

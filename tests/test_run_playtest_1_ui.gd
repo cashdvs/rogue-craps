@@ -90,7 +90,7 @@ func _test_bar_and_key(scene: RunScreen) -> void:
 func _test_dice_view(scene: RunScreen) -> void:
 	_key(scene, KEY_D)
 	var t := _texts(scene._panel_box)
-	_check(scene._panel_root.visible and t.has("Your dice · 5/7") and t.has("Your Seals") and t.has(DicePanel.NO_SEALS),
+	_check(scene._panel_root.visible and t.has("Your dice · 5/%d" % scene.run.data.max_dice) and t.has("Your Seals") and t.has(DicePanel.NO_SEALS),
 		"dice view: D opens 'Your dice' with the Seals strip")
 	var faces := 0
 	for b in _buttons(scene._panel_box):

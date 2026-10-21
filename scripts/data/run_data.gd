@@ -10,9 +10,10 @@ extends Resource
 @export var max_soul: int = 35
 @export var starting_soul: int = 35
 @export var starting_embers: int = 0
-## Handful: 5 dice to start, max 7 (build content).
+## Handful: 5 dice to start, max 6 (economy_balance_v1 P2; was 7). Every bag-full
+## check (shop, Elite reward, event give_die, "Your dice" panel) reads max_dice.
 @export var starting_dice: int = 5
-@export var max_dice: int = 7
+@export var max_dice: int = 6
 
 @export_group("Pools (build content v0.3)")
 ## Events the map's Event nodes draw from (no repeats until all are seen).
@@ -89,3 +90,16 @@ extends Resource
 @export var shop_seal_step: int = 1
 @export var reroll_base: int = 3
 @export var reroll_step: int = 1
+## The guaranteed rare Seal slot in every shop (P4; 0 = off). The 10% rare
+## roll in the normal Seal slots stays at shop_rare_seal_price.
+@export var shop_premium_rare_price: int = 12
+## Shop prices rise by floor (P5): + this % on floors 1 / 2 / 3 (later floors
+## use the last entry), rounded to whole Embers. Dice, mods, Seals and the
+## Soul Draught; never rerolls, sell values or event prices.
+@export var shop_floor_price_percent: Array[int] = [0, 25, 50]
+## Soul Draught, in every shop (economy_balance_v1 P3): +shop_soul_amount max
+## Soul (also heals that much) for shop_soul_price Embers, + shop_soul_step
+## per Draught bought this run (12, 16, 20...). Same rate as the Toll Keeper.
+@export var shop_soul_amount: int = 4
+@export var shop_soul_price: int = 12
+@export var shop_soul_step: int = 4

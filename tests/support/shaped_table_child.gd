@@ -10,7 +10,8 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var data := load("res://resources/map/bonfire_run.tres") as RunData
+	var data := (load("res://resources/map/bonfire_run.tres") as RunData).duplicate() as RunData
+	data.max_dice = 7  # 5 Bones + Keg + Coin (the shipped bag cap is 6)
 	var run := MapRun.new(data, 7)
 	run.progress.add_die(&"powder_keg")
 	run.progress.add_die(&"ferryman")

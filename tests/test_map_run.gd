@@ -176,9 +176,9 @@ func _test_rest_and_shop() -> void:
 	run.progress.embers = 0
 	_check(not run.shop_reroll(), "shop: can't reroll broke")
 	run.progress.embers = 100
-	_check(run.reroll_price() == 3 and run.shop_reroll() and run.reroll_price() == 4 and run.progress.embers == 97, "shop: reroll 3, then 4")
+	_check(run.reroll_price() == 3 and run.shop_reroll() and run.reroll_price() == 5 and run.progress.embers == 97, "shop: reroll 3, then 5 (step 2)")
 	run.shop_seals = [&"pair", &"trips"] as Array[StringName]
-	_check(run.buy_seal(0) and run.progress.embers == 92 and run.seal_price(&"trips") == 6, "shop: Seal 5, next one 6")
+	_check(run.buy_seal(0) and run.progress.embers == 92 and run.seal_price(&"trips") == 7, "shop: Seal 5, next one 7 (step 2)")
 	run.shop_mods[1] = load("res://resources/mods/hellfire.tres")
 	_check(run.buy_mod(1, Vector2i(1, 1)) and run.progress.dice[1].faces[1] == &"hellfire" and not run.buy_mod(1, Vector2i(2, 2)), "shop: buy a face mod once")
 	run.leave()
@@ -331,13 +331,12 @@ func _test_rule_ids() -> void:
 	_check(ok and seen_ids.size() >= 6, "rules: TableSetup.rules entries are {id, params} (+ a filled-in description for {hands} text) with known ids (%d seen)" % seen_ids.size())
 	var r2 := MapRun.new(_data, 3)
 	r2.progress.add_die(&"cracked")
-	r2.progress.add_die(&"mirror")
 	_enter(r2, NT.TABLE)
 	var st := r2.table_setup()
 	st.table_dice.resize(5)
 	var ts := st.to_table_setup(base)
-	_check(st.owned_dice_count == 7 and ts.owned_dice_count == 7 and ts.dice.size() == 5,
-		"setup: owned_dice_count = every die owned (7), even with 5 brought to the table")
+	_check(st.owned_dice_count == 6 and ts.owned_dice_count == 6 and ts.dice.size() == 5,
+		"setup: owned_dice_count = every die owned (6), even with 5 brought to the table")
 
 
 func _test_full_run() -> void:
