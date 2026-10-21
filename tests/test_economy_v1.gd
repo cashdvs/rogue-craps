@@ -137,6 +137,7 @@ func _give_choice(die: StringName) -> EventChoiceData:
 
 func _test_bag_cap() -> void:
 	_check(_data.max_dice == 6, "P2 data: max_dice 6 (bonfire_run.tres)")
+	_check(RunData.new().max_dice == 6, "P2 code: RunData.max_dice defaults to 6, not just the .tres")
 	var give := _give_choice(&"mirror")
 	var p := RunProgress.new(_data)
 	_check(EventApplier.why_not(give, p) == "" and p.add_die(&"coven"), "P2: room for a 6th die")
