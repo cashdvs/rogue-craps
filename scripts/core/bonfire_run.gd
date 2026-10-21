@@ -299,12 +299,64 @@ func land_throw(th: TableThrow) -> bool:
 			kindling_saved = true
 			table_event.emit(&"kindling_saved", {})
 			return false
+		if bust_hold.is_valid() and bool(bust_hold.call()):
+			# Nerve can still save it (nerve_v1.md): wait for the player.
+			bust_pending = true
+			state = State.PICK
+			return false
 		_bust()
 		return false
 	free_rethrows_in_a_row = 0
 	if not tuning.bounty_requires_pot and bounties_count():
 		_add_pending(BonfireScoring.plain_values(throw_dice()))
 	state = State.PICK
+	return true
+
+
+## Nerve's bust-rescue pause (nerve_v1.md §1). The table sets bust_hold to
+## a Callable() -> bool; when a throw lights nothing (and no free rethrow or
+## Kindling saves it) land_throw asks it first. True = don't bust yet:
+## bust_pending is set and the throw stays open (State.PICK, nothing lit)
+## until the player nudges a die (relight) or takes the bust (confirm_bust).
+var bust_hold: Callable
+var bust_pending: bool = false
+
+
+## The player declined the rescue: the pending bust happens now.
+func confirm_bust() -> void:
+	if not bust_pending:
+		return
+	bust_pending = false
+	_bust()
+
+
+## The same throw with some faces changed by the table (a Nerve nudge, then
+## the copies re-run; nerve_v1.md §1): the lit check runs again on [param
+## th], but no rule's on_throw_landed fires again (Madame doesn't reroll)
+## and it is still the same throw. Returns true if something lit (a
+## pending bust is then cancelled).
+func relight(th: TableThrow) -> bool:
+	if not tuning.bounty_requires_pot and bounties_count() and state == State.PICK and not bust_pending:
+		for id in BonfireScoring.bounty_ticks(all_bounties(), BonfireScoring.plain_values(throw_dice())):
+			pending[id] = maxi(int(pending.get(id, 0)) - 1, 0)
+	throw_faces = th.values.duplicate()
+	throw_mods = th.mods.duplicate()
+	throw_mods.resize(throw_faces.size())
+	last_throw = th
+	# Dice already potted stay potted (Nerve can't turn them) unless the
+	# new faces broke their combo (a potted Mirror followed the nudge).
+	if not potted.is_empty() and not BonfireScoring.can_extend(potted, throw_dice(), tuning, rule_ctx()):
+		potted.clear()
+	state = State.PICK
+	if lit().is_empty():
+		# Nothing lights now (e.g. a lit 5 turned into a 4): the throw would
+		# bust, so it waits like a rescue pause (undo, or take the bust).
+		bust_pending = true
+		return false
+	bust_pending = false
+	free_rethrows_in_a_row = 0
+	if not tuning.bounty_requires_pot and bounties_count():
+		_add_pending(BonfireScoring.plain_values(throw_dice()))
 	return true
 
 

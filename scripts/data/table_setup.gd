@@ -21,7 +21,7 @@ var run_mode: bool = true
 ## Each entry: {"id": StringName, "params": Dictionary}, e.g.
 ##   [{"id": &"cold_sixes", "params": {"face": 6}}, {"id": &"pit_boss", "params": {}}]
 ## Optional "name" / "description" override the HUD text; a RunRuleData
-## resource is accepted as an entry too. Short Table / Heavy Burn are
+## resource is accepted as an entry too. Short Table / Heavy Toll are
 ## labels only: set goal.hands / tuning.bust_soul_loss for them.
 var rules: Array = []
 ## Dice the player owns in the run bag (Cracked never shatters at <= 5).
@@ -37,6 +37,9 @@ var first_table: bool = true
 ## The run's Seal steps for the Knucklebone (NonStdDice.seal_steps(run_data));
 ## empty = res://resources/map/bonfire_run.tres.
 var seal_steps: Dictionary = {}
+## Nerve uses per table (design/nerve_v1.md; RunData.nerve_uses). The table
+## builds NerveState with it and refills it each table, boss re-sits too.
+var nerve_uses: int = 1
 
 
 ## The sandbox table: `count` plain Bone dice, the tuning's Table 1.

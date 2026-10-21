@@ -52,6 +52,7 @@
 
 [resource]
 script = ExtResource("15_w0480")
+nerve_uses = 1
 floors = Array[ExtResource("13_o6wbp")]([ExtResource("14_w0480"), ExtResource("15_267f4"), ExtResource("16_74278")])
 events = Array[ExtResource("1_qfvd1")]([ExtResource("2_bkp6x"), ExtResource("3_0yela"), ExtResource("4_cxvay"), ExtResource("5_dvrif"), ExtResource("6_0oyw3"), ExtResource("ev_toll_keeper"), ExtResource("ev_gravedigger"), ExtResource("ev_fence"), ExtResource("ev_shill"), ExtResource("ev_tout"), ExtResource("ev_bone_setter"), ExtResource("ev_back_room")])
 special_dice = Array[ExtResource("13_w0480")]([ExtResource("14_267f4"), ExtResource("15_74278"), ExtResource("16_bkp6x"), ExtResource("17_0yela"), ExtResource("18_cxvay"), ExtResource("19_dvrif"), ExtResource("20_0oyw3"), ExtResource("21_8vtvu"), ExtResource("22_frdgj")])

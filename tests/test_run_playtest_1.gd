@@ -19,6 +19,7 @@ func _initialize() -> void:
 	_test_m3_soul_and_won()
 	_test_m5_bonus()
 	_test_bonus_fallback()
+	_test_m5_fallback()
 	_test_short_table_text()
 	_test_boss_twist()
 	_test_altar()
@@ -207,3 +208,39 @@ func _test_bonus_fallback() -> void:
 	_check(MapRun.pick_bonus(only_run4, req_run4, r2) == null, "bonus: a clash with no Full House in the pool = no bonus")
 	var empty: Array[BountyData] = []
 	_check(MapRun.pick_bonus(empty, req_none, r2) == null, "bonus: an empty pool = no bonus")
+
+
+func _rigged_goal(required: Array[BountyData], bonus_pool: Array[BountyData], seed_value: int) -> TableGoal:
+	var rd := _data.duplicate() as RunData
+	var f := (_data.floors[0] as FloorData).duplicate() as FloorData
+	f.featured_bounties = [] as Array[BountyData]
+	f.common_bounties = required.duplicate()
+	f.min_bounties = required.size()
+	f.max_bounties = required.size()
+	f.bonus_bounties = bonus_pool
+	var floors: Array[FloorData] = [f, _data.floors[1], _data.floors[2]]
+	rd.floors = floors
+	var run := MapRun.new(rd, seed_value)
+	run._start_floor(0)
+	_enter(run, NT.TABLE)
+	return run.goal
+
+
+## M5 (#106): a drawn bonus that repeats a required bounty falls back to the
+## pool's Full House; with Full House required too, no bonus at all.
+func _test_m5_fallback() -> void:
+	var K := BountyData.Kind
+	var run4 := _bounty(K.RUN, 4, &"run4")
+	var fh_req := _bounty(K.FULL_HOUSE, 3, &"full_house")
+	var b_run4 := _bounty(K.RUN, 4, &"bonus_run4")
+	var b_fh := _bounty(K.FULL_HOUSE, 3, &"bonus_full_house")
+	var only_run4_bonus: Array[BountyData] = [b_run4, b_run4, b_run4, b_fh]
+	var fb_ok := true
+	var none_ok := true
+	for s in 12:
+		var g := _rigged_goal([run4] as Array[BountyData], only_run4_bonus, s)
+		fb_ok = fb_ok and g.required.size() == 1 and g.required[0] == run4 and g.bonus.size() == 1 and g.bonus[0] == b_fh
+		var g2 := _rigged_goal([run4, fh_req] as Array[BountyData], only_run4_bonus, s)
+		none_ok = none_ok and g2.required.size() == 2 and g2.bonus.is_empty()
+	_check(fb_ok, "M5: rigged table, bonus repeats required Run of 4 -> Full House bonus")
+	_check(none_ok, "M5: rigged table, Run of 4 and Full House required -> no bonus")

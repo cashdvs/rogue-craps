@@ -159,6 +159,8 @@ func table_setup() -> RunTableSetup:
 	s.max_soul = progress.max_soul
 	s.seed_value = hash([run_seed, floor_index, map.current_id, &"table", boss_misses])
 	s.first_table = tables_played == 0
+	s.nerve_uses = data.nerve_uses
+	s.seal_steps = NonStdDice.seal_steps(data)
 	s.rules = rules.duplicate()
 	for r in rules:
 		if r.bust_soul_loss >= 0:

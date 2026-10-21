@@ -62,10 +62,17 @@ func _test_data() -> void:
 	_check(is_equal_approx(_run.shape_offer_chance, 0.25), "data: shape slot about 1 in 4 of dice offers")
 
 
+## A copy of the run data with room for a 6th and 7th die: these checks add
+## two dice to the 5-die start, and the bag cap (RunData.max_dice) may be 6
+## (#117). Without it the index errors silently skip 6 checks.
+func _roomy() -> RunData:
+	var r := _run.duplicate() as RunData
+	r.max_dice = 7
+	return r
+
+
 func _test_dice() -> void:
-	var roomy := _run.duplicate() as RunData
-	roomy.max_dice = 7
-	var p := RunProgress.new(roomy)
+	var p := RunProgress.new(_roomy())
 	_check(p.add_die(&"powder_keg") and p.add_die(&"ferryman"), "dice: buy a Powder Keg and a Coin")
 	var keg := p.dice[5]
 	var coin := p.dice[6]
@@ -79,14 +86,14 @@ func _test_dice() -> void:
 	_check(p.mod_price(twin, 5) == plain_price, "mods: pre-carved faces don't count toward the +50% step (§5/§10 silent)")
 	p.set_face(5, 0, &"wild")
 	_check(p.mod_price(twin, 5) == plain_price * 3 / 2, "mods: a carved face does (+50% per mod, §5)")
-	var run := MapRun.new(roomy, 3)
+	var run := MapRun.new(_roomy(), 3)
 	run.progress.add_die(&"ferryman")
 	_check(run.free_face(Vector2i(5, 1)) and not run.free_face(Vector2i(5, 2)), "picks: a Coin has faces 0-1 only")
 	_check(EventApplier.pick_ok(_add_fx(), run.progress, Vector2i(5, 0)) and not EventApplier.pick_ok(_add_fx(), run.progress, Vector2i(5, 4)),
 		"events: picked faces bounded by the die's face count")
 	run.progress.add_die(&"powder_keg")
 	_check(not run.free_face(Vector2i(6, 4)) and run.free_face(Vector2i(6, 3)), "picks: the Keg's Twin 3s are taken, its 2s are free")
-	var m := RunProgress.new(roomy)
+	var m := RunProgress.new(_roomy())
 	m.add_die(&"mirror")
 	m.add_die(&"cracked")
 	_check(m.dice[5].shape == &"bone" and m.dice[5].faces.size() == 6 and m.table_dice()[6].special == &"cracked", "specials: Mirror / Cracked stay d6 specials")
@@ -101,9 +108,7 @@ func _add_fx() -> EventEffectData:
 
 
 func _test_table() -> void:
-	var roomy := _run.duplicate() as RunData
-	roomy.max_dice = 7  # a sixth and seventh die (the bag cap is 6)
-	var p := RunProgress.new(roomy)
+	var p := RunProgress.new(_roomy())
 	p.add_die(&"powder_keg")
 	p.add_die(&"ferryman")
 	p.set_face(5, 2, &"heavy")

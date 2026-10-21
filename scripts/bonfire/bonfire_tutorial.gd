@@ -42,6 +42,9 @@ const HINTS := {
 	&"jit2_free": {"text": "Nothing lit on a full throw: free rethrow.", "anchor": &"tray", "timeout": 3.0},
 	&"jit3_seal": {"text": "Seals level up a combo: bigger base, bigger mult.", "anchor": &"seal_options", "dismiss": [&"seal_pick"]},
 	&"jit4_wild": {"text": "Wild faces pick their best value for you.", "anchor": &"wild_die", "timeout": 3.0},
+	# Nerve (nerve_v1.md; PM Oct 20): HN1 only on the first bust rescue a
+	# profile ever sees; after that the rescue prompt alone.
+	&"hn1_nerve": {"text": "Nothing lit, but Nerve can turn one die to save it.", "anchor": &"tray", "dismiss": [&"thrown"], "timeout": 5.0},
 	&"jit5_twist": {"text": "This table has a twist. Check its rule card.", "anchor": &"rules", "dismiss": [&"thrown"]},
 	# Bounty and Seal hints (onboarding_hints_v1.md, Oct 19; just-in-time:
 	# Skip doesn't mark them, only Tutorial hints Off stops them). {soul} =

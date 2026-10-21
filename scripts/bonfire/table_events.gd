@@ -53,6 +53,10 @@ signal table_cleared()
 ## A boss cheat changed dice after they settled (e.g. Madame Shuffle's
 ## reroll): its rule id and the dice it touched.
 signal boss_cheat(cheat_id: StringName, die_ids: Array)
+## Nerve (nerve_v1.md): the player turned die `die_id` (event id) from face
+## slot `from_face` to `to_face` (1-based, TableDie slots); dir = +1 up or
+## -1 down. An undo emits it again with the faces swapped and dir reversed.
+signal die_nudged(die_id: int, from_face: int, to_face: int, dir: int)
 ## A face mod scored during the count-up, as the count reaches its die (its
 ## first pip). row_id: the mod id (its row in the mods table). tier: the
 ## pot's score tier (0-4, JuicePlan.tier). intensity: 0..1 (tier / 4).

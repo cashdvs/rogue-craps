@@ -55,6 +55,7 @@ func _make(canvas: Vector2i) -> Array:
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = TableSetup.sandbox(t, 5)
+	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	s.tutorial_override = 0
 	s.bonfire_seed = 5
 	s.test_speed = 10.0

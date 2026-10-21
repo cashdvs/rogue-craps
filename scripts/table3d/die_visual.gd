@@ -246,7 +246,54 @@ func shown_value() -> int:
 func up_slot() -> int:
 	if shape == &"coin":
 		return CoinPhysics.face_slot(faces.global_transform.basis)
+	if PolyDie.has_shape(shape):
+		# A hull die (d4 .. d20, talus, keg): the face direction pointing up.
+		return PolyDie.up_slot(shape, faces.global_transform.basis)
 	return up_value()
+
+
+## Shows face [param slot] (1-based, as on TableDie) on top of this settled
+## die, by turning its inner `faces` node; the die itself (and its frozen
+## physics body) stays where it landed. Used by Nerve (nerve_v1.md) and
+## any rule that changes a face after the dice settle.
+##   animate = true: a short hop-and-turn tween (FACE_TURN_TIME seconds);
+##   false: snaps at once. The table passes false under reduced motion and
+##   at Instant speed. Returns the faces node's final rotation.
+## Cube and coin: their FACE_AXES ids (mesh_face). A hull die: its face
+## direction table (PolyDie.dirs), so it works for d4 .. d20 too.
+func set_face(slot: int, animate: bool = true) -> Quaternion:
+	var to := face_rotation(slot)
+	if face_tween != null and face_tween.is_valid():
+		face_tween.kill()
+	if not animate or not is_inside_tree():
+		faces.quaternion = to
+		return to
+	var from := faces.quaternion
+	var base := faces.position
+	face_tween = create_tween()
+	face_tween.tween_method(func(k: float) -> void:
+		faces.quaternion = from.slerp(to, k)
+		faces.position = base + Vector3(0, sin(k * PI) * edge * 0.5, 0), 0.0, 1.0, FACE_TURN_TIME)
+	face_tween.tween_callback(func() -> void:
+		faces.position = base
+		faces.quaternion = to)
+	return to
+
+
+## Seconds set_face's turn takes when animated.
+const FACE_TURN_TIME: float = 0.25
+## The running set_face tween (killed by the next set_face), or null.
+var face_tween: Tween
+
+
+## The `faces` node rotation (local to the die) that puts face [param slot]
+## on top for the die's current pose.
+func face_rotation(slot: int) -> Quaternion:
+	var outer := global_transform.basis.orthonormalized() if is_inside_tree() else transform.basis.orthonormalized()
+	if PolyDie.has_shape(shape):
+		var shown := PolyDie.remap_basis(shape, outer, slot)
+		return (outer.inverse() * shown).orthonormalized().get_rotation_quaternion()
+	return DieVisual.remap_basis(DieVisual.value_up(outer), mesh_face(slot)).get_rotation_quaternion()
 
 
 ## The FACE_AXES id where face `slot` sits on this mesh (what remap_basis

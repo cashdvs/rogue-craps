@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_e0o8r")
 id = &"heavy_burn"
-display_name = "Heavy Burn"
+display_name = "Heavy Toll"
 description = "A bust costs 3 Soul."
 bust_soul_loss = 3
