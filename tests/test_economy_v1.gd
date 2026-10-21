@@ -205,6 +205,20 @@ func _test_premium_seal() -> void:
 		"P4: buy the rare Seal for 12; it's used at once (Black: +1 most-banked)")
 	_check(run.shop_premium_seal == &"" and not run.buy_premium_seal() and run.shop_seals_bought == 0, "P4: one per stock; doesn't raise the Seal step")
 	_check(run.shop_reroll() and _data.rare_seals.has(run.shop_premium_seal), "P4: a reroll restocks the rare slot")
+	var off := _data.duplicate() as RunData
+	off.shop_premium_rare_price = 0
+	var same := true
+	for seed_v in 12:
+		var on_run := MapRun.new(_data, seed_v)
+		var off_run := MapRun.new(off, seed_v)
+		same = same and _enter(on_run, NT.SHOP) and _enter(off_run, NT.SHOP) and off_run.shop_premium_seal == &""
+		for k in 2:  # the first stock, then after a reroll
+			same = same and on_run.shop_dice == off_run.shop_dice and on_run.shop_mods == off_run.shop_mods and on_run.shop_seals == off_run.shop_seals
+			on_run.progress.embers = 100
+			off_run.progress.embers = 100
+			on_run.shop_reroll()
+			off_run.shop_reroll()
+	_check(same, "P4: the rare Seal is drawn last: dice, mod and Seal offers match with the rare slot on and off (12 seeds, + a reroll)")
 
 
 # --- P5: floor price scaling ---

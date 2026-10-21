@@ -13,7 +13,7 @@ extends Resource
 ## Handful: 5 dice to start, max 6 (economy_balance_v1 P2; was 7). Every bag-full
 ## check (shop, Elite reward, event give_die, "Your dice" panel) reads max_dice.
 @export var starting_dice: int = 5
-@export var max_dice: int = 7
+@export var max_dice: int = 6
 
 @export_group("Pools (build content v0.3)")
 ## Events the map's Event nodes draw from (no repeats until all are seen).
