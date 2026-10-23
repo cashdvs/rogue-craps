@@ -14,7 +14,7 @@ const RELIQ := "res://art/models/props/soul_reliquary/scenes/soul_reliquary%s.ts
 const MARK := {"pc": "SoulReliquary", "phone": "SoulReliquaryPhone", "portrait": "SoulReliquaryPortrait"}
 ## the five gate states: [soul, max_soul, lethal]
 const STATES := {"full": [35, 35, false], "mid": [18, 35, false], "low": [4, 35, false], "lethal": [3, 35, true],
-	"grow": [39, 39, false]}
+	"grow": [39, 39, false], "big": [105, 120, false]}
 ## candle row (PR #142) anchors + footprint in row-local space, for the keep-out check
 const ROWS := {"pc": [Vector3(-0.40, 0.11, 0.578), 0.0, Vector3(1, 1, 1)], "phone": [Vector3(-0.51, 0.11, 0.61), 0.0, Vector3(1.218, 1.4, 1.4)],
 	"portrait": [Vector3(1.11, 0.11, 0.275), 90.0, Vector3(1.218, 1.4, 1.4)]}
@@ -164,8 +164,10 @@ func _run() -> void:
 		rq.set_soul(sv[0], sv[1], false)
 		rq.lethal = sv[2]
 		if mask:
-			var lbl := rq.get_node("Rig/Digits") as Label3D
-			lbl.modulate = Color(1, 0, 1)
+			for ln in ["Rig/Digits", "Rig/Stacked/DigitsCur", "Rig/Stacked/DigitsMax"]:
+				var ml := rq.get_node_or_null(ln) as Label3D
+				if ml:
+					ml.modulate = Color(1, 0, 1)
 	await create_timer(0.3).timeout
 	_phone.frame(s)
 	s.camera.snap_home()
@@ -181,6 +183,15 @@ func _run() -> void:
 		var lbl := rq.get_node("Rig/Digits") as Label3D
 		print("  RELIQUARY rect %s (%s) %.1f x %.1f px | digits '%s' pixel_size %.5f" % [all, "on screen" if Rect2(Vector2.ZERO, vs).encloses(all) else "CROPPED",
 			all.size.x, all.size.y, lbl.text, lbl.pixel_size])
+		if rq.stacked():
+			var pr := _rect(cam, _mesh_pts(rq.get_node("Rig/Stacked")))
+			var sc2 := 780.0 / vs.x    # capture px per viewport px (portrait capture 780 wide)
+			print("  STACKED PLATE rect %s | margins (capture px) left %.1f right %.1f top %.1f bottom %.1f | %s" % [pr,
+				pr.position.x * sc2, (vs.x - pr.end.x) * sc2, pr.position.y * sc2, (vs.y - pr.end.y) * sc2,
+				"on screen 12px ok" if Rect2(Vector2.ONE * 12.0 / sc2, vs - Vector2.ONE * 24.0 / sc2).encloses(pr) else "MARGIN FAIL"])
+			print("  STACKED digits cur '%s' ps %.5f | max '%s' ps %.5f" % [(rq.get_node("Rig/Stacked/DigitsCur") as Label3D).text,
+				(rq.get_node("Rig/Stacked/DigitsCur") as Label3D).pixel_size, (rq.get_node("Rig/Stacked/DigitsMax") as Label3D).text,
+				(rq.get_node("Rig/Stacked/DigitsMax") as Label3D).pixel_size])
 		var dice := s.find_children("*", "DieVisual", true, false)
 		if dice.size() > 0:
 			var dr := _rect(cam, _mesh_pts(dice[0]))
