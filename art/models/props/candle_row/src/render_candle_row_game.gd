@@ -52,10 +52,11 @@ func _ink_rect(c: Control) -> Rect2:
 
 func _run() -> void:
 	_phone.parse_args()
-	var out := "/workspace/dice/art/renders/candle_row/v3/game_real_pc_8lit.png"
+	var out := "/workspace/dice/art/renders/candle_row/v4/game_real_pc_8lit.png"
 	var st := [4, 0, 3]
 	var anchor_name := ""
 	var x_over := INF
+	var z_over := INF
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):
 			out = a.substr(4)
@@ -64,6 +65,8 @@ func _run() -> void:
 			st = [int(p[0]), int(p[1]), int(p[2])]
 		if a.begins_with("anchor="):
 			anchor_name = a.substr(7)
+		if a.begins_with("z="):
+			z_over = float(a.substr(2))
 		if a.begins_with("x="):
 			x_over = float(a.substr(2))
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
@@ -87,6 +90,8 @@ func _run() -> void:
 	var anchor := board.get_node("Anchors/" + anchor_name) as Marker3D
 	if x_over != INF:
 		anchor.position.x = x_over
+	if z_over != INF:
+		anchor.position.z = z_over
 	var row := (load(ROW % lod) as PackedScene).instantiate() as Node3D
 	row.reduced_motion = true
 	anchor.add_child(row)
@@ -104,13 +109,17 @@ func _run() -> void:
 	var at := anchor.global_position
 	var ax := anchor.global_basis.x
 	var az := anchor.global_basis.z
-	var half := (0.058 * 4 + 0.01) * (row.get_node("Holder") as Node3D).scale.x
 	var lo := Vector2(1e9, 1e9)
 	var hi := Vector2(-1e9, -1e9)
-	for p in [Vector3(-half, 0, 0.02 * k), Vector3(half, 0, 0.02 * k), Vector3(-half, 0.11 * k, -0.02 * k), Vector3(half, 0.11 * k, -0.02 * k)]:
-		var sp := cam.unproject_position(at + ax * p.x + Vector3.UP * p.y + az * p.z)
-		lo = lo.min(sp)
-		hi = hi.max(sp)
+	for m in row.find_children("*", "MeshInstance3D", true, false):  # every drawn mesh (both tiers, v4)
+		var mi := m as MeshInstance3D
+		if not mi.is_visible_in_tree():
+			continue
+		var bb := mi.get_aabb()
+		for ci in 8:
+			var sp := cam.unproject_position(mi.global_transform * bb.get_endpoint(ci))
+			lo = lo.min(sp)
+			hi = hi.max(sp)
 	var rr := Rect2(lo, hi - lo)
 	var s0 := (row.get_node("Sockets/Socket1") as Node3D).global_position
 	var s1 := (row.get_node("Sockets/Socket2") as Node3D).global_position
@@ -122,28 +131,46 @@ func _run() -> void:
 	# ink extents of the candles themselves (socket 1 .. 8 +- candle radius, base to flame tip)
 	var clo := Vector2(1e9, 1e9)
 	var chi := Vector2(-1e9, -1e9)
-	for i in [1, 8]:
+	for i in range(1, mini(st[0], 8) + 1):  # every socket in use (both tiers, v4)
 		var sk := row.get_node("Sockets/Socket%d" % i) as Node3D
 		for d in [Vector3(-0.012, 0, 0), Vector3(0.012, 0, 0), Vector3(-0.012, 0.115, 0), Vector3(0.012, 0.115, 0)]:
 			var sp := cam.unproject_position(sk.to_global(d))
 			clo = clo.min(sp)
 			chi = chi.max(sp)
 	var cr8 := Rect2(clo, chi - clo)
-	print("  candles 1-8 ink rect %s (%s)" % [cr8, "on screen" if Rect2(Vector2.ZERO, vs).encloses(cr8) else "CROPPED"])
+	print("  candles 1-%d ink rect %s (%s)" % [mini(st[0], 8), cr8, "on screen" if Rect2(Vector2.ZERO, vs).encloses(cr8) else "CROPPED"])
 	var cs: Array = []
 	_ctrls(s.bhud, cs)
 	for c in cs:
 		var cr := _ink_rect(c as Control)
 		if cr.size.x <= 0.0:
 			continue
-		if cr.position.y < cr8.end.y and cr.end.y > cr8.position.y:  # shares rows with the candles
-			var gap := maxf(cr.position.x - cr8.end.x, cr8.position.x - cr.end.x)
-			var side := "right" if cr.position.x >= cr8.end.x else ("left" if cr.end.x <= cr8.position.x else "OVERLAP")
+		var hg := maxf(cr.position.x - cr8.end.x, cr8.position.x - cr.end.x)
+		var vg := maxf(cr.position.y - cr8.end.y, cr8.position.y - cr.end.y)
+		var gap := maxf(hg, vg)  # separation: clear if either axis is apart
+		if gap < 60.0:
+			var side := ("right" if cr.position.x >= cr8.end.x else "left") if hg >= vg else ("below" if cr.position.y >= cr8.end.y else "above")
+			if gap < 0.0:
+				side = "OVERLAP"
 			var t2: String = (c as Button).text if c is Button else (c as Label).text
-			print("  CLEAR %-7s %6.1f px  %s '%s' ink %s" % [side, gap, c.name, t2.replace("\n", " ").left(24), cr])
+			print("  CLEAR %-7s %6.1f px %s  %s '%s' ink %s" % [side, gap, "ok" if gap >= 12.0 else "FAIL", c.name, t2.replace("\n", " ").left(24), cr])
 		if false:
 			var txt: String = (c as Button).text if c is Button else (c as Label).text
 			print("  overlaps %s '%s' %s" % [c.name, txt.replace("\n", " ").left(24), cr])
+	var tray := board.get_node_or_null("Anchors/ChipTray")
+	if tray != null:  # the cauldron (chip tray) in screen space
+		var tlo := Vector2(1e9, 1e9)
+		var thi := Vector2(-1e9, -1e9)
+		for m in tray.find_children("*", "MeshInstance3D", true, false):
+			var mi := m as MeshInstance3D
+			var bb := mi.get_aabb()
+			for ci in 8:
+				var sp := cam.unproject_position(mi.global_transform * bb.get_endpoint(ci))
+				tlo = tlo.min(sp)
+				thi = thi.max(sp)
+		var tr := Rect2(tlo, thi - tlo)
+		var g := maxf(maxf(tr.position.x - cr8.end.x, cr8.position.x - tr.end.x), maxf(tr.position.y - cr8.end.y, cr8.position.y - tr.end.y))
+		print("  CAULDRON rect %s | separation %.1f px %s" % [tr, g, "clear" if g >= 0.0 else "OVERLAP"])
 	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
 	_phone.image(root).save_png(out)
 	quit()

@@ -40,10 +40,10 @@ const CANDLE_Z: Array[float] = [-0.42, -0.24, 0.24, 0.42]
 const CANDLE_Y := 0.105
 const SIDE_CANDLES := false                   # AD Oct 22 (candle row v2): candles mean hands only; the side-rail
                                               # progress candles are cut (Hearth/Candles stays, empty: hearth_fx is null-safe)
-const CANDLE_ROW_AT := Vector3(-0.333, 0.11, 0.61)  # Anchors/CandleRow: the hand candle row on the near rail, left of
+const CANDLE_ROW_AT := Vector3(-0.40, 0.11, 0.578)  # Anchors/CandleRow: the hand candle row on the near rail, left of
                                               # the pot medallion, clear of Bank (candle_row README "Placement")
-const CANDLE_ROW_PHONE_AT := Vector3(-0.384, 0.11, 0.61)  # Anchors/CandleRowPhone: landscape phone spot (v3)
-const CANDLE_ROW_PORTRAIT := Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(1.11, 0.11, -0.05))  # PROPOSAL:
+const CANDLE_ROW_PHONE_AT := Vector3(-0.51, 0.11, 0.61)  # Anchors/CandleRowPhone: landscape phone spot (v4)
+const CANDLE_ROW_PORTRAIT := Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(1.11, 0.11, 0.275))  # v4 (AD-approved):
                                               # portrait-only spot (the portrait camera crops the near rail)
 const FACE_OUT := 0.04                        # demon faces pushed out along the corner diagonal
 ## Set dressing (detail pass, Oct 19): build_dressing.py pivots (board space) and the ambient spots.

@@ -230,3 +230,7 @@ The NR half-melted stub candle and its drip are cut from `dressing_corners`. The
 - `dressing_corners`: PC 580 (v2 662), mobile 346 (v2 420).
 - Board drawn tris with dressing on and tail out: PC 13,432 / test total 13,444; mobile 6,062 / 6,068. Dressing part: PC 3,012, mobile 874. Dressing off is unchanged at 11,782 / 5,232.
 - Markers: `Anchors/CandleRow` (PC) at (-0.333, 0.11, 0.61); `Anchors/CandleRowPhone` (landscape phone) at (-0.384, 0.11, 0.61); `Anchors/CandleRowPortrait` (AD-approved) at (1.11, 0.11, -0.05), yaw 90°.
+
+## v4 note (candle row)
+- Markers: `Anchors/CandleRow` (PC) at (-0.40, 0.11, 0.578); `Anchors/CandleRowPhone` at (-0.51, 0.11, 0.61); `Anchors/CandleRowPortrait` at (1.11, 0.11, 0.275), yaw 90°. The row is now two tiers of 4 (see `art/models/props/candle_row/README.md`).
+- Board drawn tris with dressing on: PC 13,432, mobile 6,062 (13,444 / 6,068 all meshes). Worst case with the row's >8 cue (368): PC 13,812, mobile 6,436.

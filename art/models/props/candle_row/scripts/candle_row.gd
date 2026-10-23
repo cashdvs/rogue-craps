@@ -8,6 +8,10 @@
 ##   more than CANDLE_CAP hands (v2, GD Oct 22): all 8 lit + the brass ring on the 8th candle = "more
 ##     than shown"; no text. Spends above 8 snuff nothing; the cue ring goes when hands_left reaches 8.
 ##   table end: all candles out
+##   layout (v4, AD sign-off Oct 22): two tiers. Sockets 1-4 (hands 1-4) are the front tier and 5-8 the
+##     back tier, offset half a pitch so nothing hides. Spends snuff from the right end of the back tier
+##     first, so 4 or fewer lit is one clean front row; HolderBack hides when the back tier is unused.
+##     The Bodkin ring sits on the next free socket; the >8 cue stays on candle 8 (back tier, right end).
 ## Visual only (art): no gameplay, no signals into the game. Godot Dev calls the hooks below.
 ##   row.table_start(goal_hands, hands_delta)   # table_started; goal_hands already includes the delta
 ##   row.spend(bust)                            # bank (false) / bust (true): hands_left -= 1 on the row
@@ -15,12 +19,15 @@
 ##   row.add_hands(n)                           # a hand was added mid-table: snap + restore the gutter
 ##   row.table_end()                            # all out
 ##   row.reduced_motion = true                  # every clip cuts to its end state
+##   row.over_cap()                             # true while hands_left > 8 (the cue ring is up)
+##   row.lit_count()                            # lit candles shown (<= 8)
 ##   row.light_level()                          # 0..1 lit share, to slave the CandleBounce lights to
 @tool
 class_name CandleRow
 extends Node3D
 
 const CANDLE_CAP := 8                     # world_props_v1 §2.1 display constant
+const TIER := 4                           # v4: sockets 1-4 = front tier, 5-8 = back tier (half-pitch offset)
 const HEIGHTS := [1.0, 0.93, 1.06, 0.96, 1.03, 0.9, 1.08, 0.97]
 const SPINS := [0.0, 0.7, 1.9, 2.6, 4.1, 0.4, 3.3, 5.2]
 
@@ -150,6 +157,9 @@ func _layout() -> void:
 			c.state = CandleRowCandle.State.STUB
 		else:
 			c.state = CandleRowCandle.State.EMPTY
+	var hb := get_node_or_null("HolderBack") as Node3D
+	if hb != null:  # v4: the back bar only shows when the back tier has a socket in use
+		hb.visible = mini(hands + stubs, CANDLE_CAP) > TIER
 	_rings()
 	_snap()
 

@@ -22,7 +22,8 @@ TRIS = {}
 # ---- row layout (keep in sync with scripts/candle_row.gd) -------------------------------------
 CAP = 8              # CANDLE_CAP (display constant, world_props_v1 §2.1)
 PITCH = 0.058        # socket spacing (m)
-BAR_LEN = PITCH * CAP + 0.02
+TIER = 4             # v4: two tiers of 4 (front = hands 1-4, back = 5-8), one holder bar each
+BAR_LEN = PITCH * TIER + 0.02
 BAR_H = 0.009        # holder bar height
 BAR_W = 0.034        # holder bar depth (z)
 PLATE_R = 0.0165     # socket plate (hex) radius
@@ -131,7 +132,7 @@ def build_candle():
 
 
 def build_holder():
-    """Iron candle rail lying on the near-rail top: a chamfered bar (6-point profile) + 2 end caps. 20 tris."""
+    """Iron candle rail (one per tier, 4 sockets) lying on the near-rail top: a chamfered bar (6-point profile) + 2 end caps. 20 tris."""
     p = Part("candle_row_holder", [("holder_iron", (0.2, 0.19, 0.18))])
     hw, h, c = BAR_W / 2, BAR_H, 0.003
     prof = [(-hw, 0.0), (hw, 0.0), (hw, h - c), (hw - c, h), (-hw + c, h), (-hw, h - c)]  # (z, y), CCW seen from +x
@@ -202,6 +203,6 @@ build_holder()
 build_socket()
 build_ring()
 build_bead()
-row = TRIS["candle_row_holder"] + CAP * (TRIS["candle_row_socket"] + TRIS["candle_row_candle"])
+row = 2 * TRIS["candle_row_holder"] + CAP * (TRIS["candle_row_socket"] + TRIS["candle_row_candle"])
 print("TRIS %s" % TRIS)
 print("ROW_GEOMETRY holder+%d sockets+%d candles = %d (+%d per gift ring)" % (CAP, CAP, row, TRIS["candle_row_ring"]))

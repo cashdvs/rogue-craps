@@ -5,61 +5,63 @@
 [ext_resource type="PackedScene" path="res://art/models/props/candle_row/scenes/candle_row_candle.tscn" id="3_dwjbi"]
 [ext_resource type="PackedScene" path="res://art/models/props/candle_row/candle_row_ring.glb" id="4_1sl7t"]
 
-[node name="CandleRow" type="Node3D" unique_id=597671030]
+[node name="CandleRow" type="Node3D" unique_id=1014657500]
 script = ExtResource("1_tulo2")
 
-[node name="Holder" parent="." unique_id=1869548275 instance=ExtResource("2_nhohn")]
-transform = Transform3D(0.94, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+[node name="Holder" parent="." unique_id=818244841 instance=ExtResource("2_nhohn")]
 
-[node name="Sockets" type="Node3D" parent="." unique_id=1860760824]
+[node name="HolderBack" parent="." unique_id=501927098 instance=ExtResource("2_nhohn")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029, 0, -0.04)
 
-[node name="Socket1" type="Marker3D" parent="Sockets" unique_id=2053278117]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.19082, 0.009, 0)
+[node name="Sockets" type="Node3D" parent="." unique_id=1427317118]
 
-[node name="Candle" parent="Sockets/Socket1" unique_id=1849468810 instance=ExtResource("3_dwjbi")]
+[node name="Socket1" type="Marker3D" parent="Sockets" unique_id=355692416]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.087, 0.009, 0)
 
-[node name="Socket2" type="Marker3D" parent="Sockets" unique_id=463642970]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1363, 0.009, 0)
+[node name="Candle" parent="Sockets/Socket1" unique_id=2116230582 instance=ExtResource("3_dwjbi")]
 
-[node name="Candle" parent="Sockets/Socket2" unique_id=1447416999 instance=ExtResource("3_dwjbi")]
+[node name="Socket2" type="Marker3D" parent="Sockets" unique_id=987541534]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.029, 0.009, 0)
 
-[node name="Socket3" type="Marker3D" parent="Sockets" unique_id=1858210844]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08178, 0.009, 0)
+[node name="Candle" parent="Sockets/Socket2" unique_id=390524956 instance=ExtResource("3_dwjbi")]
 
-[node name="Candle" parent="Sockets/Socket3" unique_id=124677231 instance=ExtResource("3_dwjbi")]
+[node name="Socket3" type="Marker3D" parent="Sockets" unique_id=1633680689]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029, 0.009, 0)
 
-[node name="Socket4" type="Marker3D" parent="Sockets" unique_id=2133887123]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02726, 0.009, 0)
+[node name="Candle" parent="Sockets/Socket3" unique_id=770500070 instance=ExtResource("3_dwjbi")]
 
-[node name="Candle" parent="Sockets/Socket4" unique_id=1328585339 instance=ExtResource("3_dwjbi")]
+[node name="Socket4" type="Marker3D" parent="Sockets" unique_id=143587654]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.087, 0.009, 0)
 
-[node name="Socket5" type="Marker3D" parent="Sockets" unique_id=1064313792]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02726, 0.009, 0)
+[node name="Candle" parent="Sockets/Socket4" unique_id=811361800 instance=ExtResource("3_dwjbi")]
 
-[node name="Candle" parent="Sockets/Socket5" unique_id=1046958042 instance=ExtResource("3_dwjbi")]
+[node name="Socket5" type="Marker3D" parent="Sockets" unique_id=853284793]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.058, 0.009, -0.04)
 
-[node name="Socket6" type="Marker3D" parent="Sockets" unique_id=1280099569]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08178, 0.009, 0)
+[node name="Candle" parent="Sockets/Socket5" unique_id=1977034170 instance=ExtResource("3_dwjbi")]
 
-[node name="Candle" parent="Sockets/Socket6" unique_id=1319302643 instance=ExtResource("3_dwjbi")]
+[node name="Socket6" type="Marker3D" parent="Sockets" unique_id=1660181590]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.009, -0.04)
 
-[node name="Socket7" type="Marker3D" parent="Sockets" unique_id=1776182473]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1363, 0.009, 0)
+[node name="Candle" parent="Sockets/Socket6" unique_id=1144757002 instance=ExtResource("3_dwjbi")]
 
-[node name="Candle" parent="Sockets/Socket7" unique_id=77264338 instance=ExtResource("3_dwjbi")]
+[node name="Socket7" type="Marker3D" parent="Sockets" unique_id=1232310438]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.058, 0.009, -0.04)
 
-[node name="Socket8" type="Marker3D" parent="Sockets" unique_id=1615331937]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.19082, 0.009, 0)
+[node name="Candle" parent="Sockets/Socket7" unique_id=2008680169 instance=ExtResource("3_dwjbi")]
 
-[node name="Candle" parent="Sockets/Socket8" unique_id=502481121 instance=ExtResource("3_dwjbi")]
+[node name="Socket8" type="Marker3D" parent="Sockets" unique_id=114428952]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.116, 0.009, -0.04)
 
-[node name="GiftRing1" parent="." unique_id=588928296 instance=ExtResource("4_1sl7t")]
+[node name="Candle" parent="Sockets/Socket8" unique_id=291032251 instance=ExtResource("3_dwjbi")]
+
+[node name="GiftRing1" parent="." unique_id=768560699 instance=ExtResource("4_1sl7t")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0102, 0)
 visible = false
 
-[node name="GiftRing2" parent="." unique_id=1157732812 instance=ExtResource("4_1sl7t")]
+[node name="GiftRing2" parent="." unique_id=320992407 instance=ExtResource("4_1sl7t")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0102, 0)
 visible = false
 
-[node name="LightAnchor" type="Marker3D" parent="." unique_id=436275794]
+[node name="LightAnchor" type="Marker3D" parent="." unique_id=1721249876]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0.03)

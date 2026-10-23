@@ -261,37 +261,37 @@ _data = {
 &"snuff_bust": SubResource("Animation_rkmrp")
 }
 
-[node name="Candle" type="Node3D" unique_id=1849468810]
+[node name="Candle" type="Node3D" unique_id=2116230582]
 script = ExtResource("1_hkk18")
 
-[node name="Plate" parent="." unique_id=366893209 instance=ExtResource("2_1n0b5")]
+[node name="Plate" parent="." unique_id=1711220084 instance=ExtResource("2_1n0b5")]
 
-[node name="Model" parent="." unique_id=162072863 instance=ExtResource("3_to42k")]
+[node name="Model" parent="." unique_id=1915908901 instance=ExtResource("3_to42k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0012, 0)
 
-[node name="Flame" type="MeshInstance3D" parent="." unique_id=531722940]
+[node name="Flame" type="MeshInstance3D" parent="." unique_id=1971469032]
 material_override = ExtResource("4_khtx4")
 cast_shadow = 0
 extra_cull_margin = 0.14
 mesh = SubResource("QuadMesh_2auya")
 
-[node name="Wisp" type="MeshInstance3D" parent="." unique_id=2051747408]
+[node name="Wisp" type="MeshInstance3D" parent="." unique_id=338998783]
 visible = false
 material_override = ExtResource("5_wkgb8")
 cast_shadow = 0
 extra_cull_margin = 0.13
 mesh = SubResource("QuadMesh_chb5l")
 
-[node name="Drip" type="MeshInstance3D" parent="." unique_id=1219500641]
+[node name="Drip" type="MeshInstance3D" parent="." unique_id=8000474]
 visible = false
 material_override = ExtResource("6_q3ykd")
 cast_shadow = 0
 extra_cull_margin = 0.1
 mesh = SubResource("QuadMesh_62vr6")
 
-[node name="Bead" parent="." unique_id=131020882 instance=ExtResource("7_sr48g")]
+[node name="Bead" parent="." unique_id=425269267 instance=ExtResource("7_sr48g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.005, 0.0012, 0.0175)
 visible = false
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=52612655]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=378073414]
 libraries/ = SubResource("AnimationLibrary_r086y")
