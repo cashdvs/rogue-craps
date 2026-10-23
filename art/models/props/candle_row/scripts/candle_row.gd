@@ -19,7 +19,7 @@
 ##   row.add_hands(n)                           # a hand was added mid-table: snap + restore the gutter
 ##   row.table_end()                            # all out
 ##   row.reduced_motion = true                  # every clip cuts to its end state
-##   row.over_cap()                             # true while hands_left > 8 (the cue ring is up)
+##   row.over_cap()                             # true while hands_left > 8: candle 8 raised + flared, two hot-brass rings
 ##   row.lit_count()                            # lit candles shown (<= 8)
 ##   row.light_level()                          # 0..1 lit share, to slave the CandleBounce lights to
 @tool
@@ -29,6 +29,9 @@ extends Node3D
 const CANDLE_CAP := 8                     # world_props_v1 §2.1 display constant
 const TIER := 4                           # v4: sockets 1-4 = front tier, 5-8 = back tier (half-pitch offset)
 const HEIGHTS := [1.0, 0.93, 1.06, 0.96, 1.03, 0.9, 1.08, 0.97]
+const CUE_HEIGHT := 1.3                  # v5: candle 8 raised to the top of the wax range while over the cap
+const CUE_RING_SCALE := 1.25
+const RING_CUE := preload("res://art/models/props/candle_row/materials/candle_row_ring_cue.tres")
 const SPINS := [0.0, 0.7, 1.9, 2.6, 4.1, 0.4, 3.3, 5.2]
 
 @export_range(0, 99) var hands: int = 4:
@@ -177,11 +180,32 @@ func _rings() -> void:
 			if r != null and s != null:
 				_ring_on(r, s)
 			used += 1
-	if hands_left > CANDLE_CAP:  # the "more than shown" cue: the ring on the 8th candle
-		var r := get_node_or_null("GiftRing1") as Node3D
+	for k in 2:
+		var r := get_node_or_null("GiftRing%d" % (k + 1)) as Node3D
+		if r != null:
+			_ring_mat(r, null)
+	# v5 (QA #142): the "more than shown" cue on candle 8, no text: two stacked hot-brass collars (1.25x),
+	# the candle raised to the tallest wax (CUE_HEIGHT) and its flame flared (1.8x, brighter core).
+	var over := hands_left > CANDLE_CAP
+	var c8 := candle(CANDLE_CAP - 1)
+	if c8 != null:
+		c8.height = CUE_HEIGHT if over else HEIGHTS[CANDLE_CAP - 1]
+		c8.flare = 1.0 if over else 0.0
+	if over:
 		var s := socket(CANDLE_CAP - 1)
-		if r != null and s != null:
-			_ring_on(r, s)
+		for k in 2:
+			var r := get_node_or_null("GiftRing%d" % (k + 1)) as Node3D
+			if r != null and s != null:
+				_ring_on(r, s)
+				r.scale = s.scale * CUE_RING_SCALE
+				r.position.y += (0.014 * k) * s.scale.y
+				_ring_mat(r, RING_CUE)
+
+
+func _ring_mat(r: Node, m: Material) -> void:
+	var mi := HearthProps.mesh_of(r)
+	if mi != null:
+		mi.material_override = m
 
 
 func _ring_on(r: Node3D, s: Node3D) -> void:

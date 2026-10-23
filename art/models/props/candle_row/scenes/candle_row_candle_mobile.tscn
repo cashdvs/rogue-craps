@@ -261,7 +261,7 @@ _data = {
 &"snuff_bust": SubResource("Animation_ngieu")
 }
 
-[node name="Candle" type="Node3D" unique_id=315762618]
+[node name="Candle" type="Node3D" unique_id=34285562]
 script = ExtResource("1_x6bip")
 
 [node name="Plate" parent="." unique_id=1711220084 instance=ExtResource("2_dn3b0")]
@@ -269,20 +269,20 @@ script = ExtResource("1_x6bip")
 [node name="Model" parent="." unique_id=1915908901 instance=ExtResource("3_qfhw2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0012, 0)
 
-[node name="Flame" type="MeshInstance3D" parent="." unique_id=232403915]
+[node name="Flame" type="MeshInstance3D" parent="." unique_id=612015552]
 material_override = ExtResource("4_dm87t")
 cast_shadow = 0
 extra_cull_margin = 0.14
 mesh = SubResource("QuadMesh_gfk0q")
 
-[node name="Wisp" type="MeshInstance3D" parent="." unique_id=459575496]
+[node name="Wisp" type="MeshInstance3D" parent="." unique_id=1918917285]
 visible = false
 material_override = ExtResource("5_rpmpt")
 cast_shadow = 0
 extra_cull_margin = 0.13
 mesh = SubResource("QuadMesh_if3yr")
 
-[node name="Drip" type="MeshInstance3D" parent="." unique_id=120939390]
+[node name="Drip" type="MeshInstance3D" parent="." unique_id=1739490498]
 visible = false
 material_override = ExtResource("6_g5yx8")
 cast_shadow = 0
@@ -293,5 +293,5 @@ mesh = SubResource("QuadMesh_4qryl")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.005, 0.0012, 0.0175)
 visible = false
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=213288216]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1854134938]
 libraries/ = SubResource("AnimationLibrary_2pb5v")

@@ -110,6 +110,11 @@ func _materials() -> void:
 		"rim_strength": 1.6, "emission_color": BRASS_HI, "emission_energy": 0.32})
 	rg.next_pass = ink
 	_save(rg, M + "candle_row_ring.tres")
+	# v5 QA (#142): the >8 "more than shown" cue ring: Butter-hot brass, stronger rim + glow, so 10 hands never reads as 8
+	var rc := _copy("res://art/models/boards/infernal_pit/materials/brass.tres", {"albedo": Color("#C8902A"), "spec_color": Color("#FFE6A8"), "rim_color": BRASS_HI,
+		"rim_strength": 2.0, "emission_color": Color("#E8A93A"), "emission_energy": 0.6})
+	rc.next_pass = ink
+	_save(rc, M + "candle_row_ring_cue.tres")
 
 
 func _own(n: Node, root: Node) -> void:

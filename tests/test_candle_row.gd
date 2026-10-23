@@ -2,6 +2,9 @@
 ##   layout   two tiers of 4: sockets 1-4 front, 5-8 back (behind, offset half a pitch so no candle hides another)
 ##   snuff    spends go from the back tier's right end first; 4 or fewer lit = one clean front row, back bar hidden
 ##   rings    Bodkin's ringed extra candle on the next free socket; the >8 cue ring stays on candle 8
+##   cue      >8 hands: candle 8 raised + flared, two stacked hot-brass rings; all back to normal at 8
+##   minus    Baron Vig / Ashmouth (delta -1): cold stub in the next socket, the rest empty
+##   count    lit == hands_left == lit_count() on every spend and on snap, through the tier change
 ##   gutter   last hand dims to ~half; restores when a hand is added
 ##
 ## Run:
@@ -9,7 +12,10 @@
 extends SceneTree
 
 const ROW := "res://art/models/props/candle_row/scenes/candle_row%s.tscn"
-const LIT := 1  # CandleRowCandle.State.LIT
+const LIT := CandleRowCandle.State.LIT
+const STUB := CandleRowCandle.State.STUB
+const EMPTY := CandleRowCandle.State.EMPTY
+const CUE_MAT := "res://art/models/props/candle_row/materials/candle_row_ring_cue.tres"
 
 var _passed := 0
 var _failed := 0
@@ -83,6 +89,51 @@ func _check_row(lod: String) -> void:
 	row.call("spend", false)
 	row.call("spend", false)
 	_check(not r1.visible and _lit(row).size() == 8, label + ": cue ring leaves at 8 left")
+	# >8 cue (v5, QA #142)
+	row.call("table_start", 10, 0)
+	var c8 = row.call("candle", 7)
+	var r2 := row.get_node("GiftRing2") as Node3D
+	var m1 := HearthProps.mesh_of(r1)
+	_check(is_equal_approx(float(c8.height), 1.3) and is_equal_approx(float(c8.flare), 1.0), label + ": cue: candle 8 raised to 1.3 and flared")
+	_check(r1.visible and r2.visible and absf(r2.position.x - sk[7].x) < 1e-4 and r2.position.y > r1.position.y + 0.005 and r1.scale.x > 1.2 * (row.get_node("Sockets/Socket8") as Node3D).scale.x, label + ": cue: two stacked 1.25x rings on candle 8")
+	_check(m1 != null and m1.material_override != null and m1.material_override.resource_path == CUE_MAT, label + ": cue: hot-brass cue material")
+	row.call("spend", false)
+	_check(bool(row.call("over_cap")) and float(c8.flare) > 0.9, label + ": cue stays at 9 left")
+	row.call("spend", false)
+	_check(is_equal_approx(float(c8.height), 0.97) and float(c8.flare) == 0.0 and not r2.visible and m1.material_override == null, label + ": cue clears at 8 left (height, flame, rings, material)")
+	row.call("table_start", 5, 1)
+	_check(r1.visible and not r2.visible and m1.material_override == null and float(c8.flare) == 0.0, label + ": Bodkin ring keeps the gift look, no cue")
+	# Baron Vig / Ashmouth: delta -1 (same path)
+	row.call("table_start", 3, -1)
+	var st := []
+	for i in 8:
+		st.append(int(row.call("candle", i).state))
+	_check(st == [LIT, LIT, LIT, STUB, EMPTY, EMPTY, EMPTY, EMPTY] and int(row.call("lit_count")) == 3, label + ": delta -1 (3 hands): socket 4 cold stub, 5-8 empty")
+	_check(not (row.get_node("HolderBack") as Node3D).visible, label + ": delta -1 (3 hands): back bar hidden")
+	row.call("table_start", 7, -1)
+	_check(int(row.call("candle", 7).state) == STUB and _lit(row).size() == 7 and (row.get_node("HolderBack") as Node3D).visible, label + ": delta -1 (7 hands): stub on socket 8, back bar up")
+	row.call("spend", true)
+	_check(int(row.call("candle", 7).state) == STUB and _lit(row).size() == 6, label + ": delta -1: spending never touches the stub")
+	# lit == hands_left on every spend, through the tier change
+	row.call("table_start", 8, 0)
+	var inv_ok := true
+	var inv_at := ""
+	for n in range(7, -1, -1):
+		row.call("spend", n % 2 == 0)
+		var l := _lit(row)
+		var want := []
+		for i in n:
+			want.append(i)
+		if l != want or int(row.call("lit_count")) != n or int(row.get("hands_left")) != n:
+			inv_ok = false
+			inv_at = " (failed at %d left: %s)" % [n, str(l)]
+			break
+	_check(inv_ok, label + ": lit == hands_left == lit_count() on each spend 8 -> 0" + inv_at)
+	row.call("table_start", 6, 0)
+	row.set("hands_left", 2)
+	_check(_lit(row) == [0, 1] and int(row.call("lit_count")) == 2, label + ": snap 6 -> 2: exactly [0, 1] lit")
+	row.set("hands_left", 5)
+	_check(_lit(row) == [0, 1, 2, 3, 4] and int(row.call("lit_count")) == 5, label + ": snap 2 -> 5 (back into the back tier): [0..4] lit")
 	# gutter
 	row.call("table_start", 2, 0)
 	row.call("spend", false)

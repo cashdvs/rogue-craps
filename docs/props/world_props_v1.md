@@ -137,11 +137,13 @@ The hands_delta of Ashmouth, Baron Vig and Odds Bodkin is shown by the **hand ca
 - **Purpose:** hands left at a glance.
 - **Line** `hands_label`: "Hands left: {n}"
 - **Look and placement:** a row of tall candles on the near rail, left side, with one **lit** candle per remaining hand (prop fire is allowed). The row holds up to 8 sockets (tunable display constant `CANDLE_CAP = 8`).
+  - **Layout (AD v4, Oct 22):** on PC and landscape phone, two tiers of 4: hands 1-4 on the front bar, 5-8 on a back bar just behind, offset half a pitch so every flame shows. The back bar only shows when more than 4 sockets are used. Portrait is single file, clear of the cauldron. One marker per layout (`Anchors/CandleRow`, `CandleRowPhone`, `CandleRowPortrait`); the table code picks it by orientation.
+  - **More than 8 hands:** all 8 lit, and candle 8 carries the cue (no text): raised to the tallest wax, a flared flame, and two stacked gold collars. It clears when hands_left drops to 8.
 - **States and triggers:**
   - **Table start** (`table_started`, `BonfireRun._init` sets `hands_left = goal.hands`). `goal.hands` already includes `hands_delta` (`scripts/core/map/map_run.gd:108`).
     - **Negative delta** (Ashmouth, Baron Vig): an empty socket with a cold wick stub stays visible.
     - **Positive delta** (Odds Bodkin, elite twists): the extra candle rises in with a brass ring so it reads as a gift.
-  - **Hand spent**, on `bank` or `bust` (`hands_left -= 1`, bonfire_run.gd:533): the rightmost lit candle snuffs out with a smoke curl. A bust also adds a gutter-drip on the wax.
+  - **Hand spent**, on `bank` or `bust` (`hands_left -= 1`, bonfire_run.gd:533): the rightmost lit candle snuffs out with a smoke curl (two tiers: the back tier's right end first, candle 8 -> 1). A bust also adds a gutter-drip on the wax.
   - **Last hand** (`hands_left == 1`): the last flame flickers faster.
   - **Out of hands** (`table_end`): all candles are out.
 - **Invariant:** lit candles == `hands_left` at all times.

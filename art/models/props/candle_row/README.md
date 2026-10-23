@@ -92,3 +92,9 @@ Not placed in the board scene; no glow decal; tri test doesn't include the row; 
 - API additions: `over_cap()` (hands_left > 8), `lit_count()`; `const TIER := 4`. Godot Dev must instance the row and pick the marker by orientation (not done here).
 - Tris: all meshes 2 x 20 holders + 8 x candle set + rings 128 = 560. Drawn: 4 lit 152 (back bar hidden), 8 lit 304, >8 cue 368. Worst case board + row: PC 13,444 + 368 = 13,812 / 15k; mobile 6,068 + 368 = 6,436 / 8k.
 - Test: `tests/test_candle_row.gd` (tiers, snuff order, rings, back bar toggle, gutter), 28 checks, PC + mobile.
+
+## v5 (QA #142): the >8 cue
+- 10 hands read the same as 8 at game scale. With hands_left > 8, candle 8 now carries a cue (no text): it is raised to the tallest wax (`CUE_HEIGHT` 1.3), its flame is flared (`flare` 1: 1.8x size, brighter core), and both rings stack on it at 1.25x in a gold cue material (`candle_row_ring_cue.tres`: albedo #C8902A, BRASS_HI rim 2.0, #E8A93A glow 0.6). Everything clears at 8 left. Bodkin's gift ring is unchanged.
+- Renders `art/renders/candle_row/v5/`: before/after for 8 and 10 hands on PC and landscape phone, `compare_before_after.png`, `candle_row_48px.png`. On phone, the cue collar's edge is about 16 px from "Pot 0" (its glow reaches the label edge).
+- Tris: >8 cue drawn 432 (two rings). Worst case board + row: PC 13,876 / 15k, mobile 6,500 / 8k.
+- Tests: Baron Vig / Ashmouth stub (delta -1), lit == hands_left == lit_count() on each spend and snap across the tiers, cue on/off (54 checks).
