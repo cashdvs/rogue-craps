@@ -9,7 +9,7 @@ Soul-cyan (#4FE6E0) liquid driven by the vessel shader's `fill`. The **numeral i
   `Anchors/SoulReliquary` (PC), `Anchors/SoulReliquaryPhone` (landscape phone), `Anchors/SoulReliquaryPortrait`
   (portrait phone, yaw 90 so it faces the portrait camera).
 - `set_soul(cur, max, animate := true)`. `lethal = true` when the next bust kills. `reduced_motion` cuts to the end.
-- Max Soul above 35 grows the cage one step (+12 mm) per started 5, max 8 steps; growth plays FIRST, then the fill.
+- Max Soul above 35 grows the cage one step (+10 mm, `GROW_H` 0.010; was 12 mm, cut for candle clearance at max 120, QA PR #150) per started 5, max 8 steps; growth plays FIRST, then the fill.
 - States: full, mid, low (frost on the glass at soul <= `SOUL_FROST_AT` = 5), lethal (crack on the frame), grow.
 
 ## VFX hooks (owned by VFX, not driven here)
@@ -45,7 +45,7 @@ PC 14,662 + 290 = **14,952 / 15,000**; mobile portrait 6,818 + 292 = **7,110 / 8
 ## Placement note
 The brief asked for "left of the candle row". On PC/landscape that spot is under the Throw/Bank buttons, and in
 portrait the bottom rail is full (candle row, cauldron, Nerve) with its ends off-screen, so PC/phone use the left
-rail (-1.07, 0.105, 0.04); the left-rail candles 3/5 beside it were cut (candles mean hands only). Portrait (v3) is
+rail (PC `SoulReliquary` -1.07, 0.105, 0.14; landscape phone `SoulReliquaryPhone` -1.07, 0.105, 0.195, moved from z 0.04 so the max-120 cage clears Candle1/Candle7, lit or unlit, by >= 12 px); the left-rail candles 3/5 beside it were cut (candles mean hands only). Portrait (v3) is
 never on the felt: it sits on the screen-left (world near) rail lip at (-0.12, 0.104, 0.555), yaw 90, marker scale 0.65,
 stacked plate. Plinth z 0.502..0.608 and the placard's near edge (z ~0.501) stay out of the throw zone (dice reach z 0.50).
 x moved from the AD's -0.09 to -0.12 (screen-up) so the placard clears "Throw 5 dice" by 26 px; plate margins

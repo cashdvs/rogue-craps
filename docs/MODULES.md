@@ -56,6 +56,7 @@ status, its team owner and whether it's open to outside contributors.
 | **Audio** | `module:audio` | `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` | `audio/music/` | Built (POC, procedural SFX) | Sound Designer | Yes |
 | **Fonts** | `module:fonts` | `fonts/` (with their license files) | | Built | Art Director | Issues only |
 | **Art import** | `module:art-import` | `*.import` settings for art | `art/` (textures, models, import presets) | In progress (3D greybox) | Art Director | Issues only |
+| **Soul Reliquary** | `module:soul-reliquary` | `art/models/props/soul_reliquary/` (meshes, materials, scenes, `scripts/soul_reliquary.gd`, `shaders/soul_vessel.gdshader`, generator `src/make_soul_reliquary.gd` + `reliquary_stacked.gd`, `reliquary_mb.gd`); Hearth anchors `SoulReliquary`/`SoulReliquaryPhone`; `tests/test_soul_reliquary.gd` | HUD hookup (replaces `scripts/table/soul_meter.gd` bar) | In progress (branch `art/soul-reliquary`) | Art Director | Issues only |
 | **QA tests** | `module:qa` | `tests/qa_/` | | Built | QA Tester | Add checks only (see below) |
 | **Tools / CI** | `module:tools-ci` | `tools/`, `run_tests.sh`, `.github/` | | Built | PM | Issues only |
 

@@ -45,6 +45,8 @@ fx.eyes = 0..3         # both demon faces: off / ember / hot / white-core (Hot H
 fx.eyes_left = -1..3   # optional per-face override (-1 = follow eyes); eyes_right likewise
 fx.fill = 0.0..1.0     # ember cauldron (bank)
 fx.lit_count = 0..8    # progress candles (12.5 % of the table goal each); reaching 8 plays "flare"
+# with candles cut (6 left) step s lights ceil(s*n/8) present candles in lit order; when s*n/8 is not whole
+# the newest lit candle burns low (heat x KINDLE 0.45), so all 9 steps read differently (hearth_fx.candles_lit_for)
 fx.seam = 0.0..1.0     # idle glow of the ember seam (default 0.6)
 fx.pulse_seam()        # one 0.15 s seam pulse (per lit die); SeamPlayer "seam_pulse", overlaps other clips
 fx.bust()              # AnimationPlayer "snuff": everything out, charcoal smoke wisps, relights to the previous state

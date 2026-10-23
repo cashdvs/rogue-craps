@@ -53,6 +53,7 @@ studio_splash.tscn ──▶ title.tscn ──Play──▶ run.tscn (RunScreen)
 | **FX** (listeners on `table.events`) | VFX Dev | `scripts/fx/` (in flight), `scripts/table3d/fx_3d.gd`, `shaders/3d/fx_*` |
 | **Audio** | Sound Designer | `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` |
 | **Art pipeline** | Art Director (look, sign-off), 3D Artist (meshes) | `art/models/`, `*.import` for art, `fonts/`, `assets/branding/` |
+| **Soul Reliquary** (3D Soul meter on the Hearth rail) | 3D Artist (meshes, look), Art Director (sign-off) | `art/models/props/soul_reliquary/` (`scripts/soul_reliquary.gd`: `SoulReliquary.set_soul(cur, max)` clamps to 0..max, liquid, frost, lethal crack, cage growth, `plate_layout` row/stacked; generator `src/make_soul_reliquary.gd` + `reliquary_stacked.gd`, `reliquary_mb.gd`), anchors `SoulReliquary` / `SoulReliquaryPhone` in `art/models/boards/hearth/`, candle progress in `art/models/boards/hearth/scripts/hearth_fx.gd` (`candles_lit_for`); `tests/test_soul_reliquary.gd` |
 | **Review and QA tests** | QA Tester | `tests/qa_/`, PR review and merges |
 | **CI, contributor docs** | PM | `.github/`, `run_tests.sh`, `project.godot`, `*.md` at the root, `docs/` |
 | **Tools** | shared (Godot Dev / Systems Dev; per-tool owners in the sections below, e.g. `tools/bake_sfx.gd` is Sound Designer's) | `tools/` |
