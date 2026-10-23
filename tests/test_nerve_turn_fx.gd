@@ -99,12 +99,20 @@ func _check_pieces(fx: NerveTurnFx, d: DieVisual, dir: int, tag: String, still: 
 		_check(_warm(Color(m.r, m.g, m.b) / pk) and is_equal_approx(m.r, (NerveTurnFx.SWEEP_COLOR.r if is_sweep else NerveTurnFx.SPARK_COLOR.r) * pk), tag + ": warm white-gold at its peak (%s)" % s.get_meta("kind"))
 	_check(longest <= 0.3 and NerveTurnFx.TOTAL_TIME <= 0.3, tag + ": whole effect <= 0.3 s (%.2f)" % longest)
 	if sweep.size() == 1:
-		var o: Vector3 = sweep[0].get_meta("origin")
-		var m: Vector3 = sweep[0].get_meta("move")
-		var mid := o + m * 0.5
-		_check(o.y > d.global_position.y and absf(mid.x - d.global_position.x) < 1e-4 and absf(mid.z - d.global_position.z) < 1e-4 and absf(m.x) >= d.edge * 0.9, tag + ": sweep crosses the die top")
-		_check(is_equal_approx(sweep[0].pixel_size * sweep[0].texture.get_width(), d.edge * 1.4 * 1.3), tag + ": sweep width 1.3x v2")
-		_check(sweep[0].get_parent() == fx, tag + ": sweep is an FX piece, not on the die")
+		var sp := sweep[0]
+		var o: Vector3 = sp.get_meta("origin")
+		var m: Vector3 = sp.get_meta("move")
+		var c := d.global_position
+		var yaw := NerveTurnFx.die_yaw(d)
+		var inv := Basis(Vector3.UP, yaw).inverse()
+		var lo := inv * (o - c) / d.edge
+		var le := inv * (o + m - c) / d.edge
+		_check(o.y > c.y + d.edge * 0.5 and sp.billboard == BaseMaterial3D.BILLBOARD_DISABLED and sp.axis == Vector3.AXIS_Y, tag + ": sweep lies flat just above the top face")
+		_check(absf(lo.z - NerveTurnFx.SWEEP_EDGE_Z) < 1e-3 and absf(le.z - NerveTurnFx.SWEEP_EDGE_Z) < 1e-3 and absf(le.x - lo.x) >= 0.45, tag + ": sweep slides along the camera-side edge")
+		_check(NerveTurnFx.sweep_min_depth() >= NerveTurnFx.PIP_REACH and NerveTurnFx.SWEEP_EDGE_Z + NerveTurnFx.SWEEP_THICK * 0.5 <= 0.56, tag + ": band stays on the bevel, off the pips (min depth %.3f)" % NerveTurnFx.sweep_min_depth())
+		var thick := sp.pixel_size * sp.texture.get_width() * NerveTurnFx.STREAK_ASPECT * sp.scale.z
+		_check(is_equal_approx(thick, d.edge * 0.07 * 1.3), tag + ": band width 1.3x base")
+		_check(sp.get_parent() == fx, tag + ": sweep is an FX piece, not on the die")
 	if still:
 		_check(fx.pieces.size() == 1, tag + ": sweep only (no flick, no sparks)")
 		return
@@ -125,6 +133,42 @@ func _check_pieces(fx: NerveTurnFx, d: DieVisual, dir: int, tag: String, still: 
 	_check(is_equal_approx(motes[0].pixel_size * motes[0].texture.get_width(), d.edge * 0.6), tag + ": motes 1.5x size")
 	_check(flick[0].texture == TriggerShapes.texture(&"glint_streak", NerveTurnFx.SPARK_COLOR), tag + ": flick uses glint_streak art")
 	_check(motes[0].texture == TriggerShapes.texture(&"spark_dot_soft", NerveTurnFx.SPARK_COLOR), tag + ": motes use spark_dot_soft art")
+
+
+func _test_clear(t: FakeTable, d: DieVisual, fx: NerveTurnFx) -> void:
+	t.speed_mode = 0
+	var d2 := DieVisual.new(0.08)
+	t.add_child(d2)
+	d2.global_position = Vector3(-0.2, 0.04, 0.0)
+	t.dice.append(d2)
+	t.events.die_nudged.emit(0, 2, 3, NerveState.UP)
+	var n := fx.pieces.size()
+	t.events.die_nudged.emit(0, 3, 4, NerveState.UP)
+	_check(fx.pieces.size() == n, "re-nudge same die: old pieces cleared, no stacking (%d)" % fx.pieces.size())
+	t.events.die_nudged.emit(0, 4, 3, NerveState.DOWN)
+	_check(fx.pieces.size() == n and _kind(fx, &"flick")[0].get_meta("move").z > 0.0, "undo: only the reversed accent remains")
+	t.events.die_nudged.emit(1, 2, 3, NerveState.UP)
+	_check(fx.pieces.size() == 2 * n, "a nudge on another die leaves the first die's accent")
+	t.events.dice_thrown.emit(800.0)
+	_check(fx.pieces.is_empty(), "dice_thrown clears every live piece")
+	await process_frame
+	_check(fx.get_child_count() == 0, "cleared sprites are freed, nothing lingers")
+	t.events.die_nudged.emit(0, 2, 3, NerveState.UP)
+	t.events.table_cleared.emit()
+	_check(fx.pieces.is_empty(), "table_cleared clears too")
+	fx.hold = true
+	t.events.die_nudged.emit(0, 2, 3, NerveState.UP)
+	var sp := _kind(fx, &"sweep")[0]
+	var a0 := sp.modulate.a
+	await create_timer(0.1).timeout
+	_check(sp.modulate.a == a0, "hold: capture tweens wait for advance()")
+	fx.advance(0.11)
+	_check(sp.modulate.a < a0, "advance() steps the accent")
+	fx.advance(0.3)
+	_check(fx.pieces.is_empty(), "advance() past 0.3 s ends it")
+	fx.hold = false
+	t.dice.pop_back()
+	d2.queue_free()
 
 
 func _test_unit() -> void:
@@ -158,8 +202,12 @@ func _test_unit() -> void:
 	t.speed_mode = 2
 	t.events.die_nudged.emit(0, 2, 3, NerveState.UP)
 	_check_pieces(fx, d, NerveState.UP, "instant speed", true)
+	await create_timer(0.4).timeout
+	await _test_clear(t, d, fx)
 	t.events.die_nudged.emit(7, 2, 3, NerveState.UP)
-	_check(fx.calls.size() == 4, "unknown die id ignored")
+	var before := fx.calls.size()
+	t.events.die_nudged.emit(9, 2, 3, NerveState.UP)
+	_check(fx.calls.size() == before, "unknown die id ignored")
 	var bare := Node.new()
 	var fx2 := NerveTurnFx.new()
 	_check(not fx2.bind(bare, t), "no die_nudged signal: has_signal guard, no bind")

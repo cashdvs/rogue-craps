@@ -19,22 +19,51 @@ func wait(t: float) -> void:
 	await create_timer(t, true, false, true).timeout
 
 
+func frame() -> Image:
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var img := root.get_texture().get_image()
+	img.convert(Image.FORMAT_RGBA8)
+	return img
+
+
+## Steps the accent with NerveTurnFx.hold/advance so every frame lands at its
+## time even when lavapipe renders at ~2 fps (real-time waits missed it all).
 func strip(tag: String, die: Node3D, act: Callable) -> void:
 	var cam := root.get_camera_3d()
-	var c := cam.unproject_position(die.global_position)
+	var fx := s.get_node("NerveTurnFx") as NerveTurnFx
 	var out := Image.create(CROP * TIMES.size(), CROP, false, Image.FORMAT_RGBA8)
-	var t0 := Time.get_ticks_msec()
+	fx.hold = true
 	act.call()
+	await wait(0.5)  # the die's own face tween settles first
+	var c := cam.unproject_position(die.global_position)
+	var r := Rect2i(Vector2i(c) - Vector2i(CROP / 2, CROP / 2), Vector2i(CROP, CROP))
+	var at := 0.0
 	for i in TIMES.size():
-		while (Time.get_ticks_msec() - t0) / 1000.0 < TIMES[i]:
-			await process_frame
-		await RenderingServer.frame_post_draw
-		var img := root.get_texture().get_image()
-		img.convert(Image.FORMAT_RGBA8)
-		var r := Rect2i(Vector2i(c) - Vector2i(CROP / 2, CROP / 2), Vector2i(CROP, CROP))
+		fx.advance(TIMES[i] - at)
+		at = TIMES[i]
+		var img := await frame()
 		out.blit_rect(img, r, Vector2i(CROP * i, 0))
+		for p in fx.pieces:
+		if tag == "up" and i == 2:
+			_pips(img, cam, die)
+	fx.hold = false
 	out.save_png(OUT + "nerve_turn_%s_strip.png" % tag)
 	print("saved ", OUT + "nerve_turn_%s_strip.png" % tag)
+
+
+## Mid-sweep still: the die at 48 px (pip readability) and a 4x nearest view.
+func _pips(img: Image, cam: Camera3D, die: Node3D) -> void:
+	var e := float(die.get("edge"))
+	var a := cam.unproject_position(die.global_position - Vector3(e, 0, e))
+	var b := cam.unproject_position(die.global_position + Vector3(e, 0, e))
+	var side := int(maxf(absf(b.x - a.x), absf(b.y - a.y)))
+	var c := cam.unproject_position(die.global_position + Vector3(0, e * 0.5, 0))
+	var crop := img.get_region(Rect2i(Vector2i(c) - Vector2i(side / 2, side / 2), Vector2i(side, side)))
+	crop.resize(48, 48, Image.INTERPOLATE_LANCZOS)
+	crop.save_png(OUT + "nerve_turn_pips_48px.png")
+	crop.resize(192, 192, Image.INTERPOLATE_NEAREST)
+	crop.save_png(OUT + "nerve_turn_pips_48px_x4.png")
 
 
 func _run() -> void:

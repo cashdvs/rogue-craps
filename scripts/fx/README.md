@@ -158,8 +158,8 @@ height ≤ die top).
 ## Nerve "die turns" accent (VFX)
 `scripts/fx/nerve_turn_fx.gd` (NerveTurnFx, one `add_child` in table_3d.gd) listens to
 `table.events.die_nudged` and adds a quick warm white-gold (#FFE6A8, 1.5x peak) flick in the nudge
-direction, one bevel sweep overlay across the die top, and a short glint of motes **beside** the die (never over the face centre,
+direction, one thin bevel sweep (procedural 64x8 `band` texture, 2.4x peak, ~1.3x width) that slides along the camera-side top edge, kept off the pips (min depth >= `PIP_REACH`), and a short glint of motes **beside** the die (never over the face centre,
 never rising), reusing the glint_streak / spark_dot_soft art. The face rotation is
-TableDie.set_face's own tween. Under 0.3 s. Reduced motion / Instant: the sweep only. Sound goes
+TableDie.set_face's own tween. Under 0.3 s. Reduced motion / Instant: the sweep only. Leftover pieces are cleared on re-nudge of the same die, undo, `dice_thrown` and `table_cleared` (`clear(die)`); `hold` + `advance(dt)` step tweens for captures. Sound goes
 through TableAudio (`nerve_nudge`, falling back to `chip_place`). Strip:
 `tools/capture_nerve_turn.gd`. Tests: `tests/test_nerve_turn_fx.gd`.
