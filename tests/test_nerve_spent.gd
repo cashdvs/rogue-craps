@@ -58,6 +58,9 @@ func _run() -> void:
 	await no_nudge_no_fire()
 	await undo_no_fire()
 	await rescue_save_fires()
+	await refused_no_fire()
+	await closed_no_fire()
+	await zero_uses_no_fire()
 	print("nerve_spent: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -140,4 +143,45 @@ func rescue_save_fires() -> void:
 	var lit: Array = s.run.lit()
 	check(not lit.is_empty() and s.pick_die(int(lit[0])), "pot a lit die")
 	check(spent.size() == 1 and spent[0][0] == s.event_id(s.throw_dice[i]), "rescue-save spent: nerve_spent once (%s)" % str(spent))
+	await done(s)
+
+
+## A refused nudge (the 6 can't go up) leaves nothing pending: no fire at
+## the pot, the rethrow or a bare commit.
+func refused_no_fire() -> void:
+	var s := await make_table()
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	check(s.nerve.nudge(4, NerveState.UP) == -1, "nudging the 6 up is refused")
+	s.nerve.close_throw()
+	s.pick_die(0)
+	check(spent.is_empty(), "refused nudge: no nerve_spent (%s)" % str(spent))
+	await done(s)
+
+
+## Nerve already spent this table: the next throw's commits fire nothing.
+func closed_no_fire() -> void:
+	var s := await make_table()
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	s.nerve.nudge(3, NerveState.UP)
+	s.pick_die(3)
+	check(spent.size() == 1, "the first nudge is spent")
+	spent.clear()
+	check(s.nerve.state.uses_left() == 0, "Nerve is closed: 0 uses left")
+	check(s.nerve.nudge(4, NerveState.DOWN) == -1, "a nudge on closed Nerve is refused")
+	s.nerve.close_throw()
+	s.nerve.on_potted()
+	check(spent.is_empty(), "closed Nerve: commits emit no nerve_spent (%s)" % str(spent))
+	await done(s)
+
+
+## A table with 0 Nerve uses: nudges are refused and no commit fires.
+func zero_uses_no_fire() -> void:
+	var s := await make_table()
+	s.nerve.state.setup(s.nerve.state.dice, 0)
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	check(s.nerve.state.uses_left() == 0, "uses 0")
+	check(s.nerve.nudge(3, NerveState.UP) == -1, "uses 0: the nudge is refused")
+	s.nerve.close_throw()
+	s.pick_die(0)
+	check(spent.is_empty(), "uses 0: no nerve_spent (%s)" % str(spent))
 	await done(s)
