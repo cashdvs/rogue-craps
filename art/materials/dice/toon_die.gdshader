@@ -56,6 +56,7 @@ uniform float cold_light_desat = 0.8;
 uniform vec4 state_rim_color : source_color = vec4(0.910, 0.384, 0.165, 1.0);
 uniform float state_rim_energy = 0.85;
 uniform float state_rim_power = 2.5;
+uniform float lit_desat = 0.0;      // desaturate the lit response toward neutral (obsidian)
 
 // --- surface treatment ---
 uniform vec4 edge_line_color : source_color = vec4(1.0, 0.97, 0.90, 1.0);
@@ -160,6 +161,7 @@ void fragment() {
 		col = mix(col, glass_core.rgb, die_lit * glass_core_k * (1.0 - fres));
 		col = mix(col, glass_cold_tint.rgb * dot(col, vec3(0.299, 0.587, 0.114)) * 1.15, cold_k * glass_cold_k);
 	}
+	col = mix(col, vec3(dot(col, vec3(0.299, 0.587, 0.114))), lit_desat * die_lit);
 	ALBEDO = col;
 	ROUGHNESS = mix(mix(roughness, 0.5, die_lit), 1.0, cold_k);
 	vec3 emit = emission_color.rgb * emission_energy;
@@ -176,6 +178,7 @@ void fragment() {
 		emit += glass_core.rgb * glow_energy * glass_core_k * glass_lit_boost * (1.0 - 0.5 * fres);
 		emit += col * die_lit * glass_lit_lift; // lit brightness step (0 at rest)
 	}
+	emit = mix(emit, vec3(dot(emit, vec3(0.299, 0.587, 0.114))), lit_desat * die_lit);
 	EMISSION = emit;
 }
 

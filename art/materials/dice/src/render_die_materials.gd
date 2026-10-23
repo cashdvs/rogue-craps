@@ -78,6 +78,8 @@ func _run() -> void:
 	s.camera.snap_home()
 	for d in s.all_dice:
 		d.visible = false
+	for n in s.find_children("*", "Label3D", true, false):
+		(n as Node3D).visible = false  # slot labels clip into close-ups
 	for n in s.find_children("*", "DieVisual", true, false):
 		(n as Node3D).visible = false
 	var dice: Array = []
