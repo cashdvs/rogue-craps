@@ -13,7 +13,7 @@ const PH := PI / 8.0                          # flat face toward +Z
 const BASE_R := 0.054
 const BASE_LO_H := 0.008
 const BASE_R2 := 0.044
-const BASE_H := 0.048          # tall enough that the cage bottom clears the plate top from the game camera
+const BASE_H := 0.051          # tall enough that the cage bottom clears the plate top from the game camera
 const VES_R := 0.034
 const RING_R := 0.038
 const RING_IN := 0.033
@@ -22,15 +22,20 @@ const BAR_R := 0.0375
 const DOME_H := 0.012
 const DOME_R := 0.024
 # plate: slanted lectern face in front of the plinth (leans back 35 deg toward the camera)
-const PL_X := 0.068
+const PL_X := 0.075
 const PL_Z0 := 0.034
-const PL_ZB := 0.076          # front-bottom edge
+const PL_ZB := 0.079          # front-bottom edge
 const PL_ZT := 0.048          # front-top edge
-const PL_Y := 0.040
-const FR_OUT := Vector2(0.066, 0.0020)        # frame outer: half-width u, v from bottom
-const FR_IN := Vector2(0.059, 0.0085)         # frame inner (digit window) half-width u, v from bottom
+const PL_Y := 0.043
+const FR_OUT := Vector2(0.073, 0.0020)        # frame outer: half-width u, v from bottom
+const FR_IN := Vector2(0.066, 0.0085)         # frame inner (digit window) half-width u, v from bottom
 const FR_UP := 0.0015
 const LIQ := Color("#4FE6E0")
+const PLATE_LAYER := 1 << 9                    # render layer 10: the numeral plate only (lit by the board, not BrassFill)
+const FILL_COLOR := Color("#FFB070")
+const FILL_ENERGY := 0.6
+const FILL_RANGE := 0.20                       # Rig-local metres (scaled with the rig)
+const FILL_AT := Vector3(0.0, 0.17, 0.07)      # above the cage, toward the plate side
 
 var _tris := {}
 
@@ -76,9 +81,9 @@ func _save(res: Resource, path: String) -> void:
 func _materials() -> Dictionary:
 	var ink := load(H + "materials/ink_prop.tres")
 	var specs := {
-		# a small self-lift (as the Nerve token's bone) so the cage still reads on the vignetted left rail
-		"reliquary_brass": [H + "materials/dressing_brass.tres", {"rim_emit": 0.0, "emission_color": Color("#C8862E"), "emission_energy": 0.14}],
-		"reliquary_brass_worn": [H + "materials/dressing_brass_worn.tres", {"rim_emit": 0.0, "emission_color": Color("#8A5A22"), "emission_energy": 0.12}],
+		# v2: no self-lift; the BrassFill omni lifts the brass out of the vignette instead
+		"reliquary_brass": [H + "materials/dressing_brass.tres", {"rim_emit": 0.0, "emission_energy": 0.0}],
+		"reliquary_brass_worn": [H + "materials/dressing_brass_worn.tres", {"rim_emit": 0.0, "emission_energy": 0.0}],
 		# the numeral backing: near-black iron, matte, so the cream digits are light-on-dark
 		"reliquary_plate": [H + "materials/dressing_iron.tres", {"albedo": Color("#1A1513"), "shadow_color": Color("#0C0908"),
 			"emission_color": Color("#1A1513"), "emission_energy": 0.0, "rim_emit": 0.0, "spec_strength": 0.0, "spec_size": 0.0}],
@@ -309,7 +314,8 @@ func _scene(lod: String) -> void:
 	rig.scale = Vector3.ONE * float(RIG_SCALE[lod])
 	root.add_child(rig)
 	_mi("Plinth", "reliquary_plinth", rig)
-	_mi("Plate", "reliquary_plate", rig)
+	var plate := _mi("Plate", "reliquary_plate", rig)
+	plate.layers = PLATE_LAYER            # off the BrassFill cull mask: the fill never lifts the digit plate
 	_mi("Frame", "reliquary_frame", rig)
 	var crack := _mi("Crack", "reliquary_crack", rig)
 	crack.visible = false
@@ -346,6 +352,20 @@ func _scene(lod: String) -> void:
 	_marker("LiquidTop", Vector3(0, 0.1, VES_R), cage)                 # moved by the script to the meniscus
 	_marker("TooltipAnchor", Vector3(0, PL_Y + 0.006, PL_ZB), rig)     # soul_label / max Soul tooltip
 	_marker("PlateCenter", lbl.position, rig)                          # tap / hit-test origin on the numeral
+	# local brass fill (AD v2): small warm omni above the cage front so the brass reads out of the rail
+	# vignette. Low energy, short range, no shadow; its cull mask skips the plate layer.
+	var rs := float(RIG_SCALE[lod])
+	var fl := OmniLight3D.new()
+	fl.name = "BrassFill"
+	fl.light_color = FILL_COLOR
+	fl.light_energy = FILL_ENERGY
+	fl.omni_range = FILL_RANGE * rs
+	fl.omni_attenuation = 2.0
+	fl.shadow_enabled = false
+	fl.light_specular = 0.2
+	fl.light_cull_mask = 0xFFFFF & ~PLATE_LAYER
+	fl.position = FILL_AT * rs
+	root.add_child(fl)
 	_own(root, root)
 	var ps := PackedScene.new()
 	assert(ps.pack(root) == OK)

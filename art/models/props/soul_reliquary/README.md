@@ -20,7 +20,9 @@ Soul-cyan (#4FE6E0) liquid driven by the vessel shader's `fill`. The **numeral i
 - Crack is a separate mesh on the frame band only; frost is shader-only on the glass above the liquid. Neither
   overlaps the digit window (tested: every crack vertex is outside the digit cap box + 1 mm).
 - Cyan only in `shaders/soul_vessel.gdshader`. Other materials are Hearth toon_noir copies with the ink pass.
-- Brass carries a small self-lift (emission 0.12–0.14, under the 0.15 no-glow line) so it reads on the vignetted rail.
+- v2 (AD Oct 23): the brass emission self-lift is gone (energy 0). A local `BrassFill` OmniLight3D (#FFB070, energy 0.6,
+  range 0.20 x rig scale, no shadow) lifts the cage; its cull mask skips the plate layer (1<<9), so the digit plate is
+  never lit harder than the cyan liquid. Plate enlarged (digit cap 0.0320, width 0.124): every digit >= 24 px on phone landscape.
 
 ## Budget
 258 unique tris, **290 drawn** (the ring is drawn twice) <= 300. Hearth worst case with the candle row + Nerve
@@ -35,4 +37,6 @@ token + reliquary: PC 14,003 + 290 = **14,293 / 15,000**; mobile 6,611 + 290 = *
 ## Placement note
 The brief asked for "left of the candle row". On PC/landscape that spot is under the Throw/Bank buttons, and in
 portrait the bottom rail is full (candle row, cauldron, Nerve) with its ends off-screen, so PC/phone use the left
-rail (-1.07, 0.105, 0.04) and portrait uses the felt at (-0.19, 0, 0.44) between the HUD goal panel and Throw.
+rail (-1.07, 0.105, 0.04); the left-rail candles 3/5 beside it were cut (candles mean hands only). Portrait (v2) is
+never on the felt: it sits on the screen-left (world near) rail lip at (-0.09, 0.095, 0.565), yaw 90, marker scale 0.5,
+so it is fully framed and its plinth (z 0.525..0.605) stays out of the throw zone (dice reach z 0.50).

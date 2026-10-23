@@ -1,5 +1,6 @@
-## Headless test: the Hearth board's progress visuals (split from test_hearth_board.gd, QA on #111): the 8
-## progress candles (<= 150 / 90 tris, one shared mesh + wax material, 4 per side rail), the Art Director
+## Headless test: the Hearth board's progress visuals (split from test_hearth_board.gd, QA on #111): the 6
+## side-rail candles (<= 150 / 90 tris, one shared mesh + wax material; 2 left + 4 right since AD Oct 23 cut
+## Candle3/5 beside the Soul Reliquary), the Art Director
 ## revisions (Oct 18: step-4 fire cap, no solid fire card over the dealer's face, candle flame / wax / glow,
 ## demon-eye idle smoulder), the ember seam band, and the visual hooks + AnimationPlayer clips Godot Dev
 ## drives (including the bust snuff restoring the previous state). test_hearth_board.gd keeps the kit
@@ -48,11 +49,16 @@ func _check_fx(mobile: bool) -> void:
 	var board := scene.instantiate() as Node3D
 	# --- candles ---
 	var candles: Array[Node3D] = []
+	var num: Array[int] = []   # candle number per entry in candles
 	for i in range(1, 9):
 		var c := board.find_child("Candle%d" % i, true, false) as Node3D
+		if i == 3 or i == 5:
+			_check(c == null, "%s: Candle%d cut (left rail belongs to the Soul Reliquary)" % [label, i])
+			continue
 		_check(c != null, "%s: Candle%d present" % [label, i])
 		if c != null:
 			candles.append(c)
+			num.append(i)
 	var left := 0
 	var right := 0
 	var cmesh: Mesh = null
@@ -76,9 +82,9 @@ func _check_fx(mobile: bool) -> void:
 			cmat = m.get_active_material(0)
 		elif m.mesh != cmesh or m.get_active_material(0) != cmat:
 			shared = false
-	_check(left == 4 and right == 4, "%s: 4 candles per side rail at |x| >= 1.11" % label)
+	_check(left == 2 and right == 4, "%s: 2 left / 4 right rail candles at |x| >= 1.11" % label)
 	_check(cand_ok, "%s: each candle <= %d tris" % [label, 90 if mobile else 150])
-	_check(shared, label + ": all 8 candles share one mesh and one wax material")
+	_check(shared, label + ": all rail candles share one mesh and one wax material")
 	# --- Art Director revisions (Oct 18) ---
 	_check_revisions(label, board, candles)
 	# --- ember seam band on the rail leather ---
@@ -120,9 +126,9 @@ func _check_fx(mobile: bool) -> void:
 	_check(is_equal_approx(float(eye_mesh.get_instance_shader_parameter(&"level")), 2.0), label + ": eyes 2 reaches the demon eye shader")
 	var lit_ok := true
 	for i in candles.size():
-		if (candles[i].get_node("Flame") as Node3D).visible != (i < 5):
+		if (candles[i].get_node("Flame") as Node3D).visible != (num[i] <= 5):
 			lit_ok = false
-	_check(lit_ok, label + ": lit_count 5 lights candles 1-5 only")
+	_check(lit_ok, label + ": lit_count 5 lights candles 1-5 only (of those present)")
 	var fill := board.get_node("Anchors/ChipTray/Tray/Fill") as Node3D
 	_check(fill.visible and fill.position.y > 0.06, label + ": fill 0.7 raises the ember mound")
 	# bust: everything out mid-clip, everything back (same state) at the end
@@ -132,8 +138,8 @@ func _check_fx(mobile: bool) -> void:
 		and is_zero_approx(float(eye_mesh.get_instance_shader_parameter(&"heat"))) and (candles[0].get_node("Wisp") as Node3D).visible
 	_check(out_ok, label + ": snuff at 0.3 s: fire, candles and eyes out, smoke wisp up")
 	ap.seek(0.75, true)
-	var back_ok: bool = pot.get_node("Fire/Step3").visible and (candles[4].get_node("Flame") as Node3D).visible \
-		and not (candles[5].get_node("Flame") as Node3D).visible and fx.lit_count == 5 and fx.pot_step == 3 \
+	var back_ok: bool = pot.get_node("Fire/Step3").visible and (candles[num.find(4)].get_node("Flame") as Node3D).visible \
+		and not (candles[num.find(6)].get_node("Flame") as Node3D).visible and fx.lit_count == 5 and fx.pot_step == 3 \
 		and is_equal_approx(float(eye_mesh.get_instance_shader_parameter(&"heat")), 1.0) and not (candles[0].get_node("Wisp") as Node3D).visible
 	_check(back_ok, label + ": after snuff everything relights to the previous state (5 candles, step 3, eyes 2)")
 	ap.stop()

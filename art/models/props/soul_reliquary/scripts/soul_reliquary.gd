@@ -20,8 +20,8 @@ const MAX_STEPS := 8
 const VES_H := 0.100                  # vessel height at BASE_MAX (Rig-local)
 const DOME_H := 0.012
 const RING_H := 0.010                  # cage ring height (Rig-local m): hides the vessel's bottom/top, so fill maps inside
-const DIGIT_CAP := 0.0285             # numeral cap height (Rig-local m) before the width fit
-const DIGIT_W := 0.110                # digit window width (frame inner) minus a margin
+const DIGIT_CAP := 0.0320             # numeral cap height (Rig-local m) before the width fit
+const DIGIT_W := 0.124                # digit window width (frame inner) minus a margin
 const DUR_GROW := 0.33
 const DUR_FILL := 0.42
 
