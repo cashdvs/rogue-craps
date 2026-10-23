@@ -163,9 +163,9 @@ VFX half of `lighting_layers_spec.md` (lights and Environment, layers 1-3, are G
 ## Nerve "spent" cue (VFX)
 `scripts/fx/nerve_spent_fx.gd` (NerveSpentFx, one `add_child` in table_3d.gd) listens to
 `table.events.nerve_spent(die_id, from_face, to_face)` (Godot Dev's #143; has_signal-guarded, so it
-binds to nothing until that lands). Once per spend it lays one thin white-gold (#FFE2A0, 1.0 peak) glint band
+binds to nothing until that lands). Once per spend it lays one thin warm Ember gold (#FFC870, 1.0 peak, 0.16 x edge) glint band
 flat on the die's camera-side top bevel (off the pips), fading in 0.26 s (≤ 0.3 s); it stretches 1.15x along
 the edge except under reduced motion / Instant, where it only fades. Leftover nudge FX on that die
-(sibling `NerveTurnFx.clear(die)`, has_method-guarded) are cleared first. Sound: `TableAudio.nerve_spent()`
+(sibling `NerveTurnFx.clear(die)`, has_method-guarded) are cleared first; the glint itself is cleared on `dice_thrown` / `rethrow` / `close_throw` (whichever exist), undo (`die_nudged` on that die) and `table_cleared`. Sound: `TableAudio.nerve_spent()`
 if present, else `cue(&"nerve_spent")`, else nothing. Strip: `tools/capture_nerve_spent.gd`
 (Forward+/Vulkan only). Tests: `tests/test_nerve_spent_fx.gd`.

@@ -2,8 +2,10 @@
 ## to_face) (1-based faces; Godot Dev's PR #143, emitted once when a pending
 ## nudge is kept for good: pot, rethrow, bank or rescue-save; never on undo).
 ## Guarded with has_signal, so it binds to nothing until #143 lands.
-## The cue is tiny and warm, never touching the die:
-## - one brief white-gold glint band lying flat on the die's camera-side
+## The cue is tiny and warm, never touching the die. Cleared at once on
+## dice_thrown / rethrow / close_throw (whichever exist), undo (die_nudged on
+## that die) and table_cleared.
+## - one brief warm gold (Ember #FFC870) glint band lying flat on the die's camera-side
 ##   top bevel (off the pips), fading out in GLINT_TIME (<= 0.3 s);
 ## - outside reduced motion / Instant it also stretches slightly along the
 ##   edge while fading; under reduced motion it holds still and just fades;
@@ -14,21 +16,25 @@
 class_name NerveSpentFx
 extends Node3D
 
-## Peak 1.0: in Forward+ a brighter peak clips and the tonemapper turns it
-## cool grey on the ivory die; 1.0 keeps it reading warm.
-const COLOR := Color("#FFE2A0")
+## Ember-family saturated gold at peak 1.0: on white / ivory dice a paler or
+## brighter (HDR) tint clips and the tonemapper turns it cool grey; a deeper
+## gold below 1.0 per channel stays warm and reads against the ivory, and
+## never exceeds the bevel-line highlight.
+const COLOR := Color("#FFC870")
 const PEAK: float = 1.0
 const GLINT_TIME: float = 0.26
 const TOTAL_TIME: float = 0.3
 ## Band on the camera-side top edge (x edge): centre depth, length, width.
 const EDGE_Z: float = 0.44
-const LEN: float = 0.7
-const THICK: float = 0.08
+const LEN: float = 0.8
+const THICK: float = 0.16
 ## Pips sit within this of the face centre (x edge).
 const PIP_REACH: float = 0.34
 ## Stretch along the edge outside reduced motion.
 const STRETCH: float = 1.15
 const CUE := &"nerve_spent"
+## Events that end the throw / table: any live glint is cleared at once.
+const CLEAR_ON: Array[StringName] = [&"dice_thrown", &"rethrow", &"close_throw", &"throw_closed", &"table_cleared"]
 const BAND_W: int = 64
 const BAND_H: int = 8
 const ASPECT: float = float(BAND_H) / float(BAND_W)
@@ -73,7 +79,24 @@ func bind(ev: Object, t: Node) -> bool:
 		return false
 	if not ev.is_connected(&"nerve_spent", _on_nerve_spent):
 		ev.connect(&"nerve_spent", _on_nerve_spent)
+	for sig: StringName in CLEAR_ON:
+		if ev.has_signal(sig) and not ev.is_connected(sig, _on_clear_all):
+			ev.connect(sig, _on_clear_all)
+	if ev.has_signal(&"die_nudged") and not ev.is_connected(&"die_nudged", _on_die_nudged):
+		ev.connect(&"die_nudged", _on_die_nudged)
 	return true
+
+
+func _on_clear_all(_a: Variant = null) -> void:
+	clear()
+
+
+## A nudge or undo on a die drops its spent glint (undo re-emits die_nudged).
+func _on_die_nudged(die_id: int, _f: int, _t: int, _dir: int) -> void:
+	if table != null and table.has_method("die_by_id"):
+		var d := table.call("die_by_id", die_id) as Node3D
+		if d != null:
+			clear(d)
 
 
 static func band_texture() -> ImageTexture:

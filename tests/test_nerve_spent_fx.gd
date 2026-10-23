@@ -54,6 +54,7 @@ func _run() -> void:
 	await _test_glint()
 	await _test_reduced()
 	await _test_audio()
+	await _test_clear()
 	_test_hook()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -122,7 +123,7 @@ func _test_glint() -> void:
 	var width := s.pixel_size * float(s.texture.get_height()) * s.scale.z
 	_check(absf(width - 0.08 * NerveSpentFx.THICK) < 1e-5, "thin band (%.4f m)" % width)
 	var c := NerveSpentFx.COLOR
-	_check(c.r >= c.g and c.g > c.b and c.b > 0.6, "warm white-gold, never violet/cyan")
+	_check(c.r >= c.g and c.g > c.b and c.r - c.b > 0.4 and maxf(c.r, maxf(c.g, c.b)) * NerveSpentFx.PEAK <= 1.0, "saturated warm gold, no HDR clip, never violet/cyan")
 	_check(NerveSpentFx.GLINT_TIME <= NerveSpentFx.TOTAL_TIME and NerveSpentFx.TOTAL_TIME <= 0.3, "<= 0.3 s")
 	t.events.emit_signal(&"nerve_spent", 0, 3, 4)
 	_check(fx.pieces.size() == 1, "a second spend replaces, never stacks")
@@ -131,10 +132,9 @@ func _test_glint() -> void:
 	await create_timer(NerveSpentFx.TOTAL_TIME + 0.1).timeout
 	_check(fx.pieces.is_empty(), "glint freed by 0.3 s")
 	_check(d.global_transform == before and d.get("material_override") == mat_before, "die untouched")
-	if t.events.has_signal(&"die_nudged"):
-		var n := fx.calls.size()
-		t.events.emit_signal(&"die_nudged", 0, 3, 2, NerveState.DOWN)
-		_check(fx.calls.size() == n and fx.pieces.is_empty(), "undo (die_nudged) plays no spent cue")
+	var n := fx.calls.size()
+	t.events.emit_signal(&"die_nudged", 0, 3, 2, NerveState.DOWN)
+	_check(fx.calls.size() == n, "undo (die_nudged) plays no spent cue")
 	t.queue_free()
 	await process_frame
 
@@ -193,3 +193,33 @@ func _test_audio() -> void:
 func _test_hook() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/table3d/table_3d.gd")
 	_check(src.count("add_child(NerveSpentFx.new())") == 1, "hooked once in table_3d.gd")
+
+
+func _test_clear() -> void:
+	var m := _make()
+	var t: FakeTable = m[0]
+	var d: DieVisual = m[1]
+	var fx: NerveSpentFx = m[2]
+	var d2 := DieVisual.new(0.08)
+	t.add_child(d2)
+	d2.global_position = Vector3(-0.2, 0.04, 0.1)
+	t.dice.append(d2)
+	for sig: StringName in [&"rethrow", &"close_throw"]:
+		if not t.events.has_signal(sig):
+			t.events.add_user_signal(sig)
+	fx.bind(t.events, t)
+	var cases := [
+		[&"dice_thrown", [600.0]], [&"rethrow", []], [&"close_throw", []], [&"table_cleared", []]]
+	for cs: Array in cases:
+		t.events.emit_signal(&"nerve_spent", 0, 2, 3)
+		_check(fx.pieces.size() == 1, "%s: glint live before" % cs[0])
+		t.events.callv(&"emit_signal", [cs[0]] + cs[1])
+		_check(fx.pieces.is_empty(), "%s clears the spent glint" % cs[0])
+	t.events.emit_signal(&"nerve_spent", 0, 2, 3)
+	t.events.emit_signal(&"nerve_spent", 1, 5, 4)
+	t.events.emit_signal(&"die_nudged", 0, 3, 2, NerveState.DOWN)
+	_check(fx.pieces.size() == 1 and fx.pieces[0].get_meta("die") == d2, "undo on die 0 clears only die 0's glint")
+	t.events.emit_signal(&"die_nudged", 1, 4, 5, NerveState.UP)
+	_check(fx.pieces.is_empty(), "re-nudge clears that die's glint")
+	t.queue_free()
+	await process_frame
