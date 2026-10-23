@@ -1,0 +1,31 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://art/materials/dice/toon_die.gdshader" id="1"]
+[ext_resource type="Texture2D" path="res://art/materials/dice/textures/die_surface_mask.png" id="2"]
+[ext_resource type="Texture2D" path="res://art/materials/dice/textures/die_pip_profile.png" id="3"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1")
+shader_parameter/bevel_map = ExtResource("2")
+shader_parameter/pip_map = ExtResource("3")
+shader_parameter/pip_mode = true
+shader_parameter/glow_energy = 0.0
+shader_parameter/glow_color = Color(0.9412, 0.4784, 0.2275, 1)
+shader_parameter/albedo_tint = Color(0.9333, 0.8941, 0.8, 1)
+shader_parameter/shadow_color = Color(0.4314, 0.3922, 0.3137, 1)
+shader_parameter/wrap = 0.3
+shader_parameter/mid_tint = 0.78
+shader_parameter/spec_size = 0.95
+shader_parameter/spec_color = Color(0.949, 0.9294, 0.902, 1)
+shader_parameter/spec_strength = 0.75
+shader_parameter/roughness = 0.15
+shader_parameter/edge_line_color = Color(0.8118, 0.7765, 0.7294, 1)
+shader_parameter/lit_desat = 0.5
+shader_parameter/state_rim_color = Color(0.8471, 0.8, 0.7373, 1)
+shader_parameter/state_rim_energy = 0.3
+shader_parameter/lit_albedo_mul = Vector3(1.0, 1.0, 1.0)
+shader_parameter/cold_albedo_mul = Vector3(0.62, 0.62, 0.64)
+shader_parameter/pip_floor_color = Color(0.6588, 0.6118, 0.5176, 1)
+shader_parameter/pip_lip = 0.1
+shader_parameter/pip_dark_at = 0.3

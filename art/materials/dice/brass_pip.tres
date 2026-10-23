@@ -1,0 +1,30 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://art/materials/dice/toon_die.gdshader" id="1"]
+[ext_resource type="Texture2D" path="res://art/materials/dice/textures/die_surface_mask.png" id="2"]
+[ext_resource type="Texture2D" path="res://art/materials/dice/textures/die_pip_profile.png" id="3"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1")
+shader_parameter/bevel_map = ExtResource("2")
+shader_parameter/pip_map = ExtResource("3")
+shader_parameter/pip_mode = true
+shader_parameter/glow_energy = 0.0
+shader_parameter/glow_color = Color(0.9098, 0.3843, 0.1647, 1)
+shader_parameter/albedo_tint = Color(0.7451, 0.5882, 0.2824, 1)
+shader_parameter/shadow_color = Color(0.2902, 0.2039, 0.0784, 1)
+shader_parameter/wrap = 0.15
+shader_parameter/die_half = 0.0384
+shader_parameter/mid_tint = 0.74
+shader_parameter/spec_size = 0.9
+shader_parameter/spec_color = Color(1.0, 0.9137, 0.6902, 1)
+shader_parameter/spec_strength = 0.85
+shader_parameter/rim_color = Color(0.8863, 0.7529, 0.4157, 1)
+shader_parameter/rim_strength = 0.3
+shader_parameter/rim_power = 3.0
+shader_parameter/roughness = 0.3
+shader_parameter/edge_line_color = Color(1.0, 0.9529, 0.8, 1)
+shader_parameter/pip_floor_color = Color(0.102, 0.0706, 0.0314, 1)
+shader_parameter/pip_dark_at = 0.04
+shader_parameter/pip_lip = 0.0

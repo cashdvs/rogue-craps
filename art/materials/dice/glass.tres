@@ -1,0 +1,39 @@
+[gd_resource type="ShaderMaterial" load_steps=5 format=3]
+
+[ext_resource type="Shader" path="res://art/materials/dice/toon_die.gdshader" id="1"]
+[ext_resource type="Texture2D" path="res://art/materials/dice/textures/die_surface_mask.png" id="2"]
+[ext_resource type="Texture2D" path="res://art/materials/dice/textures/die_pip_profile.png" id="3"]
+[ext_resource type="Material" path="res://art/models/dice/materials/die_ink_outline.tres" id="4"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("4")
+shader = ExtResource("1")
+shader_parameter/bevel_map = ExtResource("2")
+shader_parameter/pip_map = ExtResource("3")
+shader_parameter/glow_energy = 0.0
+shader_parameter/glow_color = Color(0.9412, 0.4784, 0.2275, 1)
+shader_parameter/albedo_tint = Color(0.6667, 0.6588, 0.6314, 1)
+shader_parameter/shadow_color = Color(0.4314, 0.4157, 0.3922, 1)
+shader_parameter/wrap = 0.25
+shader_parameter/mid_tint = 0.74
+shader_parameter/spec_size = 0.985
+shader_parameter/spec_color = Color(1.0, 1.0, 1.0, 1)
+shader_parameter/spec_strength = 0.7
+shader_parameter/roughness = 0.2
+shader_parameter/glass_mode = true
+shader_parameter/glass_inner = Color(0.651, 0.6353, 0.6039, 1)
+shader_parameter/glass_fresnel = Color(1.0, 0.9882, 0.9569, 1)
+shader_parameter/glass_fresnel_power = 2.2
+shader_parameter/frost = 0.1
+shader_parameter/glass_core = Color(1.0, 0.6431, 0.3451, 1)
+shader_parameter/glass_core_k = 0.75
+shader_parameter/glass_lit_boost = 2.0
+shader_parameter/glass_lit_lift = 0.8
+shader_parameter/glass_cold_tint = Color(0.7686, 0.8157, 0.8627, 1)
+shader_parameter/glass_cold_k = 0.9
+shader_parameter/cold_albedo_mul = Vector3(0.72, 0.74, 0.78)
+shader_parameter/speck = 0.0
+shader_parameter/wear = 0.1
+shader_parameter/edge_line_color = Color(1.0, 1.0, 1.0, 1)
+shader_parameter/edge_line = 0.9
