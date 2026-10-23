@@ -99,6 +99,7 @@ func _run() -> void:
 		var a := cam.unproject_position(p + Vector3(-0.05, -0.05, 0))
 		var b := cam.unproject_position(p + Vector3(0.05, 0.05, 0))
 		boxes[d[0][0]] = [minf(a.x, b.x), minf(a.y, b.y), maxf(a.x, b.x), maxf(a.y, b.y)]
+	boxes["_viewport"] = [root.get_visible_rect().size.x, root.get_visible_rect().size.y]
 	FileAccess.open(out + "/%s_boxes.json" % tag, FileAccess.WRITE).store_string(JSON.stringify(boxes))
 	# Close-up rig: a SubViewport sharing the world, looking from the game camera direction.
 	var sv := SubViewport.new()

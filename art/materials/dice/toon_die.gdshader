@@ -74,12 +74,17 @@ uniform float die_half = 0.04;      // half edge (m): the face plane
 uniform float pip_depth = 0.0048;   // drilled depth (m) = pip_map x 1.0
 uniform vec4 pip_floor_color : source_color = vec4(0.02, 0.02, 0.02, 1.0);
 uniform float pip_lip = 0.35;       // lip highlight strength
+uniform float pip_dark_at = 0.18;   // depth fraction where the wall is fully floor-dark (crisp at 48 px)
 // glass (frosted, opaque)
 uniform bool glass_mode = false;
 uniform vec4 glass_inner : source_color = vec4(0.62, 0.66, 0.66, 1.0);
 uniform vec4 glass_fresnel : source_color = vec4(1.0, 0.98, 0.94, 1.0);
 uniform float glass_fresnel_power = 2.2;
 uniform float frost = 0.08;
+uniform vec4 glass_core : source_color = vec4(1.0, 0.66, 0.36, 1.0); // lit: warm inner core
+uniform float glass_core_k = 0.0;
+uniform vec4 glass_cold_tint : source_color = vec4(0.80, 0.86, 0.92, 1.0); // cold: cool frost
+uniform float glass_cold_k = 0.0;
 // printed faces (batch 3, locked colours)
 uniform bool use_overlay = false;
 uniform sampler2D overlay_tex : source_color, filter_linear_mipmap_anisotropic, hint_default_transparent;
@@ -114,7 +119,8 @@ void fragment() {
 		float face = max(abs(obj_pos.x), max(abs(obj_pos.y), abs(obj_pos.z)));
 		float t = clamp((die_half - face) / pip_depth, 0.0, 1.0);
 		vec4 pr = texture(pip_map, vec2(t, 0.5));
-		col = mix(pip_floor_color.rgb, col, pr.r);
+		float dk = smoothstep(0.02, pip_dark_at, t);
+		col = mix(col, pip_floor_color.rgb, max(dk, 1.0 - pr.r));
 		col += albedo_tint.rgb * pr.g * pip_lip;
 	} else {
 		col *= 1.0 - speck * (m.b - 0.3);
@@ -147,6 +153,11 @@ void fragment() {
 		col = mix(col, lit_col, die_lit);
 		col = mix(col, cold_col, cold_k);
 	}
+	if (glass_mode && !pip_mode) {
+		// lit: warm core shows through the frost (centre of each face), cold: cool desaturated frost
+		col = mix(col, glass_core.rgb, die_lit * glass_core_k * (1.0 - fres));
+		col = mix(col, glass_cold_tint.rgb * dot(col, vec3(0.299, 0.587, 0.114)) * 1.15, cold_k * glass_cold_k);
+	}
 	ALBEDO = col;
 	ROUGHNESS = mix(mix(roughness, 0.5, die_lit), 1.0, cold_k);
 	vec3 emit = emission_color.rgb * emission_energy;
@@ -159,6 +170,9 @@ void fragment() {
 	// Code-driven lit glow only (0 by default): an even wash + a rim, kept
 	// under the 1.0 bloom threshold so it also reads without glow (Compatibility).
 	emit += glow_color.rgb * glow_energy * (0.35 + 0.65 * vf);
+	if (glass_mode && !pip_mode) {
+		emit += glass_core.rgb * glow_energy * glass_core_k * 0.5 * (1.0 - fres);
+	}
 	EMISSION = emit;
 }
 
