@@ -167,6 +167,18 @@ func _check(lod: String) -> void:
 	_ok(_crack_clear(r), "crack outside the digit window")
 	r.lethal = false
 	_ok(not cr.visible, "crack clears")
+	# over-max / negative / zero-max Soul are clamped (fail if set_soul's clamp is removed)
+	r.set_soul(50, 35)
+	await process_frame
+	_ok(lbl.text == "35/35" and r._soul == 35 and r._max == 35, "over-max Soul clamps to max (%s)" % lbl.text)
+	_ok(is_equal_approx(float(mat.get_shader_parameter("fill")), 1.0) and not r.frosted(), "over-max: full, no frost")
+	r.set_soul(-3, 35)
+	await process_frame
+	_ok(lbl.text == "0/35" and r._soul == 0, "negative Soul clamps to 0 (%s)" % lbl.text)
+	_ok(is_zero_approx(float(mat.get_shader_parameter("fill"))) and r.frosted(), "negative: empty and frosted")
+	r.set_soul(4, 0)
+	await process_frame
+	_ok(lbl.text == "1/1" and r._max == 1, "max Soul never below 1 (%s)" % lbl.text)
 	r.set_soul(120, 120)
 	await process_frame
 	_ok(lbl.text == "120/120", "long label")
@@ -239,6 +251,12 @@ func _check_stacked() -> void:
 		_ok(_ink_w(cur) <= SoulReliquary.ST_W + 1e-4 and _ink_w(mx) <= SoulReliquary.ST_W + 1e-4, "stacked digits fit the window (%d/%d)" % [v[0], v[1]])
 		# portrait capture: 18/35 33/29 px, 105/120 27/26 px (ps 0.00042); 999 ~24 px at ps 0.00038
 		_ok(mx.pixel_size >= 0.00037, "3-digit max stays legible (ps %.5f)" % mx.pixel_size)
+	r.set_soul(150, 120)
+	await process_frame
+	_ok(cur.text == "120" and mx.text == "120", "stacked over-max clamps (%s/%s)" % [cur.text, mx.text])
+	r.set_soul(-7, 120)
+	await process_frame
+	_ok(cur.text == "0" and mx.text == "120", "stacked negative clamps to 0 (%s/%s)" % [cur.text, mx.text])
 	r.set_soul(5, 35)
 	await process_frame
 	_ok(r.frosted() and not cr.visible, "frost at 5, never a crack on the plate")

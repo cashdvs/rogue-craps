@@ -6,7 +6,7 @@
 ## can be measured in px. Writes a crop around the prop too (crop=<png>). Not a test, not exported.
 ##   xvfb-run -a godot --path . --rendering-driver vulkan --resolution 1920x1080 \
 ##     --script res://art/models/props/soul_reliquary/src/render_soul_reliquary_game.gd -- [phone=844x390|390x844]
-##     [out=<png>] [crop=<png>] [state=full|mid|low|lethal|grow] [before=1] [mask=1] [x=..] [y=..] [z=..] [yaw=..]
+##     [out=<png>] [crop=<png>] [state=full|mid|low|lethal|grow] [before=1] [mask=1] [x=..] [y=..] [z=..] [yaw=..] [lit=0..8]
 extends SceneTree
 
 const HEARTH := "res://art/models/boards/hearth/scenes/hearth_board%s.tscn"
@@ -111,6 +111,7 @@ func _run() -> void:
 	var over := [INF, INF, INF]
 	var yaw := INF
 	var usc := INF
+	var lit := -1
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):
 			out = a.substr(4)
@@ -124,6 +125,8 @@ func _run() -> void:
 			yaw = float(a.substr(4))
 		if a.begins_with("s="):
 			usc = float(a.substr(2))
+		if a.begins_with("lit="):
+			lit = int(a.substr(4))
 		if a == "mask=1":
 			mask = true
 		for i in 3:
@@ -145,6 +148,8 @@ func _run() -> void:
 	var lod := "_mobile" if mob else ""
 	var board := (load(HEARTH % lod) as PackedScene).instantiate() as Node3D
 	s.add_child(board)
+	if lit >= 0:                              # candle progress step 0..8 (hearth_fx.lit_count)
+		board.get_node("Hearth").set("lit_count", lit)
 	var spot := ("portrait" if _phone.screen.y > _phone.screen.x else "phone") if mob else "pc"
 	var anchor := board.get_node("Anchors/" + MARK[spot]) as Marker3D
 	for i in 3:
@@ -168,7 +173,7 @@ func _run() -> void:
 				var ml := rq.get_node_or_null(ln) as Label3D
 				if ml:
 					ml.modulate = Color(1, 0, 1)
-	await create_timer(0.3).timeout
+	await create_timer(1.0 if lit >= 0 else 0.3).timeout
 	_phone.frame(s)
 	s.camera.snap_home()
 	for i in 8:

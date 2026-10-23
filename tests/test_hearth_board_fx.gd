@@ -125,10 +125,29 @@ func _check_fx(mobile: bool) -> void:
 	var eye_mesh := _mesh(board.get_node("Anchors/Corner_FL/Cap/Model"))
 	_check(is_equal_approx(float(eye_mesh.get_instance_shader_parameter(&"level")), 2.0), label + ": eyes 2 reaches the demon eye shader")
 	var lit_ok := true
+	var n5 := int(fx.candles_lit_for(5, candles.size()))
 	for i in candles.size():
-		if (candles[i].get_node("Flame") as Node3D).visible != (num[i] <= 5):
+		if (candles[i].get_node("Flame") as Node3D).visible != (i < n5):
 			lit_ok = false
-	_check(lit_ok, label + ": lit_count 5 lights candles 1-5 only (of those present)")
+	_check(lit_ok, label + ": lit_count 5 lights the first %d of %d present candles" % [n5, candles.size()])
+	# every one of the 8 steps changes what is on screen (count lit, or the newest one kindling -> full)
+	var sigs := {}
+	for k in range(0, 9):
+		fx.lit_count = k
+		var sig := ""
+		for c in candles:
+			sig += "%d:%.2f " % [int((c.get_node("Flame") as Node3D).visible), float(c.heat)]
+		sigs[sig] = k
+	_check(sigs.size() == 9, label + ": all 9 progress states (0..8) look different (%d distinct)" % sigs.size())
+	fx.lit_count = 8
+	var all_ok := true
+	for c in candles:
+		all_ok = all_ok and (c.get_node("Flame") as Node3D).visible and is_equal_approx(float(c.heat), 1.0)
+	_check(all_ok, label + ": step 8 lights every remaining candle at full")
+	if ap != null:
+		ap.stop()
+	fx.flare = 0.0
+	fx.lit_count = 5
 	var fill := board.get_node("Anchors/ChipTray/Tray/Fill") as Node3D
 	_check(fill.visible and fill.position.y > 0.06, label + ": fill 0.7 raises the ember mound")
 	# bust: everything out mid-clip, everything back (same state) at the end
@@ -138,10 +157,10 @@ func _check_fx(mobile: bool) -> void:
 		and is_zero_approx(float(eye_mesh.get_instance_shader_parameter(&"heat"))) and (candles[0].get_node("Wisp") as Node3D).visible
 	_check(out_ok, label + ": snuff at 0.3 s: fire, candles and eyes out, smoke wisp up")
 	ap.seek(0.75, true)
-	var back_ok: bool = pot.get_node("Fire/Step3").visible and (candles[num.find(4)].get_node("Flame") as Node3D).visible \
-		and not (candles[num.find(6)].get_node("Flame") as Node3D).visible and fx.lit_count == 5 and fx.pot_step == 3 \
+	var back_ok: bool = pot.get_node("Fire/Step3").visible and (candles[n5 - 1].get_node("Flame") as Node3D).visible \
+		and not (candles[n5].get_node("Flame") as Node3D).visible and fx.lit_count == 5 and fx.pot_step == 3 \
 		and is_equal_approx(float(eye_mesh.get_instance_shader_parameter(&"heat")), 1.0) and not (candles[0].get_node("Wisp") as Node3D).visible
-	_check(back_ok, label + ": after snuff everything relights to the previous state (5 candles, step 3, eyes 2)")
+	_check(back_ok, label + ": after snuff everything relights to the previous state (step 5, pot 3, eyes 2)")
 	ap.stop()
 	fx.lit_count = 8
 	_check(ap.current_animation == "flare", label + ": reaching 8 candles plays the flare clip")

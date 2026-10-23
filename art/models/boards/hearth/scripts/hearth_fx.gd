@@ -3,7 +3,8 @@
 ##   pot_step  0-4  brazier fire step (Anchors/TargetPlate/Plate)
 ##   eyes      0-3  both demon faces (off / ember / hot / white); eyes_left / eyes_right = -1 follow `eyes`
 ##   fill      0-1  ember cauldron (Anchors/ChipTray/Tray)
-##   lit_count 0-8  progress candles lit, order L far, R far, L ... R near (Candle1..Candle8).
+##   lit_count 0-8  progress steps, spread over the candles present (Candle1..8 order; 3/5 are cut, so 6
+##                  candles: step k lights ceil(6k/8), the newest burns low between candles).
 ##                  Reaching 8 at runtime plays the "flare" clip.
 ##   seam      0-1  idle glow of the ember seam on the inner rail lip; pulse 0-1 = the seam pulse
 ##                  (SeamPlayer "seam_pulse", 0.15 s). Call pulse_seam() to fire it.
@@ -22,6 +23,7 @@
 extends Node3D
 
 const CANDLES := 8
+const KINDLE := 0.45   # heat of a "kindling" candle (a progress step between two candles)
 
 var _ready_done := false
 
@@ -142,6 +144,26 @@ func bust() -> void:
 		ap.play("snuff")
 
 
+## The progress candles on the board, in Candle-number order (missing numbers skipped).
+func present_candles() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for i in range(1, CANDLES + 1):
+		var c := candle(i)
+		if c != null:
+			out.append(c)
+	return out
+
+
+## Candles lit for progress step `step` (0..8) when `n` candles are present.
+static func candles_lit_for(step: int, n: int) -> int:
+	return ceili(float(clampi(step, 0, CANDLES) * n) / CANDLES - 1e-6)
+
+
+## True when the step sits between two candles: the newest lit one burns low.
+static func kindling_for(step: int, n: int) -> bool:
+	return (clampi(step, 0, CANDLES) * n) % CANDLES != 0
+
+
 func candle(i: int) -> Node3D:
 	return find_child("Candle%d" % i, true, false) as Node3D
 
@@ -171,13 +193,18 @@ func _apply() -> void:
 		caul.fill = fill
 		caul.heat = heat
 		caul.wisp = wisp
-	for i in range(1, CANDLES + 1):
-		var c := candle(i)
-		if c != null:
-			c.lit = i <= lit_count
-			c.heat = heat
-			c.flare = flare
-			c.wisp = wisp
+	# progress steps -> the candles present (3 and 5 were cut for the Soul Reliquary): step k lights
+	# ceil(k * n / 8) of them in Candle-number order; when the step falls between two candles the newest
+	# one burns low ("kindling", KINDLE x heat) so each of the 8 steps reads differently.
+	var cs := present_candles()
+	var lit_n := candles_lit_for(lit_count, cs.size())
+	var kindle := kindling_for(lit_count, cs.size())
+	for k in cs.size():
+		var c: Node3D = cs[k]
+		c.lit = k < lit_n
+		c.heat = heat * (KINDLE if kindle and k == lit_n - 1 else 1.0)
+		c.flare = flare
+		c.wisp = wisp
 	var dr := _dressing()
 	if dr != null:
 		dr.heat = heat

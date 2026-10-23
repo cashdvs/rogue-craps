@@ -47,8 +47,8 @@ const CANDLE_Y := 0.105
 # and its ends are off-screen. AD Oct 23 (v2): never on the felt; it sits on the screen-left rail (world near rail)
 # lip, pulled in along z until fully framed, at 0.65x so its plinth clears the throw zone (z <= 0.50); the
 # marker's plate_layout meta swaps in the stacked cur-over-max placard so every digit reads >= 24 px (AD v3).
-const SOUL_RELIQUARY_AT := Vector3(-1.07, 0.105, 0.04)          # Anchors/SoulReliquary (PC)
-const SOUL_RELIQUARY_PHONE_AT := Vector3(-1.07, 0.105, 0.04)    # Anchors/SoulReliquaryPhone (landscape phone)
+const SOUL_RELIQUARY_AT := Vector3(-1.07, 0.105, 0.14)          # Anchors/SoulReliquary (PC)
+const SOUL_RELIQUARY_PHONE_AT := Vector3(-1.07, 0.105, 0.195)    # Anchors/SoulReliquaryPhone (landscape phone)
 const SOUL_RELIQUARY_PORTRAIT_AT := Vector3(-0.12, 0.104, 0.555)  # Anchors/SoulReliquaryPortrait, yaw 90, 0.65x, stacked plate (AD v3; x -0.12 clears Throw)
 const SOUL_RELIQUARY_PORTRAIT_SCALE := 0.65   # plinth r 0.054*1.5*0.65 = 0.053 -> footprint z 0.502..0.608 (dice reach 0.50)
 const FACE_OUT := 0.04                        # demon faces pushed out along the corner diagonal
