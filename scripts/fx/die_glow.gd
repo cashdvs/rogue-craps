@@ -130,6 +130,9 @@ static func peak_spark_height() -> float:
 	return _peak_height(SPARK_DIRECTION, SPARK_SPREAD_DEG, SPARK_SPEED.y, SPARK_GRAVITY)
 
 
+## Worst-case metres an ember-trail dot can rise above its spawn, from the
+## trail's emission cone, top speed and gravity. ≤ 0 means the trail only
+## falls or skims sideways (no flame-shaped rise above the dice).
 static func peak_trail_height() -> float:
 	return _peak_height(TRAIL_DIRECTION, TRAIL_SPREAD_DEG, TRAIL_SPEED.y, TRAIL_GRAVITY)
 

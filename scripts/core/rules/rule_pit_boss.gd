@@ -1,4 +1,4 @@
-## The Pit Boss (boss): "One face value locked each hand." A value drawn at
+## The Pit Boss (boss): "Each hand, one number from 2 to 6 never lights." A value drawn at
 ## the start of every hand (seeded) never lights or scores that hand; it is
 ## shown on the felt. params.faces (default 1-6): the values it draws from.
 class_name RulePitBoss

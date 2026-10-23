@@ -6,7 +6,7 @@
 script = ExtResource("1_l3nwq")
 id = &"mister_wick"
 display_name = "Mister Wick"
-description = "Snuffs the sixes: 6s never light. A bust costs 2 Soul."
+description = "6s never light, and a bust costs 2 Soul."
 kind = 1
 bust_soul_loss = 2
 params = {

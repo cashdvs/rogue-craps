@@ -52,8 +52,6 @@ func _log(s: String) -> void:
 		calls = calls.slice(200)
 
 
-# --- Sound ---------------------------------------------------------------------------
-
 ## Plays `event` if the SfxManager has it, else `fallback` (if any).
 func sfx(event: StringName, pitch: float = 1.0, volume_db: float = 0.0, jitter: float = 0.0,
 		fallback: StringName = &"", fb_pitch: float = 1.0, fb_volume_db: float = 0.0) -> void:
@@ -101,8 +99,6 @@ func banner_sound(score_tier: int) -> void:
 	sfx(stinger(score_tier), 1.0, 0.0, 0.0, &"win_big" if score_tier >= 2 else &"rim_hit", 1.0 if score_tier >= 2 else 1.2, -6.0 if score_tier < 3 else 0.0)
 
 
-# --- Crowd ------------------------------------------------------------------------------
-
 func crowd_start() -> void:
 	if crowd != null and crowd.has_method("start"):
 		crowd.call("start")
@@ -130,6 +126,3 @@ func crowd_roar() -> void:
 func crowd_stop() -> void:
 	if crowd != null and crowd.has_method("stop"):
 		crowd.call("stop")
-
-
-# --- Art scenes ---------------------------------------------------------------------

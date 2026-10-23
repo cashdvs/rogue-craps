@@ -75,8 +75,6 @@ func _play_scene(ps: PackedScene, parent: Node, at: Vector3, clip: String, delay
 	return n
 
 
-# --- Pot: lift, glow tiers, escalation ------------------------------------------
-
 ## Potted dice lift and light up one at a time (stagger 0.08 s, 0.14 s big).
 func lift(dice: Array[DieVisual], big: bool, speed: float = 1.0) -> void:
 	var stagger := (0.14 if big else 0.08) / maxf(speed, 0.001)
@@ -215,8 +213,6 @@ func brazier_column() -> void:
 		if is_instance_valid(fx):
 			fx.set("pot_step", before))
 
-
-# --- Moments --------------------------------------------------------------------------
 
 ## Hot Hand: every die flashes to full ember glow with a few spark dots (a
 ## glow pulse, not a flare-up; no fire on dice). fly_start adds the trail.

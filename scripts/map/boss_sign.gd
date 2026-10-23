@@ -60,8 +60,44 @@ static func make_sign(r: RunRuleData, px_height: int, layout_width: float = 1920
 	t.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	t.texture_filter = FILTER
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_accessible(t, r.sign_alt_text)
+	_set_accessible(t, r.sign_alt())
+	if r.sign_hand_pill:
+		update_hand_pill(t, r)
 	return t
+
+
+## The "-1 HAND" brass pill over the sign's top-right corner (where the
+## art leaves room), text from r.hands_delta; hidden when it is 0. Call
+## again after hands_delta changes. Returns the pill Label.
+static func update_hand_pill(sign_rect: TextureRect, r: RunRuleData) -> Label:
+	var pill := sign_rect.get_node_or_null("HandPill") as Label
+	if pill == null:
+		pill = Label.new()
+		pill.name = "HandPill"
+		pill.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pill.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Same box as the art's old baked pill: 150x44 at (975, 74) of 1200x420.
+		pill.anchor_left = 975.0 / 1200.0
+		pill.anchor_right = 1125.0 / 1200.0
+		pill.anchor_top = 74.0 / 420.0
+		pill.anchor_bottom = 118.0 / 420.0
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Palette.BRASS
+		sb.border_color = Palette.BRASS_HI
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(999)
+		pill.add_theme_stylebox_override("normal", sb)
+		var ls := LabelSettings.new()
+		ls.font = Palette.number_font()
+		ls.font_color = Palette.OXBLOOD
+		pill.label_settings = ls
+		sign_rect.add_child(pill)
+	pill.text = r.hand_pill_text()
+	pill.visible = pill.text != ""
+	pill.label_settings.font_size = maxi(10, int(sign_rect.custom_minimum_size.y * 32.0 / 420.0))
+	_set_accessible(sign_rect, r.sign_alt())
+	return pill
 
 
 ## Put `r`'s sign under the pause menu's PAUSED title. Returns false (and
@@ -140,14 +176,15 @@ static func decorate_with(row: Control, name_l: Label, line: Label, r: RunRuleDa
 	name_l.text = r.display_name.to_upper()
 	row.add_child(head)
 	row.move_child(head, at)
-	_set_accessible(row, "%s. %s" % [r.display_name, r.description])
+	var rule_line := r.description
+	_set_accessible(row, "%s. %s" % [r.display_name, rule_line])
 	if line != null:
-		line.text = r.description
+		line.text = rule_line
 		line.visible = states_cost(r)
 	if line == null or not line.visible:
 		row.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.focus_mode = Control.FOCUS_ALL
-		BossRuleTip.new(r.description).attach(row)
+		BossRuleTip.new(rule_line).attach(row)
 		row.gui_input.connect(func(e: InputEvent) -> void:
 			if (e is InputEventScreenTouch and e.pressed) or (e is InputEventMouseButton and e.pressed):
 				row.grab_focus())
