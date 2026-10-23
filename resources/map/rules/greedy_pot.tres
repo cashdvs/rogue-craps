@@ -6,7 +6,7 @@
 script = ExtResource("1_1slen")
 id = &"greedy_pot"
 display_name = "Greedy Pot"
-description = "You must pot 2 or more dice per throw. +1 hand."
+description = "Pot at least 2 dice every throw, but you get +1 hand."
 hands_delta = 1
 params = {
 "min_pot": 2

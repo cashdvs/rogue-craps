@@ -38,12 +38,12 @@ const DEFAULT_PARAMS := {
 ## "+1 hand" is the retune's hands_delta (run_tuning_v1.md addendum), which
 ## the run applies; the line tells the player.
 const INFO := {
-	&"cold_sixes": ["Cold Sixes", "6s never light. +1 hand.", TableRule.Kind.TWIST],
-	&"first_throw": ["First Throw", "Bounties only count on a hand's first 2 throws. +1 hand.", TableRule.Kind.TWIST],
-	&"short_table": ["Short Table", "{hands} hands.", TableRule.Kind.TWIST],
+	&"cold_sixes": ["Cold Sixes", "6s never light, but you get +1 hand.", TableRule.Kind.TWIST],
+	&"first_throw": ["First Throw", "Bounties count only on each hand's first 2 throws; +1 hand.", TableRule.Kind.TWIST],
+	&"short_table": ["Short Table", "4 hands.", TableRule.Kind.TWIST],
 	&"heavy_burn": ["Heavy Toll", "A bust costs 3 Soul.", TableRule.Kind.TWIST],
-	&"greedy_pot": ["Greedy Pot", "You must pot 2 or more dice per throw. +1 hand.", TableRule.Kind.TWIST],
-	&"cold_hands": ["Cold Hands", "No Hot Hand. +1 hand.", TableRule.Kind.TWIST],
+	&"greedy_pot": ["Greedy Pot", "Pot at least 2 dice every throw, but you get +1 hand.", TableRule.Kind.TWIST],
+	&"cold_hands": ["Cold Hands", "No Hot Hand, but you get +1 hand.", TableRule.Kind.TWIST],
 	&"madame_shuffle": ["Madame Shuffle", "After each throw, she rerolls one random lit die.", TableRule.Kind.CHEAT],
 	&"pit_boss": ["The Pit Boss", "Each hand, one number from 2 to 6 never lights.", TableRule.Kind.CHEAT],
 	&"ashmouth": ["Ashmouth", "No Hot Hand, and you get one fewer hand.", TableRule.Kind.CHEAT],
@@ -101,9 +101,6 @@ static func make(entry: Variant) -> TableRule:
 	r.params.merge((e["params"] as Dictionary).duplicate(true), true)
 	r.display_name = e["name"] if e["name"] != "" else info[0]
 	r.description = e["description"] if e["description"] != "" else info[1]
-	# A fallback with "{hands}" (Short Table, as in its .tres) gets params.hands
-	# or the old 4; inside a run, rule_entries() already sends the real text.
-	r.description = r.description.replace("{hands}", str(r.params.get("hands", 4)))
 	r.kind = info[2]
 	return r
 

@@ -74,7 +74,7 @@ func _initialize() -> void:
 func _format() -> void:
 	check("rules" in TableSetup.new() and TableSetup.new().rules.is_empty(), "TableSetup.rules exists, empty by default")
 	var built := TableRules.build([rule(&"cold_sixes", {"face": 6}), FakeRuleData.new(), {"id": &"no_such_rule"}])
-	check(built.size() == 3 and built[0] is RuleColdSixes and built[0].display_name == "Cold Sixes" and built[0].description == "6s never light. +1 hand.", "Dictionary entry -> handler with the designer's name + line")
+	check(built.size() == 3 and built[0] is RuleColdSixes and built[0].display_name == "Cold Sixes" and built[0].description == "6s never light, but you get +1 hand.", "Dictionary entry -> handler with the designer's name + line")
 	# Issue #70: Mister Wick under his own name, in cheat red; retuned lines.
 	var wick := TableRules.make(rule(&"mister_wick"))
 	check(wick is RuleColdSixes and wick.display_name == "Mister Wick" and wick.kind == TableRule.Kind.CHEAT, "mister_wick: Cold Sixes handler, own name, a boss cheat")

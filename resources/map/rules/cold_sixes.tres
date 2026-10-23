@@ -6,7 +6,7 @@
 script = ExtResource("1_x87vv")
 id = &"cold_sixes"
 display_name = "Cold Sixes"
-description = "6s never light. +1 hand."
+description = "6s never light, but you get +1 hand."
 hands_delta = 1
 params = {
 "face": 6

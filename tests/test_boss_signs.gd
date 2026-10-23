@@ -29,6 +29,7 @@ func _initialize() -> void:
 	print("=== Dice of the Damned: boss sign tests ===")
 	_test_data()
 	_test_lookup()
+	_test_hand_pill()
 	await _test_intro()
 	_test_hud()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -42,13 +43,15 @@ func _test_data() -> void:
 		_check(r.sign_texture != null and r.sign_texture.get_size() == Vector2(600, 210), "%s: @1x sign loads at 600x210" % n)
 		_check(r.sign_texture_2x != null and r.sign_texture_2x.get_size() == Vector2(1200, 420), "%s: @2x sign loads at 1200x420" % n)
 		_check(r.rule_icon != null and r.rule_icon.get_size() == Vector2(128, 128), "%s: 128 px rule icon loads" % n)
-		_check(r.tooltip_text != "" and r.sign_alt_text.contains(r.tooltip_text.get_slice(" · ", 0)), "%s: tooltip + alt text" % n)
+		_check(r.tooltip_text != "" and r.sign_alt().contains(r.sign_tooltip().get_slice(" · ", 0)), "%s: tooltip + alt text" % n)
 		for tex: Texture2D in [r.sign_texture, r.sign_texture_2x, r.rule_icon]:
 			var imp := FileAccess.get_file_as_string(tex.resource_path + ".import")
 			_check(imp.contains("mipmaps/generate=true"), "%s: mipmaps on for %s" % [n, tex.resource_path.get_file()])
 	var vig := load(RULES + "baron_vig.tres") as RunRuleData
 	var bod := load(RULES + "odds_bodkin.tres") as RunRuleData
-	_check(vig.tooltip_text == "POT 3+ DICE EVERY THROW" and vig.sign_alt_text.contains("FLOOR 3 · THE HOUSE MINIMUM") and vig.sign_alt_text.contains("MIN 3"), "vig: sign wording")
+	_check(vig.sign_tooltip() == "Pot at least 3 dice every throw; -1 hand." and vig.sign_tooltip() == vig.description and vig.sign_alt().contains("FLOOR 3 · THE HOUSE MINIMUM") and vig.sign_alt().contains("MIN 3") and vig.sign_alt().contains("-1 HAND"), "vig: sign wording")
+	_check(vig.sign_hand_pill and not vig.tooltip_text.contains("hand") and not vig.sign_alt_text.contains("HAND"), "vig: no hardcoded hands text in the data")
+	_check(not bod.sign_hand_pill and bod.sign_tooltip() == bod.tooltip_text, "bodkin: unchanged (pill baked in its art)")
 	_check(bod.tooltip_text.contains("BOUNTIES COUNT ON 1ST THROW ONLY") and bod.tooltip_text.contains("+1 HAND")
 		and bod.sign_alt_text.contains("FLOOR 3 · FIRST SHOT OR NOTHING") and bod.sign_alt_text.contains("1ST"), "bodkin: sign wording")
 	var wick := load(RULES + "mister_wick.tres") as RunRuleData
@@ -218,3 +221,28 @@ func _test_cost_line() -> void:
 	row2.add_child(nl)
 	_check(not BossSign.decorate_with(row2, nl, null, load(RULES + "mister_wick.tres")) and row2.get_child(0) == nl, "no icon: row untouched")
 	row2.free()
+
+
+## The Vig "-1 HAND" pill is a Label from hands_delta (not baked art), and
+## the tooltip / alt text follow hands_delta too (QA, #136).
+func _test_hand_pill() -> void:
+	var vig := (load(RULES + "baron_vig.tres") as RunRuleData).duplicate() as RunRuleData
+	var s := BossSign.make_sign(vig, 1080)
+	var pill := s.get_node_or_null("HandPill") as Label
+	_check(pill != null and pill.visible and pill.text == "-1 HAND", "pill: Label reads -1 HAND from hands_delta")
+	var sb := pill.get_theme_stylebox("normal") as StyleBoxFlat
+	_check(sb != null and sb.bg_color == Palette.BRASS, "pill: brass pill box")
+	for d in [-2, 1]:
+		vig.hands_delta = d
+		BossSign.update_hand_pill(s, vig)
+		var want := "%+d HAND" % d
+		_check(pill.visible and pill.text == want, "pill: hands_delta %d -> %s" % [d, want])
+		_check(vig.sign_tooltip() == "Pot at least 3 dice every throw; %+d hand." % d, "tooltip: follows hands_delta %d" % d)
+		_check(vig.sign_alt().contains("Pill: " + want) and vig.sign_alt().contains(vig.sign_tooltip()), "alt text: follows hands_delta %d" % d)
+		if "accessibility_name" in s:
+			_check(s.get("accessibility_name") == vig.sign_alt(), "alt text: on the sign node (%d)" % d)
+	vig.hands_delta = 0
+	BossSign.update_hand_pill(s, vig)
+	_check(not pill.visible and vig.hand_pill_text() == "" and not vig.sign_tooltip().contains("hand"), "pill: hidden at hands_delta 0")
+	vig.hands_delta = -2
+	s.free()

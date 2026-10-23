@@ -6,6 +6,6 @@
 script = ExtResource("1_ir0t1")
 id = &"cold_hands"
 display_name = "Cold Hands"
-description = "No Hot Hand. +1 hand."
+description = "No Hot Hand, but you get +1 hand."
 effect_group = &"no_hot_hand"
 hands_delta = 1
