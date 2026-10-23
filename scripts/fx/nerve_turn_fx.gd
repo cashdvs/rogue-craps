@@ -26,7 +26,10 @@ const PEAK: float = 1.5
 const FLICK_TIME: float = 0.14
 const GLINT_TIME: float = 0.24
 const SWEEP_TIME: float = 0.22
-const SWEEP_SIZE: float = 1.4
+## v3 (AD sign-off): 1.3x the v2 width (1.4 x edge) and 1.6x the v2
+## strength (peak 1.5), kept under the dice's bevel-line highlight on screen.
+const SWEEP_SIZE: float = 1.82
+const SWEEP_PEAK: float = 2.4
 ## 1.5x the v1 mote size (0.4 x edge).
 const MOTE_SIZE: float = 0.6
 ## Whole accent ends by this (all lives start at the nudge).
@@ -116,7 +119,7 @@ func play(die: Node3D, dir: int) -> void:
 	# its top face (an FX piece; the die's own material is never touched).
 	var top := c + Vector3(0.0, edge * 0.52, 0.0)
 	var a := top + Vector3(-edge * 0.5, 0.0, -flick_dir(dir).z * edge * 0.5)
-	_piece(&"glint_streak", a, top - a + (top - a), edge * SWEEP_SIZE, SWEEP_TIME, SWEEP_COLOR, &"sweep")
+	_piece(&"glint_streak", a, top - a + (top - a), edge * SWEEP_SIZE, SWEEP_TIME, SWEEP_COLOR, &"sweep", SWEEP_PEAK)
 	if still:
 		return
 	# Flick: beside the die, at die height.
@@ -130,10 +133,10 @@ func play(die: Node3D, dir: int) -> void:
 		_piece(&"spark_dot_soft", p, v, edge * MOTE_SIZE, GLINT_TIME, SPARK_COLOR, &"mote")
 
 
-func _piece(shape: StringName, at: Vector3, move: Vector3, size: float, life: float, tint: Color, kind: StringName) -> Sprite3D:
+func _piece(shape: StringName, at: Vector3, move: Vector3, size: float, life: float, tint: Color, kind: StringName, peak: float = PEAK) -> Sprite3D:
 	var s := Sprite3D.new()
 	s.texture = TriggerShapes.texture(shape, tint)
-	s.modulate = Color(tint.r * PEAK, tint.g * PEAK, tint.b * PEAK, 1.0)
+	s.modulate = Color(tint.r * peak, tint.g * peak, tint.b * peak, 1.0)
 	s.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	s.shaded = false
 	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED

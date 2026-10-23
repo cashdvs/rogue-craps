@@ -94,13 +94,16 @@ func _check_pieces(fx: NerveTurnFx, d: DieVisual, dir: int, tag: String, still: 
 	for s in fx.pieces:
 		longest = maxf(longest, float(s.get_meta("life")))
 		var m := s.modulate
-		_check(_warm(Color(m.r, m.g, m.b) / NerveTurnFx.PEAK) and is_equal_approx(m.r, (NerveTurnFx.SWEEP_COLOR.r if s.get_meta("kind") == &"sweep" else NerveTurnFx.SPARK_COLOR.r) * 1.5), tag + ": warm white-gold at 1.5x peak (%s)" % s.get_meta("kind"))
+		var is_sweep: bool = s.get_meta("kind") == &"sweep"
+		var pk := 1.5 * 1.6 if is_sweep else 1.5
+		_check(_warm(Color(m.r, m.g, m.b) / pk) and is_equal_approx(m.r, (NerveTurnFx.SWEEP_COLOR.r if is_sweep else NerveTurnFx.SPARK_COLOR.r) * pk), tag + ": warm white-gold at its peak (%s)" % s.get_meta("kind"))
 	_check(longest <= 0.3 and NerveTurnFx.TOTAL_TIME <= 0.3, tag + ": whole effect <= 0.3 s (%.2f)" % longest)
 	if sweep.size() == 1:
 		var o: Vector3 = sweep[0].get_meta("origin")
 		var m: Vector3 = sweep[0].get_meta("move")
 		var mid := o + m * 0.5
 		_check(o.y > d.global_position.y and absf(mid.x - d.global_position.x) < 1e-4 and absf(mid.z - d.global_position.z) < 1e-4 and absf(m.x) >= d.edge * 0.9, tag + ": sweep crosses the die top")
+		_check(is_equal_approx(sweep[0].pixel_size * sweep[0].texture.get_width(), d.edge * 1.4 * 1.3), tag + ": sweep width 1.3x v2")
 		_check(sweep[0].get_parent() == fx, tag + ": sweep is an FX piece, not on the die")
 	if still:
 		_check(fx.pieces.size() == 1, tag + ": sweep only (no flick, no sparks)")
