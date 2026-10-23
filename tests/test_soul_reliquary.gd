@@ -36,6 +36,7 @@ func _ok(cond: bool, what: String) -> void:
 func _run() -> void:
 	_check_static()
 	_check_cyan()
+	_check_fill()
 	_check_board()
 	for lod in ["", "_mobile"]:
 		await _check(lod)
@@ -80,6 +81,18 @@ func _check_cyan() -> void:
 			_ok(m.next_pass != null, f + ": ink outline pass")
 
 
+func _check_fill() -> void:
+	for p in ["res://art/models/props/soul_reliquary/scenes/soul_reliquary.tscn", "res://art/models/props/soul_reliquary/scenes/soul_reliquary_mobile.tscn"]:
+		var r := (load(p) as PackedScene).instantiate()
+		var l := r.find_child("BrassFill", true, false) as OmniLight3D
+		_ok(l != null, p.get_file() + ": BrassFill omni (v2)")
+		if l != null:
+			_ok(l.light_color.is_equal_approx(Color("#FFB070")) and l.light_energy <= 1.0 and not l.shadow_enabled, "BrassFill warm, low, no shadow")
+			var plate := r.find_child("Plate", true, false) as VisualInstance3D
+			_ok(plate != null and (plate.layers & l.light_cull_mask) == 0, "BrassFill does not light the digit plate")
+		r.free()
+
+
 func _check_board() -> void:
 	for p in ["res://art/models/boards/hearth/scenes/hearth_board.tscn", "res://art/models/boards/hearth/scenes/hearth_board_mobile.tscn"]:
 		var b := (load(p) as PackedScene).instantiate()
@@ -88,6 +101,12 @@ func _check_board() -> void:
 			_ok(mk != null, "%s has Anchors/%s" % [p.get_file(), n])
 		var pt := b.get_node_or_null("Anchors/SoulReliquaryPortrait") as Node3D
 		_ok(pt != null and absf(rad_to_deg(pt.rotation.y) - 90.0) < 0.5, "portrait marker yaw 90")
+		_ok(pt != null and pt.position.z >= 0.54 and pt.position.y > 0.08, "portrait marker on the near-rail lip, not the felt (v2)")
+		_ok(pt != null and pt.position.z - 0.054 * 1.5 * pt.scale.x > 0.50, "portrait plinth clears the throw zone (z > 0.50)")
+		var cn := 0
+		for c in b.get_node("Hearth/Candles/RailLeft").get_children():
+			cn += 1
+		_ok(b.get_node_or_null("Hearth/Candles/RailLeft/Candle3") == null and b.get_node_or_null("Hearth/Candles/RailLeft/Candle5") == null, "rail candles 3/5 cut beside the reliquary (v2)")
 		b.free()
 
 

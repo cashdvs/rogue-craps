@@ -29,7 +29,7 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 | `Anchors/Corner_NL/Cap`, `Corner_NR/Cap` | Board A brass corner caps (unchanged) |
 | `Anchors/ChipTray/Tray` | §8 optional chip tray slot, switched on: `cauldron.tscn` (iron pot on 3 legs outside the right rail, ember mound with brass coin flecks) |
 | `Anchors/BurnLine`, `Anchors/Zones` | empty (as Board A) |
-| `Hearth` | FX hub (`scripts/hearth_fx.gd`), `Candles/RailLeft/Candle1,3,5,7`, `Candles/RailRight/Candle2,4,6,8`, `AnimationPlayer`, `SeamPlayer` |
+| `Hearth` | FX hub (`scripts/hearth_fx.gd`), `Candles/RailLeft/Candle1,7` (3 and 5 cut for the Soul Reliquary, AD Oct 23), `Candles/RailRight/Candle2,4,6,8`, `AnimationPlayer`, `SeamPlayer` |
 
 Candles stand on the side rails at x = +-1.135, z = -0.42 / -0.24 / 0.24 / 0.42 (top < 0.19 m), lit in
 the order L far, R far, L, R ... R near. All 8 share `candle.tscn` (one mesh, `candle_wax.tres` +

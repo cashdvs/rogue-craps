@@ -110,6 +110,7 @@ func _run() -> void:
 	var mask := false
 	var over := [INF, INF, INF]
 	var yaw := INF
+	var usc := INF
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):
 			out = a.substr(4)
@@ -121,6 +122,8 @@ func _run() -> void:
 			before = true
 		if a.begins_with("yaw="):
 			yaw = float(a.substr(4))
+		if a.begins_with("s="):
+			usc = float(a.substr(2))
 		if a == "mask=1":
 			mask = true
 		for i in 3:
@@ -149,6 +152,8 @@ func _run() -> void:
 			anchor.position[i] = over[i]
 	if yaw != INF:
 		anchor.rotation_degrees.y = yaw
+	if usc != INF:
+		anchor.scale = Vector3.ONE * usc
 	var rq: SoulReliquary = null
 	if not before:
 		s.soul_meter.visible = false          # the flat HUD bar is replaced by the reliquary
