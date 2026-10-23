@@ -22,3 +22,5 @@ shader_parameter/spec_strength = 0.6
 shader_parameter/roughness = 0.45
 shader_parameter/edge_line_color = Color(1.0, 0.9804, 0.9412, 1)
 shader_parameter/pip_floor_color = Color(0.0784, 0.0941, 0.0941, 1)
+shader_parameter/pip_dark_at = 0.04
+shader_parameter/pip_lip = 0.0

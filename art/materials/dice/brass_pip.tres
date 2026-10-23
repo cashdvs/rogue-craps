@@ -26,3 +26,5 @@ shader_parameter/rim_power = 3.0
 shader_parameter/roughness = 0.3
 shader_parameter/edge_line_color = Color(1.0, 0.9529, 0.8, 1)
 shader_parameter/pip_floor_color = Color(0.102, 0.0706, 0.0314, 1)
+shader_parameter/pip_dark_at = 0.04
+shader_parameter/pip_lip = 0.0

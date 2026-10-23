@@ -83,6 +83,8 @@ uniform float glass_fresnel_power = 2.2;
 uniform float frost = 0.08;
 uniform vec4 glass_core : source_color = vec4(1.0, 0.66, 0.36, 1.0); // lit: warm inner core
 uniform float glass_core_k = 0.0;
+uniform float glass_lit_boost = 0.5;
+uniform float glass_lit_lift = 0.0;
 uniform vec4 glass_cold_tint : source_color = vec4(0.80, 0.86, 0.92, 1.0); // cold: cool frost
 uniform float glass_cold_k = 0.0;
 // printed faces (batch 3, locked colours)
@@ -119,7 +121,7 @@ void fragment() {
 		float face = max(abs(obj_pos.x), max(abs(obj_pos.y), abs(obj_pos.z)));
 		float t = clamp((die_half - face) / pip_depth, 0.0, 1.0);
 		vec4 pr = texture(pip_map, vec2(t, 0.5));
-		float dk = smoothstep(0.02, pip_dark_at, t);
+		float dk = smoothstep(0.0, pip_dark_at, t);
 		col = mix(col, pip_floor_color.rgb, max(dk, 1.0 - pr.r));
 		col += albedo_tint.rgb * pr.g * pip_lip;
 	} else {
@@ -171,7 +173,8 @@ void fragment() {
 	// under the 1.0 bloom threshold so it also reads without glow (Compatibility).
 	emit += glow_color.rgb * glow_energy * (0.35 + 0.65 * vf);
 	if (glass_mode && !pip_mode) {
-		emit += glass_core.rgb * glow_energy * glass_core_k * 0.5 * (1.0 - fres);
+		emit += glass_core.rgb * glow_energy * glass_core_k * glass_lit_boost * (1.0 - 0.5 * fres);
+		emit += col * die_lit * glass_lit_lift; // lit brightness step (0 at rest)
 	}
 	EMISSION = emit;
 }

@@ -23,5 +23,5 @@ shader_parameter/roughness = 0.15
 shader_parameter/edge_line_color = Color(0.8118, 0.7765, 0.7294, 1)
 shader_parameter/cold_albedo_mul = Vector3(0.62, 0.62, 0.64)
 shader_parameter/pip_floor_color = Color(0.6588, 0.6118, 0.5176, 1)
-shader_parameter/pip_lip = 0.15
-shader_parameter/pip_dark_at = 0.6
+shader_parameter/pip_lip = 0.1
+shader_parameter/pip_dark_at = 0.3

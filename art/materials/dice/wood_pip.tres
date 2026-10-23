@@ -23,3 +23,5 @@ shader_parameter/roughness = 0.7
 shader_parameter/grain_color = Color(0.4784, 0.2902, 0.1569, 1)
 shader_parameter/edge_line_color = Color(1.0, 0.9098, 0.7843, 1)
 shader_parameter/pip_floor_color = Color(0.1176, 0.0706, 0.0392, 1)
+shader_parameter/pip_dark_at = 0.04
+shader_parameter/pip_lip = 0.0
