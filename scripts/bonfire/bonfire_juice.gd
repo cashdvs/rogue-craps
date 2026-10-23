@@ -67,8 +67,6 @@ func _log(s: String) -> void:
 		calls = calls.slice(200)
 
 
-# --- Sound ---------------------------------------------------------------------------
-
 ## Plays `event` if the SfxManager has it, else `fallback` (if any).
 func sfx(event: StringName, pitch: float = 1.0, volume_db: float = 0.0, jitter: float = 0.0,
 		fallback: StringName = &"", fb_pitch: float = 1.0, fb_volume_db: float = 0.0) -> void:
@@ -116,8 +114,6 @@ func banner_sound(score_tier: int) -> void:
 	sfx(stinger(score_tier), 1.0, 0.0, 0.0, &"win_big" if score_tier >= 2 else &"rim_hit", 1.0 if score_tier >= 2 else 1.2, -6.0 if score_tier < 3 else 0.0)
 
 
-# --- Crowd ------------------------------------------------------------------------------
-
 func crowd_start() -> void:
 	if crowd != null and crowd.has_method("start"):
 		crowd.call("start")
@@ -147,8 +143,6 @@ func crowd_stop() -> void:
 		crowd.call("stop")
 
 
-# --- Art scenes ---------------------------------------------------------------------
-
 func _scene(rel: String) -> PackedScene:
 	if force_fallback:
 		return null
@@ -160,8 +154,6 @@ func _scene(rel: String) -> PackedScene:
 		ps = load(path) as PackedScene
 	_scenes[path] = ps
 	return ps
-
-
 
 
 ## Instances a clip scene, plays `clip` and frees it afterwards.
@@ -185,8 +177,6 @@ func _play_scene(ps: PackedScene, parent: Node, at: Vector3, clip: String, delay
 			n.queue_free())
 	return n
 
-
-# --- Pot: lift, glow tiers, escalation ------------------------------------------
 
 ## Potted dice lift and light up one at a time (stagger 0.08 s, 0.14 s big).
 func lift(dice: Array[DieVisual], big: bool, speed: float = 1.0) -> void:
@@ -324,8 +314,6 @@ func brazier_column() -> void:
 		if is_instance_valid(fx):
 			fx.set("pot_step", before))
 
-
-# --- Moments --------------------------------------------------------------------------
 
 ## Hot Hand: every die flashes to full ember glow with a few spark dots (a
 ## glow pulse, not a flare-up; no fire on dice). fly_start adds the trail.
