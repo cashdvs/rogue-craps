@@ -12,6 +12,12 @@ var s: Bonfire3D
 
 
 func _initialize() -> void:
+	var method := RenderingServer.get_current_rendering_method()
+	var driver := RenderingServer.get_current_rendering_driver_name()
+	if method != "forward_plus" or driver != "vulkan":
+		push_error("capture_nerve_turn: need Forward+/Vulkan, got %s/%s (GL fallback?)" % [method, driver])
+		quit(1)
+		return
 	_run.call_deferred()
 
 
@@ -44,7 +50,6 @@ func strip(tag: String, die: Node3D, act: Callable) -> void:
 		at = TIMES[i]
 		var img := await frame()
 		out.blit_rect(img, r, Vector2i(CROP * i, 0))
-		for p in fx.pieces:
 		if tag == "up" and i == 2:
 			_pips(img, cam, die)
 	fx.hold = false
