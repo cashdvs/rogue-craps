@@ -49,7 +49,7 @@ const INFO := {
 	&"ashmouth": ["Ashmouth", "No Hot Hand, and you get one fewer hand.", TableRule.Kind.CHEAT],
 	&"straight_man": ["The Straight Man", "Runs of 3 don't count; runs of 4 or 5 still do.", TableRule.Kind.CHEAT],
 	&"collector": ["The Collector", "Face mods do nothing on each hand's first throw.", TableRule.Kind.CHEAT],
-	&"bloodletter": ["The Bloodletter", "Every Soul cost is doubled.", TableRule.Kind.CHEAT],
+	&"bloodletter": ["The Bloodletter", "Every Soul cost is doubled: a bust costs 2 Soul.", TableRule.Kind.CHEAT],
 	&"mister_wick": ["Mister Wick", "6s never light, and a bust costs 2 Soul.", TableRule.Kind.CHEAT],
 	&"baron_vig": ["Baron Vig", "Pot at least 3 dice every throw; -1 hand.", TableRule.Kind.CHEAT],
 	&"odds_bodkin": ["Odds Bodkin", "Bounties count only on each hand's first throw; +1 hand.", TableRule.Kind.CHEAT],

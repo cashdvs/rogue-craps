@@ -6,7 +6,7 @@
 script = ExtResource("1_upgbi")
 id = &"collector"
 display_name = "The Collector"
-description = "Face mods do nothing on a hand's first throw."
+description = "Face mods do nothing on each hand's first throw."
 kind = 1
 params = {
 "throws": 1
