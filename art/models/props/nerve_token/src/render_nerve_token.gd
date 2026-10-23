@@ -98,7 +98,7 @@ func _fmt(name: String, m: Array) -> String:
 
 
 func _run() -> void:
-	out = "/workspace/dice/art/renders/nerve_token/v2/"
+	out = "/workspace/dice/art/renders/nerve_token/v3/"
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.substr(6)

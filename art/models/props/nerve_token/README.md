@@ -35,7 +35,7 @@ Marker3Ds: `Home`, `TrackStart`, `TrackEnd`, `TapCenter`.
 | CARRIED | upright, notch shown |
 | PICKING | lifts 12 mm |
 | NUDGED | tips 35° toward the felt |
-| SPENT | lies flat face-up, grey (`*_spent` overrides) |
+| SPENT | lies flat face-up, neutral cool grey (`*_spent` overrides; albedo #39588F pre-compensates the warm lamp → lit ≈ rgb 0.41/0.42/0.43, ~74% of lit bone) |
 | CLOSED | keeps the lean, drops the lift |
 | RESCUE | lifts 30 mm (clears the cheeks), slides along the rail (`rescue_at(world_pos)`, clamped), bobs 6 mm at 1 s |
 
@@ -43,5 +43,5 @@ Marker3Ds: `Home`, `TrackStart`, `TrackEnd`, `TapCenter`.
 `reduced_motion` snaps to the end pose with no bob and no shake. `from_ui_state(ui, carried)` maps NerveState.UiState.
 
 ## Placement (proposed; no Hearth anchor until #142 merges)
-PC (0.48, 0.11, 0.578); phone landscape (0.30, 0.11, 0.61); portrait (0.85, 0.11, -0.16), yaw 90 (v2: inward on the felt edge, in the lamp pool).
+PC (0.48, 0.11, 0.578); phone landscape (0.30, 0.11, 0.61); portrait (1.08, 0.10, -0.26), yaw 90 (v3: seated on the brass rail lip, crown y≈0.10; clear of the cauldron).
 The spec's spot between the Soul meter and the candle row has no room, so it sits right of the hint text and the Pot.

@@ -7,7 +7,7 @@
 render_priority = 0
 next_pass = ExtResource("1_aqdhh")
 shader = ExtResource("2_u81tp")
-shader_parameter/albedo = Color(0.22745098, 0.33333334, 0.5882353, 1)
+shader_parameter/albedo = Color(0.22352941, 0.34509805, 0.56078434, 1)
 shader_parameter/shadow_color = Color(0.16470589, 0.18039216, 0.2, 1)
 shader_parameter/mid_tint = 0.7
 shader_parameter/wrap = 0.2
@@ -24,7 +24,7 @@ shader_parameter/spec_strength = 0.0
 shader_parameter/rim_color = null
 shader_parameter/rim_power = null
 shader_parameter/rim_strength = null
-shader_parameter/emission_color = Color(0.22745098, 0.33333334, 0.5882353, 1)
+shader_parameter/emission_color = Color(0.22352941, 0.34509805, 0.56078434, 1)
 shader_parameter/emission_energy = 0.04
 shader_parameter/roughness = null
 shader_parameter/use_overlay = null

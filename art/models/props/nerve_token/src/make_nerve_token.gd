@@ -11,7 +11,7 @@ const TAB_H := 0.088
 const RIG_SCALE := {"": 1.8, "_mobile": 1.8}  # 48 px rule: the token reads at least as big as a tray die in the real camera
 const TRACK_LEN := 0.5                 # default slide track (m); Godot Dev sets Rig/Track scale.x to the rail run
 const BONE := Color("#D8C49C")         # warm bone: between the aged dressing bone #C9B48A and the dice bone #E8DCC0
-const BONE_SPENT := Color("#3A5596")   # v2: cool grey-bone, pre-compensated for the warm lamp (hearth_toon_detail has no die_cold, so the albedo alone carries it); ~70% of the live bone value on screen
+const BONE_SPENT := Color("#39588F")   # v2: cool grey-bone, pre-compensated for the warm lamp (hearth_toon_detail has no die_cold, so the albedo alone carries it); ~70% of the live bone value on screen
 const CHEV := Color("#5E1118")         # oxblood inlay: crisp dark mark on the bone
 const CHEV_SPENT := Color("#2C3446")   # dulled: sinks into the grey bone
 
