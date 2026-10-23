@@ -96,6 +96,9 @@ func _test_blobs(fplus: bool) -> void:
 	var ba := fx.shadows.blob_for(a)
 	var bb := fx.shadows.blob_for(b)
 	_check(ba != null and bb != null, tag + ": one blob per die")
+	if ba != null:
+		var bm := ba.material_override as StandardMaterial3D
+		_check(bm != null and bm.blend_mode == BaseMaterial3D.BLEND_MODE_MIX and bm.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA, tag + ": shadow blends with alpha mix (darkens, never additive)")
 	if ba == null or bb == null:
 		t.queue_free()
 		return
@@ -155,6 +158,12 @@ func _test_dust(mobile: bool) -> void:
 	_check((mat.get_shader_parameter("tint") as Color).to_html(false).to_upper() == "FFE2B0", tag + ": colour #FFE2B0")
 	_near(float(mat.get_shader_parameter("peak")), 0.15 if mobile else 0.18, tag + ": alpha")
 	_check(float(mat.get_shader_parameter("floor_y")) >= 0.08, tag + ": shader floor at 0.08 m")
+	var code := mat.shader.code
+	var floor_re := RegEx.create_from_string("float\\s+above\\s*=\\s*step\\(\\s*floor_y\\s*,\\s*wpos\\.y\\s*\\)")
+	var alpha_re := RegEx.create_from_string("ALPHA\\s*=[^;]*\\babove\\b")
+	_check(floor_re.search(code) != null and alpha_re.search(code) != null, tag + ": shader floor term: below felt+0.08 m the dust alpha is 0")
+	var rm := RegEx.create_from_string("render_mode([^;]*);").search(code)
+	_check(rm != null and rm.get_string(1).contains("blend_add") and not rm.get_string(1).contains("blend_mix"), tag + ": dust blends additively")
 	var bottom := p.position.y - float(p.get("emission_ring_height") if mobile else (p.get("process_material") as ParticleProcessMaterial).emission_ring_height) * 0.5
 	_near(bottom, 0.25, tag + ": emission starts 0.25 m above felt")
 	_check(LampDust.lowest_emitted_y() >= 0.08, tag + ": drift never descends toward the felt")
@@ -163,6 +172,7 @@ func _test_dust(mobile: bool) -> void:
 	await process_frame
 	await process_frame
 	_check(not fx.dust.is_emitting() and not p.visible, tag + ": off under reduced motion")
+	_check(p.get("emitting") == false, tag + ": reduced motion: particles.emitting is false")
 	t.reduced_motion = false
 	await process_frame
 	await process_frame

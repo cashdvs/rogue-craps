@@ -111,25 +111,37 @@ func _make_blob(die: Node3D) -> MeshInstance3D:
 	return m
 
 
+## Reused every frame (no per-frame allocation): the dice list, a set of
+## the dice already in it, the potted set and the live blob ids.
+var _dice_buf: Array = []
+var _seen: Dictionary = {}
+var _potted: Dictionary = {}
+var _live: Dictionary = {}
+const _DIE_KEYS: Array[StringName] = [&"dice", &"throw_dice", &"all_dice"]
+
+
 func _dice() -> Array:
-	var out: Array = []
+	_dice_buf.clear()
+	_seen.clear()
 	if table == null or not is_instance_valid(table):
-		return out
-	var d: Variant = table.get("dice")
-	if d is Array:
-		out.append_array(d)
-	for key in [&"throw_dice", &"all_dice"]:
+		return _dice_buf
+	for key in _DIE_KEYS:
 		var t: Variant = table.get(key)
 		if t is Array:
 			for x in t:
-				if not out.has(x):
-					out.append(x)
-	return out
+				if not _seen.has(x):
+					_seen[x] = true
+					_dice_buf.append(x)
+	return _dice_buf
 
 
-func _hidden_set() -> Array:
+func _hidden_set() -> Dictionary:
+	_potted.clear()
 	var p: Variant = table.get("pot_dice") if table != null else null
-	return p if p is Array else []
+	if p is Array:
+		for x in p:
+			_potted[x] = true
+	return _potted
 
 
 func _held() -> bool:
@@ -146,7 +158,8 @@ func _process(_delta: float) -> void:
 func update_now() -> void:
 	var potted := _hidden_set()
 	var held := _held()
-	var live := {}
+	var live := _live
+	live.clear()
 	for d in _dice():
 		if not (d is Node3D) or not is_instance_valid(d) or not d.is_inside_tree():
 			continue
@@ -165,6 +178,8 @@ func update_now() -> void:
 		b.global_position = Vector3(p.x + OFFSET.x, FELT_Y, p.z + OFFSET.y)
 		b.scale = Vector3.ONE * scale_at(h)
 		(b.material_override as StandardMaterial3D).albedo_color.a = alpha_at(h, forward_plus)
+	if _blobs.size() == live.size():
+		return
 	for id in _blobs.keys():
 		if not live.has(id):
 			(_blobs[id] as Node).queue_free()
