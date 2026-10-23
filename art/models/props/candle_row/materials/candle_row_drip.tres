@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/models/props/candle_row/shaders/candle_row_drip.gdshader" id="1_20lqq"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_20lqq")
+shader_parameter/wax_color = Color(0.9490196, 0.8509804, 0.63529414, 1)
+shader_parameter/ink_color = null
+shader_parameter/width = null
+shader_parameter/bead = null
+shader_parameter/ink = null
+shader_parameter/front = null

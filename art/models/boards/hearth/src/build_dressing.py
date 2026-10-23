@@ -47,6 +47,7 @@ RAIL_Y = 0.02
 RAIL_C = 1.11      # side rail centreline |x|
 RAIL_CZ = 0.61     # far / near rail centreline |z|
 FLOOR_Y = -0.9     # table_3d_builder.gd room floor
+FLOOR_CHAIN = False  # candle row trim: no floor chain / dropped coins (see build_floor)
 TRIS = bh.TRIS
 
 
@@ -412,6 +413,8 @@ def tail_tip(part, slot, seg):
 
 
 # ---------------------------------------------------------------- the parts
+NR_STUB = False  # v3: the near-rail stub candle prop is cut
+SIDE_CANDLE_DRIPS = False  # v2: the side-rail progress candles are gone, so are the drips under them
 CHAIN_Z = (-0.02, 0.105)  # left-rail span of the chain loop (between Candle3 z -0.24 and Candle5 z 0.24)
 CHAIN_PIVOT = Vector((-1.203, 0.028, 0.04))
 BELL_AT = ("far", 0.872, 0.043)        # rail, along, outboard offset: the FR cluster (v2; was x -0.205 beside Smiles,
@@ -448,22 +451,33 @@ def build_corners(out_dir, name, mobile):
     p.at(Matrix.Identity(4))
     contract(p, S["dressing_paper"], S["dressing_seal"], 3 if mobile else 5, 5 if mobile else 6, "far", 0.765, rng)
     # NR: the half-melted stub with a coin stack beside it, and a wax drip of its own down the near rail
-    p.at(on_rail("near", 0.935, 0.042, level=0.7) @ K(STUB_K))
-    stub(p, S["dressing_wax"], S["dressing_ink"], 6 if mobile else 7, rng)
+    # v3 (AD Oct 22): the stub is cut (candles mean hands only); built into a throwaway part so the rng
+    # draws, and with them the rest of the dressing, stay put. Its drip goes with it.
+    if NR_STUB:
+        p.at(on_rail("near", 0.935, 0.042, level=0.7) @ K(STUB_K))
+        stub(p, S["dressing_wax"], S["dressing_ink"], 6 if mobile else 7, rng)
+    else:
+        stub(DPart("_cut", p.slots), S["dressing_wax"], S["dressing_ink"], 6 if mobile else 7, rng)
     p.at(on_rail("near", 0.884, 0.026, level=0.4, yaw=0.3) @ K(COIN_K))
     coin_tower(p, S["dressing_coin"], seg, 5 if mobile else 7, rng)
     p.at(Matrix.Identity(4))
-    drip(p, S["dressing_wax_drip"], "near", 0.933, math.radians(30), math.radians(80), 0.0026, 3)
+    if NR_STUB:
+        drip(p, S["dressing_wax_drip"], "near", 0.933, math.radians(30), math.radians(80), 0.0026, 3)
     # light pools under each cluster (NL only on PC: its cup + coins are PC trinkets)
     for (rail, a0, a1) in POOLS[: 3 if mobile else 4]:
         pool(p, S["dressing_pool"], rail, a0, a1, math.radians(3), math.radians(56), 1, 3)
-    # wax drips down the outer rail face under the four near progress candles (x +-1.135, z 0.24 / 0.42)
+    # wax drips down the outer rail face under the four near progress candles (x +-1.135, z 0.24 / 0.42):
+    # cut with the side candles (AD Oct 22, candle row v2: candles mean hands only)
     for side in ("left", "right"):
         for z in (0.24, 0.42):
             sz = 1.0 if side == "right" else -1.0
-            drip(p, S["dressing_wax_drip"], side, z + 0.006 * sz, math.radians(30), math.radians(rng.uniform(80, 98)), 0.0028, 3)
+            a1 = rng.uniform(80, 98)                 # rng drawn either way: the rest of the dressing stays put
+            if SIDE_CANDLE_DRIPS:
+                drip(p, S["dressing_wax_drip"], side, z + 0.006 * sz, math.radians(30), math.radians(a1), 0.0028, 3)
             if not mobile:
-                drip(p, S["dressing_wax_drip"], side, z - 0.008 * sz, math.radians(31), math.radians(rng.uniform(58, 70)), 0.0024, 3)
+                a2 = rng.uniform(58, 70)
+                if SIDE_CANDLE_DRIPS:
+                    drip(p, S["dressing_wax_drip"], side, z - 0.008 * sz, math.radians(31), math.radians(a2), 0.0024, 3)
     # the chain end lying over the left rail top (static); the hanging part is dressing_chain
     pts = []
     for k in range(5):
@@ -528,19 +542,23 @@ def build_floor(out_dir, name, mobile):
             p.at(Matrix.Translation((sx * 1.12, FLOOR_Y, sz * 0.62)) @ Matrix.Rotation(math.atan2(sx, sz), 4, "Y"))
             leg(p, 1, 4 if mobile else 5, 0 if (mobile or sz < 0) else 3, 4)
     p.at(Matrix.Identity(4))
-    # a heavy chain from under the far-left of the table running off-screen left
-    y = FLOOR_Y + 0.006
-    pts = [(-1.2, y, -0.48), (-1.45, y, -0.36), (-1.78, y, -0.42), (-2.25, y, -0.27)]
-    if mobile:
-        pts = pts[1:]
-    chain_along(p, 2, pts, 0.13, 0.082, 0.046, 0.013, 4, 3, roll0=0.0)
+    # Candle row trim (PM-approved, Oct 22): the floor chain and the two dropped coins are off-camera
+    # dressing; they were cut to free tris for the hand candle row (art/models/props/candle_row).
+    # FLOOR_CHAIN = True rebuilds the pre-trim floor.
+    if FLOOR_CHAIN:
+        y = FLOOR_Y + 0.006
+        pts = [(-1.2, y, -0.48), (-1.45, y, -0.36), (-1.78, y, -0.42), (-2.25, y, -0.27)]
+        if mobile:
+            pts = pts[1:]
+        chain_along(p, 2, pts, 0.13, 0.082, 0.046, 0.013, 4, 3, roll0=0.0)
     if not mobile:
-        # scattered coins and two dropped dice at the screen edges (the floor is in the table's shadow:
+        # two dropped dice at the screen edges (the floor is in the table's shadow:
         # the materials carry a faint glint so they still catch the eye)
-        spots = [(-1.55, 0.38, 0.6), (1.38, 0.3, 0.2)]
-        for (x, z, tilt) in spots:
-            p.at(Matrix.Translation((x, FLOOR_Y + 0.0002 + tilt * 0.008, z)) @ Matrix.Rotation(rng.uniform(0, 6.28), 4, "Y") @ Matrix.Rotation(tilt * 0.35, 4, "X"))
-            coin(p, 3, 6, bottom=False)
+        if FLOOR_CHAIN:
+            spots = [(-1.55, 0.38, 0.6), (1.38, 0.3, 0.2)]
+            for (x, z, tilt) in spots:
+                p.at(Matrix.Translation((x, FLOOR_Y + 0.0002 + tilt * 0.008, z)) @ Matrix.Rotation(rng.uniform(0, 6.28), 4, "Y") @ Matrix.Rotation(tilt * 0.35, 4, "X"))
+                coin(p, 3, 6, bottom=False)
         p.at(Matrix.Identity(4))
         die(p, 4, 5, (-1.5, FLOOR_Y + 0.04, 0.16), Matrix.Rotation(0.6, 3, "Y"), [(5, (0, 1, 0)), (3, (1, 0, 0)), (1, (-1, 0, 0)), (2, (0, 0, 1)), (6, (0, 0, -1))])
         die(p, 4, 5, (1.46, FLOOR_Y + 0.04, 0.42), Matrix.Rotation(-0.35, 3, "Y"), [(2, (0, 1, 0)), (4, (-1, 0, 0)), (6, (0, 0, 1)), (3, (1, 0, 0)), (1, (0, 0, -1))])

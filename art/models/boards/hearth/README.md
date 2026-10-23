@@ -15,7 +15,7 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 
 | Scene | Use |
 |---|---|
-| `scenes/hearth_board.tscn` | PC board (14,910 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
+| `scenes/hearth_board.tscn` | PC board (14,682 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
 | `scenes/hearth_board_mobile.tscn` | mobile LOD (6,968 drawn, dressing on, tail out; 5,856 off; budget 8k) |
 
 ## What goes where
@@ -123,7 +123,7 @@ rest and over every clip frame).
 
 | Node / look | Content |
 |---|---|
-| `Corners` (dressing_corners*.glb) | one tight, tall cluster per corner (v2): FL coin tower + short stack + cracked shot glass (PC); FR a contract with a wax seal draped over the far rail with knucklebones + a finger bone on it (aged bone #C9B48A, never the dice bone); NR half-melted stub + coin stack; a warm light-pool decal on the rail top under each cluster (`dressing_pool`, `shaders/hearth_pool.gdshader`, additive, ~25-35 % value); wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
+| `Corners` (dressing_corners*.glb) | one tight, tall cluster per corner (v2): FL coin tower + short stack + cracked shot glass (PC); FR a contract with a wax seal draped over the far rail with knucklebones + a finger bone on it (aged bone #C9B48A, never the dice bone); NR coin stack (v3: the half-melted stub and its drip are cut); a warm light-pool decal on the rail top under each cluster (`dressing_pool`, `shaders/hearth_pool.gdshader`, additive, ~25-35 % value); wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
 | `Trinkets` (PC only) | horned skull ashtray (the tall end of the FR cluster), leather dice cup + coin stack (the NL cluster) |
 | `Bell` | Smiles' brass service bell in the FR cluster (v2: dark base plate, brass dome, plunger + round knob). Moved from beside Smiles (x -0.205): it never clashed with his clips, but it sat on the brazier read on screen (`tests/test_hearth_dealer_clear.gd`) |
 | `Chain` | chain + padlock hanging down the left rail's outer face (sways on a rail hit) |
@@ -174,18 +174,18 @@ The clips key only the pose params (`tail_out / tail_sway / tail_curl / chain_sw
 | trinkets | 248 | - |
 | chain + padlock | 217 | 163 |
 | bell | 180 | 133 |
-| floor, legs, floor chain (+ coins, dice on PC) | 564 | 242 |
+| floor, legs, dice on PC (floor chain + 2 coins trimmed for the candle row, `FLOOR_CHAIN = False`) | 336 | 98 |
 | tail (root + tip) | 78 | 64 |
 | **dressing props (corners .. tail)** | **2,077** | **1,086** |
 | worn studs (replace Board A's trim ring, 1,440 / 108; 4 / 2 studs missing) | 1,397 | 102 |
 | motes + dust / backdrop | 52 / 2 | 30 / 2 |
-| **board drawn, dressing on, tail out** | **14,910** | **6,968** |
+| **board drawn, dressing on, tail out** | **14,682** | **6,824** |
 
 How the numbers relate: the props alone are **2,077 PC / 1,086 mobile**. The `Hearth/Dressing` subtree that
 `test_hearth_dressing.gd` prints ("dressing 3,450 / 1,156") is measured with the tail folded away and also holds
 the worn studs and the motes / dust / backdrop: 2,077 - 78 tail + 1,397 + 54 = 3,450 (mobile 1,086 - 64 + 102 + 32
-= 1,156). Board drawn with the dressing on and the tail out = 14,910 / 6,968 (off: 12,822 / 5,856, exactly the
-pre-pass board). `test_hearth_board.gd` counts every mesh incl. all fire steps: 14,922 / 6,974. Budgets 15k / 8k.
+= 1,156). Board drawn with the dressing on and the tail out = 14,682 / 6,824 (off: 12,822 / 5,856, exactly the
+pre-pass board). `test_hearth_board.gd` counts every mesh incl. all fire steps: 14,694 / 6,830 (was 14,922 / 6,974 before the floor trim; the candle row adds up to 292 -> 14,986 / 7,122). Budgets 15k / 8k.
 
 Renders: `/workspace/dice/art/renders/hearth/detail_pass/` (v1) and `detail_pass/v2/` (team render folder, not in
 the repo), made with `src/render_detail.gd` (stills, 48 px read test, ambient frames; usage in its header). Tests: `tests/test_hearth_dressing.gd` (budget, clearance,
@@ -221,3 +221,16 @@ the rebuild; needs Vulkan, see its header).
   guideline; split them (e.g. make_hearth: materials / props / board / dressing; build_dressing: corners / under /
   chain + bell + tail) in a later art-only PR, rebuilding to byte-identical .glb / .tres.
 - Phone portrait framing (CameraRig) crops the far rail as on Board A, so the brazier / goal plaque is off screen in portrait.
+
+## v2 note (candle row)
+The 8 side-rail candles and their wax drips have been removed (candles now mean hands only). Their tris went to the candle row. This supersedes the candle entries above. Board drawn tris with dressing on: PC 13,514 (was 14,682), mobile 6,136 (was 6,824). dressing_corners: PC 662, mobile 420. New markers: `Anchors/CandleRow` and `Anchors/CandleRowPortrait` (proposal).
+
+## v3 note (Oct 22)
+The NR half-melted stub candle and its drip are cut from `dressing_corners`. The coin stack, sconces and brazier stay. The rng draws are kept, so the rest of the dressing doesn't move.
+- `dressing_corners`: PC 580 (v2 662), mobile 346 (v2 420).
+- Board drawn tris with dressing on and tail out: PC 13,432 / test total 13,444; mobile 6,062 / 6,068. Dressing part: PC 3,012, mobile 874. Dressing off is unchanged at 11,782 / 5,232.
+- Markers: `Anchors/CandleRow` (PC) at (-0.333, 0.11, 0.61); `Anchors/CandleRowPhone` (landscape phone) at (-0.384, 0.11, 0.61); `Anchors/CandleRowPortrait` (AD-approved) at (1.11, 0.11, -0.05), yaw 90°.
+
+## v4 note (candle row)
+- Markers: `Anchors/CandleRow` (PC) at (-0.40, 0.11, 0.578); `Anchors/CandleRowPhone` at (-0.51, 0.11, 0.61); `Anchors/CandleRowPortrait` at (1.11, 0.11, 0.275), yaw 90°. The row is now two tiers of 4 (see `art/models/props/candle_row/README.md`).
+- Board drawn tris with dressing on: PC 13,432, mobile 6,062 (13,444 / 6,068 all meshes). Worst case with the row's >8 cue (368): PC 13,812, mobile 6,436.
