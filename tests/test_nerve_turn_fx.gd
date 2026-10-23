@@ -1,6 +1,6 @@
 ## Headless tests for NerveTurnFx (the Nerve "die turns" accent): binds to
 ## die_nudged (and skips an events node without it), flick in the nudge
-## direction, pale-glass glint beside the die (never over its face centre,
+## direction, white-gold glint + bevel sweep beside the die (never over its face centre,
 ## never rising), still under reduced motion, sound via TableAudio with a
 ## fallback, die untouched, pieces freed; plus the real Bonfire table path.
 ##
@@ -74,31 +74,54 @@ func _make() -> Array:
 	return [t, d, sfx, audio, fx]
 
 
+func _kind(fx: NerveTurnFx, k: StringName) -> Array[Sprite3D]:
+	var out: Array[Sprite3D] = []
+	for s in fx.pieces:
+		if s.get_meta("kind") == k:
+			out.append(s)
+	return out
+
+
+func _warm(c: Color) -> bool:
+	# Warm Ember / white-gold: r >= g >= b, no cyan, red or violet.
+	return c.r >= c.g and c.g >= c.b and c.g >= 0.85 * c.r and c.b > 0.5
+
+
 func _check_pieces(fx: NerveTurnFx, d: DieVisual, dir: int, tag: String, still: bool) -> void:
-	_check(fx.pieces.size() == 1 + NerveTurnFx.MOTES, tag + ": flick + 3 motes")
+	var sweep := _kind(fx, &"sweep")
+	_check(sweep.size() == 1, tag + ": one bevel sweep")
+	var longest := 0.0
+	for s in fx.pieces:
+		longest = maxf(longest, float(s.get_meta("life")))
+		var m := s.modulate
+		_check(_warm(Color(m.r, m.g, m.b) / NerveTurnFx.PEAK) and is_equal_approx(m.r, (NerveTurnFx.SWEEP_COLOR.r if s.get_meta("kind") == &"sweep" else NerveTurnFx.SPARK_COLOR.r) * 1.5), tag + ": warm white-gold at 1.5x peak (%s)" % s.get_meta("kind"))
+	_check(longest <= 0.3 and NerveTurnFx.TOTAL_TIME <= 0.3, tag + ": whole effect <= 0.3 s (%.2f)" % longest)
+	if sweep.size() == 1:
+		var o: Vector3 = sweep[0].get_meta("origin")
+		var m: Vector3 = sweep[0].get_meta("move")
+		var mid := o + m * 0.5
+		_check(o.y > d.global_position.y and absf(mid.x - d.global_position.x) < 1e-4 and absf(mid.z - d.global_position.z) < 1e-4 and absf(m.x) >= d.edge * 0.9, tag + ": sweep crosses the die top")
+		_check(sweep[0].get_parent() == fx, tag + ": sweep is an FX piece, not on the die")
+	if still:
+		_check(fx.pieces.size() == 1, tag + ": sweep only (no flick, no sparks)")
+		return
+	var flick := _kind(fx, &"flick")
+	var motes := _kind(fx, &"mote")
+	_check(flick.size() == 1 and motes.size() == NerveTurnFx.MOTES, tag + ": sweep + flick + 3 motes")
 	var side_ok := true
 	var no_rise := true
-	var glass := true
-	for s in fx.pieces:
+	for s in flick + motes:
 		var o: Vector3 = s.get_meta("origin")
 		var m: Vector3 = s.get_meta("move")
 		side_ok = side_ok and absf(o.x - d.global_position.x) >= d.edge * NerveTurnFx.SIDE_MIN - 1e-5 and absf((o + m).x - d.global_position.x) >= d.edge * NerveTurnFx.SIDE_MIN - 1e-5
 		no_rise = no_rise and m.y <= 0.0 and o.y <= d.global_position.y + 1e-5
-		glass = glass and s.modulate.r == NerveTurnFx.GLASS.r and s.modulate.g == NerveTurnFx.GLASS.g and s.modulate.b == NerveTurnFx.GLASS.b
-	_check(side_ok, tag + ": every piece beside the die, never over the face centre")
+	_check(side_ok, tag + ": flick/motes beside the die, never over the face centre")
 	_check(no_rise, tag + ": nothing rises (no upward sparks)")
-	_check(glass, tag + ": pale glass #F2EEE2")
-	var flick: Vector3 = fx.pieces[0].get_meta("move")
-	if still:
-		_check(flick == Vector3.ZERO, tag + ": no slide when still")
-		var all_still := true
-		for s in fx.pieces:
-			all_still = all_still and (s.get_meta("move") as Vector3) == Vector3.ZERO
-		_check(all_still, tag + ": no drift when still")
-	else:
-		_check(signf(flick.z) == (-1.0 if dir == NerveState.UP else 1.0) and is_equal_approx(flick.length(), NerveTurnFx.FLICK_SLIDE), tag + ": flick slides in dir")
-	_check(fx.pieces[0].texture == TriggerShapes.texture(&"glint_streak", NerveTurnFx.GLASS), tag + ": flick uses glint_streak art")
-	_check(fx.pieces[1].texture == TriggerShapes.texture(&"spark_dot_soft", NerveTurnFx.GLASS), tag + ": motes use spark_dot_soft art")
+	var fm: Vector3 = flick[0].get_meta("move")
+	_check(signf(fm.z) == (-1.0 if dir == NerveState.UP else 1.0) and is_equal_approx(fm.length(), NerveTurnFx.FLICK_SLIDE), tag + ": flick slides in dir")
+	_check(is_equal_approx(motes[0].pixel_size * motes[0].texture.get_width(), d.edge * 0.6), tag + ": motes 1.5x size")
+	_check(flick[0].texture == TriggerShapes.texture(&"glint_streak", NerveTurnFx.SPARK_COLOR), tag + ": flick uses glint_streak art")
+	_check(motes[0].texture == TriggerShapes.texture(&"spark_dot_soft", NerveTurnFx.SPARK_COLOR), tag + ": motes use spark_dot_soft art")
 
 
 func _test_unit() -> void:

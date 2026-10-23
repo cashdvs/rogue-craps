@@ -2,23 +2,35 @@
 ## (PR #126; fires on each nudge and on undo with the dir reversed). The
 ## rotation itself is TableDie.set_face()'s tween (Godot Dev); this only adds
 ## the feel on top, never touching the die:
-## - a quick flick: one pale-glass glint_streak beside the die that slides
+## - a bevel sweep: one bright white-gold glint_streak overlay that sweeps
+##   across the top of the turning die (FX piece, no material change);
+## - a quick flick: one white-gold glint_streak beside the die that slides
 ##   0.02 m in the nudge direction (UP = away from the camera, -z; DOWN =
 ##   toward it) and fades in 0.14 s;
-## - a short glint: 3 spark_dot_soft motes beside the die (never over its
+## - a short glint: 3 warm spark_dot_soft motes beside the die (never over its
 ##   face centre: always >= SIDE_MIN x edge to the side) that drift out
 ##   sideways and down, never up, and fade in 0.24 s;
 ## - the sound through the sibling TableAudio (`nerve_nudge`, falling back to
 ##   `chip_place`), guarded with has_method.
-## Reduced motion / Instant speed: no slide or drift, the glint just fades in
-## place. There's no "Nerve spent" event on TableEvents (a nudge is only
+## All under 0.3 s. Reduced motion / Instant speed: the sweep only. There's no "Nerve spent" event on TableEvents (a nudge is only
 ## spent at pot commit), so no spent cue yet.
 class_name NerveTurnFx
 extends Node3D
 
-const GLASS := Color("#F2EEE2")
+## Warm white-gold (TriggerFxDefs.EMBER_CORE) for flick + motes; the sweep is
+## a paler white-gold, like the material bevel line catching light.
+const SPARK_COLOR := Color("#FFE6A8")
+const SWEEP_COLOR := Color("#FFF4DC")
+## Peak modulate multiplier (1.5x the v1 brightness of 1.0).
+const PEAK: float = 1.5
 const FLICK_TIME: float = 0.14
 const GLINT_TIME: float = 0.24
+const SWEEP_TIME: float = 0.22
+const SWEEP_SIZE: float = 1.4
+## 1.5x the v1 mote size (0.4 x edge).
+const MOTE_SIZE: float = 0.6
+## Whole accent ends by this (all lives start at the nudge).
+const TOTAL_TIME: float = 0.3
 const FLICK_SLIDE: float = 0.02
 const MOTES: int = 3
 ## Horizontal distance from the die centre, as a multiple of the die edge.
@@ -95,36 +107,43 @@ func _on_die_nudged(die_id: int, _from_face: int, _to_face: int, dir: int) -> vo
 			audio.call("cue", CUE_FALLBACK)
 
 
-## The flick + glint at `die` (tests and captures call it directly).
+## The sweep + flick + glint at `die` (tests and captures call it directly).
 func play(die: Node3D, dir: int) -> void:
 	var edge := float(die.get("edge")) if "edge" in die else 0.08
 	var c := die.global_position
 	var still := _reduced()
-	# Flick: on the side away from the camera's centre line, at die height.
+	# Bevel sweep: one bright overlay line across the turning die, just above
+	# its top face (an FX piece; the die's own material is never touched).
+	var top := c + Vector3(0.0, edge * 0.52, 0.0)
+	var a := top + Vector3(-edge * 0.5, 0.0, -flick_dir(dir).z * edge * 0.5)
+	_piece(&"glint_streak", a, top - a + (top - a), edge * SWEEP_SIZE, SWEEP_TIME, SWEEP_COLOR, &"sweep")
+	if still:
+		return
+	# Flick: beside the die, at die height.
 	var side := 1.0 if c.x <= 0.0 else -1.0
 	var f0 := c + Vector3(side * edge * SIDE_MIN * 1.1, 0.0, 0.0)
-	var fd := flick_dir(dir) * (0.0 if still else FLICK_SLIDE)
-	_piece(&"glint_streak", f0, fd, edge * 1.3, FLICK_TIME)
+	_piece(&"glint_streak", f0, flick_dir(dir) * FLICK_SLIDE, edge * 1.3, FLICK_TIME, SPARK_COLOR, &"flick")
 	for i in MOTES:
 		var s := -1.0 if i % 2 == 0 else 1.0
 		var p := c + Vector3(s * edge * (SIDE_MIN + 0.15 * i), -edge * 0.1 * i, flick_dir(dir).z * edge * 0.2)
-		var v := Vector3(s * MOTE_DRIFT, -MOTE_DRIFT * 0.5, 0.0) * (0.0 if still else 1.0)
-		_piece(&"spark_dot_soft", p, v, edge * 0.4, GLINT_TIME)
+		var v := Vector3(s * MOTE_DRIFT, -MOTE_DRIFT * 0.5, 0.0)
+		_piece(&"spark_dot_soft", p, v, edge * MOTE_SIZE, GLINT_TIME, SPARK_COLOR, &"mote")
 
 
-func _piece(shape: StringName, at: Vector3, move: Vector3, size: float, life: float) -> Sprite3D:
+func _piece(shape: StringName, at: Vector3, move: Vector3, size: float, life: float, tint: Color, kind: StringName) -> Sprite3D:
 	var s := Sprite3D.new()
-	s.texture = TriggerShapes.texture(shape, GLASS)
-	s.modulate = GLASS
+	s.texture = TriggerShapes.texture(shape, tint)
+	s.modulate = Color(tint.r * PEAK, tint.g * PEAK, tint.b * PEAK, 1.0)
 	s.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	s.shaded = false
-	s.no_depth_test = false
 	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
 	s.top_level = true
 	if s.texture != null:
 		s.pixel_size = size / float(maxi(s.texture.get_width(), 1))
 	s.set_meta("move", move)
 	s.set_meta("origin", at)
+	s.set_meta("kind", kind)
+	s.set_meta("life", life)
 	add_child(s)
 	s.global_position = at
 	pieces.append(s)
