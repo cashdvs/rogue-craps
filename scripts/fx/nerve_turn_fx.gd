@@ -18,7 +18,7 @@ class_name NerveTurnFx
 extends Node3D
 
 ## Warm white-gold (TriggerFxDefs.EMBER_CORE) for flick + motes; the sweep is
-## a paler white-gold, like the material bevel line catching light.
+## Ember gold #FFE0A0, like the material bevel line catching light.
 const SPARK_COLOR := Color("#FFE6A8")
 const SWEEP_COLOR := Color("#FFE0A0")
 ## Peak modulate multiplier (1.5x the v1 brightness of 1.0).
@@ -26,9 +26,10 @@ const PEAK: float = 1.5
 const FLICK_TIME: float = 0.14
 const GLINT_TIME: float = 0.24
 const SWEEP_TIME: float = 0.22
-## AD sign-off: 1.6x the v2 strength (peak 1.5), kept under the dice's
-## bevel-line highlight on screen.
-const SWEEP_PEAK: float = 2.4
+## AD: warm Ember gold (#FFE0A0) at peak 1.0, so no channel exceeds 1.0.
+## The earlier 2.4 HDR peak clipped on ivory dice and the tonemapper turned
+## it cool grey. Kept under the dice's bevel-line highlight on screen.
+const SWEEP_PEAK: float = 1.0
 ## QA: the sweep is a thin flat band lying on the camera-side bevel (never
 ## over the pips), sliding along that edge. Band width is 1.3x the base 0.07
 ## x edge; length 0.82 x edge; tilted 6 deg; centred 0.44 x edge from the

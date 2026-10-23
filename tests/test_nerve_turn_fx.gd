@@ -42,6 +42,7 @@ func _run() -> void:
 	await _test_unit()
 	await _test_bonfire()
 	_test_hook()
+	_test_sweep_colour()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -82,6 +83,14 @@ func _kind(fx: NerveTurnFx, k: StringName) -> Array[Sprite3D]:
 	return out
 
 
+func _test_sweep_colour() -> void:
+	var c := NerveTurnFx.SWEEP_COLOR
+	_check(c.to_html(false).to_upper() == "FFE0A0", "sweep colour is Ember gold #FFE0A0 (%s)" % c.to_html(false))
+	var top := maxf(c.r, maxf(c.g, c.b)) * NerveTurnFx.SWEEP_PEAK
+	_check(top <= 1.0 + 1e-6, "sweep peak never clips: max channel x peak <= 1.0 (%.3f)" % top)
+	_check(NerveTurnFx.SWEEP_PEAK >= 0.9, "sweep peak still strong (>= 0.9)")
+
+
 func _warm(c: Color) -> bool:
 	# Warm Ember / white-gold: r >= g >= b, no cyan, red or violet.
 	return c.r >= c.g and c.g >= c.b and c.g >= 0.85 * c.r and c.b > 0.5
@@ -95,8 +104,8 @@ func _check_pieces(fx: NerveTurnFx, d: DieVisual, dir: int, tag: String, still: 
 		longest = maxf(longest, float(s.get_meta("life")))
 		var m := s.modulate
 		var is_sweep: bool = s.get_meta("kind") == &"sweep"
-		var pk := 1.5 * 1.6 if is_sweep else 1.5
-		_check(_warm(Color(m.r, m.g, m.b) / pk) and is_equal_approx(m.r, (NerveTurnFx.SWEEP_COLOR.r if is_sweep else NerveTurnFx.SPARK_COLOR.r) * pk), tag + ": warm white-gold at its peak (%s)" % s.get_meta("kind"))
+		var pk := 1.0 if is_sweep else 1.5
+		_check(_warm(Color(m.r, m.g, m.b) / pk) and is_equal_approx(m.r, (NerveTurnFx.SWEEP_COLOR.r if is_sweep else NerveTurnFx.SPARK_COLOR.r) * pk), tag + ": warm gold at its peak (%s)" % s.get_meta("kind"))
 	_check(longest <= 0.3 and NerveTurnFx.TOTAL_TIME <= 0.3, tag + ": whole effect <= 0.3 s (%.2f)" % longest)
 	if sweep.size() == 1:
 		var sp := sweep[0]
