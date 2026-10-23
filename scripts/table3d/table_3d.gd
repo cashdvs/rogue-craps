@@ -1312,7 +1312,7 @@ func _throw_dice(values: Array[int], velocity: Vector2, release_pos: Vector2) ->
 	# Let the wind-up finish in real time (masks the simulation).
 	var waited := (Time.get_ticks_msec() - real_start) / 1000.0
 	if waited < tuning.windup_time:
-		await get_tree().create_timer(tuning.windup_time - waited, true, false, true).timeout
+		await _timer(tuning.windup_time - waited, true, false, true).timeout
 	_play_t = 0.0
 	_contact_i = 0
 	_last_impact.fill(-1.0)
@@ -1663,7 +1663,7 @@ func _collect_felt_chips(seconds: float, stagger: float) -> void:
 		tw.tween_interval(stagger * i)
 		tw.tween_property(c, "position", to, seconds).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN_OUT)
 		tw.tween_callback(c.queue_free)
-	get_tree().create_timer(seconds + stagger * chips.size() + 0.05, true, false, false).timeout.connect(_sync_bank_pile)
+	_timer(seconds + stagger * chips.size() + 0.05, true, false, false).timeout.connect(_sync_bank_pile)
 
 
 ## The dealer's rake drags the lost chips off the far edge (poc_3d.md 4, 6).
@@ -1794,7 +1794,7 @@ func _hit_stop(ms: int) -> void:
 		return
 	_hitstop = true
 	Engine.time_scale = 0.05
-	await get_tree().create_timer(ms / 1000.0, true, false, true).timeout
+	await _timer(ms / 1000.0, true, false, true).timeout
 	_hitstop = false
 	Engine.time_scale = _speed
 
@@ -1813,8 +1813,39 @@ func _apply_speed() -> void:
 		Engine.time_scale = _speed
 
 
+# --- Timers that stop when the table leaves the tree ---------------------------
+# Every wait / delay on the table uses _timer() so _exit_tree() can cut them
+# all off. Without this a timer could fire after the table was removed (the
+# run moved on), and the code after its await would run with no scene tree.
+
+## The table's live timers (finished ones are pruned on the next _timer call).
+var _timers: Array[SceneTreeTimer] = []
+
+
+## Same as get_tree().create_timer(...), but remembered so it can be stopped.
+func _timer(seconds: float, process_always: bool = true, process_in_physics: bool = false, ignore_time_scale: bool = false) -> SceneTreeTimer:
+	var t := get_tree().create_timer(seconds, process_always, process_in_physics, ignore_time_scale)
+	_timers = _timers.filter(func(old: SceneTreeTimer) -> bool: return old.time_left > 0.0)
+	_timers.append(t)
+	return t
+
+
+## Leaving the tree: unhook every pending timer, so nothing waiting on one
+## (an await, or a connected callback) ever wakes up on a removed table.
+func _exit_tree() -> void:
+	for t in _timers:
+		for c in t.timeout.get_connections():
+			t.timeout.disconnect(c.callable)
+	_timers.clear()
+	# A hit-stop cut short would leave the world frozen at 0.05x; undo it the
+	# same way its timer would have.
+	if _hitstop:
+		_hitstop = false
+		Engine.time_scale = _speed
+
+
 func _wait(seconds: float) -> void:
-	await get_tree().create_timer(maxf(seconds, 0.0), true, false, false).timeout
+	await _timer(maxf(seconds, 0.0), true, false, false).timeout
 
 
 func _banner(text: String, sub: String, ribbon: Color, text_col: Color, duration: float, rays: bool, size: int = 120, jitter: bool = false, badge: int = 0) -> void:
@@ -1846,7 +1877,7 @@ func _duck_sfx(seconds: float) -> void:
 	if bus < 0:
 		return
 	AudioServer.set_bus_volume_db(bus, -30.0)
-	await get_tree().create_timer(seconds, true, false, true).timeout
+	await _timer(seconds, true, false, true).timeout
 	AudioServer.set_bus_volume_db(bus, 0.0)
 
 
