@@ -47,6 +47,7 @@ RAIL_Y = 0.02
 RAIL_C = 1.11      # side rail centreline |x|
 RAIL_CZ = 0.61     # far / near rail centreline |z|
 FLOOR_Y = -0.9     # table_3d_builder.gd room floor
+FLOOR_CHAIN = False  # candle row trim: no floor chain / dropped coins (see build_floor)
 TRIS = bh.TRIS
 
 
@@ -528,19 +529,23 @@ def build_floor(out_dir, name, mobile):
             p.at(Matrix.Translation((sx * 1.12, FLOOR_Y, sz * 0.62)) @ Matrix.Rotation(math.atan2(sx, sz), 4, "Y"))
             leg(p, 1, 4 if mobile else 5, 0 if (mobile or sz < 0) else 3, 4)
     p.at(Matrix.Identity(4))
-    # a heavy chain from under the far-left of the table running off-screen left
-    y = FLOOR_Y + 0.006
-    pts = [(-1.2, y, -0.48), (-1.45, y, -0.36), (-1.78, y, -0.42), (-2.25, y, -0.27)]
-    if mobile:
-        pts = pts[1:]
-    chain_along(p, 2, pts, 0.13, 0.082, 0.046, 0.013, 4, 3, roll0=0.0)
+    # Candle row trim (PM-approved, Oct 22): the floor chain and the two dropped coins are off-camera
+    # dressing; they were cut to free tris for the hand candle row (art/models/props/candle_row).
+    # FLOOR_CHAIN = True rebuilds the pre-trim floor.
+    if FLOOR_CHAIN:
+        y = FLOOR_Y + 0.006
+        pts = [(-1.2, y, -0.48), (-1.45, y, -0.36), (-1.78, y, -0.42), (-2.25, y, -0.27)]
+        if mobile:
+            pts = pts[1:]
+        chain_along(p, 2, pts, 0.13, 0.082, 0.046, 0.013, 4, 3, roll0=0.0)
     if not mobile:
-        # scattered coins and two dropped dice at the screen edges (the floor is in the table's shadow:
+        # two dropped dice at the screen edges (the floor is in the table's shadow:
         # the materials carry a faint glint so they still catch the eye)
-        spots = [(-1.55, 0.38, 0.6), (1.38, 0.3, 0.2)]
-        for (x, z, tilt) in spots:
-            p.at(Matrix.Translation((x, FLOOR_Y + 0.0002 + tilt * 0.008, z)) @ Matrix.Rotation(rng.uniform(0, 6.28), 4, "Y") @ Matrix.Rotation(tilt * 0.35, 4, "X"))
-            coin(p, 3, 6, bottom=False)
+        if FLOOR_CHAIN:
+            spots = [(-1.55, 0.38, 0.6), (1.38, 0.3, 0.2)]
+            for (x, z, tilt) in spots:
+                p.at(Matrix.Translation((x, FLOOR_Y + 0.0002 + tilt * 0.008, z)) @ Matrix.Rotation(rng.uniform(0, 6.28), 4, "Y") @ Matrix.Rotation(tilt * 0.35, 4, "X"))
+                coin(p, 3, 6, bottom=False)
         p.at(Matrix.Identity(4))
         die(p, 4, 5, (-1.5, FLOOR_Y + 0.04, 0.16), Matrix.Rotation(0.6, 3, "Y"), [(5, (0, 1, 0)), (3, (1, 0, 0)), (1, (-1, 0, 0)), (2, (0, 0, 1)), (6, (0, 0, -1))])
         die(p, 4, 5, (1.46, FLOOR_Y + 0.04, 0.42), Matrix.Rotation(-0.35, 3, "Y"), [(2, (0, 1, 0)), (4, (-1, 0, 0)), (6, (0, 0, 1)), (3, (1, 0, 0)), (1, (0, 0, -1))])

@@ -1,0 +1,250 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://art/models/props/candle_row/scripts/candle_row_candle.gd" id="1_y3k38"]
+[ext_resource type="PackedScene" path="res://art/models/props/candle_row/candle_row_socket.glb" id="2_x6bip"]
+[ext_resource type="PackedScene" path="res://art/models/props/candle_row/candle_row_candle.glb" id="3_dn3b0"]
+[ext_resource type="Material" path="res://art/models/props/candle_row/materials/candle_row_flame_mobile.tres" id="4_qfhw2"]
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/smoke_wisp_small.tres" id="5_dm87t"]
+[ext_resource type="Material" path="res://art/models/props/candle_row/materials/candle_row_drip.tres" id="6_rpmpt"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_g5yx8"]
+size = Vector2(0.04, 0.04)
+center_offset = Vector3(0, 0.02, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_ih6jv"]
+size = Vector2(0.03, 0.03)
+center_offset = Vector3(0, 0.015, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_gfk0q"]
+size = Vector2(0.011, 0.042)
+center_offset = Vector3(0, -0.021, 0)
+
+[sub_resource type="Animation" id="Animation_if3yr"]
+length = 0.08333333333333333
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:heat")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:wisp")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".:gutter")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath(".:drip")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath(".:rise")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1.0]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath(".:flare")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_4qryl"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:rise")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.35, 0.75, 1.08, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:heat")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.33333334, 0.41666666, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.35, 0.8, 1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".:flare")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.41666666, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [0.0, 0.8, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_2b8c8"]
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:heat")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [1.0, 0.45, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:wisp")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5, 0.5833333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 1.0]
+}
+
+[sub_resource type="Animation" id="Animation_drlah"]
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:gutter")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:drip")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5, 0.5833333, 0.6666667),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".:heat")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.41666666, 0.5, 0.5833333),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [1.0, 0.7, 0.4, 0.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath(".:wisp")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.5, 0.5833333, 0.6666667, 0.75, 0.8333333, 0.9166667),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0.0, 0.05, 0.2, 0.4, 0.6, 0.8, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_xk75d"]
+_data = {
+&"RESET": SubResource("Animation_if3yr"),
+&"rise_in": SubResource("Animation_4qryl"),
+&"snuff": SubResource("Animation_2b8c8"),
+&"snuff_bust": SubResource("Animation_drlah")
+}
+
+[node name="Candle" type="Node3D" unique_id=719943310]
+script = ExtResource("1_y3k38")
+
+[node name="Plate" parent="." unique_id=297839341 instance=ExtResource("2_x6bip")]
+
+[node name="Model" parent="." unique_id=1577240549 instance=ExtResource("3_dn3b0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0012, 0)
+
+[node name="Flame" type="MeshInstance3D" parent="." unique_id=660569341]
+material_override = ExtResource("4_qfhw2")
+cast_shadow = 0
+extra_cull_margin = 0.14
+mesh = SubResource("QuadMesh_g5yx8")
+
+[node name="Wisp" type="MeshInstance3D" parent="." unique_id=1106278765]
+visible = false
+material_override = ExtResource("5_dm87t")
+cast_shadow = 0
+extra_cull_margin = 0.13
+mesh = SubResource("QuadMesh_ih6jv")
+
+[node name="Drip" type="MeshInstance3D" parent="." unique_id=178469507]
+visible = false
+material_override = ExtResource("6_rpmpt")
+cast_shadow = 0
+extra_cull_margin = 0.1
+mesh = SubResource("QuadMesh_gfk0q")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1484753572]
+libraries/ = SubResource("AnimationLibrary_xk75d")

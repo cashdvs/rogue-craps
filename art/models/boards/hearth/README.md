@@ -15,7 +15,7 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 
 | Scene | Use |
 |---|---|
-| `scenes/hearth_board.tscn` | PC board (14,910 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
+| `scenes/hearth_board.tscn` | PC board (14,682 tris drawn with the set dressing on and the tail out; 12,822 with it off; budget 15k) |
 | `scenes/hearth_board_mobile.tscn` | mobile LOD (6,968 drawn, dressing on, tail out; 5,856 off; budget 8k) |
 
 ## What goes where
@@ -174,18 +174,18 @@ The clips key only the pose params (`tail_out / tail_sway / tail_curl / chain_sw
 | trinkets | 248 | - |
 | chain + padlock | 217 | 163 |
 | bell | 180 | 133 |
-| floor, legs, floor chain (+ coins, dice on PC) | 564 | 242 |
+| floor, legs, dice on PC (floor chain + 2 coins trimmed for the candle row, `FLOOR_CHAIN = False`) | 336 | 98 |
 | tail (root + tip) | 78 | 64 |
 | **dressing props (corners .. tail)** | **2,077** | **1,086** |
 | worn studs (replace Board A's trim ring, 1,440 / 108; 4 / 2 studs missing) | 1,397 | 102 |
 | motes + dust / backdrop | 52 / 2 | 30 / 2 |
-| **board drawn, dressing on, tail out** | **14,910** | **6,968** |
+| **board drawn, dressing on, tail out** | **14,682** | **6,824** |
 
 How the numbers relate: the props alone are **2,077 PC / 1,086 mobile**. The `Hearth/Dressing` subtree that
 `test_hearth_dressing.gd` prints ("dressing 3,450 / 1,156") is measured with the tail folded away and also holds
 the worn studs and the motes / dust / backdrop: 2,077 - 78 tail + 1,397 + 54 = 3,450 (mobile 1,086 - 64 + 102 + 32
-= 1,156). Board drawn with the dressing on and the tail out = 14,910 / 6,968 (off: 12,822 / 5,856, exactly the
-pre-pass board). `test_hearth_board.gd` counts every mesh incl. all fire steps: 14,922 / 6,974. Budgets 15k / 8k.
+= 1,156). Board drawn with the dressing on and the tail out = 14,682 / 6,824 (off: 12,822 / 5,856, exactly the
+pre-pass board). `test_hearth_board.gd` counts every mesh incl. all fire steps: 14,694 / 6,830 (was 14,922 / 6,974 before the floor trim; the candle row adds up to 292 -> 14,986 / 7,122). Budgets 15k / 8k.
 
 Renders: `/workspace/dice/art/renders/hearth/detail_pass/` (v1) and `detail_pass/v2/` (team render folder, not in
 the repo), made with `src/render_detail.gd` (stills, 48 px read test, ambient frames; usage in its header). Tests: `tests/test_hearth_dressing.gd` (budget, clearance,
