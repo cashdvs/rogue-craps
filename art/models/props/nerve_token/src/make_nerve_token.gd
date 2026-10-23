@@ -11,9 +11,9 @@ const TAB_H := 0.088
 const RIG_SCALE := {"": 1.8, "_mobile": 1.8}  # 48 px rule: the token reads at least as big as a tray die in the real camera
 const TRACK_LEN := 0.5                 # default slide track (m); Godot Dev sets Rig/Track scale.x to the rail run
 const BONE := Color("#D8C49C")         # warm bone: between the aged dressing bone #C9B48A and the dice bone #E8DCC0
-const BONE_SPENT := Color("#5C564E")   # spent: grey, chalky; dark because it lies face-up in the lamp pool (v1 QA)
+const BONE_SPENT := Color("#3A5596")   # v2: cool grey-bone, pre-compensated for the warm lamp (hearth_toon_detail has no die_cold, so the albedo alone carries it); ~70% of the live bone value on screen
 const CHEV := Color("#5E1118")         # oxblood inlay: crisp dark mark on the bone
-const CHEV_SPENT := Color("#3A3531")   # dulled: sinks into the grey bone
+const CHEV_SPENT := Color("#2C3446")   # dulled: sinks into the grey bone
 
 
 func _init() -> void:
@@ -84,9 +84,9 @@ func _materials() -> void:
 	# bone family (dressing bone base), no glow: the ember rim emission is off, only the shared dim fill floor
 	var specs := {
 		"nerve_bone": [H + "materials/dressing_bone.tres", {"albedo": BONE, "emission_color": BONE, "emission_energy": 0.14, "rim_emit": 0.0}],
-		"nerve_bone_spent": [H + "materials/dressing_bone.tres", {"albedo": BONE_SPENT, "shadow_color": Color("#2E2A26"), "emission_color": BONE_SPENT, "emission_energy": 0.04, "rim_emit": 0.0, "spec_strength": 0.0}],
+		"nerve_bone_spent": [H + "materials/dressing_bone.tres", {"albedo": BONE_SPENT, "shadow_color": Color("#2A2E33"), "emission_color": BONE_SPENT, "emission_energy": 0.04, "rim_emit": 0.0, "spec_strength": 0.0}],
 		"nerve_chevron": [H + "materials/dressing_seal.tres", {"albedo": CHEV, "emission_color": CHEV, "emission_energy": 0.12, "rim_emit": 0.0, "rim_strength": 0.0}],
-		"nerve_chevron_spent": [H + "materials/dressing_seal.tres", {"albedo": CHEV_SPENT, "shadow_color": Color("#2A2622"), "emission_color": CHEV_SPENT, "emission_energy": 0.06, "rim_emit": 0.0, "rim_strength": 0.0, "spec_strength": 0.0}],
+		"nerve_chevron_spent": [H + "materials/dressing_seal.tres", {"albedo": CHEV_SPENT, "shadow_color": Color("#22262A"), "emission_color": CHEV_SPENT, "emission_energy": 0.06, "rim_emit": 0.0, "rim_strength": 0.0, "spec_strength": 0.0}],
 		"nerve_iron": [H + "materials/dressing_iron.tres", {"rim_emit": 0.0}],
 		"nerve_brass": [H + "materials/dressing_brass.tres", {"rim_emit": 0.0}],
 	}
