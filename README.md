@@ -64,12 +64,3 @@ Starter tasks carry the [`good first issue`](https://github.com/cashdvs/rogue-cr
 
 **License:** proprietary, all rights reserved; see [LICENSE](LICENSE). Contributions are
 assigned (or licensed) to Tiny Anvil Games on submission.
-
-### Nerve "die turns" accent (VFX)
-`scripts/fx/nerve_turn_fx.gd` (NerveTurnFx, one `add_child` in table_3d.gd) listens to
-`table.events.die_nudged` and adds a quick warm white-gold (#FFE6A8, 1.5x peak) flick in the nudge
-direction, one bevel sweep overlay across the die top, and a short glint of motes **beside** the die (never over the face centre,
-never rising), reusing the glint_streak / spark_dot_soft art. The face rotation is
-TableDie.set_face's own tween. Under 0.3 s. Reduced motion / Instant: the sweep only. Sound goes
-through TableAudio (`nerve_nudge`, falling back to `chip_place`). Strip:
-`tools/capture_nerve_turn.gd`. Tests: `tests/test_nerve_turn_fx.gd`.

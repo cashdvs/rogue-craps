@@ -154,3 +154,12 @@ and a few tiny spark dots that **fall** sideways (never rise above the die).
 The lift / drop "lit" look is not DieGlow: it's `table._set_lit` (the `die_lit` shader). Never
 violet or Soul cyan. Tests: `tests/test_fx_no_fire_on_dice.gd` (shapes, colours, peak spark/trail
 height ≤ die top).
+
+## Nerve "die turns" accent (VFX)
+`scripts/fx/nerve_turn_fx.gd` (NerveTurnFx, one `add_child` in table_3d.gd) listens to
+`table.events.die_nudged` and adds a quick warm white-gold (#FFE6A8, 1.5x peak) flick in the nudge
+direction, one bevel sweep overlay across the die top, and a short glint of motes **beside** the die (never over the face centre,
+never rising), reusing the glint_streak / spark_dot_soft art. The face rotation is
+TableDie.set_face's own tween. Under 0.3 s. Reduced motion / Instant: the sweep only. Sound goes
+through TableAudio (`nerve_nudge`, falling back to `chip_place`). Strip:
+`tools/capture_nerve_turn.gd`. Tests: `tests/test_nerve_turn_fx.gd`.
