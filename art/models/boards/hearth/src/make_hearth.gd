@@ -38,6 +38,13 @@ const EYE_SIZE := Vector2(0.0163, 0.0096)          # eye radii x 1.41 = 2x area 
 const CANDLE_X := 1.135
 const CANDLE_Z: Array[float] = [-0.42, -0.24, 0.24, 0.42]
 const CANDLE_Y := 0.105
+# Soul Reliquary (art/models/props/soul_reliquary). The near rail left of the candle row is under the Throw/Bank
+# buttons on PC + landscape phone, so it sits on the LEFT rail between the rail candles at z -0.24 / 0.24 (where the
+# player's eye already goes for the flat bar). Portrait: the bottom rail is full (candle row, cauldron, Nerve token)
+# and its ends are off-screen, so it sits on the felt just inside the left rail, under the old flat bar's spot.
+const SOUL_RELIQUARY_AT := Vector3(-1.07, 0.105, 0.04)          # Anchors/SoulReliquary (PC)
+const SOUL_RELIQUARY_PHONE_AT := Vector3(-1.07, 0.105, 0.04)    # Anchors/SoulReliquaryPhone (landscape phone)
+const SOUL_RELIQUARY_PORTRAIT_AT := Vector3(-0.19, 0.0, 0.44)   # Anchors/SoulReliquaryPortrait, yaw 90 (faces the camera)
 const FACE_OUT := 0.04                        # demon faces pushed out along the corner diagonal
 ## Set dressing (detail pass, Oct 19): build_dressing.py pivots (board space) and the ambient spots.
 const PROP_INK := 0.0025                      # prop outline = ~60 % of the dice ink (0.0042)
@@ -489,6 +496,15 @@ func _board(mobile: bool) -> void:
 		cap.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-45.0 * sx)), Vector3(sx, 0, -1).normalized() * FACE_OUT)
 	var tray := _inst(D + "cauldron%s.tscn" % lod, "Tray", an.get_node("ChipTray"))
 	tray.set("fill", 0.5)
+	# Soul Reliquary markers (Godot Dev: instance soul_reliquary(_mobile).tscn under the one for the layout)
+	for m in [["SoulReliquary", SOUL_RELIQUARY_AT, 0.0], ["SoulReliquaryPhone", SOUL_RELIQUARY_PHONE_AT, 0.0],
+			["SoulReliquaryPortrait", SOUL_RELIQUARY_PORTRAIT_AT, 90.0]]:
+		var mk := Marker3D.new()
+		mk.name = m[0]
+		mk.position = m[1]
+		mk.rotation_degrees.y = m[2]
+		an.add_child(mk)
+		an.move_child(mk, an.get_node("Zones").get_index())
 	# Hearth subtree: candles, the FX hub and its clips.
 	var hearth := _scripted("Hearth", "hearth_fx")
 	board.add_child(hearth)

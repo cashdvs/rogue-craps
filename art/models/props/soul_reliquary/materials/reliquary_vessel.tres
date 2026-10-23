@@ -1,0 +1,24 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/boards/hearth/materials/ink_prop.tres" id="1_p4jp8"]
+[ext_resource type="Shader" path="res://art/models/props/soul_reliquary/shaders/soul_vessel.gdshader" id="2_0rjgf"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_p4jp8")
+shader = ExtResource("2_0rjgf")
+shader_parameter/fill = null
+shader_parameter/fill_lo = null
+shader_parameter/fill_hi = null
+shader_parameter/tick_step = null
+shader_parameter/liquid_color = null
+shader_parameter/liquid_deep = null
+shader_parameter/glass_color = null
+shader_parameter/glass_hi = null
+shader_parameter/frost_color = null
+shader_parameter/frost = null
+shader_parameter/wisp_speed = null
+shader_parameter/ghost_fill = null
+shader_parameter/ghost_alpha = null
+shader_parameter/ghost_color = null
+shader_parameter/pulse = null
