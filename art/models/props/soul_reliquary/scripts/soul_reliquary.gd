@@ -22,6 +22,10 @@ const DOME_H := 0.012
 const RING_H := 0.010                  # cage ring height (Rig-local m): hides the vessel's bottom/top, so fill maps inside
 const DIGIT_CAP := 0.0320             # numeral cap height (Rig-local m) before the width fit
 const DIGIT_W := 0.124                # digit window width (frame inner) minus a margin
+## Portrait stacked placard (AD Oct 23 v3): cur over max; cur cap >= max cap; widths fit 3 digits ("888").
+const ST_CUR_CAP := 0.047
+const ST_MAX_CAP := 0.043
+const ST_W := 0.064                   # stacked window (2 x 0.034) minus a margin
 const DUR_GROW := 0.33
 const DUR_FILL := 0.42
 
@@ -37,6 +41,13 @@ const DUR_FILL := 0.42
 		lethal = v
 		_apply_flags()
 @export var reduced_motion := false
+## "row" = cur/max on one line (PC, landscape); "stacked" = cur over a bar over max (portrait). The board's
+## Anchors/SoulReliquaryPortrait marker carries meta plate_layout = "stacked"; _ready() picks it up.
+@export_enum("row", "stacked") var plate_layout := "row":
+	set(v):
+		plate_layout = v
+		if is_inside_tree():
+			_apply_layout()
 ## Heartbeat hook (VFX owner animates it 0..1): brightens the liquid.
 @export_range(0.0, 1.0) var pulse := 0.0:
 	set(v):
@@ -54,6 +65,10 @@ var _acc := 0.0
 
 
 func _ready() -> void:
+	var p := get_parent()
+	if p != null and p.has_meta("plate_layout"):
+		plate_layout = String(p.get_meta("plate_layout"))
+	_apply_layout()
 	height = height_for(_max)
 	fill = fill_for(_soul, _max)
 	_apply()
@@ -188,10 +203,51 @@ func _apply() -> void:
 		if w * ps > DIGIT_W:
 			ps = DIGIT_W / w
 		lbl.pixel_size = ps
+	_fit_stacked()
+
+
+func stacked() -> bool:
+	return plate_layout == "stacked" and has_node("Rig/Stacked")
+
+
+func _apply_layout() -> void:
+	var st := stacked()
+	for n in ["Rig/Plate", "Rig/Frame", "Rig/Digits"]:
+		var v := get_node_or_null(n) as Node3D
+		if v:
+			v.visible = not st
+	var sn := get_node_or_null("Rig/Stacked") as Node3D
+	if sn:
+		sn.visible = st
+	_apply_flags()
+	_fit_stacked()
+
+
+static func _fit(lbl: Label3D, cap_h: float, w_max: float) -> float:
+	var w := lbl.font.get_string_size(lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, lbl.font_size).x
+	var ps := cap_h / (0.7 * lbl.font_size)
+	if w * ps > w_max:
+		ps = w_max / w
+	return ps
+
+
+func _fit_stacked() -> void:
+	var cur := get_node_or_null("Rig/Stacked/DigitsCur") as Label3D
+	var mx := get_node_or_null("Rig/Stacked/DigitsMax") as Label3D
+	if cur == null or mx == null:
+		return
+	cur.text = str(_soul)
+	mx.text = str(_max)
+	cur.pixel_size = _fit(cur, ST_CUR_CAP, ST_W)
+	mx.pixel_size = minf(_fit(mx, ST_MAX_CAP, ST_W), cur.pixel_size)   # cur never smaller than max
 
 
 func _apply_flags() -> void:
+	var st := stacked()
 	var c := get_node_or_null("Rig/Crack") as Node3D
 	if c:
-		c.visible = lethal
+		c.visible = lethal and not st
+	var c2 := get_node_or_null("Rig/Stacked/Crack") as Node3D
+	if c2:
+		c2.visible = lethal and st
 	_param("frost", 1.0 if _soul <= SOUL_FROST_AT else 0.0)

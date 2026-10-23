@@ -29,6 +29,7 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 | `Anchors/Corner_NL/Cap`, `Corner_NR/Cap` | Board A brass corner caps (unchanged) |
 | `Anchors/ChipTray/Tray` | §8 optional chip tray slot, switched on: `cauldron.tscn` (iron pot on 3 legs outside the right rail, ember mound with brass coin flecks) |
 | `Anchors/BurnLine`, `Anchors/Zones` | empty (as Board A) |
+| `Anchors/SoulReliquary`, `SoulReliquaryPhone`, `SoulReliquaryPortrait` | Soul Reliquary markers (PC/landscape left rail, row plate). Portrait: rail lip (-0.12, 0.104, 0.555), yaw 90, 0.65x, `metadata/plate_layout = "stacked"` (AD Oct 23 v3) |
 | `Hearth` | FX hub (`scripts/hearth_fx.gd`), `Candles/RailLeft/Candle1,7` (3 and 5 cut for the Soul Reliquary, AD Oct 23), `Candles/RailRight/Candle2,4,6,8`, `AnimationPlayer`, `SeamPlayer` |
 
 Candles stand on the side rails at x = +-1.135, z = -0.42 / -0.24 / 0.24 / 0.42 (top < 0.19 m), lit in

@@ -12,27 +12,27 @@
 [ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_dome.res" id="10_cc307"]
 [ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_cap.res" id="11_u52ar"]
 
-[node name="SoulReliquary" type="Node3D" unique_id=1469623837]
+[node name="SoulReliquary" type="Node3D" unique_id=101336309]
 script = ExtResource("1_keucq")
 
-[node name="Rig" type="Node3D" parent="." unique_id=576494127]
+[node name="Rig" type="Node3D" parent="." unique_id=222005458]
 transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
 
-[node name="Plinth" type="MeshInstance3D" parent="Rig" unique_id=2098192282]
+[node name="Plinth" type="MeshInstance3D" parent="Rig" unique_id=331465458]
 mesh = ExtResource("2_oxrjm")
 
-[node name="Plate" type="MeshInstance3D" parent="Rig" unique_id=219311619]
+[node name="Plate" type="MeshInstance3D" parent="Rig" unique_id=482730858]
 layers = 512
 mesh = ExtResource("3_v45dp")
 
-[node name="Frame" type="MeshInstance3D" parent="Rig" unique_id=299526846]
+[node name="Frame" type="MeshInstance3D" parent="Rig" unique_id=118493781]
 mesh = ExtResource("4_5r8mu")
 
-[node name="Crack" type="MeshInstance3D" parent="Rig" unique_id=1491230580]
+[node name="Crack" type="MeshInstance3D" parent="Rig" unique_id=1144803864]
 visible = false
 mesh = ExtResource("5_m3u3h")
 
-[node name="Digits" type="Label3D" parent="Rig" unique_id=1920453433]
+[node name="Digits" type="Label3D" parent="Rig" unique_id=1292122741]
 transform = Transform3D(1, 0, 0, 0, 0.81117636, 0.5848016, 0, -0.5848016, 0.81117636, 0, 0.022201762, 0.06447341)
 double_sided = false
 texture_filter = 5
@@ -42,43 +42,43 @@ font = ExtResource("6_ok3t0")
 font_size = 128
 outline_size = 0
 
-[node name="Cage" type="Node3D" parent="Rig" unique_id=1611823229]
+[node name="Cage" type="Node3D" parent="Rig" unique_id=516942912]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.051, 0)
 
-[node name="RingBottom" type="MeshInstance3D" parent="Rig/Cage" unique_id=1122645961]
+[node name="RingBottom" type="MeshInstance3D" parent="Rig/Cage" unique_id=2126536032]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, 0)
 mesh = ExtResource("7_jibgx")
 
-[node name="Bars" type="MeshInstance3D" parent="Rig/Cage" unique_id=201482955]
+[node name="Bars" type="MeshInstance3D" parent="Rig/Cage" unique_id=198464797]
 mesh = ExtResource("8_1lqa7")
 
-[node name="Vessel" type="MeshInstance3D" parent="Rig/Cage" unique_id=1830524366]
+[node name="Vessel" type="MeshInstance3D" parent="Rig/Cage" unique_id=301494517]
 mesh = ExtResource("9_wstvt")
 
-[node name="Top" type="Node3D" parent="Rig/Cage" unique_id=203108182]
+[node name="Top" type="Node3D" parent="Rig/Cage" unique_id=1617458100]
 
-[node name="RingTop" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=2066209697]
+[node name="RingTop" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=1488138578]
 mesh = ExtResource("7_jibgx")
 
-[node name="Dome" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=1814653670]
+[node name="Dome" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=838534669]
 mesh = ExtResource("10_cc307")
 
-[node name="Cap" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=1862425280]
+[node name="Cap" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=1946600615]
 mesh = ExtResource("11_u52ar")
 
-[node name="DeltaAnchor" type="Marker3D" parent="Rig/Cage/Top" unique_id=650251483]
+[node name="DeltaAnchor" type="Marker3D" parent="Rig/Cage/Top" unique_id=106417908]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0)
 
-[node name="LiquidTop" type="Marker3D" parent="Rig/Cage" unique_id=976633580]
+[node name="LiquidTop" type="Marker3D" parent="Rig/Cage" unique_id=649317000]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.034)
 
-[node name="TooltipAnchor" type="Marker3D" parent="Rig" unique_id=590018096]
+[node name="TooltipAnchor" type="Marker3D" parent="Rig" unique_id=828390538]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.049, 0.079)
 
-[node name="PlateCenter" type="Marker3D" parent="Rig" unique_id=1367548928]
+[node name="PlateCenter" type="Marker3D" parent="Rig" unique_id=642250605]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.022201762, 0.06447341)
 
-[node name="BrassFill" type="OmniLight3D" parent="." unique_id=1903747269]
+[node name="BrassFill" type="OmniLight3D" parent="." unique_id=987201257]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2125, 0.0875)
 light_color = Color(1, 0.6901961, 0.4392157, 1)
 light_energy = 0.6

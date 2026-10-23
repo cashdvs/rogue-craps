@@ -40,6 +40,7 @@ func _run() -> void:
 	_check_board()
 	for lod in ["", "_mobile"]:
 		await _check(lod)
+	await _check_stacked()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -47,6 +48,8 @@ func _run() -> void:
 func _tris(n: Node) -> int:
 	var c := 0
 	for m in n.find_children("*", "MeshInstance3D", true, false):
+		if String(n.get_path_to(m)).begins_with("Rig/Stacked"):
+			continue   # portrait-only plate, counted in stacked mode
 		var mesh := (m as MeshInstance3D).mesh
 		for si in mesh.get_surface_count():
 			var a := mesh.surface_get_arrays(si)
@@ -101,8 +104,13 @@ func _check_board() -> void:
 			_ok(mk != null, "%s has Anchors/%s" % [p.get_file(), n])
 		var pt := b.get_node_or_null("Anchors/SoulReliquaryPortrait") as Node3D
 		_ok(pt != null and absf(rad_to_deg(pt.rotation.y) - 90.0) < 0.5, "portrait marker yaw 90")
-		_ok(pt != null and pt.position.z >= 0.54 and pt.position.y > 0.08, "portrait marker on the near-rail lip, not the felt (v2)")
+		_ok(pt != null and pt.position.z >= 0.553 and pt.position.y > 0.08, "portrait marker on the near-rail lip, not the felt (v3)")
 		_ok(pt != null and pt.position.z - 0.054 * 1.5 * pt.scale.x > 0.50, "portrait plinth clears the throw zone (z > 0.50)")
+		_ok(pt != null and is_equal_approx(pt.scale.x, 0.65), "portrait marker 0.65x (v3)")
+		_ok(pt != null and String(pt.get_meta("plate_layout", "")) == "stacked", "portrait marker asks for the stacked plate")
+		for n in ["SoulReliquary", "SoulReliquaryPhone"]:
+			var mk := b.get_node_or_null("Anchors/" + n)
+			_ok(mk != null and String(mk.get_meta("plate_layout", "row")) == "row", n + " keeps the row plate")
 		_ok(b.get_node_or_null("Hearth/Candles/RailLeft/Candle3") == null and b.get_node_or_null("Hearth/Candles/RailLeft/Candle5") == null, "rail candles 3/5 cut beside the reliquary (v2)")
 		b.free()
 
@@ -186,3 +194,65 @@ func _check(lod: String) -> void:
 	_ok(saw_grow and is_equal_approx(r.height, SoulReliquary.height_for(39)), "cage grew to the 39 step")
 	_ok(grew_before_fill and lbl.text == "39/39", "grow first, then fill; label 39/39")
 	r.free()
+
+
+func _box_clear(cr: MeshInstance3D, lbl: Label3D, w: float, h: float) -> bool:
+	var inv := lbl.global_transform.affine_inverse()
+	for si in cr.mesh.get_surface_count():
+		for v in cr.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX] as PackedVector3Array:
+			var l := inv * (cr.global_transform * v)
+			if absf(l.x) < w and absf(l.y) < h:
+				print("  stacked crack vertex in digit box ", l)
+				return false
+	return true
+
+
+func _ink_w(l: Label3D) -> float:
+	return l.font.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, l.font_size).x * l.pixel_size
+
+
+func _check_stacked() -> void:
+	print("-- soul_reliquary_mobile (stacked, portrait marker)")
+	var b := (load("res://art/models/boards/hearth/scenes/hearth_board_mobile.tscn") as PackedScene).instantiate()
+	root.add_child(b)
+	var mk := b.get_node("Anchors/SoulReliquaryPortrait") as Node3D
+	var r := (load(SCN % "_mobile") as PackedScene).instantiate() as SoulReliquary
+	r.reduced_motion = true
+	mk.add_child(r)
+	await process_frame
+	_ok(r.plate_layout == "stacked" and r.stacked(), "layout read from the marker meta")
+	_ok(r.get_node("Rig/Stacked").visible and not r.get_node("Rig/Plate").visible and not r.get_node("Rig/Digits").visible, "stacked plate replaces the row plate")
+	var n := 0
+	for m in r.find_children("*", "MeshInstance3D", true, false):
+		if (m as MeshInstance3D).is_visible_in_tree():
+			n += _tris_one(m)
+	_ok(n <= 300, "stacked drawn tris %d <= 300" % n)
+	print("  stacked tris ", n)
+	var cur := r.get_node("Rig/Stacked/DigitsCur") as Label3D
+	var mx := r.get_node("Rig/Stacked/DigitsMax") as Label3D
+	var cr := r.get_node("Rig/Stacked/Crack") as MeshInstance3D
+	for v in [[18, 35], [105, 120], [999, 999]]:
+		r.set_soul(v[0], v[1])
+		await process_frame
+		_ok(cur.text == str(v[0]) and mx.text == str(v[1]), "stacked %d over %d" % [v[0], v[1]])
+		_ok(cur.pixel_size >= mx.pixel_size - 1e-7, "current at least as large as max (%d/%d)" % [v[0], v[1]])
+		_ok(_ink_w(cur) <= SoulReliquary.ST_W + 1e-4 and _ink_w(mx) <= SoulReliquary.ST_W + 1e-4, "stacked digits fit the window (%d/%d)" % [v[0], v[1]])
+		# portrait capture: 18/35 33/29 px, 105/120 27/26 px (ps 0.00042); 999 ~24 px at ps 0.00038
+		_ok(mx.pixel_size >= 0.00037, "3-digit max stays legible (ps %.5f)" % mx.pixel_size)
+	r.set_soul(5, 35)
+	await process_frame
+	_ok(r.frosted() and not cr.visible, "frost at 5, never a crack on the plate")
+	r.lethal = true
+	_ok(cr.visible, "stacked crack when lethal")
+	_ok(_box_clear(cr, cur, _ink_w(cur) * 0.5, 0.35 * cur.font_size * cur.pixel_size + 0.001) and _box_clear(cr, mx, _ink_w(mx) * 0.5, 0.35 * mx.font_size * mx.pixel_size + 0.001), "stacked crack clear of both digit boxes")
+	r.lethal = false
+	_ok(not cr.visible, "stacked crack clears")
+	b.free()
+
+
+func _tris_one(m: MeshInstance3D) -> int:
+	var c := 0
+	for si in m.mesh.get_surface_count():
+		var a := m.mesh.surface_get_arrays(si)
+		c += (a[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3 if a[Mesh.ARRAY_INDEX] != null else (a[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3
+	return c

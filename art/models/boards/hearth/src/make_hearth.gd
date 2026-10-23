@@ -45,11 +45,12 @@ const CANDLE_Y := 0.105
 # buttons on PC + landscape phone, so it sits on the LEFT rail between the rail candles at z -0.24 / 0.24 (where the
 # player's eye already goes for the flat bar). Portrait: the bottom rail is full (candle row, cauldron, Nerve token)
 # and its ends are off-screen. AD Oct 23 (v2): never on the felt; it sits on the screen-left rail (world near rail)
-# lip, raycast-seated, pulled in along z until fully framed, at 0.5x so its plinth clears the throw zone (z <= 0.50).
+# lip, pulled in along z until fully framed, at 0.65x so its plinth clears the throw zone (z <= 0.50); the
+# marker's plate_layout meta swaps in the stacked cur-over-max placard so every digit reads >= 24 px (AD v3).
 const SOUL_RELIQUARY_AT := Vector3(-1.07, 0.105, 0.04)          # Anchors/SoulReliquary (PC)
 const SOUL_RELIQUARY_PHONE_AT := Vector3(-1.07, 0.105, 0.04)    # Anchors/SoulReliquaryPhone (landscape phone)
-const SOUL_RELIQUARY_PORTRAIT_AT := Vector3(-0.09, 0.095, 0.565)  # Anchors/SoulReliquaryPortrait, yaw 90, rail-lip raycast y
-const SOUL_RELIQUARY_PORTRAIT_SCALE := 0.5    # plinth r 0.054*1.5*0.5 = 0.04 -> footprint z 0.525..0.605
+const SOUL_RELIQUARY_PORTRAIT_AT := Vector3(-0.12, 0.104, 0.555)  # Anchors/SoulReliquaryPortrait, yaw 90, 0.65x, stacked plate (AD v3; x -0.12 clears Throw)
+const SOUL_RELIQUARY_PORTRAIT_SCALE := 0.65   # plinth r 0.054*1.5*0.65 = 0.053 -> footprint z 0.502..0.608 (dice reach 0.50)
 const FACE_OUT := 0.04                        # demon faces pushed out along the corner diagonal
 ## Set dressing (detail pass, Oct 19): build_dressing.py pivots (board space) and the ambient spots.
 const PROP_INK := 0.0025                      # prop outline = ~60 % of the dice ink (0.0042)
@@ -510,6 +511,7 @@ func _board(mobile: bool) -> void:
 		mk.rotation_degrees.y = m[2]
 		if m[0] == "SoulReliquaryPortrait":
 			mk.scale = Vector3.ONE * SOUL_RELIQUARY_PORTRAIT_SCALE
+			mk.set_meta("plate_layout", "stacked")   # portrait-only stacked cur / max placard (AD v3)
 		an.add_child(mk)
 		an.move_child(mk, an.get_node("Zones").get_index())
 	# Hearth subtree: candles, the FX hub and its clips.
