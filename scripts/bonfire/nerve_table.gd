@@ -93,7 +93,7 @@ func open_throw(th: TableThrow) -> void:
 
 ## Rethrow or bank: a pending nudge is kept for good.
 func close_throw() -> void:
-	state.commit()
+	_commit(func() -> void: state.commit())
 	base = null
 	_close_ui()
 	changed.emit()
@@ -110,8 +110,25 @@ func on_potted() -> void:
 		for i in run.potted:
 			var h := hid(i)
 			if h >= 0:
-				state.mark_potted(h)
+				_commit(func() -> void: state.mark_potted(h))
 	changed.emit()
+
+
+## Runs [param do_commit] (a NerveState commit) and, if it spent a pending
+## nudge, emits table.events.nerve_spent once. The nudge is read first,
+## because commit() clears it.
+func _commit(do_commit: Callable) -> void:
+	var h := state.nudged_die()
+	if h < 0:
+		do_commit.call()  # nothing pending: nothing to report
+		return
+	var from := state.nudged_from()
+	var to := state.slots[h]
+	var i := index_of(h)
+	var id: int = table.event_id(table.throw_dice[i]) if i >= 0 else h
+	do_commit.call()
+	if state.nudged_die() < 0:  # the nudge is spent now
+		table.events.nerve_spent.emit(id, from, to)
 
 
 ## BonfireRun.bust_hold: the throw lit nothing. Hold the bust if a nudge
