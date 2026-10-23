@@ -42,10 +42,37 @@ func same_effect(other: RunRuleData) -> bool:
 @export var sign_texture_2x: Texture2D
 ## 128 px rule icon for the table HUD row (shown at ~56 px). null = text row.
 @export var rule_icon: Texture2D
-## The sign's rule line(s), e.g. "Pot at least 3 dice every throw; -1 hand." (HUD tooltip).
+## The sign's rule line(s), e.g. "Pot at least 3 dice every throw" (HUD tooltip).
+## With sign_hand_pill the hands part is added from hands_delta: use sign_tooltip().
 @export var tooltip_text: String = ""
 ## Everything printed on the sign, for screen readers / accessible text.
 @export var sign_alt_text: String = ""
+## The sign art is pill-free: BossSign draws a "%+d HAND" brass pill from
+## hands_delta, and sign_tooltip() / sign_alt() add the hands part.
+@export var sign_hand_pill: bool = false
+
+
+## "-1 HAND" / "+2 HAND" from hands_delta; "" when hands_delta is 0.
+func hand_pill_text() -> String:
+	return "" if hands_delta == 0 else "%+d HAND" % hands_delta
+
+
+## The rule tooltip: tooltip_text plus "; -1 hand." from hands_delta
+## (sign_hand_pill rules only; otherwise tooltip_text as written).
+func sign_tooltip() -> String:
+	if not sign_hand_pill:
+		return tooltip_text
+	if hands_delta == 0:
+		return tooltip_text + "."
+	return "%s; %+d hand." % [tooltip_text, hands_delta]
+
+
+## Accessible text for the sign: sign_alt_text plus the pill and tooltip.
+func sign_alt() -> String:
+	if not sign_hand_pill:
+		return sign_alt_text
+	var pill := hand_pill_text()
+	return "%s%s %s" % [sign_alt_text, (" Pill: %s." % pill) if pill != "" else "", sign_tooltip()]
 ## HUD: keep the rule's text line visible under the name even with an icon
 ## (BossSign also does this for any rule that states a Soul / Ember cost).
 @export var hud_always_show_line: bool = false
