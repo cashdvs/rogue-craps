@@ -1,0 +1,52 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://art/models/props/nerve_token/scripts/nerve_token.gd" id="1_h4ih0"]
+[ext_resource type="PackedScene" path="res://art/models/props/nerve_token/nerve_token_track.glb" id="2_vxpxa"]
+[ext_resource type="PackedScene" path="res://art/models/props/nerve_token/nerve_token_cradle.glb" id="3_8o6j4"]
+[ext_resource type="PackedScene" path="res://art/models/props/nerve_token/nerve_token_tablet_mobile.glb" id="4_g0s4x"]
+[ext_resource type="PackedScene" path="res://art/models/props/nerve_token/nerve_token_chevron.glb" id="5_3c810"]
+[ext_resource type="PackedScene" path="res://art/models/props/nerve_token/nerve_token_notch.glb" id="6_td6ia"]
+
+[node name="NerveToken" type="Node3D" unique_id=845286368]
+script = ExtResource("1_h4ih0")
+
+[node name="Rig" type="Node3D" parent="." unique_id=1354790009]
+transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, 0, 0, 0)
+
+[node name="Track" parent="Rig" unique_id=2021846200 instance=ExtResource("2_vxpxa")]
+transform = Transform3D(0.2777778, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Cradle" parent="Rig" unique_id=1586488277 instance=ExtResource("3_8o6j4")]
+
+[node name="Slide" type="Node3D" parent="Rig" unique_id=1815157093]
+
+[node name="Bob" type="Node3D" parent="Rig/Slide" unique_id=49361637]
+
+[node name="Lift" type="Node3D" parent="Rig/Slide/Bob" unique_id=1078672055]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.008, 0)
+
+[node name="Pivot" type="Node3D" parent="Rig/Slide/Bob/Lift" unique_id=680608560]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.008)
+
+[node name="Tablet" parent="Rig/Slide/Bob/Lift/Pivot" unique_id=922666662 instance=ExtResource("4_g0s4x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.008)
+
+[node name="Chevron" parent="Rig/Slide/Bob/Lift/Pivot" unique_id=906847813 instance=ExtResource("5_3c810")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.008)
+
+[node name="Notch" parent="Rig/Slide/Bob/Lift/Pivot" unique_id=1743610994 instance=ExtResource("6_td6ia")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.008)
+
+[node name="TooltipAnchor" type="Marker3D" parent="Rig/Slide/Bob/Lift/Pivot" unique_id=2012597494]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.008)
+
+[node name="Home" type="Marker3D" parent="Rig" unique_id=408141730]
+
+[node name="TrackStart" type="Marker3D" parent="Rig" unique_id=795931605]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1388889, 0, 0)
+
+[node name="TrackEnd" type="Marker3D" parent="Rig" unique_id=251406730]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1388889, 0, 0)
+
+[node name="TapCenter" type="Marker3D" parent="Rig" unique_id=2078123815]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0)
