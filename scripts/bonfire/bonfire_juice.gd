@@ -10,36 +10,23 @@
 ## `calls` logs every hook ("sfx:<event>", "art:<what>", "fb:<what>") for
 ## tests and captures.
 class_name BonfireJuice
-extends Node3D
+extends BonfireJuiceSound
 
-const SYNTH_PATH := "res://scripts/audio/bonfire_synth.gd"
-const CROWD_PATH := "res://scripts/audio/crowd_layers.gd"
-const VFX := "res://art/vfx/bonfire/"
-const RIG := "scenes/dice/potted_die_rig.tscn"
-const LIT_FACE := "materials/lit_face_glow.tres"
-const ASH_BODY := "materials/ash_body.tres"
-const EMBER_PILE := "res://art/models/props/bonfire/scenes/ember_pile.tscn"
-## The pip scale (same as BonfireSynth.TICK_SCALE) when the synth is absent.
-const TICK_SCALE: Array[int] = [0, 2, 3, 5, 7, 8, 11, 12, 14, 15, 17, 19]
-const STINGERS: Array[StringName] = [&"stinger_ember", &"stinger_flames", &"stinger_inferno", &"stinger_pillar"]
-const ASH := Color("#5A5E62")
-## 1000+: how long the brazier holds its fire column (spec: back by ~0.6 s).
-const BRAZIER_COLUMN_TIME: float = 0.5
-
-var table: Bonfire3D
-var calls: Array[String] = []
-var crowd: Node
-var _synth: GDScript
-var _scenes: Dictionary = {}
-var _last_count_tick_ms: int = -100000
-var _rigs: Dictionary = {}
-var _crowd_fraction: float = 0.0
-## Force the fallbacks (tests: "without the art / audio branches").
-var force_fallback: bool = false
+# The constants, variables and sounds live in bonfire_juice_sound.gd
+# (BonfireJuiceSound); this file keeps the visual effects, slow-mo and timers.
 
 
 func _init() -> void:
 	name = "BonfireJuice"
+
+
+## Leaving the tree: no timer fires on a removed table, and a slow-mo cut
+## short is undone the same way its timer would have.
+func _exit_tree() -> void:
+	_timers.stop_all()
+	if _slowmo_scale > 0.0 and is_equal_approx(Engine.time_scale, _slowmo_scale):
+		Engine.time_scale = 1.0
+	_slowmo_scale = 0.0
 
 
 func setup(t: Bonfire3D) -> void:
@@ -52,102 +39,6 @@ func setup(t: Bonfire3D) -> void:
 			crowd = cs.new()
 			add_child(crowd)
 
-
-func has_audio() -> bool:
-	return not force_fallback and _synth != null and table != null and table.sfx.has_method("has_event") and table.sfx.has_event(&"score_tick")
-
-
-func has_art() -> bool:
-	return not force_fallback and ResourceLoader.exists(VFX + RIG)
-
-
-func _log(s: String) -> void:
-	calls.append(s)
-	if calls.size() > 400:
-		calls = calls.slice(200)
-
-
-# --- Sound ---------------------------------------------------------------------------
-
-## Plays `event` if the SfxManager has it, else `fallback` (if any).
-func sfx(event: StringName, pitch: float = 1.0, volume_db: float = 0.0, jitter: float = 0.0,
-		fallback: StringName = &"", fb_pitch: float = 1.0, fb_volume_db: float = 0.0) -> void:
-	if table == null:
-		return
-	if not force_fallback and table.sfx.has_event(event):
-		table.sfx.play(event, pitch, volume_db, jitter)
-		_log("sfx:%s" % event)
-	elif fallback != &"" and table.sfx.has_event(fallback):
-		table.sfx.play(fallback, fb_pitch, fb_volume_db, 0.0)
-		_log("sfx:%s(fb)" % fallback)
-
-
-func tick_pitch(i: int) -> float:
-	if has_audio() and _synth.has_method("tick_pitch"):
-		return float(_synth.call("tick_pitch", i))
-	return pow(2.0, TICK_SCALE[clampi(i, 0, TICK_SCALE.size() - 1)] / 12.0)
-
-
-func stinger(score_tier: int) -> StringName:
-	if has_audio() and _synth.has_method("stinger_for_tier"):
-		return StringName(_synth.call("stinger_for_tier", score_tier))
-	return STINGERS[clampi(score_tier, 0, 3)]
-
-
-func pip_sound(i: int) -> void:
-	sfx(&"score_tick", tick_pitch(i), 0.0, 0.0, &"chip_place", tick_pitch(i) * 0.9, -4.0)
-
-
-func slam_sound(k: int) -> void:
-	sfx(&"mult_slam", 1.0 - 0.05 * k, 0.0, 0.0, &"dice_drop", 0.8 - 0.05 * k, -1.0)
-
-
-## One per visible count step, at most every juice_count_tick_min_gap.
-func count_sound(progress: float) -> void:
-	var now := Time.get_ticks_msec()
-	if now - _last_count_tick_ms < int(table.bonfire_tuning.juice_count_tick_min_gap * 1000.0):
-		return
-	_last_count_tick_ms = now
-	sfx(&"count_tick", 1.0 + 0.5 * progress, -4.0, 0.0, &"chip_place", 1.4 + 0.5 * progress, -12.0)
-
-
-func banner_sound(score_tier: int) -> void:
-	sfx(&"combo_banner", 1.0, -3.0, 0.0)
-	sfx(stinger(score_tier), 1.0, 0.0, 0.0, &"win_big" if score_tier >= 2 else &"rim_hit", 1.0 if score_tier >= 2 else 1.2, -6.0 if score_tier < 3 else 0.0)
-
-
-# --- Crowd ------------------------------------------------------------------------------
-
-func crowd_start() -> void:
-	if crowd != null and crowd.has_method("start"):
-		crowd.call("start")
-		_log("art:crowd_start")
-
-
-func crowd_pot(pot: int) -> void:
-	_crowd_fraction = clampf(float(pot) / maxf(table.bonfire_tuning.juice_crowd_full_pot, 1.0), 0.0, 1.0)
-	if crowd != null and crowd.has_method("set_pot_fraction"):
-		crowd.call("set_pot_fraction", _crowd_fraction)
-		_log("sfx:crowd_%.2f" % _crowd_fraction)
-
-
-func crowd_roar() -> void:
-	if crowd != null and crowd.has_method("set_pot_fraction"):
-		crowd.call("set_pot_fraction", 1.0, 0.15)
-		_log("sfx:crowd_roar")
-		get_tree().create_timer(1.2, true, false, true).timeout.connect(func() -> void:
-			if is_instance_valid(crowd):
-				crowd.call("set_pot_fraction", _crowd_fraction))
-	else:
-		sfx(&"crowd_roar_missing", 1.0, 0.0, 0.0, &"win_big", 0.8, -2.0)
-
-
-func crowd_stop() -> void:
-	if crowd != null and crowd.has_method("stop"):
-		crowd.call("stop")
-
-
-# --- Art scenes ---------------------------------------------------------------------
 
 func _scene(rel: String) -> PackedScene:
 	if force_fallback:
@@ -162,8 +53,6 @@ func _scene(rel: String) -> PackedScene:
 	return ps
 
 
-
-
 ## Instances a clip scene, plays `clip` and frees it afterwards.
 func _play_scene(ps: PackedScene, parent: Node, at: Vector3, clip: String, delay: float = 0.0) -> Node3D:
 	var n := ps.instantiate() as Node3D
@@ -175,18 +64,16 @@ func _play_scene(ps: PackedScene, parent: Node, at: Vector3, clip: String, delay
 	if ap != null and ap.has_animation(clip):
 		life = ap.get_animation(clip).length + 0.6
 		if delay > 0.0:
-			get_tree().create_timer(delay, true, false, true).timeout.connect(func() -> void:
+			_timers.start(self, delay, true, false, true).timeout.connect(func() -> void:
 				if is_instance_valid(ap):
 					ap.play(clip))
 		else:
 			ap.play(clip)
-	get_tree().create_timer(life + delay, true, false, true).timeout.connect(func() -> void:
+	_timers.start(self, life + delay, true, false, true).timeout.connect(func() -> void:
 		if is_instance_valid(n):
 			n.queue_free())
 	return n
 
-
-# --- Pot: lift, glow tiers, escalation ------------------------------------------
 
 ## Potted dice lift and light up one at a time (stagger 0.08 s, 0.14 s big).
 func lift(dice: Array[DieVisual], big: bool, speed: float = 1.0) -> void:
@@ -207,7 +94,7 @@ func lift(dice: Array[DieVisual], big: bool, speed: float = 1.0) -> void:
 			var ap := r.get_node_or_null("AnimationPlayer") as AnimationPlayer
 			if ap != null:
 				ap.speed_scale = speed
-				get_tree().create_timer(i * stagger, true, false, true).timeout.connect(func() -> void:
+				_timers.start(self, i * stagger, true, false, true).timeout.connect(func() -> void:
 					if is_instance_valid(ap) and ap.has_animation("lift_light"):
 						ap.play("lift_light")
 						if ap.has_animation("hold"):
@@ -254,7 +141,7 @@ func drop(dice: Array, immediate: bool = false) -> void:
 				var ap := r.get_node_or_null("AnimationPlayer") as AnimationPlayer
 				if ap != null and ap.has_animation("drop"):
 					ap.play("drop")
-				get_tree().create_timer(0.3, true, false, true).timeout.connect(func() -> void:
+				_timers.start(self, 0.3, true, false, true).timeout.connect(func() -> void:
 					if is_instance_valid(follow):
 						follow.remote_path = NodePath()
 					if is_instance_valid(r):
@@ -300,8 +187,10 @@ func escalate(score_tier: int, dice: Array[DieVisual], reduced: bool, instant: b
 
 func slow_mo(seconds: float, scale: float) -> void:
 	Engine.time_scale = scale
+	_slowmo_scale = scale
 	_log("fx:slowmo")
-	await get_tree().create_timer(seconds, true, false, true).timeout
+	await _timers.start(self, seconds, true, false, true).timeout
+	_slowmo_scale = 0.0
 	if is_equal_approx(Engine.time_scale, scale):
 		Engine.time_scale = 1.0
 
@@ -320,12 +209,10 @@ func brazier_column() -> void:
 	var before: int = fx.get("pot_step")
 	fx.set("pot_step", 4)
 	_log("fx:brazier_column")
-	get_tree().create_timer(BRAZIER_COLUMN_TIME, true, false, true).timeout.connect(func() -> void:
+	_timers.start(self, BRAZIER_COLUMN_TIME, true, false, true).timeout.connect(func() -> void:
 		if is_instance_valid(fx):
 			fx.set("pot_step", before))
 
-
-# --- Moments --------------------------------------------------------------------------
 
 ## Hot Hand: every die flashes to full ember glow with a few spark dots (a
 ## glow pulse, not a flare-up; no fire on dice). fly_start adds the trail.
@@ -377,7 +264,7 @@ func ember_pile(at: Vector3) -> void:
 func bust(dice: Array[DieVisual], reduced: bool) -> void:
 	var t := table.bonfire_tuning
 	sfx(&"bust", 1.0, 0.0, 0.0, &"seven_out", 1.0, 0.0)
-	get_tree().create_timer(t.juice_flask_crack_delay, true, false, true).timeout.connect(func() -> void:
+	_timers.start(self, t.juice_flask_crack_delay, true, false, true).timeout.connect(func() -> void:
 		sfx(&"soul_flask_crack", 1.0, 0.0, 0.0, &"soul_burn", 0.7, -2.0))
 	var ash_mat: Material = null
 	if has_art() and ResourceLoader.exists(VFX + ASH_BODY):

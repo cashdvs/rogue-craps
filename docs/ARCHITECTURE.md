@@ -81,6 +81,7 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 | `DieCard.create(info, read_only)`, `set_die(...)`; `face_picked(face_index)` | `scripts/ui/die_card.gd` | one die's card built in code: "name - ability", the next mod's price, one button per face with "Face n: mod" tooltips. Read-only cards disable every face; otherwise `allowed` decides which faces can be picked |
 | `DicePanel.build(progress, opts)`, `seal_lines()`; `picked(Vector2i(die, face))` | `scripts/map/dice_panel.gd` | the "Your dice" view: a `DieCard` per die plus the "Your Seals" strip. Read-only from the map; in pick mode (shop, Rest carve, events) it replaces the old face picker |
 | `TablePreview.boss_rules(run)`, `dice_row(progress, on_open)`, `add_boss_sign(...)` | `scripts/map/table_preview.gd` | pieces of `RunScreen`'s table preview, split out to keep `run_screen.gd` small: the boss rule line, the mini dice row and the boss intro sign |
+| `BossSign.make_sign(r, ...)`, `update_hand_pill(sign, r)`; `RunRuleData.hand_pill_text()`, `sign_tooltip()`, `sign_alt()` | `scripts/map/boss_sign.gd`, `scripts/data/run_rule_data.gd` | boss sign art is text-baked except hand changes: with `sign_hand_pill` (Baron Vig) the "%+d HAND" brass pill is a Label over the pill-free art, hidden at `hands_delta` 0; tooltip and alt text append the hands part from `hands_delta` (#136) |
 | `MapKey.all_lines()` | `scripts/map/map_key.gd` | the map key: one line per node type plus the path and re-sit rules, docked on the map's right edge. Opens by itself on a profile's first map (`RunProfile`), collapsed from Floor 2 on; the Key button or K toggles it |
 | `MiniDiceRow.build(progress)`, `tile_text()`; `opened` | `scripts/map/mini_dice_row.gd` | the table preview's mini dice row: one tile per die in table order under "Your dice · n/max"; any tile opens the read-only `DicePanel` |
 
@@ -179,6 +180,21 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - Main calls: `throw(velocity, release_pos)`, `pick_die(i)`, `bank()`, `throw_again()`, `leave()` / `can_leave_now()`, `forfeit()`, `outcome()`. For tests: `new_run(seed)`, `rig_faces()`, `rig_slots()`.
   - Signals: `throw_resolved(faces, lit)`, `hand_result(result)`, `throw_measured(...)` (debug), `refused(index)`, and `finished(outcome: TableOutcome)`. `finished` fires exactly once, and it's the only way a table talks back to the run.
   - Effects and sound listen to `table.events` (`scripts/bonfire/table_events.gd`, coming in the readability PR) and never call into table logic. VFX Dev owns those listeners in `scripts/fx/`.
+- **File layers (#128):** `Bonfire3D`, `BonfireHud` and `BonfireRun` are each a chain of short files. Each file `extends` the one before it, and only the last class is ever created. A lower layer calls functions written higher up through `@abstract func` declarations. Variables, constants and signals sit in the bottom layer.
+
+  | File | Class | Holds |
+  |---|---|---|
+  | `scripts/bonfire/bonfire_table_state.gd` | `BonfireTableState` (extends `Table3D`) | the table's signals, constants, variables and read-only questions |
+  | `scripts/bonfire/bonfire_table_look.gd` | `BonfireTableLook` | **art seam**: `table_die()`, `apply_die_look()` (the `set_look` call), face-mod decals, lit / cold looks |
+  | `scripts/bonfire/bonfire_table_layout.gd` | `BonfireTableLayout` | camera, phone / landscape fit, pot and hand positions, screen picking |
+  | `scripts/bonfire/bonfire_throw_flow.gd` | `BonfireThrowFlow` | one throw: launch, settle, rule triggers, face changes, bust |
+  | `scripts/bonfire/bonfire_pot_bank.gd` | `BonfirePotBank` (`Bonfire3D` extends it) | pot, throw again, bank and count-up, Hot Hand, Nerve glue |
+  | `scripts/bonfire/bonfire_hud_build.gd` | `BonfireHudBuild` (extends `Control`) | HUD variables; builds the labels, buttons and panels |
+  | `scripts/bonfire/bonfire_hud_goal.gd` | `BonfireHudGoal` (`BonfireHud` extends it) | goal / bounty readout, meters, stamps, UI scale |
+  | `scripts/bonfire/bonfire_juice_sound.gd` | `BonfireJuiceSound` (`BonfireJuice` extends it) | the juice adapter's constants, variables, hook log and every sound (SfxManager events with fallbacks, crowd layers) |
+  | `scripts/core/bonfire_run_state.gd` | `BonfireRunState` (`BonfireRun` extends it) | a table's rule state, rule hooks and read-only questions; `BonfireRun` keeps the actions |
+
+  Timers: `Table3D._timer()` and `BonfireJuice` (through `ExitTimers`, `scripts/bonfire/exit_timers.gd`) unhook their pending timers in `_exit_tree()`, so nothing wakes up on a table that has been removed. A hit-stop or slow-mo that is cut short is undone.
 - **Rules:**
   - `scripts/core/bonfire_run.gd` holds one table's state: hands, the pot, banked points, Soul and Hot Hand.
   - `scripts/core/bonfire_scoring.gd` (`BonfireScoring`) is pure static functions. `match_combo()` finds the combo and `score_selection()` returns (base + faces) × mult.
