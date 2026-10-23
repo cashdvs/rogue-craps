@@ -80,11 +80,11 @@ func _pure() -> void:
 	check(BonfireScoring.preview(s2).ends_with("x4 x1.5 = %d" % int(s2["points"])), "preview shows Hot Hand in the mult and the Hellfire factor (%s)" % BonfireScoring.preview(s2))
 	check(notes.size() == 2 and notes[0] == "Hot Hand +1 mult" and notes[1].begins_with(hell.display_name) and notes[1].ends_with("x1.5"), "factor notes (%s)" % str(notes))
 	check(BonfireScoring.factor_notes([4, 4, 4], trips, t).is_empty(), "no notes for a plain pot")
-	# The Bloodletter: the HUD rule row says the rule with no number in it
-	# (the cost itself comes from the tuning; PM ruling on #63).
+	# The Bloodletter: the HUD rule row is the strings_v1 row 113 line
+	# (synced with bloodletter.tres in #137).
 	var br := BonfireRun.new(t)
 	br.set_rules(TableRules.build([{"id": &"bloodletter", "params": {}}]), 1)
-	check(br.rules.size() == 1 and br.rules[0].info_line(br) == "Every Soul cost is doubled.", "Bloodletter HUD rule line (%s)" % (br.rules[0].info_line(br) if br.rules.size() > 0 else "none"))
+	check(br.rules.size() == 1 and br.rules[0].info_line(br) == "Every Soul cost is doubled: a bust costs 2 Soul.", "Bloodletter HUD rule line (%s)" % (br.rules[0].info_line(br) if br.rules.size() > 0 else "none"))
 
 
 func _scene() -> void:
