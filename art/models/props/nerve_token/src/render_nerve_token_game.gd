@@ -11,7 +11,7 @@ const HEARTH := "res://art/models/boards/hearth/scenes/hearth_board%s.tscn"
 const TOKEN := "res://art/models/props/nerve_token/scenes/nerve_token%s.tscn"
 ## proposed anchor: position on the Hearth (rail top y 0.11), yaw (deg)
 const SPOTS := {"pc": [Vector3(0.48, 0.11, 0.578), 0.0], "phone": [Vector3(0.30, 0.11, 0.61), 0.0],
-	"portrait": [Vector3(1.11, 0.11, -0.30), 90.0]}
+	"portrait": [Vector3(0.85, 0.11, -0.16), 90.0]}
 ## candle row (PR #142) anchors + footprint in row-local space, for the keep-out check
 const ROWS := {"pc": [Vector3(-0.40, 0.11, 0.578), 0.0, Vector3(1, 1, 1)], "phone": [Vector3(-0.51, 0.11, 0.61), 0.0, Vector3(1.218, 1.4, 1.4)],
 	"portrait": [Vector3(1.11, 0.11, 0.275), 90.0, Vector3(1.218, 1.4, 1.4)]}
