@@ -154,3 +154,8 @@ and a few tiny spark dots that **fall** sideways (never rise above the die).
 The lift / drop "lit" look is not DieGlow: it's `table._set_lit` (the `die_lit` shader). Never
 violet or Soul cyan. Tests: `tests/test_fx_no_fire_on_dice.gd` (shapes, colours, peak spark/trail
 height ≤ die top).
+
+## Lighting layers 4-5 (`lighting_layers_fx.gd`)
+VFX half of `lighting_layers_spec.md` (lights and Environment, layers 1-3, are Godot Dev's). Hooked by one line in `Table3D._ready()`: `add_child(LightingLayersFx.new())`.
+- `ContactShadows`: one unshaded black quad per die at y 0.002, following the die's XZ (+0.01 toward -x/+z), never its rotation. Diameter 1.6 x edge; alpha 0.55 Forward+ / 0.65 Compat-Mobile at rest, x (1 - h/0.25); scale x (1 + 0.6 h/0.25); hidden above 0.25 m, while held (Phase.HELD) and for `pot_dice`. Only reads the die's position: the die material is never touched. It hides the die's old built-in `Blob` node so the two don't stack.
+- `LampDust`: GPUParticles3D 48 (Forward+) / CPUParticles3D 16 (else), cylinder r 0.45 m y 0.25-1.20 m, 2-4 mm (3-4 mobile) additive #FFE2B0 at 0.18 / 0.15, cone-masked to 38 deg, never drawn below y 0.08 (shader floor; the drift only rises). Off (not emitting, hidden) under reduced motion, polled from `table.is_reduced_motion()`.
