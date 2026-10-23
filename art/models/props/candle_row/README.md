@@ -57,3 +57,19 @@ Not placed in the board scene; no glow decal; tri test doesn't include the row; 
 - `Hearth Anchors/CandleRow` Marker3D at (-0.36, 0.11, 0.61): on the near rail, left of the pot, shared by PC and landscape phone. Candles 1-5 clear Bank on landscape phone. Candles 6-8 sit under the "Pot"/hint labels, and on PC candle 1 touches the Bank button edge.
 - The portrait camera crops the near rail entirely. PROPOSAL: `Anchors/CandleRowPortrait` (1.11, 0.11, -0.05), yaw 90°, on the screen-bottom rail left of the cauldron. It is on screen and uncropped. It still needs AD sign-off and an orientation switch in HUD code (not done).
 - Real-camera check: `src/render_candle_row_game.gd -- phone=WxH anchor=... out=...`.
+
+## v3 (AD Oct 22): placement
+- Spacing is tightened: `PITCH_SCALE` is PC 0.94 and phone 0.87, and the holder bar is shortened to match. Candle size is unchanged.
+- There are three markers, one per screen layout:
+
+| Marker | Used for | Position |
+|---|---|---|
+| `Anchors/CandleRow` | PC | (-0.333, 0.11, 0.61) |
+| `Anchors/CandleRowPhone` | landscape phone | (-0.384, 0.11, 0.61) |
+| `Anchors/CandleRowPortrait` | portrait (AD-approved) | (1.11, 0.11, -0.05), yaw 90° |
+
+- Measured with 8 lit in the real game camera (`src/render_candle_row_game.gd`, label glyph extents, viewport px):
+  - **PC (1920x1080):** pitch 44.1 px, candle 35.3 px. Clearance to Bank 14.1 px and to the "Pot" label 14.8 px. The orange hint line under Pot starts at x 667, and candles 4-8 stand over its top edge (about 7 px vertical overlap). The 12 px rule is NOT met against the hint.
+  - **Landscape phone (844x390, measured at 2337x1080):** pitch 67.1 px (24.2 px at 844x390, at the floor), candle 64.2 px. Clearance to Throw/Bank 14.2 px. Candles 6-8 run 185 px under "Pot 0" and the x/= labels. The gap is 351 px, and 8 candles at the 24 px floor need at least 465 px + one candle, so this can't be solved by shrinking the candles.
+  - **Portrait:** fully on screen, pitch 143.5 px at 1920x4155. With 8 lit, the row spans the cauldron (candles 4-5 sit behind it). With 4 or fewer it is left of the cauldron.
+- Tris are unchanged at 540 for the row. Worst case board + row (>8 cue): PC 13,792, mobile 6,416.

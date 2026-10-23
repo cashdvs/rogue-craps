@@ -413,6 +413,7 @@ def tail_tip(part, slot, seg):
 
 
 # ---------------------------------------------------------------- the parts
+NR_STUB = False  # v3: the near-rail stub candle prop is cut
 SIDE_CANDLE_DRIPS = False  # v2: the side-rail progress candles are gone, so are the drips under them
 CHAIN_Z = (-0.02, 0.105)  # left-rail span of the chain loop (between Candle3 z -0.24 and Candle5 z 0.24)
 CHAIN_PIVOT = Vector((-1.203, 0.028, 0.04))
@@ -450,12 +451,18 @@ def build_corners(out_dir, name, mobile):
     p.at(Matrix.Identity(4))
     contract(p, S["dressing_paper"], S["dressing_seal"], 3 if mobile else 5, 5 if mobile else 6, "far", 0.765, rng)
     # NR: the half-melted stub with a coin stack beside it, and a wax drip of its own down the near rail
-    p.at(on_rail("near", 0.935, 0.042, level=0.7) @ K(STUB_K))
-    stub(p, S["dressing_wax"], S["dressing_ink"], 6 if mobile else 7, rng)
+    # v3 (AD Oct 22): the stub is cut (candles mean hands only); built into a throwaway part so the rng
+    # draws, and with them the rest of the dressing, stay put. Its drip goes with it.
+    if NR_STUB:
+        p.at(on_rail("near", 0.935, 0.042, level=0.7) @ K(STUB_K))
+        stub(p, S["dressing_wax"], S["dressing_ink"], 6 if mobile else 7, rng)
+    else:
+        stub(DPart("_cut", p.slots), S["dressing_wax"], S["dressing_ink"], 6 if mobile else 7, rng)
     p.at(on_rail("near", 0.884, 0.026, level=0.4, yaw=0.3) @ K(COIN_K))
     coin_tower(p, S["dressing_coin"], seg, 5 if mobile else 7, rng)
     p.at(Matrix.Identity(4))
-    drip(p, S["dressing_wax_drip"], "near", 0.933, math.radians(30), math.radians(80), 0.0026, 3)
+    if NR_STUB:
+        drip(p, S["dressing_wax_drip"], "near", 0.933, math.radians(30), math.radians(80), 0.0026, 3)
     # light pools under each cluster (NL only on PC: its cup + coins are PC trinkets)
     for (rail, a0, a1) in POOLS[: 3 if mobile else 4]:
         pool(p, S["dressing_pool"], rail, a0, a1, math.radians(3), math.radians(56), 1, 3)

@@ -52,6 +52,18 @@ func _check_fx(mobile: bool) -> void:
 	_check(cn != null and cn.find_children("Candle*", "", true, false).is_empty(), label + ": no side-rail progress candles (hands-only ruling)")
 	var ca := board.get_node_or_null("Anchors/CandleRow") as Marker3D
 	_check(ca != null and ca.position.z > 0.55 and ca.position.x < 0.0, label + ": Anchors/CandleRow marker on the near rail, left of the pot")
+	for mk in ["CandleRowPhone", "CandleRowPortrait"]:  # v3: separate landscape-phone and portrait spots
+		_check(board.get_node_or_null("Anchors/" + mk) is Marker3D, label + ": Anchors/%s marker" % mk)
+	# v3 AD: the near-rail stub candle prop is cut from the dressing (corners mesh back under the v2 count)
+	var corners := board.find_child("Corners", true, false)
+	var ct := 0
+	if corners != null:
+		for m in corners.find_children("*", "MeshInstance3D", true, false):
+			var mesh := (m as MeshInstance3D).mesh
+			for si in mesh.get_surface_count():
+				ct += mesh.surface_get_array_index_len(si) / 3
+	var cap := 420 if label.contains("mobile") else 662
+	_check(corners != null and ct > 0 and ct < cap, label + ": dressing corners without the NR stub (%d tris < v2 %d)" % [ct, cap])
 	var candles: Array[Node3D] = []
 	# --- Art Director revisions (Oct 18) ---
 	_check_revisions(label, board, candles)

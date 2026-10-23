@@ -123,7 +123,7 @@ rest and over every clip frame).
 
 | Node / look | Content |
 |---|---|
-| `Corners` (dressing_corners*.glb) | one tight, tall cluster per corner (v2): FL coin tower + short stack + cracked shot glass (PC); FR a contract with a wax seal draped over the far rail with knucklebones + a finger bone on it (aged bone #C9B48A, never the dice bone); NR half-melted stub + coin stack; a warm light-pool decal on the rail top under each cluster (`dressing_pool`, `shaders/hearth_pool.gdshader`, additive, ~25-35 % value); wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
+| `Corners` (dressing_corners*.glb) | one tight, tall cluster per corner (v2): FL coin tower + short stack + cracked shot glass (PC); FR a contract with a wax seal draped over the far rail with knucklebones + a finger bone on it (aged bone #C9B48A, never the dice bone); NR coin stack (v3: the half-melted stub and its drip are cut); a warm light-pool decal on the rail top under each cluster (`dressing_pool`, `shaders/hearth_pool.gdshader`, additive, ~25-35 % value); wax drips down the outer rail under the 4 near candles (`dressing_wax_drip`: slow creep, 48 s cycle); the chain end over the left rail top |
 | `Trinkets` (PC only) | horned skull ashtray (the tall end of the FR cluster), leather dice cup + coin stack (the NL cluster) |
 | `Bell` | Smiles' brass service bell in the FR cluster (v2: dark base plate, brass dome, plunger + round knob). Moved from beside Smiles (x -0.205): it never clashed with his clips, but it sat on the brazier read on screen (`tests/test_hearth_dealer_clear.gd`) |
 | `Chain` | chain + padlock hanging down the left rail's outer face (sways on a rail hit) |
@@ -224,3 +224,9 @@ the rebuild; needs Vulkan, see its header).
 
 ## v2 note (candle row)
 The 8 side-rail candles and their wax drips have been removed (candles now mean hands only). Their tris went to the candle row. This supersedes the candle entries above. Board drawn tris with dressing on: PC 13,514 (was 14,682), mobile 6,136 (was 6,824). dressing_corners: PC 662, mobile 420. New markers: `Anchors/CandleRow` and `Anchors/CandleRowPortrait` (proposal).
+
+## v3 note (Oct 22)
+The NR half-melted stub candle and its drip are cut from `dressing_corners`. The coin stack, sconces and brazier stay. The rng draws are kept, so the rest of the dressing doesn't move.
+- `dressing_corners`: PC 580 (v2 662), mobile 346 (v2 420).
+- Board drawn tris with dressing on and tail out: PC 13,432 / test total 13,444; mobile 6,062 / 6,068. Dressing part: PC 3,012, mobile 874. Dressing off is unchanged at 11,782 / 5,232.
+- Markers: `Anchors/CandleRow` (PC) at (-0.333, 0.11, 0.61); `Anchors/CandleRowPhone` (landscape phone) at (-0.384, 0.11, 0.61); `Anchors/CandleRowPortrait` (AD-approved) at (1.11, 0.11, -0.05), yaw 90°.

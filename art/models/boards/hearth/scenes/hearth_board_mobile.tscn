@@ -441,7 +441,7 @@ transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70
 [node name="Corner_FR" type="Marker3D" parent="Anchors" unique_id=923994804]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.11, 0.11, -0.61)
 
-[node name="Cap" parent="Anchors/Corner_FR" unique_id=824433536 instance=ExtResource("11_npkft")]
+[node name="Cap" parent="Anchors/Corner_FR" unique_id=1277310804 instance=ExtResource("11_npkft")]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 0.02828427, 0, -0.02828427)
 
 [node name="Corner_NL" type="Marker3D" parent="Anchors" unique_id=2011190911]
@@ -464,101 +464,104 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.11, -0.61)
 
 [node name="Zones" type="Node3D" parent="Anchors" unique_id=1530824838]
 
-[node name="CandleRow" type="Marker3D" parent="Anchors" unique_id=1655932531]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.36, 0.11, 0.61)
+[node name="CandleRow" type="Marker3D" parent="Anchors" unique_id=819460568]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.333, 0.11, 0.61)
 
-[node name="CandleRowPortrait" type="Marker3D" parent="Anchors" unique_id=1388781772]
+[node name="CandleRowPhone" type="Marker3D" parent="Anchors" unique_id=721910750]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.384, 0.11, 0.61)
+
+[node name="CandleRowPortrait" type="Marker3D" parent="Anchors" unique_id=828634281]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 1.11, 0.11, -0.05)
 
 [node name="Ambient" type="Node3D" parent="." unique_id=833021472]
 
-[node name="Hearth" type="Node3D" parent="." unique_id=467562346]
+[node name="Hearth" type="Node3D" parent="." unique_id=717934725]
 script = ExtResource("13_uo71t")
 
-[node name="Candles" type="Node3D" parent="Hearth" unique_id=550295531]
+[node name="Candles" type="Node3D" parent="Hearth" unique_id=491499658]
 
-[node name="RailLeft" type="Node3D" parent="Hearth/Candles" unique_id=1566471563]
+[node name="RailLeft" type="Node3D" parent="Hearth/Candles" unique_id=2086101893]
 
-[node name="RailRight" type="Node3D" parent="Hearth/Candles" unique_id=2050265696]
+[node name="RailRight" type="Node3D" parent="Hearth/Candles" unique_id=1909256498]
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="Hearth" unique_id=252521784]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Hearth" unique_id=2068743949]
 libraries/ = SubResource("AnimationLibrary_byigx")
 
-[node name="SeamPlayer" type="AnimationPlayer" parent="Hearth" unique_id=533403935]
+[node name="SeamPlayer" type="AnimationPlayer" parent="Hearth" unique_id=1527007806]
 libraries/ = SubResource("AnimationLibrary_d7pb5")
 
-[node name="Dressing" type="Node3D" parent="Hearth" unique_id=761333953]
+[node name="Dressing" type="Node3D" parent="Hearth" unique_id=1077387707]
 script = ExtResource("14_i6woa")
 felt_plain = ExtResource("15_h4i74")
 felt_worn = ExtResource("2_mekw2")
 leather_plain = ExtResource("16_3kirn")
 leather_carved = ExtResource("4_bj0ie")
 
-[node name="Corners" parent="Hearth/Dressing" unique_id=2016678062 instance=ExtResource("17_to7ee")]
+[node name="Corners" parent="Hearth/Dressing" unique_id=1171644967 instance=ExtResource("17_to7ee")]
 
-[node name="Under" parent="Hearth/Dressing" unique_id=1027983380 instance=ExtResource("18_p0evl")]
+[node name="Under" parent="Hearth/Dressing" unique_id=752367524 instance=ExtResource("18_p0evl")]
 
-[node name="Studs" type="MeshInstance3D" parent="Hearth/Dressing" unique_id=750680415]
+[node name="Studs" type="MeshInstance3D" parent="Hearth/Dressing" unique_id=93598656]
 mesh = ExtResource("19_p6fov")
 
-[node name="Bell" type="Node3D" parent="Hearth/Dressing" unique_id=1171678647]
+[node name="Bell" type="Node3D" parent="Hearth/Dressing" unique_id=1343292753]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.872, 0.0987, -0.6529)
 
-[node name="Model" parent="Hearth/Dressing/Bell" unique_id=1400826250 instance=ExtResource("20_vdvu4")]
+[node name="Model" parent="Hearth/Dressing/Bell" unique_id=1404059495 instance=ExtResource("20_vdvu4")]
 
-[node name="Chain" type="Node3D" parent="Hearth/Dressing" unique_id=265884853]
+[node name="Chain" type="Node3D" parent="Hearth/Dressing" unique_id=1639983819]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.203, 0.028, 0.04)
 
-[node name="Model" parent="Hearth/Dressing/Chain" unique_id=1955972477 instance=ExtResource("21_pfylq")]
+[node name="Model" parent="Hearth/Dressing/Chain" unique_id=2139938063 instance=ExtResource("21_pfylq")]
 
-[node name="Tail" type="Node3D" parent="Hearth/Dressing" unique_id=780885980]
+[node name="Tail" type="Node3D" parent="Hearth/Dressing" unique_id=660600112]
 transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, -1.26, -0.16, -0.7)
 visible = false
 
-[node name="Root" type="Node3D" parent="Hearth/Dressing/Tail" unique_id=1398432882]
+[node name="Root" type="Node3D" parent="Hearth/Dressing/Tail" unique_id=223288702]
 
-[node name="Model" parent="Hearth/Dressing/Tail/Root" unique_id=1878687598 instance=ExtResource("22_kuuve")]
+[node name="Model" parent="Hearth/Dressing/Tail/Root" unique_id=710640425 instance=ExtResource("22_kuuve")]
 
-[node name="Joint" type="Node3D" parent="Hearth/Dressing/Tail/Root" unique_id=1531782738]
+[node name="Joint" type="Node3D" parent="Hearth/Dressing/Tail/Root" unique_id=122253493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
 
-[node name="Tip" type="Node3D" parent="Hearth/Dressing/Tail/Root/Joint" unique_id=592570054]
+[node name="Tip" type="Node3D" parent="Hearth/Dressing/Tail/Root/Joint" unique_id=87695041]
 
-[node name="Model" parent="Hearth/Dressing/Tail/Root/Joint/Tip" unique_id=604058274 instance=ExtResource("23_tqvm2")]
+[node name="Model" parent="Hearth/Dressing/Tail/Root/Joint/Tip" unique_id=231887999 instance=ExtResource("23_tqvm2")]
 
-[node name="Ambient" type="Node3D" parent="Hearth/Dressing" unique_id=378370281]
+[node name="Ambient" type="Node3D" parent="Hearth/Dressing" unique_id=323654515]
 
-[node name="EmbersBrazier" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=1339049145]
+[node name="EmbersBrazier" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=1927763272]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -0.77)
 material_override = ExtResource("24_le1wd")
 cast_shadow = 0
 mesh = SubResource("ArrayMesh_indmb")
 
-[node name="EmbersCauldron" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=1803692107]
+[node name="EmbersCauldron" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=1703324110]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.216, 0.215, 0)
 material_override = ExtResource("25_24k35")
 cast_shadow = 0
 mesh = SubResource("ArrayMesh_n803o")
 
-[node name="LampDust" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=733001050]
+[node name="LampDust" type="MeshInstance3D" parent="Hearth/Dressing/Ambient" unique_id=1427717169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, -0.33)
 material_override = ExtResource("26_w2v84")
 cast_shadow = 0
 mesh = SubResource("ArrayMesh_b3mj4")
 
-[node name="Backdrop" type="MeshInstance3D" parent="Hearth/Dressing" unique_id=963816478]
+[node name="Backdrop" type="MeshInstance3D" parent="Hearth/Dressing" unique_id=1183934034]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, -2.3)
 material_override = ExtResource("27_xihsv")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_kydr2")
 
-[node name="TailPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=1808449739]
+[node name="TailPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=203056217]
 libraries/ = SubResource("AnimationLibrary_j172t")
 
-[node name="ChainPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=1254842973]
+[node name="ChainPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=811288316]
 libraries/ = SubResource("AnimationLibrary_2tmnh")
 
-[node name="BellPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=2108724943]
+[node name="BellPlayer" type="AnimationPlayer" parent="Hearth/Dressing" unique_id=1164080275]
 libraries/ = SubResource("AnimationLibrary_qjf7n")
 
 [editable path="Visual/Floor"]

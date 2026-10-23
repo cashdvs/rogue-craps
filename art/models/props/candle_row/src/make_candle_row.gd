@@ -18,6 +18,8 @@ const CAP := 8
 const BAR_H := 0.009
 const PLATE_Y := 0.0012
 const ROW_SCALE := {"": 1.0, "_mobile": 1.4}  # v2 AD (3): phone row 1.4x (candles ~20 px, pitch ~27 px)
+const PITCH_SCALE := {"": 0.94, "_mobile": 0.87}  # v3 AD: spacing tightened to fit the Bank-Pot gap
+                                              # (phone floor 24 px @ 844x390; 0.87 -> 24.1 px)
 const BRASS_HI := Color("#E2C06A")    # the Hearth bevel highlight
 const BEAD_AT := Vector3(0.005, PLATE_Y, 0.0175)  # bust bead: on the plate lip in front of the candle foot
 const DRIP_W := 0.020                 # v2: bigger drip card (v1 0.011 x 0.042)
@@ -232,14 +234,15 @@ func _row(lod: String) -> void:
 	row.set_script(load(P + "scripts/candle_row.gd"))
 	var k := float(ROW_SCALE[lod])
 	var hd := _inst(P + "candle_row_holder.glb", "Holder", row)
-	hd.scale = Vector3.ONE * k
+	var ps := float(PITCH_SCALE[lod])
+	hd.scale = Vector3(k * ps, k, k)  # bar shortened with the pitch
 	var socks := Node3D.new()
 	socks.name = "Sockets"
 	row.add_child(socks)
 	for i in CAP:
 		var s := Marker3D.new()
 		s.name = "Socket%d" % (i + 1)
-		s.position = Vector3((i - (CAP - 1) * 0.5) * PITCH, BAR_H, 0.0) * k
+		s.position = Vector3((i - (CAP - 1) * 0.5) * PITCH * ps, BAR_H, 0.0) * k
 		s.scale = Vector3.ONE * k
 		socks.add_child(s)
 		_inst(P + "scenes/candle_row_candle%s.tscn" % lod, "Candle", s)
