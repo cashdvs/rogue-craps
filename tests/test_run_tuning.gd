@@ -155,10 +155,10 @@ func _test_tuning_addendum() -> void:
 		want.sort()
 		ok = ok and ids == want
 	_check(ok, "addendum: floor 2 boss draws Run of 4, the 3 commons and Two Pair x2")
-	var want_r := {"ashmouth": [-1, "No Hot Hand, and you get one fewer hand."], "cold_sixes": [1, "6s never light. +1 hand."],
-		"first_throw": [1, "Bounties only count on a hand's first 2 throws. +1 hand."],
-		"greedy_pot": [1, "You must pot 2 or more dice per throw. +1 hand."], "cold_hands": [1, "No Hot Hand. +1 hand."],
-		"straight_man": [0, "Runs of 3 don't count."], "bloodletter": [0, "Every Soul cost is doubled."],
+	var want_r := {"ashmouth": [-1, "No Hot Hand, and you get one fewer hand."], "cold_sixes": [1, "6s never light, but you get +1 hand."],
+		"first_throw": [1, "Bounties count only on each hand's first 2 throws; +1 hand."],
+		"greedy_pot": [1, "Pot at least 2 dice every throw, but you get +1 hand."], "cold_hands": [1, "No Hot Hand, but you get +1 hand."],
+		"straight_man": [0, "Runs of 3 don't count; runs of 4 or 5 still do."], "bloodletter": [0, "Every Soul cost is doubled: a bust costs 2 Soul."],
 		"madame_shuffle": [0, "Each hand, a 2 or a 4 never lights."]}
 	var rok := true
 	for n in want_r:
