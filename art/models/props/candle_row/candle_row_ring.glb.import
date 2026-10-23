@@ -43,8 +43,8 @@ _subresources={
 "materials": {
 "ring_brass": {
 "use_external/enabled": true,
-"use_external/fallback_path": "res://art/models/boards/infernal_pit/materials/brass.tres",
-"use_external/path": "res://art/models/boards/infernal_pit/materials/brass.tres"
+"use_external/fallback_path": "res://art/models/props/candle_row/materials/candle_row_ring.tres",
+"use_external/path": "res://art/models/props/candle_row/materials/candle_row_ring.tres"
 }
 }
 }

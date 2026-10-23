@@ -5,9 +5,10 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 P = "res://art/models/props/candle_row/"
 H = "res://art/models/boards/hearth/materials/"
 SLOTS = {"candle_wax": P + "materials/candle_row_wax.tres", "wick": H + "dressing_ink.tres",
-         "holder_iron": H + "dressing_iron.tres", "socket_brass": H + "dressing_brass.tres", "ring_brass": "res://art/models/boards/infernal_pit/materials/brass.tres"}
+         "holder_iron": H + "dressing_iron.tres", "socket_brass": H + "dressing_brass.tres", "ring_brass": P + "materials/candle_row_ring.tres",
+         "bead_wax": P + "materials/candle_row_bead.tres"}
 PARTS = {"candle_row_candle": ["candle_wax", "wick"], "candle_row_holder": ["holder_iron"],
-         "candle_row_socket": ["socket_brass"], "candle_row_ring": ["ring_brass"]}
+         "candle_row_socket": ["socket_brass"], "candle_row_ring": ["ring_brass"], "candle_row_bead": ["bead_wax"]}
 # same import params as the Hearth props
 src = open(os.path.join(ROOT, "../../boards/hearth/src/write_imports.py")).read()
 PARAMS = src.split('PARAMS = """', 1)[1].split('"""', 1)[0]

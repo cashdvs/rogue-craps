@@ -46,39 +46,13 @@ func _check_fx(mobile: bool) -> void:
 	if scene == null:
 		return
 	var board := scene.instantiate() as Node3D
-	# --- candles ---
+	# --- candles: AD ruling Oct 22 (candle row v2): candles mean hands only, so the side-rail progress
+	# candles are gone; the Hearth/Candles node stays (empty) so hearth_fx keeps its null-safe hooks ---
+	var cn := board.get_node_or_null("Hearth/Candles")
+	_check(cn != null and cn.find_children("Candle*", "", true, false).is_empty(), label + ": no side-rail progress candles (hands-only ruling)")
+	var ca := board.get_node_or_null("Anchors/CandleRow") as Marker3D
+	_check(ca != null and ca.position.z > 0.55 and ca.position.x < 0.0, label + ": Anchors/CandleRow marker on the near rail, left of the pot")
 	var candles: Array[Node3D] = []
-	for i in range(1, 9):
-		var c := board.find_child("Candle%d" % i, true, false) as Node3D
-		_check(c != null, "%s: Candle%d present" % [label, i])
-		if c != null:
-			candles.append(c)
-	var left := 0
-	var right := 0
-	var cmesh: Mesh = null
-	var cmat: Material = null
-	var shared := true
-	var cand_ok := true
-	for c in candles:
-		var cxf := _xf(board, c)
-		if cxf.origin.x <= -1.11:
-			left += 1
-		elif cxf.origin.x >= 1.11:
-			right += 1
-		var m := _mesh(c.get_node("Model"))
-		var t := 0
-		for s in m.mesh.get_surface_count():
-			t += (m.mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
-		if t > (90 if mobile else 150):
-			cand_ok = false
-		if cmesh == null:
-			cmesh = m.mesh
-			cmat = m.get_active_material(0)
-		elif m.mesh != cmesh or m.get_active_material(0) != cmat:
-			shared = false
-	_check(left == 4 and right == 4, "%s: 4 candles per side rail at |x| >= 1.11" % label)
-	_check(cand_ok, "%s: each candle <= %d tris" % [label, 90 if mobile else 150])
-	_check(shared, label + ": all 8 candles share one mesh and one wax material")
 	# --- Art Director revisions (Oct 18) ---
 	_check_revisions(label, board, candles)
 	# --- ember seam band on the rail leather ---
@@ -118,24 +92,18 @@ func _check_fx(mobile: bool) -> void:
 	_check(not pot.get_node("Fire/Step1").visible and pot.get_node("Fire/Step3").visible and not pot.get_node("Fire/Step4").visible, label + ": pot_step 3 shows only fire step 3")
 	var eye_mesh := _mesh(board.get_node("Anchors/Corner_FL/Cap/Model"))
 	_check(is_equal_approx(float(eye_mesh.get_instance_shader_parameter(&"level")), 2.0), label + ": eyes 2 reaches the demon eye shader")
-	var lit_ok := true
-	for i in candles.size():
-		if (candles[i].get_node("Flame") as Node3D).visible != (i < 5):
-			lit_ok = false
-	_check(lit_ok, label + ": lit_count 5 lights candles 1-5 only")
 	var fill := board.get_node("Anchors/ChipTray/Tray/Fill") as Node3D
 	_check(fill.visible and fill.position.y > 0.06, label + ": fill 0.7 raises the ember mound")
 	# bust: everything out mid-clip, everything back (same state) at the end
 	ap.play("snuff")
 	ap.seek(0.3, true)
-	var out_ok: bool = not pot.get_node("Fire/Step3").visible and not (candles[0].get_node("Flame") as Node3D).visible \
-		and is_zero_approx(float(eye_mesh.get_instance_shader_parameter(&"heat"))) and (candles[0].get_node("Wisp") as Node3D).visible
-	_check(out_ok, label + ": snuff at 0.3 s: fire, candles and eyes out, smoke wisp up")
+	var out_ok: bool = not pot.get_node("Fire/Step3").visible \
+		and is_zero_approx(float(eye_mesh.get_instance_shader_parameter(&"heat")))
+	_check(out_ok, label + ": snuff at 0.3 s: fire and eyes out")
 	ap.seek(0.75, true)
-	var back_ok: bool = pot.get_node("Fire/Step3").visible and (candles[4].get_node("Flame") as Node3D).visible \
-		and not (candles[5].get_node("Flame") as Node3D).visible and fx.lit_count == 5 and fx.pot_step == 3 \
-		and is_equal_approx(float(eye_mesh.get_instance_shader_parameter(&"heat")), 1.0) and not (candles[0].get_node("Wisp") as Node3D).visible
-	_check(back_ok, label + ": after snuff everything relights to the previous state (5 candles, step 3, eyes 2)")
+	var back_ok: bool = pot.get_node("Fire/Step3").visible and fx.lit_count == 5 and fx.pot_step == 3 \
+		and is_equal_approx(float(eye_mesh.get_instance_shader_parameter(&"heat")), 1.0)
+	_check(back_ok, label + ": after snuff everything relights to the previous state (step 3, eyes 2)")
 	ap.stop()
 	fx.lit_count = 8
 	_check(ap.current_animation == "flare", label + ": reaching 8 candles plays the flare clip")
@@ -147,15 +115,6 @@ func _check_fx(mobile: bool) -> void:
 
 
 func _check_revisions(label: String, board: Node3D, candles: Array[Node3D]) -> void:
-	var c0 := candles[0]
-	var fl := c0.get_node("Flame") as MeshInstance3D
-	_check(is_equal_approx((fl.mesh as QuadMesh).size.y * 0.8, 0.03), label + ": candle flame = tier-1 tongue at 0.75 scale (0.03 m visible)")
-	var gl := c0.get_node_or_null("Glow") as MeshInstance3D
-	_check(gl != null and (gl.material_override as ShaderMaterial).shader.resource_path.ends_with("hearth_glow.gdshader"), label + ": candle has an additive glow decal for the rail top")
-	var wax := _mesh(c0.get_node("Model")).mesh.surface_get_material(0) as ShaderMaterial
-	_check(wax != null and _param(wax, "emission_energy") > 0.0, label + ": unlit wax keeps a dim emissive silhouette")
-	var lit := load("res://art/models/boards/hearth/materials/candle_wax_lit.tres") as ShaderMaterial
-	_check(lit != null and _param(lit, "rim_strength") > 1.0, label + ": lit wax has an emissive rim")
 	# Fire: the step-4 column caps at ~0.3 m above the coals, and no solid fire card at any step covers
 	# the dealer's face from the game camera (sparks may: they are not checked).
 	var pot := board.get_node("Anchors/TargetPlate/Plate")

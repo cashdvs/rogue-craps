@@ -5,6 +5,10 @@
 ## Animated params (AnimationPlayer clips key only these, never `state`):
 ##   heat 1 = flame alive, 0 = out | wisp 0-1 smoke curl progress | gutter 0-1 (0.5 last-hand flicker,
 ##   1 guttering) | drip 0-1 bust gutter-drip run | rise 0 = sunk in the socket, 1 = standing (rise-in)
+##   bead 0/1 the wax bead a bust drip leaves on the holder (v2; stays until the next table)
+## v2 last-hand gutter (GD Oct 22): gutter_loop(true) = flame ~half brightness, uneven flicker (shader,
+## on twos), the wax dims (WAX_GUTTER) and a thin smoke wisp loops ("gutter" clip; reduced motion: a still
+## wisp). gutter_loop(false) restores the normal flame.
 @tool
 class_name CandleRowCandle
 extends Node3D
@@ -18,6 +22,9 @@ const CARD_FOOT := 0.113  # the tongue drawing's foot inside its card (hearth_ca
 const WAX := preload("res://art/models/props/candle_row/materials/candle_row_wax.tres")
 const WAX_LIT := preload("res://art/models/props/candle_row/materials/candle_row_wax_lit.tres")
 const WAX_COLD := preload("res://art/models/props/candle_row/materials/candle_row_wax_cold.tres")
+const WAX_GUTTER := preload("res://art/models/props/candle_row/materials/candle_row_wax_gutter.tres")
+const GUTTER_LEVEL := 0.5
+const GUTTER_WISP := 0.3  # reduced motion: the still wisp frame
 
 signal snuffed  ## a snuff clip finished (the candle is now COLD); art-side only
 
@@ -52,6 +59,10 @@ signal snuffed  ## a snuff clip finished (the candle is now COLD); art-side only
 @export_range(0.0, 1.2) var rise: float = 1.0:
 	set(v):
 		rise = v
+		_apply()
+@export_range(0.0, 1.0) var bead: float = 0.0:
+	set(v):
+		bead = clampf(v, 0.0, 1.0)
 		_apply()
 @export_range(0.0, 1.0) var flare: float = 0.0:
 	set(v):
@@ -89,16 +100,40 @@ func rise_in(reduced := false) -> void:
 	ap.play(&"rise_in")
 
 
-## Back to a fresh lit candle (table start).
+## Back to a fresh lit candle (table start): also clears the drip run and the bead.
 func reset_lit() -> void:
 	var ap := get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if ap != null:
 		ap.stop()
 	heat = 1.0
 	wisp = 0.0
+	gutter = 0.0
 	drip = 0.0
+	bead = 0.0
 	rise = 1.0
 	state = State.LIT
+
+
+## Last-hand gutter on / off (CandleRow drives it: hands_left == 1).
+func gutter_loop(on: bool, reduced := false) -> void:
+	var ap := get_node_or_null("AnimationPlayer") as AnimationPlayer
+	var playing := ap != null and ap.is_playing() and ap.current_animation != &"gutter"
+	if on and state == State.LIT:
+		gutter = GUTTER_LEVEL
+		if playing:
+			return  # a snuff / rise clip owns the params; it ends by itself
+		if reduced or ap == null:
+			if ap != null and ap.current_animation == &"gutter":
+				ap.stop()
+			wisp = GUTTER_WISP
+		elif ap.current_animation != &"gutter" or not ap.is_playing():
+			ap.play(&"gutter")
+	else:
+		if ap != null and ap.current_animation == &"gutter":
+			ap.stop()
+			wisp = 0.0
+		if not playing:
+			gutter = 0.0
 
 
 func _end_snuff(bust: bool) -> void:
@@ -107,6 +142,7 @@ func _end_snuff(bust: bool) -> void:
 	wisp = 0.0
 	gutter = 0.0
 	drip = 1.0 if bust else drip
+	bead = 1.0 if bust else bead
 	snuffed.emit()
 
 
@@ -134,6 +170,8 @@ func _apply() -> void:
 		var wax: Material = WAX
 		if state == State.LIT:
 			wax = WAX_LIT
+			if gutter > 0.3 and gutter < 0.75:
+				wax = WAX_GUTTER
 		elif state == State.STUB:
 			wax = WAX_COLD
 		mi.set_surface_override_material(0, wax)
@@ -153,3 +191,6 @@ func _apply() -> void:
 		dr.visible = used and state != State.STUB and drip > 0.001
 		dr.set_instance_shader_parameter(&"level", drip)
 		dr.set_instance_shader_parameter(&"heat", 1.0)
+	var bd := get_node_or_null("Bead") as Node3D
+	if bd != null:
+		bd.visible = used and state != State.STUB and bead > 0.5

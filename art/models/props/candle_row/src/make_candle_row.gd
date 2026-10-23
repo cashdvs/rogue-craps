@@ -17,6 +17,11 @@ const PITCH := 0.058
 const CAP := 8
 const BAR_H := 0.009
 const PLATE_Y := 0.0012
+const ROW_SCALE := {"": 1.0, "_mobile": 1.4}  # v2 AD (3): phone row 1.4x (candles ~20 px, pitch ~27 px)
+const BRASS_HI := Color("#E2C06A")    # the Hearth bevel highlight
+const BEAD_AT := Vector3(0.005, PLATE_Y, 0.0175)  # bust bead: on the plate lip in front of the candle foot
+const DRIP_W := 0.020                 # v2: bigger drip card (v1 0.011 x 0.042)
+const DRIP_H := 0.070
 const FLAME_H := 0.032                # visible tongue (Hearth progress candles: 0.03; +7 % so the state reads at 48 px)
 
 
@@ -86,7 +91,20 @@ func _materials() -> void:
 			if v != null:
 				fl.set_shader_parameter(p.name, v)
 		_save(fl, M + "candle_row_flame%s.tres" % lod)
-	_save(_sm(P + "shaders/candle_row_drip.gdshader", {"wax_color": Color("#C8A875")}), M + "candle_row_drip.tres")
+	_save(_sm(P + "shaders/candle_row_drip.gdshader", {"wax_color": Color("#F2D9A2")}), M + "candle_row_drip.tres")
+	# v2 last-hand gutter: the lit wax at ~half its glow
+	var wg := _copy(H + "materials/candle_wax_lit.tres", {"albedo": TALLOW, "rim_strength": 0.95, "emission_color": Color("#C88A52"), "emission_energy": 0.42})
+	wg.next_pass = ink
+	_save(wg, M + "candle_row_wax_gutter.tres")
+	# v2 bust bead: the drip's wax colour as a lit-ish tallow lump
+	var bd := _copy(H + "materials/candle_wax.tres", {"albedo": Color("#F2D9A2"), "emission_color": Color("#C88A52"), "emission_energy": 0.9, "rim_strength": 1.4})
+	bd.next_pass = ink
+	_save(bd, M + "candle_row_bead.tres")
+	# v2 AD (1): the gift / cue ring at the bevel-highlight level: BRASS_HI body + BRASS_HI rim, a little glow
+	var rg := _copy("res://art/models/boards/infernal_pit/materials/brass.tres", {"albedo": BRASS_HI, "rim_color": BRASS_HI,
+		"rim_strength": 1.6, "emission_color": BRASS_HI, "emission_energy": 0.32})
+	rg.next_pass = ink
+	_save(rg, M + "candle_row_ring.tres")
 
 
 func _own(n: Node, root: Node) -> void:
@@ -140,7 +158,7 @@ func _clips(ap: AnimationPlayer) -> void:
 	var lib := AnimationLibrary.new()
 	var reset := Animation.new()
 	reset.length = STEP
-	for kv in [["heat", 1.0], ["wisp", 0.0], ["gutter", 0.0], ["drip", 0.0], ["rise", 1.0], ["flare", 0.0]]:
+	for kv in [["heat", 1.0], ["wisp", 0.0], ["gutter", 0.0], ["drip", 0.0], ["bead", 0.0], ["rise", 1.0], ["flare", 0.0]]:
 		_track(reset, kv[0], [[0.0, kv[1]]])
 	lib.add_animation(&"RESET", reset)
 	# snuff 0.6 s: flame dips and is out by 2 drawings (0.17 s); smoke curl 0.08 -> 0.5 s
@@ -149,18 +167,24 @@ func _clips(ap: AnimationPlayer) -> void:
 	_track(sn, "heat", [[0.0, 1.0], [STEP, 0.45], [2 * STEP, 0.0]])
 	_track(sn, "wisp", [[0.0, 0.0], [STEP, 0.05], [2 * STEP, 0.2], [3 * STEP, 0.35], [4 * STEP, 0.5], [5 * STEP, 0.65], [6 * STEP, 0.8], [7 * STEP, 1.0]])
 	lib.add_animation(&"snuff", sn)
-	# snuff_bust 1.0 s: the flame gutters (leans, shrinks), a wax drip runs down, then the snuff above
+	# snuff_bust 1.25 s (v2): the flame gutters (leans, shrinks); a bigger wax drip runs slowly down the
+	# wax over 0.42 s (5 drawings on twos) and drops a bead on the holder at 0.5 s; then the snuff above
 	var sb := Animation.new()
-	sb.length = 1.0
+	sb.length = 1.25
 	_track(sb, "gutter", [[0.0, 1.0]])
-	var dk := []
-	for i in 9:
-		dk.append([i * STEP, i / 8.0])
-	_track(sb, "drip", dk)
-	var o := 5 * STEP
+	_track(sb, "drip", [[0.0, 0.0], [STEP, 0.2], [2 * STEP, 0.4], [3 * STEP, 0.6], [4 * STEP, 0.8], [5 * STEP, 1.0]])
+	_track(sb, "bead", [[0.0, 0.0], [6 * STEP, 1.0]])
+	var o := 6 * STEP
 	_track(sb, "heat", [[0.0, 1.0], [o, 0.7], [o + STEP, 0.4], [o + 2 * STEP, 0.0]])
 	_track(sb, "wisp", [[0.0, 0.0], [o + STEP, 0.05], [o + 2 * STEP, 0.2], [o + 3 * STEP, 0.4], [o + 4 * STEP, 0.6], [o + 5 * STEP, 0.8], [o + 6 * STEP, 1.0]])
 	lib.add_animation(&"snuff_bust", sb)
+	# gutter 1.5 s loop (v2, last hand): a thin smoke thread keeps lifting off the low flame, irregular beats
+	var gt := Animation.new()
+	gt.length = 1.5
+	gt.loop_mode = Animation.LOOP_LINEAR
+	_track(gt, "wisp", [[0.0, 0.12], [STEP, 0.2], [2 * STEP, 0.28], [4 * STEP, 0.36], [5 * STEP, 0.44], [7 * STEP, 0.3],
+		[8 * STEP, 0.18], [10 * STEP, 0.26], [11 * STEP, 0.34], [13 * STEP, 0.42], [14 * STEP, 0.5], [16 * STEP, 0.16]])
+	lib.add_animation(&"gutter", gt)
 	# rise_in 0.5 s: the gift candle pushes up out of its socket (overshoot 1 drawing), then lights
 	var ri := Animation.new()
 	ri.length = 0.5
@@ -184,14 +208,17 @@ func _candle(lod: String) -> void:
 	var dr := MeshInstance3D.new()
 	dr.name = "Drip"
 	var q := QuadMesh.new()
-	q.size = Vector2(0.011, 0.042)
-	q.center_offset = Vector3(0, -0.021, 0)
+	q.size = Vector2(DRIP_W, DRIP_H)
+	q.center_offset = Vector3(0, -DRIP_H * 0.5, 0)
 	dr.mesh = q
 	dr.material_override = load(P + "materials/candle_row_drip.tres")
 	dr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	dr.extra_cull_margin = 0.1
 	dr.visible = false
 	cd.add_child(dr)
+	var bd := _inst(P + "candle_row_bead.glb", "Bead", cd)
+	bd.position = BEAD_AT
+	bd.visible = false
 	var ap := AnimationPlayer.new()
 	ap.name = "AnimationPlayer"
 	cd.add_child(ap)
@@ -203,22 +230,26 @@ func _row(lod: String) -> void:
 	var row := Node3D.new()
 	row.name = "CandleRow"
 	row.set_script(load(P + "scripts/candle_row.gd"))
-	_inst(P + "candle_row_holder.glb", "Holder", row)
+	var k := float(ROW_SCALE[lod])
+	var hd := _inst(P + "candle_row_holder.glb", "Holder", row)
+	hd.scale = Vector3.ONE * k
 	var socks := Node3D.new()
 	socks.name = "Sockets"
 	row.add_child(socks)
 	for i in CAP:
 		var s := Marker3D.new()
 		s.name = "Socket%d" % (i + 1)
-		s.position = Vector3((i - (CAP - 1) * 0.5) * PITCH, BAR_H, 0.0)
+		s.position = Vector3((i - (CAP - 1) * 0.5) * PITCH, BAR_H, 0.0) * k
+		s.scale = Vector3.ONE * k
 		socks.add_child(s)
 		_inst(P + "scenes/candle_row_candle%s.tscn" % lod, "Candle", s)
-	for k in 2:
-		var r := _inst(P + "candle_row_ring.glb", "GiftRing%d" % (k + 1), row)
-		r.position.y = BAR_H + PLATE_Y
+	for g in 2:
+		var r := _inst(P + "candle_row_ring.glb", "GiftRing%d" % (g + 1), row)
+		r.position.y = (BAR_H + PLATE_Y) * k
+		r.scale = Vector3.ONE * k
 		r.visible = false
 	var la := Marker3D.new()
 	la.name = "LightAnchor"   # bounce light belongs to the lighting rig (lighting_layers_spec), not the prop
-	la.position = Vector3(0, 0.12, 0.03)
+	la.position = Vector3(0, 0.12, 0.03) * k
 	row.add_child(la)
 	_pack(row, P + "scenes/candle_row%s.tscn" % lod)

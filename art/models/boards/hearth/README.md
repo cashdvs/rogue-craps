@@ -221,3 +221,6 @@ the rebuild; needs Vulkan, see its header).
   guideline; split them (e.g. make_hearth: materials / props / board / dressing; build_dressing: corners / under /
   chain + bell + tail) in a later art-only PR, rebuilding to byte-identical .glb / .tres.
 - Phone portrait framing (CameraRig) crops the far rail as on Board A, so the brazier / goal plaque is off screen in portrait.
+
+## v2 note (candle row)
+The 8 side-rail candles and their wax drips have been removed (candles now mean hands only). Their tris went to the candle row. This supersedes the candle entries above. Board drawn tris with dressing on: PC 13,514 (was 14,682), mobile 6,136 (was 6,824). dressing_corners: PC 662, mobile 420. New markers: `Anchors/CandleRow` and `Anchors/CandleRowPortrait` (proposal).

@@ -26,7 +26,9 @@ uniform float gutter_speed = 19.0; // rad/s of the gutter wobble
 uniform float gutter_low = 0.45;   // card size at level 1
 uniform float gutter_lean = 0.35;  // sideways lean (x card width) at level 1
 varying float v_seed;
+uniform float gutter_dim = 0.62;    // v2: flame brightness at the last-hand gutter (level 0.5)
 varying float v_life;
+varying float v_flick;
 
 void vertex() {
 	float life = clamp(COLOR.a * heat, 0.0, 1.0);
@@ -41,14 +43,18 @@ void vertex() {
 		to_cam = l > 1e-5 ? to_cam / l : vec3(0.0, 0.0, 1.0);
 		vec3 right = vec3(to_cam.z, 0.0, -to_cam.x);
 		float g = clamp(level, 0.0, 1.0);
-		float wob = sin(TIME * gutter_speed * (0.6 + g) + v_seed * 6.283) * 0.5 + 0.5;
+		// v2: uneven flicker = the sine wobble mixed with a stepped (on twos) random beat
+		float beat = fract(sin(floor(TIME * 12.0) * 12.9898 + v_seed * 78.233) * 43758.5453);
+		v_flick = beat;
+		float wob = mix(sin(TIME * gutter_speed * (0.6 + g) + v_seed * 6.283) * 0.5 + 0.5, beat, 0.6 * g);
 		float grow = mix(min_size, 1.0, life) * (1.0 + pulse * flare_grow)
-			* mix(1.0, mix(gutter_low, 1.0, wob * 0.6), g) * (1.0 - 0.12 * g * wob);
+			* mix(1.0, mix(gutter_low, 1.0, wob * 0.6), max(g * 2.0 - 1.0, 0.0) + 0.3 * min(g * 2.0, 1.0)) * (1.0 - 0.12 * g * wob);
 		float lean = gutter_lean * g * (wob - 0.3) * max(VERTEX.y, 0.0) * length(MODEL_MATRIX[1].xyz) * grow;
 		origin.y += rise * (1.0 - clamp(heat, 0.0, 1.0));
 		w = origin - to_cam * back_offset + right * (VERTEX.x * length(MODEL_MATRIX[0].xyz) * grow + lean)
 			+ vec3(0.0, 1.0, 0.0) * VERTEX.y * length(MODEL_MATRIX[1].xyz) * grow;
 	} else {
+		v_flick = 0.5;
 		w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	}
 	POSITION = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(w, 1.0));
@@ -80,5 +86,8 @@ void fragment() {
 	} else if (s.g > edge) {
 		col = mid_color.rgb;
 	}
+	// v2 last-hand gutter: ~half brightness, beating unevenly (0.5 +- 0.18)
+	float gd = smoothstep(0.25, 0.5, clamp(level, 0.0, 1.0));
+	col *= mix(1.0, gutter_dim + (v_flick - 0.5) * 0.36, gd);
 	ALBEDO = col;
 }

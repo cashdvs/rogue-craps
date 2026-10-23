@@ -6,10 +6,12 @@
 extends "res://art/models/boards/hearth/src/render_detail.gd"
 
 const ROW := "res://art/models/props/candle_row/scenes/candle_row%s.tscn"
-const ROW_AT := Vector3(-0.55, 0.11, 0.61)   # near rail top, left of centre (decoration zone |z| >= 0.61)
+const ROW_AT := Vector3(-0.50, 0.11, 0.61)   # v2: = Hearth Anchors/CandleRow (make_hearth.gd CANDLE_ROW_AT)
+const K := {false: 1.0, true: 1.4}            # make_candle_row.gd ROW_SCALE (PC, mobile)
 ## [label, hands, delta, hands_left, extra]
-const STATES := [["4 of 4 lit", 4, 0, 4, ""], ["bank: 3 of 4", 4, 0, 3, "snuff"], ["bust: drip", 4, 0, 3, "bust"],
-	["last hand", 4, 0, 1, ""], ["Ashmouth -1", 3, -1, 3, ""], ["Bodkin +1", 5, 1, 5, "rise"], ["table end", 4, 0, 0, ""], ["8 cap", 8, 0, 8, ""]]
+const STATES := [["4 of 4 lit", 4, 0, 4, ""], ["bank: 3 of 4", 4, 0, 3, "snuff"], ["bust: drip 0.25 s", 4, 0, 3, "bust"],
+	["bust: bead (end)", 4, 0, 3, "bead"], ["last hand: gutter", 4, 0, 1, ""], ["Ashmouth -1", 3, -1, 3, ""],
+	["Bodkin +1: ring", 5, 1, 5, ""], ["8 lit", 8, 0, 8, ""], ["10 hands: >8 cue ring", 10, 0, 10, ""], ["table end", 4, 0, 0, ""]]
 
 
 func _add_row(vp: SubViewport, mobile: bool, st: Array) -> Node3D:
@@ -17,8 +19,8 @@ func _add_row(vp: SubViewport, mobile: bool, st: Array) -> Node3D:
 	row.name = "CandleRow"
 	row.position = ROW_AT
 	vp.add_child(row)
-	row.call("table_start", st[1], st[2])
 	row.reduced_motion = true
+	row.call("table_start", st[1], st[2])
 	row.set("hands_left", st[1])
 	for i in st[1] - st[3]:
 		row.call("spend", false)
@@ -40,7 +42,16 @@ func _pose(row: Node3D, st: Array) -> void:
 	elif extra == "bust":
 		c.state = 1
 		ap.play(&"snuff_bust")
-		ap.seek(0.38, true)
+		ap.seek(0.25, true)
+	elif extra == "bead":
+		c.state = 1
+		ap.play(&"snuff_bust")
+		ap.seek(1.25, true)
+		ap.stop()
+		c.state = CandleRowCandle.State.COLD  # the clip-end handler (animation_finished) as in game
+		c.drip = 1.0
+		c.bead = 1.0
+		c.wisp = 1.0
 	elif extra == "rise":
 		ap.play(&"rise_in")
 		ap.seek(0.2, true)
@@ -57,9 +68,9 @@ func _rect_of(cam: Camera3D, pts: Array, pad: int) -> Rect2i:
 	return Rect2i(Vector2i(lo) - Vector2i(pad, pad), Vector2i(hi - lo) + Vector2i(pad * 2, pad * 2))
 
 
-func _row_pts() -> Array:
-	var half := 0.058 * 4 + 0.01
-	return [ROW_AT + Vector3(-half, 0, 0.02), ROW_AT + Vector3(half, 0, -0.02), ROW_AT + Vector3(-half, 0.12, 0), ROW_AT + Vector3(half, 0.12, 0)]
+func _row_pts(k := 1.0) -> Array:
+	var half := (0.058 * 4 + 0.01) * k
+	return [ROW_AT + Vector3(-half, 0, 0.02 * k), ROW_AT + Vector3(half, 0, -0.02 * k), ROW_AT + Vector3(-half, 0.12 * k, 0), ROW_AT + Vector3(half, 0.12 * k, 0)]
 
 
 func _p97(img: Image, ref: Image, r: Rect2i) -> Array:
@@ -77,7 +88,7 @@ func _p97(img: Image, ref: Image, r: Rect2i) -> Array:
 
 
 func _run() -> void:
-	out = "/workspace/dice/art/renders/candle_row/v1/"
+	out = "/workspace/dice/art/renders/candle_row/v2/"
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.substr(6)
@@ -108,12 +119,13 @@ func _run() -> void:
 	for v in views:
 		shots[[v[0], "nodice"]] = (vps[v[0]] as SubViewport).get_texture().get_image()
 		var cam := (vps[v[0]] as SubViewport).get_node("Cam") as Camera3D
-		var rr := _rect_of(cam, _row_pts(), 6)
+		var kk: float = K[v[3]]
+		var rr := _rect_of(cam, _row_pts(kk), 6)
 		var row_m := _p97(shots[[v[0], "row"]], shots[[v[0], "norow"]], rr)
 		var dice_m := _p97(shots[[v[0], "norow"]], shots[[v[0], "nodice"]], Rect2i(Vector2i.ZERO, v[1]))
-		var px := cam.unproject_position(ROW_AT + Vector3(0.029, 0, 0)).x - cam.unproject_position(ROW_AT - Vector3(0.029, 0, 0)).x
+		var px := cam.unproject_position(ROW_AT + Vector3(0.029 * kk, 0, 0)).x - cam.unproject_position(ROW_AT - Vector3(0.029 * kk, 0, 0)).x
 		log_lines.append("[%s %dx%d] row rect %s, socket pitch %.1f px, candle h %.1f px | row p97 luma %.3f (median %.3f, %d px) vs dice p97 %.3f (median %.3f) -> row/dice p97 %.0f%%" % [v[0], v[1].x, v[1].y, rr, px,
-			cam.unproject_position(ROW_AT).y - cam.unproject_position(ROW_AT + Vector3(0, 0.081, 0)).y, row_m[0], row_m[1], row_m[2], dice_m[0], dice_m[1], row_m[0] / maxf(dice_m[0], 1e-3) * 100.0])
+			cam.unproject_position(ROW_AT).y - cam.unproject_position(ROW_AT + Vector3(0, 0.081 * kk, 0)).y, row_m[0], row_m[1], row_m[2], dice_m[0], dice_m[1], row_m[0] / maxf(dice_m[0], 1e-3) * 100.0])
 		(shots[[v[0], "row"]] as Image).get_region(rr.grow(40)).save_png(out.path_join("game_cam_%s_row_crop.png" % v[0]))
 		var lit_only := _p97(shots[[v[0], "row"]], shots[[v[0], "norow"]], rr)
 	for v in views:
@@ -132,7 +144,7 @@ func _run() -> void:
 		_pose(row, STATES[i])
 	await _settle(2)
 	var cam0 := (svps[0] as SubViewport).get_node("Cam") as Camera3D
-	var r := _rect_of(cam0, _row_pts(), 4)
+	var r := _rect_of(cam0, _row_pts(1.4), 4)
 	var die_px := cam0.unproject_position(ROW_AT + Vector3(0.04, 0, 0)).x - cam0.unproject_position(ROW_AT - Vector3(0.04, 0, 0)).x
 	var k := 48.0 / die_px
 	var tw := int(r.size.x * k)
@@ -163,7 +175,7 @@ func _run() -> void:
 	for i in STATES.size():
 		_pose((cvps[i] as SubViewport).get_node("CandleRow"), STATES[i])
 	await _settle(2)
-	var sheet := Image.create(640 * 4, 400 * 2, false, Image.FORMAT_RGB8)
+	var sheet := Image.create(640 * 4, 400 * 3, false, Image.FORMAT_RGB8)
 	for i in STATES.size():
 		var img := (cvps[i] as SubViewport).get_texture().get_image()
 		img.convert(Image.FORMAT_RGB8)

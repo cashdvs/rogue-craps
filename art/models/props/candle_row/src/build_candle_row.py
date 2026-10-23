@@ -29,10 +29,13 @@ PLATE_R = 0.0165     # socket plate (hex) radius
 PLATE_Y = 0.0012     # plate sits this far above the bar top
 WAX_R = 0.0135       # candle radius (27 mm: thick enough to read at 48 px next to an 80 mm die)
 WAX_H = 0.072        # candle height at height 1 (top of the wax rim)
-SEG = 6              # around: 6 sides + the hull ink read as round at game distance
+SEG = 8              # around (v2: 6 -> 8 so the 1.4x phone row stays round; tris from the side-candle cut)
 WICK_H = 0.0075
-RING_R = 0.0172
-RING_H = 0.009
+RING_R = 0.0182      # v2: ring outer radius (wall 0.0034 m off the wax)
+RING_H = 0.0117      # v2: 1.3x the v1 band (0.009)
+RING_BEV = 0.0016    # v2: chamfer between the outer wall and the top lip: the bevel that catches the highlight
+BEAD_R = 0.0092      # v2: bust wax bead left on the holder bar
+BEAD_H = 0.0055
 
 
 def g2b(p):
@@ -100,10 +103,10 @@ def ring(r, y, n, phase=0.0, jitter=None):
 
 
 def build_candle():
-    """Tall tallow candle: 6 sides, a melted rim (the top ring dips where wax ran over) and a dimple,
+    """Tall tallow candle: 8 sides (v2), a melted rim (the top ring dips where wax ran over) and a dimple,
     plus a 3-sided wick. 18 + 3 = 21 tris. The cold stub is this mesh at height 0.3 (script scale)."""
     p = Part("candle_row_candle", [("candle_wax", (0.85, 0.74, 0.55)), ("wick", (0.02, 0.02, 0.02))])
-    dip = [0.0, -0.006, 0.0, -0.0025, 0.0, -0.004]          # melted rim: wax ran down 3 of the sides
+    dip = [0.0, -0.006, -0.002, 0.0, -0.0025, 0.0, -0.004, -0.001]   # melted rim: wax ran down 3 of the sides
     bot = [p.v(q) for q in ring(WAX_R, 0.0, SEG)]
     top = [p.v(q) for q in ring(WAX_R * 0.96, WAX_H, SEG, jitter=dip)]
     cap = p.v((0.0, WAX_H - 0.004, 0.0))
@@ -161,14 +164,36 @@ def build_socket():
 
 
 def build_ring():
-    """Brass gift collar for the extra (+hand) candle: an open 6-sided band round the candle foot (12 tris)."""
-    p = Part("candle_row_ring", [("ring_brass", (0.69, 0.55, 0.24))])
-    lo = [p.v(q) for q in ring(RING_R, 0.0, SEG)]
-    hi = [p.v(q) for q in ring(RING_R * 0.94, RING_H, SEG)]
-    for i in range(SEG):
-        j = (i + 1) % SEG
-        p.f([lo[i], lo[j], hi[j], hi[i]], [(i / SEG, 0.0), ((i + 1) / SEG, 0.0), ((i + 1) / SEG, 1.0), (i / SEG, 1.0)])
-    p.finish(55.0, flip=True)
+    """Brass gift collar (v2): a solid 8-sided band, 1.3x the v1 height, with a chamfer bevel between the
+    outer wall and the top lip (the bright highlight band), the lip and the inner wall. 4 x 16 = 64 tris."""
+    p = Part("candle_row_ring", [("ring_brass", (0.89, 0.75, 0.42))])
+    ri = WAX_R * 1.02
+    rows = [ring(RING_R, 0.0, SEG), ring(RING_R, RING_H - RING_BEV, SEG), ring(RING_R - RING_BEV, RING_H, SEG),
+            ring(ri, RING_H, SEG), ring(ri, 0.0, SEG)]
+    vs = [[p.v(q) for q in r] for r in rows]
+    vband = [0.0, 0.45, 0.6, 0.8, 1.0]
+    for b in range(4):
+        for i in range(SEG):
+            j = (i + 1) % SEG
+            p.f([vs[b][i], vs[b][j], vs[b + 1][j], vs[b + 1][i]],
+                [(i / SEG, vband[b]), ((i + 1) / SEG, vband[b]), ((i + 1) / SEG, vband[b + 1]), (i / SEG, vband[b + 1])])
+    p.finish(40.0, flip=True)
+
+
+def build_bead():
+    """Bust wax bead (v2): a low 6-sided dome on the bar top in front of the candle foot. 12 tris."""
+    p = Part("candle_row_bead", [("bead_wax", (0.78, 0.66, 0.46))])
+    rim = [p.v(q) for q in ring(BEAD_R, 0.0, 6)]
+    mid = [p.v(q) for q in ring(BEAD_R * 0.62, BEAD_H * 0.8, 6, phase=math.pi / 6)]
+    top = p.v((0.0, BEAD_H, 0.0))
+    def uv(k, r):
+        a = 2 * math.pi * k / 6
+        return (0.5 + 0.45 * r * math.cos(a), 0.5 + 0.45 * r * math.sin(a))
+    for i in range(6):
+        j = (i + 1) % 6
+        p.f([rim[i], rim[j], mid[i]], [uv(i, 1), uv(j, 1), uv(i + 0.5, 0.62)])
+        p.f([mid[i], mid[j], top], [uv(i + 0.5, 0.62), uv(j + 0.5, 0.62), (0.5, 0.5)])
+    p.finish(70.0, flip=True)
 
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -176,6 +201,7 @@ build_candle()
 build_holder()
 build_socket()
 build_ring()
+build_bead()
 row = TRIS["candle_row_holder"] + CAP * (TRIS["candle_row_socket"] + TRIS["candle_row_candle"])
 print("TRIS %s" % TRIS)
 print("ROW_GEOMETRY holder+%d sockets+%d candles = %d (+%d per gift ring)" % (CAP, CAP, row, TRIS["candle_row_ring"]))

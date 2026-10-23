@@ -44,3 +44,16 @@ Row p97 luma 0.510 vs dice 0.959 PC (53 %), 0.520 vs 0.949 phone (55 %). Socket 
 
 ## Not done
 Not placed in the board scene; no glow decal; tri test doesn't include the row; ring and drip weak at 48 px.
+
+## v2 (art rulings, Oct 2026)
+- Brass ring at BRASS_HI #E2C06A, 1.3x thicker (64 tris, `candle_row_ring.tres`).
+- Bust: drip slower (~0.4 s) and bigger, leaving a wax bead on the holder (`candle_row_bead.glb`, 12 tris). Clip `snuff_bust` is 1.25 s.
+- hands_left > 8: all 8 lit and the brass ring on candle 8 is the "more than shown" cue. At 8 or fewer, sockets map 1:1. Hooks: `add_hands(n)`, `over_cap()`.
+- hands_left == 1: the flame gutters (`gutter` clip, about 0.5 level, uneven flicker plus wisp). It goes back to normal when a hand is added. Note: reduced motion stops the clip but not the shader flicker.
+- Phone: ROW_SCALE 1.4 (about 20 px candle, 27 px pitch on an 844x390 synthetic cam).
+- Tris (all meshes): holder 20 + 8 × (candle 27 + socket 4 + wick/flame/bead) + rings 128 = 540. Drawn: 4 lit 152, 8 lit 284, >8 cue 348.
+
+### Placement
+- `Hearth Anchors/CandleRow` Marker3D at (-0.36, 0.11, 0.61): on the near rail, left of the pot, shared by PC and landscape phone. Candles 1-5 clear Bank on landscape phone. Candles 6-8 sit under the "Pot"/hint labels, and on PC candle 1 touches the Bank button edge.
+- The portrait camera crops the near rail entirely. PROPOSAL: `Anchors/CandleRowPortrait` (1.11, 0.11, -0.05), yaw 90°, on the screen-bottom rail left of the cauldron. It is on screen and uncropped. It still needs AD sign-off and an orientation switch in HUD code (not done).
+- Real-camera check: `src/render_candle_row_game.gd -- phone=WxH anchor=... out=...`.

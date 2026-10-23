@@ -24,3 +24,4 @@ shader_parameter/rise = null
 shader_parameter/gutter_speed = null
 shader_parameter/gutter_low = null
 shader_parameter/gutter_lean = null
+shader_parameter/gutter_dim = null

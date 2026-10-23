@@ -413,6 +413,7 @@ def tail_tip(part, slot, seg):
 
 
 # ---------------------------------------------------------------- the parts
+SIDE_CANDLE_DRIPS = False  # v2: the side-rail progress candles are gone, so are the drips under them
 CHAIN_Z = (-0.02, 0.105)  # left-rail span of the chain loop (between Candle3 z -0.24 and Candle5 z 0.24)
 CHAIN_PIVOT = Vector((-1.203, 0.028, 0.04))
 BELL_AT = ("far", 0.872, 0.043)        # rail, along, outboard offset: the FR cluster (v2; was x -0.205 beside Smiles,
@@ -458,13 +459,18 @@ def build_corners(out_dir, name, mobile):
     # light pools under each cluster (NL only on PC: its cup + coins are PC trinkets)
     for (rail, a0, a1) in POOLS[: 3 if mobile else 4]:
         pool(p, S["dressing_pool"], rail, a0, a1, math.radians(3), math.radians(56), 1, 3)
-    # wax drips down the outer rail face under the four near progress candles (x +-1.135, z 0.24 / 0.42)
+    # wax drips down the outer rail face under the four near progress candles (x +-1.135, z 0.24 / 0.42):
+    # cut with the side candles (AD Oct 22, candle row v2: candles mean hands only)
     for side in ("left", "right"):
         for z in (0.24, 0.42):
             sz = 1.0 if side == "right" else -1.0
-            drip(p, S["dressing_wax_drip"], side, z + 0.006 * sz, math.radians(30), math.radians(rng.uniform(80, 98)), 0.0028, 3)
+            a1 = rng.uniform(80, 98)                 # rng drawn either way: the rest of the dressing stays put
+            if SIDE_CANDLE_DRIPS:
+                drip(p, S["dressing_wax_drip"], side, z + 0.006 * sz, math.radians(30), math.radians(a1), 0.0028, 3)
             if not mobile:
-                drip(p, S["dressing_wax_drip"], side, z - 0.008 * sz, math.radians(31), math.radians(rng.uniform(58, 70)), 0.0024, 3)
+                a2 = rng.uniform(58, 70)
+                if SIDE_CANDLE_DRIPS:
+                    drip(p, S["dressing_wax_drip"], side, z - 0.008 * sz, math.radians(31), math.radians(a2), 0.0024, 3)
     # the chain end lying over the left rail top (static); the hanging part is dressing_chain
     pts = []
     for k in range(5):
