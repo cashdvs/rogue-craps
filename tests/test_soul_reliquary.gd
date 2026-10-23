@@ -103,9 +103,6 @@ func _check_board() -> void:
 		_ok(pt != null and absf(rad_to_deg(pt.rotation.y) - 90.0) < 0.5, "portrait marker yaw 90")
 		_ok(pt != null and pt.position.z >= 0.54 and pt.position.y > 0.08, "portrait marker on the near-rail lip, not the felt (v2)")
 		_ok(pt != null and pt.position.z - 0.054 * 1.5 * pt.scale.x > 0.50, "portrait plinth clears the throw zone (z > 0.50)")
-		var cn := 0
-		for c in b.get_node("Hearth/Candles/RailLeft").get_children():
-			cn += 1
 		_ok(b.get_node_or_null("Hearth/Candles/RailLeft/Candle3") == null and b.get_node_or_null("Hearth/Candles/RailLeft/Candle5") == null, "rail candles 3/5 cut beside the reliquary (v2)")
 		b.free()
 
