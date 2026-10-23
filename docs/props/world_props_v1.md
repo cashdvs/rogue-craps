@@ -41,7 +41,7 @@ The hands_delta of Ashmouth, Baron Vig and Odds Bodkin is shown by the **hand ca
 - **States:**
   - **blank** (table start)
   - **flip to n** on `hand_start` (`rule_pit_boss.gd` draws `locked` and returns felt text `LOCKED  n` via `bonfire_3d.gd` felt text). The numeral must equal `locked`.
-  - **pulse** when a die lands on n (`boss_cheat`) or Wild skips n
+  - **pulse** when a die lands on n (`boss_cheat`)
   - **dim** on `table_end`
 - **Assets:** new mesh (plaque, stand); material (aged brass, enamel); decal set for numerals 2–6 plus the bar; flip animation (0.3 s).
 
@@ -136,7 +136,7 @@ The hands_delta of Ashmouth, Baron Vig and Odds Bodkin is shown by the **hand ca
 ### 2.1 Hand candle row
 - **Purpose:** hands left at a glance.
 - **Line** `hands_label`: "Hands left: {n}"
-- **Look and placement:** a row of tall candles on the near rail, left side, with one **lit** candle per remaining hand (prop fire is allowed). The row holds up to 8 sockets.
+- **Look and placement:** a row of tall candles on the near rail, left side, with one **lit** candle per remaining hand (prop fire is allowed). The row holds up to 8 sockets (tunable display constant `CANDLE_CAP = 8`).
 - **States and triggers:**
   - **Table start** (`table_started`, `BonfireRun._init` sets `hands_left = goal.hands`). `goal.hands` already includes `hands_delta` (`scripts/core/map/map_run.gd:108`).
     - **Negative delta** (Ashmouth, Baron Vig): an empty socket with a cold wick stub stays visible.
@@ -156,7 +156,7 @@ The hands_delta of Ashmouth, Baron Vig and Odds Bodkin is shown by the **hand ca
   - **Rise** on heal: Rest "Heal {n} Soul" (`run.rest_heal()`), event heals, contract piece (full heal).
   - **Vessel grows** on a `change_max_soul(+)` such as the Soul Draught (`map_run_shop.gd`; line `shop_soul_button`: "Soul Draught: +4 max Soul, heals 4. {n} Embers") or a contract piece (`contract_max_soul`). The glass stretches taller, then the liquid rises.
   - **Full:** the liquid sits at the brim. An Altar Soul-only choice is greyed out (first_time_clarity_v1 §0c).
-  - **Low** (≤5): the glass frosts at the edges.
+  - **Low** (≤5, tunable display constant `SOUL_FROST_AT = 5`): the glass frosts at the edges.
   - **Empty** (`soul == 0`, run over).
 - **Assets:** new mesh (reliquary, base plate); materials (glass, liquid shader with fill parameter); drain, rise and stretch animations; frost overlay.
 
@@ -176,7 +176,7 @@ The hands_delta of Ashmouth, Baron Vig and Odds Bodkin is shown by the **hand ca
 ### 2.4 Ember stacks (added by PM)
 - **Purpose:** wealth reads physically. The stacks **roughly** track Embers; the HUD number is the source of truth.
 - **Line** `coin_label`: "Embers {n}". In player text, call them Embers, never "chips" (banned word).
-- **Look and placement:** stacks of dark ember-glass tokens (glowing coal colour, no flame) at the player's right elbow. One token stands for about 2 Embers, up to 4 stacks of 8. Above the cap, the stacks stay full.
+- **Look and placement:** stacks of dark ember-glass tokens (glowing coal colour, no flame) at the player's right elbow. One token stands for about 2 Embers (tunable display constant `EMBERS_PER_TOKEN = 2`), up to 4 stacks of 8. Above the cap, the stacks stay full.
 - **States and triggers:**
   - **Add** tokens on Embers gained: `coin_label` refresh, table points to Embers at `table_end` (`points_to_embers`), Gilded pot (`pot.embers`)
   - **Remove** tokens on spending in the shop
@@ -208,7 +208,7 @@ The hands_delta of Ashmouth, Baron Vig and Odds Bodkin is shown by the **hand ca
 | `bone` (d6) | **bone**, ivory with pores | the baseline | **GAP, added:** `bone_die` "A plain six-sided die; 1s and 5s light on their own." |
 | `extra` (d6) | bone, with a small "+1" notch on an edge | same as Bone | `extra` "A plain die: throw one more die each hand, up to 7." |
 | `mirror` (d6) | **glass**, silvered back (reflective) | reflects the nearest die | `mirror` "After it lands, it copies the nearest other die." |
-| `lantern` (d8) | **glass**, smoky lantern panes | **disabled in GIVE_DIE**; asset kept | `lantern` "Rolls 1 to 8, and its 8 is a Wild Face." |
+| `lantern` (d8) | **glass**, smoky lantern panes | still sold by the Gravedigger event (`resources/events/gravedigger.tres`, -10 Embers), so the asset is needed; the choice is hidden while the die is disabled for GIVE_DIE | `lantern` "Rolls 1 to 8, and its 8 is a Wild Face." |
 | `wanderer` (d6) | **wood**, walnut with a grain trail | warm, travelled | `wanderer` "A run with this die may skip one number." |
 | `knucklebone` (talus) | **wood**, knuckle-carved boxwood (per PM; not literal bone, so it doesn't read as Bone) | 4 sides: 1, 3, 4, 6 | `knucklebone` "Rolls 1, 3, 4, 6; sets with it score +1 Seal level." |
 | `last_breath` (d6) | **obsidian** | black, glassy | `last_breath` "Pot it from a rethrow of 1 or 2 dice: x3 mult." |
@@ -288,3 +288,6 @@ Two props had no line. Both rows were added in `sim/build_strings_v1.py` and `ch
 - **#4 Seal stamps:** wax Seal stamps on combo faces or table, pulsing when the Seal triggers.
 - **#5 Floor tables:** a per-floor felt, wood and lighting swap.
 - **#7 Scene props:** shop, rest and event scene props.
+
+
+**Display constants (approved by PM, Oct 22, 2026):** `SOUL_FROST_AT = 5`, `EMBERS_PER_TOKEN = 2` and `CANDLE_CAP = 8` are display-only and can be tuned without changing any rule.
