@@ -36,10 +36,23 @@ var _rigs: Dictionary = {}
 var _crowd_fraction: float = 0.0
 ## Force the fallbacks (tests: "without the art / audio branches").
 var force_fallback: bool = false
+## Every timer this node starts; unhooked when it leaves the tree (#128).
+var _timers := ExitTimers.new()
+## The slow-mo time scale in effect (0 = none), to undo it if cut short.
+var _slowmo_scale: float = 0.0
 
 
 func _init() -> void:
 	name = "BonfireJuice"
+
+
+## Leaving the tree: no timer fires on a removed table, and a slow-mo cut
+## short is undone the same way its timer would have.
+func _exit_tree() -> void:
+	_timers.stop_all()
+	if _slowmo_scale > 0.0 and is_equal_approx(Engine.time_scale, _slowmo_scale):
+		Engine.time_scale = 1.0
+	_slowmo_scale = 0.0
 
 
 func setup(t: Bonfire3D) -> void:
@@ -135,7 +148,7 @@ func crowd_roar() -> void:
 	if crowd != null and crowd.has_method("set_pot_fraction"):
 		crowd.call("set_pot_fraction", 1.0, 0.15)
 		_log("sfx:crowd_roar")
-		get_tree().create_timer(1.2, true, false, true).timeout.connect(func() -> void:
+		_timers.start(self, 1.2, true, false, true).timeout.connect(func() -> void:
 			if is_instance_valid(crowd):
 				crowd.call("set_pot_fraction", _crowd_fraction))
 	else:
@@ -175,12 +188,12 @@ func _play_scene(ps: PackedScene, parent: Node, at: Vector3, clip: String, delay
 	if ap != null and ap.has_animation(clip):
 		life = ap.get_animation(clip).length + 0.6
 		if delay > 0.0:
-			get_tree().create_timer(delay, true, false, true).timeout.connect(func() -> void:
+			_timers.start(self, delay, true, false, true).timeout.connect(func() -> void:
 				if is_instance_valid(ap):
 					ap.play(clip))
 		else:
 			ap.play(clip)
-	get_tree().create_timer(life + delay, true, false, true).timeout.connect(func() -> void:
+	_timers.start(self, life + delay, true, false, true).timeout.connect(func() -> void:
 		if is_instance_valid(n):
 			n.queue_free())
 	return n
@@ -207,7 +220,7 @@ func lift(dice: Array[DieVisual], big: bool, speed: float = 1.0) -> void:
 			var ap := r.get_node_or_null("AnimationPlayer") as AnimationPlayer
 			if ap != null:
 				ap.speed_scale = speed
-				get_tree().create_timer(i * stagger, true, false, true).timeout.connect(func() -> void:
+				_timers.start(self, i * stagger, true, false, true).timeout.connect(func() -> void:
 					if is_instance_valid(ap) and ap.has_animation("lift_light"):
 						ap.play("lift_light")
 						if ap.has_animation("hold"):
@@ -254,7 +267,7 @@ func drop(dice: Array, immediate: bool = false) -> void:
 				var ap := r.get_node_or_null("AnimationPlayer") as AnimationPlayer
 				if ap != null and ap.has_animation("drop"):
 					ap.play("drop")
-				get_tree().create_timer(0.3, true, false, true).timeout.connect(func() -> void:
+				_timers.start(self, 0.3, true, false, true).timeout.connect(func() -> void:
 					if is_instance_valid(follow):
 						follow.remote_path = NodePath()
 					if is_instance_valid(r):
@@ -300,8 +313,10 @@ func escalate(score_tier: int, dice: Array[DieVisual], reduced: bool, instant: b
 
 func slow_mo(seconds: float, scale: float) -> void:
 	Engine.time_scale = scale
+	_slowmo_scale = scale
 	_log("fx:slowmo")
-	await get_tree().create_timer(seconds, true, false, true).timeout
+	await _timers.start(self, seconds, true, false, true).timeout
+	_slowmo_scale = 0.0
 	if is_equal_approx(Engine.time_scale, scale):
 		Engine.time_scale = 1.0
 
@@ -320,7 +335,7 @@ func brazier_column() -> void:
 	var before: int = fx.get("pot_step")
 	fx.set("pot_step", 4)
 	_log("fx:brazier_column")
-	get_tree().create_timer(BRAZIER_COLUMN_TIME, true, false, true).timeout.connect(func() -> void:
+	_timers.start(self, BRAZIER_COLUMN_TIME, true, false, true).timeout.connect(func() -> void:
 		if is_instance_valid(fx):
 			fx.set("pot_step", before))
 
@@ -377,7 +392,7 @@ func ember_pile(at: Vector3) -> void:
 func bust(dice: Array[DieVisual], reduced: bool) -> void:
 	var t := table.bonfire_tuning
 	sfx(&"bust", 1.0, 0.0, 0.0, &"seven_out", 1.0, 0.0)
-	get_tree().create_timer(t.juice_flask_crack_delay, true, false, true).timeout.connect(func() -> void:
+	_timers.start(self, t.juice_flask_crack_delay, true, false, true).timeout.connect(func() -> void:
 		sfx(&"soul_flask_crack", 1.0, 0.0, 0.0, &"soul_burn", 0.7, -2.0))
 	var ash_mat: Material = null
 	if has_art() and ResourceLoader.exists(VFX + ASH_BODY):

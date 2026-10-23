@@ -179,6 +179,20 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - Main calls: `throw(velocity, release_pos)`, `pick_die(i)`, `bank()`, `throw_again()`, `leave()` / `can_leave_now()`, `forfeit()`, `outcome()`. For tests: `new_run(seed)`, `rig_faces()`, `rig_slots()`.
   - Signals: `throw_resolved(faces, lit)`, `hand_result(result)`, `throw_measured(...)` (debug), `refused(index)`, and `finished(outcome: TableOutcome)`. `finished` fires exactly once, and it's the only way a table talks back to the run.
   - Effects and sound listen to `table.events` (`scripts/bonfire/table_events.gd`, coming in the readability PR) and never call into table logic. VFX Dev owns those listeners in `scripts/fx/`.
+- **File layers (#128):** `Bonfire3D`, `BonfireHud` and `BonfireRun` are each a chain of short files. Each file `extends` the one before it, and only the last class is ever created. A lower layer calls functions written higher up through `@abstract func` declarations. Variables, constants and signals sit in the bottom layer.
+
+  | File | Class | Holds |
+  |---|---|---|
+  | `scripts/bonfire/bonfire_table_state.gd` | `BonfireTableState` (extends `Table3D`) | the table's signals, constants, variables and read-only questions |
+  | `scripts/bonfire/bonfire_table_look.gd` | `BonfireTableLook` | **art seam**: `table_die()`, `apply_die_look()` (the `set_look` call), face-mod decals, lit / cold looks |
+  | `scripts/bonfire/bonfire_table_layout.gd` | `BonfireTableLayout` | camera, phone / landscape fit, pot and hand positions, screen picking |
+  | `scripts/bonfire/bonfire_throw_flow.gd` | `BonfireThrowFlow` | one throw: launch, settle, rule triggers, face changes, bust |
+  | `scripts/bonfire/bonfire_pot_bank.gd` | `BonfirePotBank` (`Bonfire3D` extends it) | pot, throw again, bank and count-up, Hot Hand, Nerve glue |
+  | `scripts/bonfire/bonfire_hud_build.gd` | `BonfireHudBuild` (extends `Control`) | HUD variables; builds the labels, buttons and panels |
+  | `scripts/bonfire/bonfire_hud_goal.gd` | `BonfireHudGoal` (`BonfireHud` extends it) | goal / bounty readout, meters, stamps, UI scale |
+  | `scripts/core/bonfire_run_state.gd` | `BonfireRunState` (`BonfireRun` extends it) | a table's rule state, rule hooks and read-only questions; `BonfireRun` keeps the actions |
+
+  Timers: `Table3D._timer()` and `BonfireJuice` (through `ExitTimers`, `scripts/bonfire/exit_timers.gd`) unhook their pending timers in `_exit_tree()`, so nothing wakes up on a table that has been removed. A hit-stop or slow-mo that is cut short is undone.
 - **Rules:**
   - `scripts/core/bonfire_run.gd` holds one table's state: hands, the pot, banked points, Soul and Hot Hand.
   - `scripts/core/bonfire_scoring.gd` (`BonfireScoring`) is pure static functions. `match_combo()` finds the combo and `score_selection()` returns (base + faces) × mult.
