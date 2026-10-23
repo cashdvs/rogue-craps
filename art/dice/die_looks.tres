@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DieLookTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://art/dice/die_look_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+body_by_die = {
+&"default": "res://art/materials/dice/bone.tres",
+&"bone": "res://art/materials/dice/bone.tres",
+&"extra": "res://art/materials/dice/bone.tres",
+&"cracked": "res://art/materials/dice/bone.tres",
+&"twin_flame": "res://art/materials/dice/bone.tres",
+&"mirror": "res://art/materials/dice/glass.tres",
+&"lantern": "res://art/materials/dice/locked/lantern_d8.tres",
+&"wanderer": "res://art/materials/dice/wood.tres",
+&"knucklebone": "res://art/models/dice/materials/knucklebone_body.tres",
+&"last_breath": "res://art/materials/dice/obsidian.tres",
+&"midnight": "res://art/models/dice/materials/midnight_body.tres",
+&"coven": "res://art/models/dice/materials/coven_body.tres",
+&"bellows": "res://art/models/dice/materials/bellows_body.tres",
+&"blood_pact": "res://art/models/dice/materials/blood_pact_body.tres",
+&"caltrop": "res://art/models/dice/materials/caltrop_body.tres",
+&"tithe": "res://art/models/dice/materials/tithe_body.tres",
+&"verdict": "res://art/models/dice/materials/verdict_body.tres",
+&"ferryman": "res://art/models/dice/materials/ferryman_body.tres",
+&"powder_keg": "res://art/models/dice/materials/powder_keg_body.tres",
+&"gilded_d6": "res://art/materials/dice/brass.tres",
+&"hellfire_d6": "res://art/materials/dice/obsidian.tres"
+}
+mark_by_mod = {
+&"wild": {"decal": null, "tint": Color(0.93, 0.86, 0.66, 1)},
+&"ember_pip": {"decal": null, "tint": Color(0.91, 0.38, 0.16, 1), "glow_color": Color(0.91, 0.38, 0.16, 1)},
+&"hellfire": {"decal": null, "tint": Color(0.55, 0.12, 0.08, 1)},
+&"gilded": {"decal": null, "tint": Color(0.83, 0.68, 0.36, 1)},
+&"twin": {"decal": null, "tint": Color(0.91, 0.38, 0.16, 1), "glow_color": Color(0.91, 0.38, 0.16, 1)},
+&"step": {"decal": null, "tint": Color(0.93, 0.86, 0.66, 1)},
+&"stair": {"decal": null, "tint": Color(0.93, 0.86, 0.66, 1)},
+&"kindling": {"decal": null, "tint": Color(0.60, 0.40, 0.22, 1)},
+&"blood": {"decal": null, "tint": Color(0.62, 0.08, 0.10, 1)},
+&"heavy": {"decal": null, "tint": Color(0.36, 0.36, 0.38, 1)},
+&"blank": {"decal": null, "tint": Color(0, 0, 0, 0)}
+}
