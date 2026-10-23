@@ -1,8 +1,7 @@
-## Boss cheat text drift guard (QA on #137): every CHEAT in TableRules.INFO
-## must say exactly what its resources/map/rules/<id>.tres description says
-## (both follow design/strings_v1.md). Skipped: a .tres whose id is another
-## handler's (madame_shuffle runs on pit_boss as a stopgap) and the Elite
-## twists (their .tres lines carry their own "+1 hand." wording).
+## Rule text drift guard (QA on #137): every boss cheat and Elite twist in
+## TableRules.INFO must say exactly what its resources/map/rules/<id>.tres
+## description says (the .tres is the reference). Skipped: a .tres whose id
+## is another handler's (madame_shuffle runs on pit_boss as a stopgap).
 ##   godot --headless --path . --script res://tests/test_rule_text_sync.gd
 extends SceneTree
 
@@ -23,8 +22,6 @@ func _initialize() -> void:
 	var seen := 0
 	for id in TableRules.INFO:
 		var info: Array = TableRules.INFO[id]
-		if info[2] != TableRule.Kind.CHEAT:
-			continue
 		var path := RULES + String(id) + ".tres"
 		if not ResourceLoader.exists(path):
 			continue
@@ -34,6 +31,7 @@ func _initialize() -> void:
 			continue  # stopgap on another handler (madame_shuffle -> pit_boss)
 		seen += 1
 		_check(r.description == info[1], "%s: INFO %s == .tres %s" % [id, info[1], r.description])
-	_check(seen >= 8, "covered %d boss cheats" % seen)
+	_check(seen >= 14, "covered %d cheats + twists" % seen)
+	_check(TableRules.make({"id": &"short_table"}).description == "4 hands.", "short_table fallback fills {hands}")
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
