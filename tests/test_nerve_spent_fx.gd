@@ -40,6 +40,10 @@ class FakeTable extends Node3D:
 		return dice[id] if id >= 0 and id < dice.size() else null
 
 
+## Fixed literals for the pip check (x die edge).
+const PIP_RADIUS: float = 0.34
+const BAND_NEAREST_MIN: float = 0.36
+
 var _passed: int = 0
 var _failed: int = 0
 
@@ -119,7 +123,14 @@ func _test_glint() -> void:
 	var local := s.global_position - d.global_position
 	var depth := Vector2(local.x, local.z).length() / 0.08
 	_check(absf(depth - NerveSpentFx.EDGE_Z) < 0.01, "glint centred on the camera-side bevel (%.3f)" % depth)
-	_check(NerveSpentFx.min_depth() >= NerveSpentFx.PIP_REACH, "glint never reaches the pips (%.3f)" % NerveSpentFx.min_depth())
+	# Fixed literals (not the code's own tunables): pips on the d6 face sit
+	# within PIP_RADIUS x edge of its centre, and the band's nearest edge must
+	# stay at or beyond BAND_NEAREST_MIN x edge. Measured from the sprite.
+	var band_w := s.pixel_size * float(s.texture.get_height()) * s.scale.z / 0.08
+	var nearest := depth - band_w * 0.5
+	_check(nearest >= BAND_NEAREST_MIN - 1e-4, "glint's nearest edge >= %.2f x edge (%.3f)" % [BAND_NEAREST_MIN, nearest])
+	_check(nearest > PIP_RADIUS, "glint never reaches the pips (%.3f > %.2f)" % [nearest, PIP_RADIUS])
+	_check(is_equal_approx(NerveSpentFx.PIP_REACH, PIP_RADIUS) and NerveSpentFx.min_depth() >= BAND_NEAREST_MIN - 1e-4, "code's pip limit matches the literal pip radius (%.3f)" % NerveSpentFx.PIP_REACH)
 	var width := s.pixel_size * float(s.texture.get_height()) * s.scale.z
 	_check(absf(width - 0.08 * NerveSpentFx.THICK) < 1e-5, "thin band (%.4f m)" % width)
 	var c := NerveSpentFx.COLOR
