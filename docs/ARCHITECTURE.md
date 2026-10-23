@@ -190,6 +190,7 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   | `scripts/bonfire/bonfire_pot_bank.gd` | `BonfirePotBank` (`Bonfire3D` extends it) | pot, throw again, bank and count-up, Hot Hand, Nerve glue |
   | `scripts/bonfire/bonfire_hud_build.gd` | `BonfireHudBuild` (extends `Control`) | HUD variables; builds the labels, buttons and panels |
   | `scripts/bonfire/bonfire_hud_goal.gd` | `BonfireHudGoal` (`BonfireHud` extends it) | goal / bounty readout, meters, stamps, UI scale |
+  | `scripts/bonfire/bonfire_juice_sound.gd` | `BonfireJuiceSound` (`BonfireJuice` extends it) | the juice adapter's constants, variables, hook log and every sound (SfxManager events with fallbacks, crowd layers) |
   | `scripts/core/bonfire_run_state.gd` | `BonfireRunState` (`BonfireRun` extends it) | a table's rule state, rule hooks and read-only questions; `BonfireRun` keeps the actions |
 
   Timers: `Table3D._timer()` and `BonfireJuice` (through `ExitTimers`, `scripts/bonfire/exit_timers.gd`) unhook their pending timers in `_exit_tree()`, so nothing wakes up on a table that has been removed. A hit-stop or slow-mo that is cut short is undone.
