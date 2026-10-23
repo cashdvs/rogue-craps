@@ -48,7 +48,7 @@ func _test_data() -> void:
 			_check(imp.contains("mipmaps/generate=true"), "%s: mipmaps on for %s" % [n, tex.resource_path.get_file()])
 	var vig := load(RULES + "baron_vig.tres") as RunRuleData
 	var bod := load(RULES + "odds_bodkin.tres") as RunRuleData
-	_check(vig.tooltip_text == "POT 3+ DICE EVERY THROW" and vig.sign_alt_text.contains("FLOOR 3 · THE HOUSE MINIMUM") and vig.sign_alt_text.contains("MIN 3"), "vig: sign wording")
+	_check(vig.tooltip_text == "Pot at least 3 dice every throw; -1 hand." and vig.tooltip_text == vig.description and vig.sign_alt_text.contains("FLOOR 3 · THE HOUSE MINIMUM") and vig.sign_alt_text.contains("MIN 3") and vig.sign_alt_text.contains("-1 HAND"), "vig: sign wording")
 	_check(bod.tooltip_text.contains("BOUNTIES COUNT ON 1ST THROW ONLY") and bod.tooltip_text.contains("+1 HAND")
 		and bod.sign_alt_text.contains("FLOOR 3 · FIRST SHOT OR NOTHING") and bod.sign_alt_text.contains("1ST"), "bodkin: sign wording")
 	var wick := load(RULES + "mister_wick.tres") as RunRuleData

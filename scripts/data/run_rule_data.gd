@@ -42,7 +42,7 @@ func same_effect(other: RunRuleData) -> bool:
 @export var sign_texture_2x: Texture2D
 ## 128 px rule icon for the table HUD row (shown at ~56 px). null = text row.
 @export var rule_icon: Texture2D
-## The sign's rule line(s), e.g. "POT 3+ DICE EVERY THROW" (HUD tooltip).
+## The sign's rule line(s), e.g. "Pot at least 3 dice every throw; -1 hand." (HUD tooltip).
 @export var tooltip_text: String = ""
 ## Everything printed on the sign, for screen readers / accessible text.
 @export var sign_alt_text: String = ""

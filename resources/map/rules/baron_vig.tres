@@ -18,5 +18,5 @@ params = {
 sign_texture = ExtResource("2_bvs1")
 sign_texture_2x = ExtResource("3_bvs2")
 rule_icon = ExtResource("4_bvic")
-tooltip_text = "POT 3+ DICE EVERY THROW"
-sign_alt_text = "Baron Vig. POT 3+ DICE EVERY THROW. FLOOR 3 · THE HOUSE MINIMUM. Badge: MIN 3."
+tooltip_text = "Pot at least 3 dice every throw; -1 hand."
+sign_alt_text = "Baron Vig. POT 3+ DICE EVERY THROW. FLOOR 3 · THE HOUSE MINIMUM. Badge: MIN 3. Pill: -1 HAND. Pot at least 3 dice every throw; -1 hand."
