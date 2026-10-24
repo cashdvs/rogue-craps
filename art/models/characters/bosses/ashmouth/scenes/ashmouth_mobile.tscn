@@ -9,4 +9,16 @@
 [node name="AnimationPlayer" parent="Model" index="1"]
 autoplay = &"idle"
 
+[node name="PipeMouthAttach" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D"]
+bone_name = "visor"
+
+[node name="PipeMouth" type="Marker3D" parent="Model/Smiles/Skeleton3D/PipeMouthAttach"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.026, -0.03)
+
+[node name="FireboxDoorAttach" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D"]
+bone_name = "firebox_door"
+
+[node name="FireboxDoor" type="Marker3D" parent="Model/Smiles/Skeleton3D/FireboxDoorAttach"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.075, 0, 0.028)
+
 [editable path="Model"]
