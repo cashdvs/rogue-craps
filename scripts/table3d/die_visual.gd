@@ -41,11 +41,15 @@ var material: String = "bone":
 			_apply_glow(glow_lit, glow_cold)
 
 ## Playtest fix (PM + AD): the lit cue. Every family gets the same
-## inverted-hull ember outline, 0.015 m #E8622A, emission 0.6, shown only
+## inverted-hull ember outline, 0.010 m #E8622A, emission 0.4, shown only
 ## while lit (AD #162: also replaces glass's old dark #2A2018 ink outline).
-## A dimmed die (lit but can't join the selection, SelectionDimFx) keeps it
-## at DIM_OUTLINE_ALPHA with no emission; plain and cold dice show none.
-const HULL_OUTLINE := {"width": 0.015, "color": Color("#E8622A"), "emission": 0.6}
+## A dimmed die (lit but can't join the selection, SelectionDimFx) shows it
+## in DIM_OUTLINE_COLOR with no emission; plain and cold dice show none.
+## The hull (shaders/3d/die_hull_outline.gdshader) grows in view space from
+## the die centre and is nudged toward the camera, so it is even on every side
+## (a world-space grow showed the far wall above the top faces).
+const HULL_OUTLINE := {"width": 0.010, "color": Color("#E8622A"), "emission": 0.4}
+const HULL_OUTLINE_SHADER := preload("res://shaders/3d/die_hull_outline.gdshader")
 const HULL_OUTLINE_FAMILIES := {
 	"bone": HULL_OUTLINE,
 	"brass": HULL_OUTLINE,
@@ -53,7 +57,8 @@ const HULL_OUTLINE_FAMILIES := {
 	"obsidian": HULL_OUTLINE,
 	"frosted_glass": HULL_OUTLINE,
 }
-const DIM_OUTLINE_ALPHA := 0.25
+## Dimmed outline: opaque warm neutral, no emission (AD #162 v2).
+const DIM_OUTLINE_COLOR := Color("#8A8478")
 ## True while SelectionDimFx shows this die dimmed (see set_dimmed).
 var outline_dimmed: bool = false
 ## Lit rim energy per family (default STATE_RIM_ENERGY).
@@ -214,7 +219,7 @@ func set_glow_state(lit: bool, cold: bool, instant: bool = false) -> void:
 
 
 ## Dimmed (lit but can't join the selection): the plain body look plus the
-## hull outline at DIM_OUTLINE_ALPHA, emission 0. Any set_glow_state ends it.
+## hull outline in DIM_OUTLINE_COLOR, emission 0. Any set_glow_state ends it.
 func set_dimmed(instant: bool = false) -> void:
 	set_glow_state(false, false, instant)
 	outline_dimmed = true
@@ -259,17 +264,16 @@ func _apply_glow(lit: float, cold: float) -> void:
 	_apply_outline_state()
 
 
-## Outline: full while lit, faint and non-emissive while dimmed, else hidden.
+## Outline: ember while lit, grey and non-emissive while dimmed, else hidden.
 func _apply_outline_state() -> void:
 	if hull_outline == null:
 		return
-	var m := hull_outline.material_override as StandardMaterial3D
+	var m := hull_outline.material_override as ShaderMaterial
 	var spec: Dictionary = HULL_OUTLINE_FAMILIES.get(material, HULL_OUTLINE)
 	var dim := outline_dimmed and glow_lit <= 0.01
 	hull_outline.visible = glow_lit > 0.01 or dim
-	m.albedo_color.a = DIM_OUTLINE_ALPHA if dim else 1.0
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if dim else BaseMaterial3D.TRANSPARENCY_DISABLED
-	m.emission_energy_multiplier = 0.0 if dim else float(spec["emission"])
+	m.set_shader_parameter("color", DIM_OUTLINE_COLOR if dim else (spec["color"] as Color))
+	m.set_shader_parameter("emission_energy", 0.0 if dim else float(spec["emission"]))
 
 
 ## Whether this die's material family takes the lit hull outline.
@@ -296,15 +300,9 @@ func _update_hull_outline() -> void:
 		return
 	if hull_outline == null:
 		var spec: Dictionary = HULL_OUTLINE_FAMILIES[material]
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.cull_mode = BaseMaterial3D.CULL_FRONT
-		m.albedo_color = spec["color"]
-		m.emission_enabled = float(spec["emission"]) > 0.0
-		m.emission = spec["color"]
-		m.emission_energy_multiplier = float(spec["emission"])
-		m.grow = true
-		m.grow_amount = float(spec["width"])
+		var m := ShaderMaterial.new()
+		m.shader = HULL_OUTLINE_SHADER
+		m.set_shader_parameter("width", float(spec["width"]))
 		hull_outline = MeshInstance3D.new()
 		hull_outline.name = "HullOutline"
 		hull_outline.set_meta("family", material)

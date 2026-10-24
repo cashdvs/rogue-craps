@@ -119,8 +119,10 @@ func _run() -> void:
 		await process_frame
 	check(five.glow_lit == 0.0 and five.glow_cold == 0.0, "dim = plain look, never cold grey")
 	check(three.glow_lit > 0.5, "joinable 3 keeps its glow")
+	check(not three.outline_dimmed and (three.hull_outline.material_override as ShaderMaterial).get_shader_parameter("color").is_equal_approx(Color("#E8622A")), "joinable 3 keeps the ember outline")
 	check(s.is_lit(five), "dim is visual only: scoring still says lit")
-	check(five.outline_dimmed and five.hull_outline.visible and is_equal_approx((five.hull_outline.material_override as StandardMaterial3D).albedo_color.a, 0.25), "dimmed 5 keeps a 25% outline")
+	var hm5 := five.hull_outline.material_override as ShaderMaterial
+	check(five.outline_dimmed and five.hull_outline.visible and (hm5.get_shader_parameter("color") as Color).is_equal_approx(Color("#8A8478")) and float(hm5.get_shader_parameter("emission_energy")) == 0.0, "dimmed 5 shows the #8A8478 outline, emission 0")
 	check(not fx.is_dimmed(s.throw_dice[0]), "the potted 3 is not dimmed")
 	check(not s.run.can_join(3) and s.run.can_join(1) and not s.run.can_join(0), "real run.can_join: 5 no, other 3 yes, potted no")
 	check(s.events.selection_changed.is_connected(fx._on_selection_changed), "listens to the real selection_changed")

@@ -141,37 +141,41 @@ func _scene() -> void:
 	for fam in ["bone", "brass"]:
 		check(DieVisual.has_hull_outline(fam) and is_equal_approx(DieVisual.rim_energy_for(fam), 0.6), "%s: ember outline, rim 0.6" % fam)
 	var want := {
-		"bone": [0.015, Color("#E8622A"), 0.6, 0.6, 0.35],
-		"brass": [0.015, Color("#E8622A"), 0.6, 0.6, 0.35],
-		"wood": [0.015, Color("#E8622A"), 0.6, 1.0, 0.0],
-		"obsidian": [0.015, Color("#E8622A"), 0.6, 1.0, 0.0],
-		"frosted_glass": [0.015, Color("#E8622A"), 0.6, 0.6, 0.35],
+		"bone": [0.6, 0.35], "brass": [0.6, 0.35], "frosted_glass": [0.6, 0.35],
+		"wood": [1.0, 0.0], "obsidian": [1.0, 0.0],
 	}
+	var hsrc := DieVisual.HULL_OUTLINE_SHADER.code
+	check(hsrc.contains("MODELVIEW_MATRIX") and hsrc.contains("p.xy +=") and not hsrc.contains("NORMAL"), "hull grows in view space from the centre (even, no top-face flare)")
 	var gd: DieVisual = s.throw_dice[1]
 	for fam in want:
 		var w: Array = want[fam]
 		gd.material = fam
 		gd.set_glow_state(false, false, true)
 		var ho := gd.hull_outline
-		check(ho != null and not ho.visible, "%s: outline off when unlit" % fam)
+		check(ho != null and not ho.visible, "%s: outline off when plain" % fam)
 		gd.set_glow_state(true, false, true)
-		check(ho != null and ho.visible, "%s: outline on when lit" % fam)
-		var hm := ho.material_override as StandardMaterial3D if ho != null else null
-		check(hm != null and hm.albedo_color.is_equal_approx(w[1]), "%s: outline colour %s" % [fam, (w[1] as Color).to_html(false)])
-		check(hm != null and hm.grow and is_equal_approx(hm.grow_amount, w[0]), "%s: outline width %.3f m" % [fam, w[0]])
-		var em := hm.emission_energy_multiplier if hm != null and hm.emission_enabled else 0.0
-		check(hm != null and is_equal_approx(em, w[2]) and hm.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED and hm.cull_mode == BaseMaterial3D.CULL_FRONT, "%s: unshaded inverted hull, emission %.1f" % [fam, w[2]])
-		check(is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), w[3]), "%s: lit rim energy %.1f" % [fam, w[3]])
-		check(is_equal_approx(float(gd.body_material.get_shader_parameter("lit_albedo_mix_max")), w[4]), "%s: lit body tint cap %.2f" % [fam, w[4]])
+		check(ho != null and ho.visible and ho.scale == Vector3.ONE, "%s: outline on when lit, unscaled node" % fam)
+		var hm := ho.material_override as ShaderMaterial if ho != null else null
+		check(hm != null and hm.shader == DieVisual.HULL_OUTLINE_SHADER, "%s: hull outline shader" % fam)
+		check(hm != null and (hm.get_shader_parameter("color") as Color).is_equal_approx(Color("#E8622A")), "%s: lit outline #E8622A" % fam)
+		check(hm != null and is_equal_approx(float(hm.get_shader_parameter("width")), 0.010), "%s: outline 0.010 m" % fam)
+		check(hm != null and is_equal_approx(float(hm.get_shader_parameter("emission_energy")), 0.4), "%s: lit outline emission 0.4" % fam)
+		check(is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), w[0]), "%s: lit rim energy %.1f" % [fam, w[0]])
+		check(is_equal_approx(float(gd.body_material.get_shader_parameter("lit_albedo_mix_max")), w[1]), "%s: lit body tint cap %.2f" % [fam, w[1]])
 		check(float(gd.pip_material.get_shader_parameter("emission_energy")) < 0.0001, "%s: pips non-emissive" % fam)
-		check(hm != null and is_equal_approx(hm.albedo_color.a, 1.0), "%s: lit outline full alpha" % fam)
 		gd.set_dimmed(true)
-		check(ho.visible and hm.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA and is_equal_approx(hm.albedo_color.a, 0.25), "%s: dimmed outline at 25%% alpha" % fam)
-		check(is_equal_approx(hm.emission_energy_multiplier, 0.0) and gd.glow_lit == 0.0, "%s: dimmed outline emission 0, body plain" % fam)
+		check(ho.visible and (hm.get_shader_parameter("color") as Color).is_equal_approx(Color("#8A8478")), "%s: dimmed outline #8A8478, opaque" % fam)
+		check(is_equal_approx(float(hm.get_shader_parameter("emission_energy")), 0.0) and gd.glow_lit == 0.0, "%s: dimmed outline emission 0, body plain" % fam)
 		gd.set_glow_state(false, true, true)
 		check(not ho.visible, "%s: cold die, no outline" % fam)
 		gd.set_glow_state(true, false, true)
-		check(ho.visible and is_equal_approx(hm.albedo_color.a, 1.0) and is_equal_approx(hm.emission_energy_multiplier, w[2]), "%s: relit restores full outline" % fam)
+		check(ho.visible and (hm.get_shader_parameter("color") as Color).is_equal_approx(Color("#E8622A")) and is_equal_approx(float(hm.get_shader_parameter("emission_energy")), 0.4), "%s: relit restores the ember outline" % fam)
+	# Light pips (obsidian's bone ink) shade toward their own colour, not the warm black.
+	var od: DieVisual = s.throw_dice[2]
+	od.set_look(Color("#1E1B22"), Color("#E8DCC0"), od.labels)
+	var osh: Color = od.pip_material.get_shader_parameter("shadow_color")
+	check(osh.is_equal_approx(Color("#E8DCC0").darkened(0.25)) and (od.pip_material.get_shader_parameter("ambient_color") as Color).is_equal_approx(Color("#E8DCC0")), "light pips: own-colour shadow + ambient (no reddish cast)")
+	check((od.pip_material.get_shader_parameter("albedo") as Color).is_equal_approx(Color("#E8DCC0")), "obsidian pips stay bone #E8DCC0")
 	gd.material = "bone"
 	gd.set_glow_state(true, false, true)
 	check(gd.hull_outline != null and gd.hull_outline.visible and is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), 0.6), "back to bone: ember outline, rim 0.6")
