@@ -27,6 +27,7 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/size/window_width_override=1280
 window/size/window_height_override=720
+window/handheld/orientation=6
 
 [autoload]
 
@@ -37,6 +38,10 @@ GameSettings="*res://scripts/settings/game_settings.gd"
 
 next_scene="res://scenes/title.tscn"
 play_scene="res://scenes/run.tscn"
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
 
 [gui]
 
@@ -55,6 +60,8 @@ common/physics_interpolation=false
 jolt_physics_3d/simulation/bounce_velocity_threshold=0.15
 
 [rendering]
+
+textures/vram_compression/import_etc2_astc=true
 
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
