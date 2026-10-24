@@ -16,3 +16,9 @@ Checks: `src/check_shuffle.gd` (tris/gaps/top-most vertex), `../tools/check_prop
 - Tris: PC 4,798, mobile 2,028. Gap min: PC 75.0 px, phone 29.4 px. Top-most vertex: phone 11 px, PC 141 px.
 - Cards: fan unchanged at ±18°. ±23° gave 27 clip frames and ±28° gave 28, both over the cap of 25. Clip frames: 23 PC / 23 mobile.
 - Renders: /workspace/dice/art/renders/boss_dealers/shuffle/v2/
+
+## v3 (AD: wider bell)
+- Flares pushed out and up above the shoulder line, and the crown dome widened. The front curl stays but is lowered so it no longer peaks the outline.
+- Hair span 0.26 m vs 0.142 m face = 1.83×. Top-most vertex: phone 19 px, PC 162 px. Tris PC 4,798, mobile 2,028. Gaps PC 75.0 px, phone 29.4 px.
+- Fan and clip unchanged (23 / 23 frames vs Smiles' 45).
+- Renders: shuffle/v3/
