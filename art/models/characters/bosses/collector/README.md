@@ -17,6 +17,9 @@
 
 **Env vars:** HEAD_DROP, HEAD_FWD, EAR_TOP, CLOCHE_OFF.
 
-**Rig gaps:** "lowered over a die on the first throw" needs a dedicated cloche clip, which isn't built. The muzzle pokes out past the scarf, so the scarf only covers the mouth from the side.
+**Rig gaps:** the cloche never covers dice (rule). An optional later beat, lifting the cloche to peek or tipping it at the player, would need a dedicated clip; see the bosses README TODO. The muzzle pokes out past the scarf, so the scarf only covers the mouth from the side.
 
 **Renders:** collector/v1/ (front, side, sil, sil_x8, game_pc, game_phone).
+
+## v1b
+Reframed front/sil (frame=1.3, cy=0.16) so the cloche is in shot. In-game the cloche is visible in both game_pc and game_phone, held at the rail lip over the felt edge (see cloche_check_*.png, with vs hidden). Renders: art/renders/boss_dealers/collector/v1b/. Signed off.

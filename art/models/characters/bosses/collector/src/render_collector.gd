@@ -36,6 +36,10 @@ func _run() -> void:
 
 func _boss(lod: String) -> Node3D:
 	var b := (load(SCN % lod) as PackedScene).instantiate() as Node3D
+	var hide := _arg("hide", "")  # hide=<mesh name>: visibility test (e.g. is the cloche in the game frame?)
+	if hide != "":
+		for m in b.find_children(hide, "MeshInstance3D", true, false):
+			(m as MeshInstance3D).visible = false
 	return b
 
 
@@ -83,8 +87,8 @@ func _studio(view: String, out: String, lod: String) -> void:
 		vp.add_child(fill)
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 1.05  # waist-down to cap: trousers stub z -0.22 .. cap 0.74 (glTF y)
-	var ctr := Vector3(0, 0.26, 0)
+	cam.size = float(_arg("frame", "1.05"))  # v1b: frame=1.3 cy=0.16 widens the shot so the cloche (below the hand) is in
+	var ctr := Vector3(0, float(_arg("cy", "0.26")), 0)
 	cam.position = ctr + (Vector3(0, 0, 3) if view != "side" else Vector3(3, 0, 0))
 	vp.add_child(cam)
 	cam.look_at(ctr)
