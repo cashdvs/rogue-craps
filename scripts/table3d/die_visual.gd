@@ -33,7 +33,18 @@ signal tumble_ending(die_id: int, angular_speed: float)
 signal settled(die_id: int, face: int)
 
 ## What it is made of (from DieData.material), passed in impact.
-var material: String = "bone"
+var material: String = "bone":
+	set(v):
+		material = v
+		_update_hull_outline()
+
+## Playtest fix (AD): lit glass dice also get a thin inverted-hull outline in
+## dark warm ink, because the rim alone is too faint on pale glass at 48 px.
+## Opt-in per material family; bone/brass/wood/obsidian stay rim-only.
+const HULL_OUTLINE_FAMILIES: Array[String] = ["frosted_glass"]
+const HULL_OUTLINE_WIDTH := 0.012   # metres
+const HULL_OUTLINE_COLOR := Color("#2A2018")
+var hull_outline: MeshInstance3D
 
 ## 0 or 1: which of the pair this is.
 var die_id: int = 0
@@ -60,6 +71,7 @@ func _init(edge_m: float = 0.08) -> void:
 	body.material_override = body_material
 	faces.add_child(body)
 	_add_pips()
+	_update_hull_outline()
 	# Cheap blob shadow under the die (spec: 0.10 m, PIT_BLACK 40%).
 	var blob := MeshInstance3D.new()
 	blob.name = "Blob"
@@ -217,6 +229,39 @@ func _apply_glow(lit: float, cold: float) -> void:
 	pip_core_material.set_shader_parameter("energy", PIP_CORE_ENERGY * lit * (1.0 + 0.7 * glow_boost))
 	for c in _pip_cores:
 		c.visible = PIP_CORE_ENERGY > 0.0 and lit > 0.01
+	if hull_outline != null:
+		hull_outline.visible = lit > 0.01
+
+
+## Whether this die's material family takes the lit hull outline.
+static func has_hull_outline(family: String) -> bool:
+	return family in HULL_OUTLINE_FAMILIES
+
+
+## Adds or removes the inverted-hull outline for the current family.
+func _update_hull_outline() -> void:
+	if faces == null:
+		return
+	if not has_hull_outline(material):
+		if hull_outline != null:
+			hull_outline.queue_free()
+			hull_outline = null
+		return
+	if hull_outline == null:
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.cull_mode = BaseMaterial3D.CULL_FRONT
+		m.albedo_color = HULL_OUTLINE_COLOR
+		m.emission_enabled = false
+		m.grow = true
+		m.grow_amount = HULL_OUTLINE_WIDTH
+		hull_outline = MeshInstance3D.new()
+		hull_outline.name = "HullOutline"
+		hull_outline.mesh = (faces.get_node("Body") as MeshInstance3D).mesh
+		hull_outline.material_override = m
+		hull_outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		faces.add_child(hull_outline)
+	hull_outline.visible = glow_lit > 0.01
 
 
 # --- Mesh building ---------------------------------------------------------------

@@ -10,6 +10,7 @@ const FROSTED_GLASS := Color("#D8E2E2")
 const CROP_PX := 48
 
 var _out := "user://"
+var _suffix := ""
 var _s: Bonfire3D
 
 
@@ -21,6 +22,8 @@ func _run() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			_out = a.substr(6)
+		elif a.begins_with("--suffix="):
+			_suffix = a.substr(9)
 	var method := RenderingServer.get_current_rendering_method()
 	var driver := RenderingServer.get_current_rendering_driver_name()
 	if method != "forward_plus" or driver != "vulkan":
@@ -47,6 +50,7 @@ func _run() -> void:
 	await create_timer(0.4).timeout
 	var bone: DieVisual = _s.throw_dice[0]
 	var glass: DieVisual = _s.throw_dice[1]
+	glass.material = "frosted_glass"
 	glass.set_look(FROSTED_GLASS, Palette.PIT_BLACK, glass.labels)
 	glass.set_glow_state(true, false, true)
 	bone.set_glow_state(true, false, true)
@@ -67,9 +71,9 @@ func _run() -> void:
 		var crop := img.get_region(Rect2i(int(c.x) - half, int(c.y) - half, half * 2, half * 2))
 		print("%s: on-screen crop %d px" % [pair[0], half * 2])
 		crop.resize(CROP_PX, CROP_PX, Image.INTERPOLATE_LANCZOS)
-		crop.save_png("%slit_%s_48px.png" % [_out, pair[0]])
+		crop.save_png("%slit_%s_48px%s.png" % [_out, pair[0], _suffix])
 		var big := crop.duplicate() as Image
 		big.resize(CROP_PX * 8, CROP_PX * 8, Image.INTERPOLATE_NEAREST)
-		big.save_png("%slit_%s_48px_x8.png" % [_out, pair[0]])
+		big.save_png("%slit_%s_48px%s_x8.png" % [_out, pair[0], _suffix])
 	print("capture_lit_dice: done")
 	quit(0)

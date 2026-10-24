@@ -136,6 +136,24 @@ func _scene() -> void:
 	check(is_equal_approx(float(d4.body_material.get_shader_parameter("state_rim_energy")), 0.6), "lit rim energy 0.6")
 	var sh_src := (d4.body_material as ShaderMaterial).shader.code
 	check(sh_src.contains("state_rim_power = 5.0") and sh_src.contains("state_rim_energy = 0.6") and sh_src.contains("lit_albedo_mix_max = 0.35"), "toon_noir: rim 5.0 / 0.6, lit albedo mix capped at 0.35")
+	# AD: lit hull outline on the glass family only (dark warm ink, unshaded, no emission).
+	check(d4.material == "bone" and d4.hull_outline == null, "bone stays rim-only: no hull outline")
+	for fam in ["bone", "brass", "wood", "obsidian"]:
+		check(not DieVisual.has_hull_outline(fam), "%s: rim-only, no hull outline" % fam)
+	check(DieVisual.has_hull_outline("frosted_glass"), "frosted glass takes the hull outline")
+	var gd: DieVisual = s.throw_dice[1]
+	gd.material = "frosted_glass"
+	gd.set_glow_state(true, false, true)
+	var ho := gd.hull_outline
+	check(ho != null and ho.visible, "lit glass die shows its hull outline")
+	var hm := ho.material_override as StandardMaterial3D if ho != null else null
+	check(hm != null and hm.albedo_color.is_equal_approx(Color("#2A2018")), "hull outline colour #2A2018")
+	check(hm != null and hm.grow and is_equal_approx(hm.grow_amount, 0.012), "hull outline width 0.012 m")
+	check(hm != null and hm.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED and not hm.emission_enabled and hm.cull_mode == BaseMaterial3D.CULL_FRONT, "hull outline unshaded, no emission, inverted hull")
+	gd.set_glow_state(false, false, true)
+	check(not ho.visible, "hull outline hides when the die isn't lit")
+	gd.material = "bone"
+	check(gd.hull_outline == null, "switching back to bone removes the outline")
 	check(DieGlow.TIER_EMISSION == [0.1, 0.15, 0.2, 0.3] and DieGlow.TIER_HALO_ALPHA == [0.10, 0.14, 0.18, 0.24], "die_glow tiers: emission/halo toned down")
 	# Refusal: bounce back + callout (its sound is the VFX / audio side's).
 	var before := d2.position
