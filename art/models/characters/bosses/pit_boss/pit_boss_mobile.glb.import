@@ -14433,6 +14433,58 @@ _subresources={
 "slice_99/start_frame": 0,
 "slices/amount": 0
 }
+},
+"materials": {
+"pitboss_ash": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_ash.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_ash.tres"
+},
+"pitboss_black": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_black.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_black.tres"
+},
+"pitboss_bone": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_bone.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_bone.tres"
+},
+"pitboss_brass": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_brass.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_brass.tres"
+},
+"pitboss_cap": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_cap.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_cap.tres"
+},
+"pitboss_cigar": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_cigar.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_cigar.tres"
+},
+"pitboss_eye": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_eye.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_eye.tres"
+},
+"pitboss_shirt": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_shirt.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_shirt.tres"
+},
+"pitboss_skin": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_skin.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_skin.tres"
+},
+"pitboss_vest": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_vest.tres",
+"use_external/path": "res://art/models/characters/bosses/pit_boss/materials/pitboss_vest.tres"
+}
 }
 }
 gltf/naming_version=2
