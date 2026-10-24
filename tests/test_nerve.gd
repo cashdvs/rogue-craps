@@ -99,10 +99,12 @@ func _test_once_and_undo() -> void:
 	check(not n.can_nudge_dir(4, NerveState.UP) and n.can_nudge_dir(4, NerveState.DOWN), "up arrow greyed on a 6")
 	check(n.nudge(2, NerveState.UP) == 4 and n.slots[2] == 4, "nudge 3 up -> slot 4")
 	check(n.uses_left() == 0 and n.nudged_die() == 2, "pending nudge counts as used")
+	check(n.nudged_from() == 3, "nudged_from: the slot the pending nudge left")
 	check(n.nudge(1, NerveState.UP) == -1 and n.refusal(1) == "nerve_used_refusal", "one nudge per table")
 	check(n.undo(1) == -1, "undo only the nudged die")
 	check(n.undo(2) == 3 and n.slots[2] == 3 and n.uses_left() == 1, "tap again: undo, Nerve returns")
 	check(n.undo(2) == -1, "nothing left to undo")
+	check(n.nudged_from() == 0, "nudged_from: 0 once the nudge is undone")
 	check(n.nudge(1, NerveState.DOWN) == 1, "after undo, any die can be nudged")
 
 
