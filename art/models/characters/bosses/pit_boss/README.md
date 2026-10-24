@@ -45,3 +45,10 @@ xvfb-run -a godot --path . --rendering-driver vulkan --resolution 1920x1080 --sc
 ```
 
 Brazier and goal-plaque clearance uses the tests/test_smiles.gd camera v3 framing and checks every dealer clip every 0.05 s. The minimum is 55.7 px on PC and 23.0 px on phone; the rule is ≥ 20 px. Smiles measures 55.4 / 21.2 px with the same script.
+
+## v2 (AD silhouette pass)
+- Brim widened past the head and tilted 7°, cigar pushed out to break the outline, a 0.304 m upper shoulder block (1.4× the 0.216 m head) with the jowls merged in and no neck notch.
+- Tris: PC 7,176 (≤7.7k), mobile 2,922 (≤3.4k). Gap min: PC 55.7 px, phone 23.0 px (≥20). Felt: PC 32.6%, phone 30.5%.
+- The plaque's size and clips are unchanged. It now hangs 3 cm forward and 8 cm below the chip bone so it sits clear of the index finger at rest.
+- Prop clip check: `blender -b --factory-startup --python ../tools/check_prop_clip.py -- pit_boss.glb` (per-shell test, 2 mm tolerance). About 35 frames still clip. They come from the shared Smiles clips: the hand sweeps to the face/vest in cheat/deal before the palm pop, and in idle and mc_cheer. Smiles' own chip fails the same check on 45 frames. Clearing them needs edits to the shared clips.
+- Renders: /workspace/dice/art/renders/boss_dealers/pit_boss/v2/

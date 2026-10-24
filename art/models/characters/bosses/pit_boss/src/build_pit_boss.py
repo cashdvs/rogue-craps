@@ -16,6 +16,7 @@ flip-plaque showing ONE numeral (2-6) + an oxblood bar. Blockout plaque: "4" on 
 """
 import math, os, sys
 import bpy
+import bmesh
 from mathutils import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -59,6 +60,8 @@ def build_model(arm, mobile):
     body.tube([((0, 0.0, 0.40), 0.10), ((0, -0.01, 0.46), 0.09), ((0, -0.015, 0.50), 0.08)], "pitboss_skin", "neck", seg=S(14), flat=0.9)
     # trapezius shrug: the shoulders climb straight into the jaw line (no visible neck at 48 px)
     body.ellipsoid((0, 0.012, 0.445), (0.19, 0.1, 0.06), "pitboss_vest", "chest", seg=(S(16), S(8)))
+    # v2: upper shoulder block 1.4x the head width (0.304 m vs 0.216 m) up to the jaw: head -> block -> shoulders, no neck notch
+    body.ellipsoid((0, 0.0, 0.47), (0.152, 0.095, 0.085), "pitboss_vest", "chest", seg=(S(16), S(8)))
     body.tube([((0, -0.004, 0.43), 0.105), ((0, -0.008, 0.47), 0.092)], "pitboss_shirt", "chest", seg=S(16), flat=0.9)
     for s, sx in (("L", 1), ("R", -1)):
         # barrel shoulders: big vest-coloured caps sitting high, then shirt sleeves rolled to the elbow, bare forearms
@@ -85,28 +88,30 @@ def build_model(arm, mobile):
     head.ellipsoid((0, -0.012, 0.590), (0.108, 0.098, 0.092), "pitboss_skin", "head", seg=(S(20), S(14)))
     head.ellipsoid((0, -0.03, 0.525), (0.104, 0.085, 0.055), "pitboss_skin", "jaw", seg=(S(16), S(10)))
     for sx in (-1, 1):
-        head.ellipsoid((sx * 0.06, -0.07, 0.535), (0.042, 0.03, 0.035), "pitboss_skin", "jaw", seg=(S(10), S(6)))  # jowl
+        head.ellipsoid((sx * 0.072, -0.055, 0.512), (0.056, 0.042, 0.046), "pitboss_skin", "jaw", seg=(S(10), S(6)))  # jowl (v2: low + wide, merges into the shoulder block)
         head.ellipsoid((sx * 0.105, -0.005, 0.580), (0.014, 0.024, 0.03), "pitboss_skin", "head", seg=(S(8), S(6)))  # ear
         head.ellipsoid((sx * 0.038, -0.098, 0.602), (0.012, 0.006, 0.006), "pitboss_eye", "head", seg=(S(8), S(5)))
     head.box((0, -0.098, 0.618), (0.12, 0.022, 0.016), "pitboss_skin", "head", rot=rot(8, 0, 0))  # brow shelf
     head.ellipsoid((0, -0.112, 0.575), (0.02, 0.022, 0.022), "pitboss_skin", "head", seg=(S(10), S(6)))  # nose
     head.box((0, -0.105, 0.547), (0.05, 0.01, 0.006), "pitboss_eye", "jaw")  # mouth line
     # cigar from the stage-left mouth corner, angled down + out; ash/ember tip
-    c0, c1 = Vector((0.026, -0.105, 0.546)), Vector((0.082, -0.165, 0.532))
-    head.tube([(c0, 0.008), (c1, 0.0085)], "pitboss_cigar", "jaw", seg=S(8))
-    head.tube([(c1, 0.0086), (c1 + (c1 - c0).normalized() * 0.012, 0.0082)], "pitboss_ash", "jaw", seg=S(8))
+    c0, c1 = Vector((0.026, -0.105, 0.546)), Vector((0.165, -0.185, 0.53))  # v2: long, out past the jowl + face (breaks front and side outlines)
+    head.tube([(c0, 0.010), (c1, 0.0115)], "pitboss_cigar", "jaw", seg=S(8))
+    head.tube([(c1, 0.0117), (c1 + (c1 - c0).normalized() * 0.016, 0.011)], "pitboss_ash", "jaw", seg=S(8))
     ob_head = head.finish(arm)
 
     cap = P("PitBoss_Cap")
     # flat cap on the visor bone (the Smiles hat slot): low flat crown, short stiff peak
     cap.ellipsoid((0, -0.005, 0.650), (0.114, 0.112, 0.036), "pitboss_cap", "visor", seg=(S(18), S(8)), rot=rot(-6, 0, 0))
-    cap.ellipsoid((0, -0.098, 0.642), (0.09, 0.055, 0.008), "pitboss_cap", "visor", seg=(S(14), S(6)), rot=rot(-10, 0, 0))
+    cap.ellipsoid((0, -0.105, 0.642), (0.13, 0.07, 0.008), "pitboss_cap", "visor", seg=(S(14), S(6)), rot=rot(-10, 0, 0))
     cap.tube([((0, -0.006, 0.626), 0.104), ((0, -0.006, 0.640), 0.108)], "pitboss_black", "visor", seg=S(18), flat=1.0, caps=False)  # band
+    # v2: whole cap tilted 7 deg to stage left about the head centre (rakish), brim now wider than the head (0.26 vs 0.216 m)
+    bmesh.ops.rotate(cap.bm, verts=list(cap.bm.verts), cent=Vector((0, 0, 0.60)), matrix=rot(0, 7, 0))
     ob_cap = cap.finish(arm)
 
     pl = P("PitBoss_Plaque")
     # brass flip-plaque in the right hand (chip bone): plate in the bone's Y-Z plane, faces +/-X like the chip
-    c = Vector(bs.BONES["chip"][1]) + Vector((0, -0.012, -0.012))
+    c = Vector(bs.BONES["chip"][1]) + Vector(tuple(float(x) for x in os.environ.get("PLAQUE_OFF", "0,-0.03,-0.08").split(",")))  # v2: held by its top edge in front of the fingers (v1 sat through the index finger)
     W, Hh, T = 0.072, 0.056, 0.008
     pl.box(c, (T, W, Hh), "pitboss_brass", "chip")
     pl.box(c + Vector((0, 0, Hh * 0.5 + 0.004)), (0.006, W * 0.7, 0.006), "pitboss_brass", "chip")  # hinge rod
