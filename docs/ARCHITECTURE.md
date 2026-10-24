@@ -218,7 +218,7 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - `scripts/bonfire/table_events.gd` (`table.events`): the plain signals FX and audio listen to (see the FX section).
   - `scripts/core/bust_risk.gd` (`BustRisk`): the exact chance the next rethrow lights nothing, for the rethrow prompt. Static and display-only: it never touches the run's RNG or state.
   - `scripts/bonfire/bonfire_onboarding.gd` (`BonfireOnboarding`, `table.onboarding`): when the Table 1 tutorial runs, which hint to ask for at each table moment, and the seeded tutorial throws. The hint panel itself is `bonfire_tutorial.gd`.
-  - `GameSettings`: `hints_seen` (saved: how often each hint has shown) and `throw_debug` (this session only). `-- --throw-debug` on the command line, or F3 in debug builds, shows the throw overlay.
+  - `GameSettings`: `hints_seen` (saved: how often each hint has shown) and `throw_debug` (this session only). `-- --throw-debug` on the command line, or F3 in debug builds, shows the throw overlay. Display apply: `apply(display)` always sets volumes. It only touches the window (mode, VSync) at boot (`_ready` → `apply()`) or when `set_option` changes Fullscreen or VSync (`needs_display_apply`). `window_mode_to_set` leaves a minimized window alone and skips a mode that is already set. Saving hints or tutorial flags never touches the window. Tests record the calls through `display_stub` (`tests/test_window_mode.gd`).
   - Captures: `tools/capture_readability.gd` and `tools/capture_onboarding.gd`.
 
 <!-- SECTION: VFX Dev — FX (owner text; replace freely) -->

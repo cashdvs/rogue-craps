@@ -36,5 +36,44 @@ func _initialize() -> void:
 	check(GS.window_mode_to_set(true, W) == F, "windowed -> fullscreen")
 	check(GS.window_mode_to_set(false, F) == W, "fullscreen -> windowed")
 	check(GS.window_mode_to_set(false, W) == -1, "already windowed")
+	set_option_flow()
 	print("test_window_mode: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+## Through the real set_option: only Fullscreen / VSync changes touch the
+## window. Fails if set_option goes back to calling apply() every time.
+func set_option_flow() -> void:
+	var gs: Node = GS.new()
+	gs.path = "user://test_window_mode.cfg"  # never the player's settings
+	var rec := DisplayRecorder.new()
+	gs.display_stub = rec
+	gs.set_option(&"tutorial_seen", true)
+	gs.set_option(&"hints_seen", {"pot": 1})
+	gs.set_option(&"tutorial_enabled", true)
+	gs.set_option(&"sfx_volume", 0.5)
+	check(rec.calls.is_empty(), "hint / tutorial / volume saves: no window calls (%s)" % str(rec.calls))
+	gs.set_option(&"fullscreen", true)
+	check(rec.calls == [["set_mode", DisplayServer.WINDOW_MODE_FULLSCREEN], ["set_vsync", true]], "fullscreen on: one mode change (%s)" % str(rec.calls))
+	rec.calls.clear()
+	rec.mode = DisplayServer.WINDOW_MODE_MINIMIZED
+	gs.set_option(&"vsync", false)
+	check(rec.calls == [["set_vsync", false]], "vsync while minimized: no mode change (%s)" % str(rec.calls))
+	gs.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_window_mode.cfg"))
+
+
+## Records window calls instead of making them.
+class DisplayRecorder:
+	var calls: Array = []
+	var mode: int = DisplayServer.WINDOW_MODE_WINDOWED
+
+	func get_mode() -> int:
+		return mode
+
+	func set_mode(m: int) -> void:
+		calls.append(["set_mode", m])
+		mode = m
+
+	func set_vsync(on: bool) -> void:
+		calls.append(["set_vsync", on])
