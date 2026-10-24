@@ -124,7 +124,19 @@ func _scene() -> void:
 	for d in s.throw_dice:
 		lights += d.find_children("*", "OmniLight3D", true, false).size()
 	check(lights == 0, "glow only: no lights on the dice")
-	check(d4.pip_core_material != null and float(d4.pip_core_material.get_shader_parameter("energy")) > 2.9, "lit pips: hot cores (emission 3.0)")
+	# Playtest fix: lit = thin rim, pips stay dark ink (no ember lerp, no emission, no cores).
+	check(is_equal_approx(DieVisual.PIP_MID_ENERGY, 0.0) and is_equal_approx(DieVisual.PIP_CORE_ENERGY, 0.0), "lit pip energies are 0")
+	check(d4.pip_core_material != null and float(d4.pip_core_material.get_shader_parameter("energy")) < 0.0001, "lit pips: no hot cores")
+	check(float(d4.pip_material.get_shader_parameter("emission_energy")) < 0.0001, "lit pips: no emission")
+	check((d4.pip_material.get_shader_parameter("albedo") as Color).is_equal_approx(d4._pip_color), "lit pips keep their ink colour")
+	var cores_on := 0
+	for c in d4._pip_cores:
+		cores_on += 1 if c.visible else 0
+	check(cores_on == 0, "lit pips: cores hidden")
+	check(is_equal_approx(float(d4.body_material.get_shader_parameter("state_rim_energy")), 0.6), "lit rim energy 0.6")
+	var sh_src := (d4.body_material as ShaderMaterial).shader.code
+	check(sh_src.contains("state_rim_power = 5.0") and sh_src.contains("state_rim_energy = 0.6") and sh_src.contains("lit_albedo_mix_max = 0.35"), "toon_noir: rim 5.0 / 0.6, lit albedo mix capped at 0.35")
+	check(DieGlow.TIER_EMISSION == [0.1, 0.15, 0.2, 0.3] and DieGlow.TIER_HALO_ALPHA == [0.10, 0.14, 0.18, 0.24], "die_glow tiers: emission/halo toned down")
 	# Refusal: bounce back + callout (its sound is the VFX / audio side's).
 	var before := d2.position
 	var refused: Array = []

@@ -151,8 +151,11 @@ static func remap_basis(physical_up: int, wanted: int, yaw: float = 0.0) -> Basi
 ## The ember colours from the Art Director's die_state_reference.gdshader.
 const EMBER_MID := Color(0.910, 0.384, 0.165)   # #E8622A
 const EMBER_CORE := Color(1.000, 0.902, 0.659)  # #FFE6A8
-const PIP_MID_ENERGY := 0.9    # under the glow threshold: no bloom
-const PIP_CORE_ENERGY := 3.0   # over it: the only part that blooms
+## Playtest fix: lit dice read by a thin ember rim only; pips stay dark ink.
+const PIP_MID_ENERGY := 0.0
+const PIP_CORE_ENERGY := 0.0
+## Base lit rim energy (matches toon_noir state_rim_energy); Hot Hand adds +0.13.
+const STATE_RIM_ENERGY := 0.6
 const COLD_PIP_TO_BODY := 0.55
 ## Tween times: lighting up is snappy, going cold is a little slower.
 const LIT_TIME := 0.08
@@ -199,22 +202,21 @@ var glow_boost: float = 0.0
 func _apply_glow(lit: float, cold: float) -> void:
 	glow_lit = lit
 	glow_cold = cold
-	body_material.set_shader_parameter("state_rim_energy", 0.85 + 0.13 * glow_boost)
+	body_material.set_shader_parameter("state_rim_energy", STATE_RIM_ENERGY + 0.13 * glow_boost)
 	body_material.set_shader_parameter("die_lit", lit)
 	body_material.set_shader_parameter("die_cold", cold)
 	if pip_material == null:
 		return
-	# Cold pips are pulled 55% toward the (cold) body colour; lit pips go ember.
+	# Cold pips are pulled 55% toward the (cold) body colour; lit pips keep their ink.
 	var body_col: Color = body_material.get_shader_parameter("albedo")
 	var cold_body := Color(body_col.get_luminance(), body_col.get_luminance() * 0.96, body_col.get_luminance() * 0.90) * Color(0.80, 0.78, 0.76)
 	var pip := _pip_color.lerp(cold_body, COLD_PIP_TO_BODY * cold * (1.0 - lit))
-	pip = pip.lerp(EMBER_MID, lit)
 	pip_material.set_shader_parameter("albedo", pip)
 	pip_material.set_shader_parameter("emission_color", EMBER_MID)
 	pip_material.set_shader_parameter("emission_energy", PIP_MID_ENERGY * lit)
 	pip_core_material.set_shader_parameter("energy", PIP_CORE_ENERGY * lit * (1.0 + 0.7 * glow_boost))
 	for c in _pip_cores:
-		c.visible = lit > 0.01
+		c.visible = PIP_CORE_ENERGY > 0.0 and lit > 0.01
 
 
 # --- Mesh building ---------------------------------------------------------------
