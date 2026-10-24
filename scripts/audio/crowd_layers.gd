@@ -39,7 +39,7 @@ func _ready() -> void:
 ## Starts all stems in sync (silent), then fades to the current pot level.
 func start(fade_seconds: float = 0.6) -> void:
 	for p in _players:
-		p.play()
+		if not p.playing: p.play()  # a new run calls start() again: no restart click
 	set_pot_fraction(pot_fraction, fade_seconds)
 
 

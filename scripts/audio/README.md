@@ -45,7 +45,7 @@ crowd.set_pot_fraction(0.0)                    # after Bank or Bust
 crowd.stop()                                   # leaving the table
 ```
 
-There are three 3.0 s looping stems, `crowd_low`, `crowd_mid` and `crowd_high`, on their own players (never stolen by the SfxManager pool). `BonfireSynth.crowd_gains_db(f)` maps the pot fraction `f` to the stem gains:
+There are three looping stems (7.0, 5.3 and 4.1 s), `crowd_low`, `crowd_mid` and `crowd_high`, on their own players (never stolen by the SfxManager pool). `BonfireSynth.crowd_gains_db(f)` maps the pot fraction `f` to the stem gains:
 
 | f | low | mid | high |
 |---|---|---|---|
@@ -56,7 +56,9 @@ There are three 3.0 s looping stems, `crowd_low`, `crowd_mid` and `crowd_high`, 
 
 On top of that, `CrowdLayers.volume_db` (default -14 dB) sets the overall crowd level. Changes glide over 0.4 s.
 
-**Rev 2 (playtest, "too loud, not satisfying"):** the bed sits about 8.6 dB lower (empty-pot RMS -36.3 → -44.9 dBFS, measured against the same roll + score sequence; the dice, chips and scoring now sit 25–27 dB above it instead of 16–19). `crowd_low` is now a warm C-minor room drone (C2, G2, C3, E♭3 sines swelling slowly; every frequency is a whole number of cycles per loop, so the seam is continuous) with 8 distant voices under it, peak 0.2 (was 14 voices at 0.35). `crowd_mid` and `crowd_high` have fewer, darker voices (low-passed at 1.0/1.2 kHz) and less roar rumble. `tests/test_bonfire_sfx.gd` checks the bed's level, that it has no broadband hiss and that the seam is continuous.
+**Rev 2 (playtest, "too loud, not satisfying"):** the bed sits about 8.6 dB lower (empty-pot RMS -36.3 → -44.9 dBFS, measured against the same roll + score sequence; the dice, chips and scoring now sit 25–27 dB above it instead of 16–19). `crowd_low` is now a warm C-minor room drone (C2, G2, C3, E♭3 sines swelling slowly; rev 3 voicing below; every frequency is a whole number of cycles per loop, so the seam is continuous) with 8 distant voices under it, peak 0.2 (was 14 voices at 0.35). `crowd_mid` and `crowd_high` have fewer, darker voices (low-passed at 1.0/1.2 kHz) and less roar rumble. `tests/test_bonfire_sfx.gd` checks the bed's level, that it has no broadband hiss and that the seam is continuous.
+
+**Rev 3 (playtester: "strange background noise", Oct 22 build):** each stem has its own loop length (`CrowdStemSynth.LOOP_LENGTHS`: low 7.0 s, mid 5.3 s, high 4.1 s; were all 3.0 s and started together, so the whole bed repeated as one 3 s block, envelope correlation 0.99 at 3 s). Together they only realign after about 4.2 hours. The drone is re-voiced to C2, C3, G3, E♭4 (was C2, G2, C3, E♭3: the low fifth and minor third sat inside one critical band and beat at 25–33 Hz, a growl; roughness 0.137 → 0.036, 15–60 Hz envelope buzz 8.6 % → 0.3 %). Every stem goes through a 25 Hz DC/rumble blocker (`crowd_high` had DC 0.002 and 2.3 % sub-20 Hz energy from the roar). `CrowdLayers.start()` no longer restarts stems that are already playing (each new run called it, cutting the loops mid-wave).
 
 ## Mod trigger cues
 
