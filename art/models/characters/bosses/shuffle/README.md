@@ -21,4 +21,4 @@ Checks: `src/check_shuffle.gd` (tris/gaps/top-most vertex), `../tools/check_prop
 - Flares pushed out and up above the shoulder line, and the crown dome widened. The front curl stays but is lowered so it no longer peaks the outline.
 - Hair span 0.26 m vs 0.142 m face = 1.83×. Top-most vertex: phone 19 px, PC 162 px. Tris PC 4,798, mobile 2,028. Gaps PC 75.0 px, phone 29.4 px.
 - Fan and clip unchanged (23 / 23 frames vs Smiles' 45).
-- Renders: shuffle/v3/
+- Renders: shuffle/v3/. Phone felt 30.4%, Forward+.

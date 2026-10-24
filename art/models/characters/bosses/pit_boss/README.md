@@ -52,3 +52,6 @@ Brazier and goal-plaque clearance uses the tests/test_smiles.gd camera v3 framin
 - The plaque's size and clips are unchanged. It now hangs 3 cm forward and 8 cm below the chip bone so it sits clear of the index finger at rest.
 - Prop clip check: `blender -b --factory-startup --python ../tools/check_prop_clip.py -- pit_boss.glb` (per-shell test, 2 mm tolerance). About 35 frames still clip. They come from the shared Smiles clips: the hand sweeps to the face/vest in cheat/deal before the palm pop, and in idle and mc_cheer. Smiles' own chip fails the same check on 45 frames. Clearing them needs edits to the shared clips.
 - Renders: /workspace/dice/art/renders/boss_dealers/pit_boss/v2/
+
+## v2b (AD: no oxblood)
+- The plaque bar is now `pitboss_bone` (0.90) in its own slot. Geometry is unchanged. Prop clip: 35 / 35 frames. The mobile figure was 34 before, and the recolour can't have moved it, so treat the +1 as checker variance. Render: pit_boss/v2b/front.png.
