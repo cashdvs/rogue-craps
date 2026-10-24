@@ -23,7 +23,9 @@ rot = bs.rot
 HAIR_BACK = float(os.environ.get("HAIR_BACK", "0.03"))
 HAIR_TOP = float(os.environ.get("HAIR_TOP", "0.725"))
 HEAD_DROP = float(os.environ.get("HEAD_DROP", "0.0"))  # extra drop (on top of the 5 cm built in) so the tower fits the phone frame
-BOB_FLARE = float(os.environ.get("BOB_FLARE", "0.045"))
+BOB_FLARE = float(os.environ.get("BOB_FLARE", "0.036"))
+FLARE_X = float(os.environ.get("FLARE_X", "0.095"))
+FLARE_Z = float(os.environ.get("FLARE_Z", "0.525"))
 CARD_FAN = float(os.environ.get("CARD_FAN", "18"))
 CARD_OFF = tuple(float(x) for x in os.environ.get("CARD_OFF", "0,-0.03,-0.075").split(","))
 
@@ -77,12 +79,12 @@ def build_model(arm, mobile):
     # stays inside the phone frame; a forward curl at the front gives the 48 px "question mark" read
     # v2 (AD option b): sculpted bob - a crown dome plus a flared bell that kicks out past the jaw on both sides
     # (~1.5x the 0.144 m face width = 0.216 m). The face stays open at the front.
-    hair.ellipsoid((0, 0.008, 0.615), (0.085, 0.09, 0.062), "shuffle_hair", "visor", seg=(S(16), S(8)))
+    hair.ellipsoid((0, 0.008, 0.612), (0.098, 0.09, 0.058), "shuffle_hair", "visor", seg=(S(16), S(8)))
     hair.ellipsoid((0, 0.04, 0.55), (0.095, 0.06, 0.085), "shuffle_hair", "visor", seg=(S(14), S(8)))  # back of the bob
     for sx in (-1, 1):
         hair.ellipsoid((sx * 0.078, -0.012, 0.565), (0.03, 0.07, 0.06), "shuffle_hair", "visor", seg=(S(10), S(6)), rot=rot(0, sx * -10, 0))
-        hair.ellipsoid((sx * 0.088, -0.02, 0.505), (BOB_FLARE, 0.062, 0.026), "shuffle_hair", "visor", seg=(S(10), S(6)), rot=rot(0, sx * 18, 0))  # flared tip at the jaw
-    hair.tube([((0, -0.05, 0.655), 0.03), ((0, -0.075, 0.69), 0.024), ((0, -0.06, 0.72), 0.018)], "shuffle_hair", "visor", seg=S(10))  # front curl
+        hair.ellipsoid((sx * FLARE_X, -0.02, FLARE_Z), (BOB_FLARE, 0.062, 0.03), "shuffle_hair", "visor", seg=(S(10), S(6)), rot=rot(0, sx * 18, 0))  # flared tip at the jaw
+    hair.tube([((0, -0.06, 0.645), 0.028), ((0, -0.085, 0.665), 0.022), ((0, -0.075, 0.685), 0.016)], "shuffle_hair", "visor", seg=S(10))  # front curl
     hair.tube([((-0.09, -0.06, 0.53), 0.008), ((-0.10, -0.07, 0.48), 0.007), ((-0.095, -0.075, 0.45), 0.004)], "shuffle_hair", "visor", seg=S(6))  # one ringlet
     bmesh.ops.translate(hair.bm, verts=list(hair.bm.verts), vec=Vector((0, 0, -HEAD_DROP)))
     ob_hair = hair.finish(arm)
