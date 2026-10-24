@@ -3,7 +3,7 @@
 blender -b --factory-startup --python art/models/characters/bosses/shuffle/src/build_shuffle.py
 -> ../shuffle.glb (PC) + ../shuffle_mobile.glb.  Straight swap for smiles.tscn.
 Slots: Shuffle_Body, Shuffle_Head, Shuffle_Hair (visor bone), Shuffle_Cards (chip bone).
-Design (BRIEF): towering swept-up hair, long opera gloves, high neckline, silky card sharp; prop = gloved hand
+Design (BRIEF; v2 per AD: sculpted flared bob instead of the tower): swept-up hair, long opera gloves, high neckline, silky card sharp; prop = gloved hand
 with 3 fanned cards (card-flick on the swap). Greys only; plain card backs (no suits/pips/marks).
 """
 import math, os, sys
@@ -22,7 +22,9 @@ bs.MATS = [n for n, _ in GREYS]
 rot = bs.rot
 HAIR_BACK = float(os.environ.get("HAIR_BACK", "0.03"))
 HAIR_TOP = float(os.environ.get("HAIR_TOP", "0.725"))
-HEAD_DROP = float(os.environ.get("HEAD_DROP", "0.03"))  # extra drop (on top of the 5 cm built in) so the tower fits the phone frame
+HEAD_DROP = float(os.environ.get("HEAD_DROP", "0.0"))  # extra drop (on top of the 5 cm built in) so the tower fits the phone frame
+BOB_FLARE = float(os.environ.get("BOB_FLARE", "0.045"))
+CARD_FAN = float(os.environ.get("CARD_FAN", "18"))
 CARD_OFF = tuple(float(x) for x in os.environ.get("CARD_OFF", "0,-0.03,-0.075").split(","))
 
 
@@ -73,14 +75,13 @@ def build_model(arm, mobile):
     hair = P("Shuffle_Hair")
     # swept-up tower on the visor bone: crown cap, then stacked lobes rising AND sweeping back (+Y) so the top
     # stays inside the phone frame; a forward curl at the front gives the 48 px "question mark" read
-    hair.ellipsoid((0, 0.0, 0.61), (0.08, 0.085, 0.06), "shuffle_hair", "visor", seg=(S(16), S(8)))
-    n = 4
-    for i in range(n):
-        t = (i + 1) / n
-        z = 0.63 + (HAIR_TOP - 0.63) * t
-        y = 0.01 + HAIR_BACK * t
-        r = 0.07 - 0.02 * t
-        hair.ellipsoid((0, y, z), (r, r * 1.05, 0.05), "shuffle_hair", "visor", seg=(S(14), S(7)), rot=rot(-15 * t, 0, 0))
+    # v2 (AD option b): sculpted bob - a crown dome plus a flared bell that kicks out past the jaw on both sides
+    # (~1.5x the 0.144 m face width = 0.216 m). The face stays open at the front.
+    hair.ellipsoid((0, 0.008, 0.615), (0.085, 0.09, 0.062), "shuffle_hair", "visor", seg=(S(16), S(8)))
+    hair.ellipsoid((0, 0.04, 0.55), (0.095, 0.06, 0.085), "shuffle_hair", "visor", seg=(S(14), S(8)))  # back of the bob
+    for sx in (-1, 1):
+        hair.ellipsoid((sx * 0.078, -0.012, 0.565), (0.03, 0.07, 0.06), "shuffle_hair", "visor", seg=(S(10), S(6)), rot=rot(0, sx * -10, 0))
+        hair.ellipsoid((sx * 0.088, -0.02, 0.505), (BOB_FLARE, 0.062, 0.026), "shuffle_hair", "visor", seg=(S(10), S(6)), rot=rot(0, sx * 18, 0))  # flared tip at the jaw
     hair.tube([((0, -0.05, 0.655), 0.03), ((0, -0.075, 0.69), 0.024), ((0, -0.06, 0.72), 0.018)], "shuffle_hair", "visor", seg=S(10))  # front curl
     hair.tube([((-0.09, -0.06, 0.53), 0.008), ((-0.10, -0.07, 0.48), 0.007), ((-0.095, -0.075, 0.45), 0.004)], "shuffle_hair", "visor", seg=S(6))  # one ringlet
     bmesh.ops.translate(hair.bm, verts=list(hair.bm.verts), vec=Vector((0, 0, -HEAD_DROP)))
@@ -90,7 +91,7 @@ def build_model(arm, mobile):
     # 3 fanned cards held below the fingers (off the glove at rest), in the bone's Y-Z plane like the chip; plain backs
     c = Vector(bs.BONES["chip"][1]) + Vector(CARD_OFF)
     W, Hh, T = 0.040, 0.058, 0.002
-    for k, ang in enumerate((-18, 0, 18)):
+    for k, ang in enumerate((-CARD_FAN, 0, CARD_FAN)):
         cc = c + Vector((k * 0.0025 - 0.0025, 0, 0))
         cd.box(cc, (T, W, Hh), "shuffle_card", "chip", rot=rot(ang, 0, 0))
         cd.box(cc + Vector((-0.0012, 0, 0)), (0.0008, W * 0.8, Hh * 0.85), "shuffle_cardback", "chip", rot=rot(ang, 0, 0))
