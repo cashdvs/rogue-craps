@@ -58,7 +58,7 @@ const LEVELS: Dictionary[StringName, float] = {
 	&"stinger_ember": 0.6, &"stinger_flames": 0.72, &"stinger_inferno": 0.85, &"stinger_pillar": 0.9,
 	&"hot_hand": 0.8, &"bank": 0.8, &"bounty_claimed": 0.8, &"bust": 0.85, &"soul_flask_crack": 0.75,
 	&"table_cleared": 0.9, &"no_score": 0.45,
-	&"crowd_low": 0.35, &"crowd_mid": 0.45, &"crowd_high": 0.55,
+	&"crowd_low": 0.2, &"crowd_mid": 0.45, &"crowd_high": 0.55,
 }
 
 static var _rng := RandomNumberGenerator.new()
@@ -123,12 +123,12 @@ static func make(event: StringName) -> AudioStreamWAV:
 			s = _no_score(0.3)
 		&"soul_flask_crack":
 			s = _flask(0.85)
-		&"crowd_low":
-			s = _loop(_crowd(LOOP_SECONDS + 0.3, 14, 280.0, 800.0, -1.0))
-		&"crowd_mid":
-			s = _loop(_crowd(LOOP_SECONDS + 0.3, 20, 400.0, 1500.0, -1.0))
-		&"crowd_high":
-			s = _loop(_mix([_crowd(LOOP_SECONDS + 0.3, 24, 500.0, 1800.0, -1.0), _roar(LOOP_SECONDS + 0.3, -1.0, 0.0)], [1.0, 0.5]))
+		&"crowd_low":  # rev 2: warm C-minor room drone + a few distant voices
+			s = _loop(_mix([_drone(LOOP_SECONDS + 0.3), _crowd(LOOP_SECONDS + 0.3, 8, 220.0, 600.0, -1.0)], [1.0, 0.3]))
+		&"crowd_mid":  # rev 2: fewer voices, darker
+			s = _loop(_crowd(LOOP_SECONDS + 0.3, 12, 300.0, 1000.0, -1.0))
+		&"crowd_high":  # rev 2: darker, less rumble noise under it
+			s = _loop(_mix([_crowd(LOOP_SECONDS + 0.3, 16, 400.0, 1200.0, -1.0), _roar(LOOP_SECONDS + 0.3, -1.0, 0.0)], [1.0, 0.2]))
 		_:
 			push_error("BonfireSynth: unknown event %s" % event)
 			s = PackedFloat32Array([0.0])
@@ -253,6 +253,24 @@ static func _roar(seconds: float, peak_s: float, crackle: float) -> PackedFloat3
 		var pop := _rng.randf_range(-1.0, 1.0) if _rng.randf() < crackle else 0.0
 		buf[i] = (lp2 * 3.0 + pop * 0.5) * env
 	return _fade_tail(buf, 0.1) if peak_s >= 0.0 else buf
+
+
+## A warm room tone: C2, G2, C3 and Eb3 sines (C minor) that swell and
+## ebb slowly. Every frequency and LFO rate is a whole number of cycles per
+## LOOP_SECONDS, so the loop seam is sample-continuous (no click, no beat).
+static func _drone(seconds: float) -> PackedFloat32Array:
+	var buf := _buffer(seconds)
+	var cycles: Array[int] = [196, 294, 392, 467]  # /3 s = 65.3, 98.0, 130.7, 155.7 Hz
+	var amps: Array[float] = [1.0, 0.45, 0.35, 0.22]
+	for i in buf.size():
+		var t := float(i) / MIX_RATE
+		var v := 0.0
+		for k in cycles.size():
+			var f := cycles[k] / LOOP_SECONDS
+			var lfo := 0.75 + 0.25 * sin(TAU * (k + 1) * t / LOOP_SECONDS + k * 1.7)
+			v += sin(TAU * f * t) * amps[k] * lfo
+		buf[i] = v
+	return buf
 
 
 ## A crowd: `voices` band-limited noise voices (each a "person") whose

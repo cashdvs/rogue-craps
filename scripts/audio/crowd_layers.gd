@@ -15,8 +15,9 @@ extends Node
 const SFX_DIR: String = "res://audio/sfx/"
 const SILENT_DB: float = -60.0
 
-## Overall crowd level on top of the per-stem gains.
-@export var volume_db: float = -6.0
+## Overall crowd level on top of the per-stem gains. -14 dB (was -6): the
+## bed sits well under the dice, chips and scoring (playtest, main 7b978b9).
+@export var volume_db: float = -14.0
 ## The unbanked-pot fraction the volumes are heading towards (0..1).
 var pot_fraction: float = 0.0
 

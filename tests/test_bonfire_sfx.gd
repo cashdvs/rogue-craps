@@ -27,6 +27,7 @@ func _run() -> void:
 	print("=== Dice of the Damned: Bonfire SFX tests ===")
 	_test_files()
 	_test_helpers()
+	_test_bed()
 	await _test_players()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -82,6 +83,44 @@ func _test_helpers() -> void:
 			building = building and g[s] >= last[s]
 		last = g
 	_check(building, "crowd: no stem gets quieter as the pot grows")
+
+
+## The always-on bed (crowd_low at an empty pot) stays quiet, warm and
+## seamless (playtest: "too loud, not satisfying", main 7b978b9).
+func _test_bed() -> void:
+	var crowd := CrowdLayers.new()
+	_check(crowd.volume_db <= -12.0, "bed: CrowdLayers.volume_db <= -12 dB (%.1f)" % crowd.volume_db)
+	crowd.free()
+	var bed_db := BonfireSynth.crowd_gains_db(0.0)[0] + linear_to_db(BonfireSynth.LEVELS[&"crowd_low"])
+	_check(bed_db <= -22.0, "bed: empty-pot stem gain + peak level <= -22 dB (%.1f)" % bed_db)
+	# The raw PCM on disk (the imported stream is compressed): its data chunk.
+	var b := FileAccess.get_file_as_bytes("res://audio/sfx/crowd_low.wav")
+	var at := 12
+	var pcm := PackedByteArray()
+	while at + 8 <= b.size():
+		var size := b.decode_u32(at + 4)
+		if b.slice(at, at + 4).get_string_from_ascii() == "data":
+			pcm = b.slice(at + 8, at + 8 + size)
+			break
+		at += 8 + size + (size & 1)
+	_check(pcm == BonfireSynth.make(&"crowd_low").data, "bed: crowd_low.wav == BonfireSynth.make (re-baked)")
+	var n := pcm.size() / 2
+	var x := PackedFloat32Array()
+	x.resize(n)
+	for i in n:
+		x[i] = pcm.decode_s16(i * 2) / 32768.0
+	# High-frequency energy: first differences boost hiss; for a warm bed the
+	# difference RMS stays far below the signal RMS (white noise ~ 1.4x).
+	var e := 0.0
+	var d := 0.0
+	var max_step := 0.0
+	for i in range(1, n):
+		e += x[i] * x[i]
+		var step := absf(x[i] - x[i - 1])
+		d += step * step
+		max_step = maxf(max_step, step)
+	_check(sqrt(d / e) < 0.1, "bed: crowd_low has no broadband hiss (diff/rms %.3f)" % sqrt(d / e))
+	_check(absf(x[0] - x[n - 1]) <= max_step * 1.5, "bed: crowd_low loop seam is continuous (%.4f)" % absf(x[0] - x[n - 1]))
 
 
 func _test_players() -> void:
