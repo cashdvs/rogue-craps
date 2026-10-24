@@ -5,6 +5,9 @@
 class_name BonfirePotBank
 extends BonfireThrowFlow
 
+## The top-left "?" button and the first-table controls text (help_corner.gd).
+var help_corner: HelpCorner
+
 
 ## Space / THROW: in AIM throws the dice; after a throw, pots the picked dice
 ## and gathers the cold ones (or all of them on a Hot Hand) into the hand.
@@ -32,6 +35,7 @@ func throw_again() -> bool:
 		return false
 	bhud.tutorial.on_action(&"rethrow")
 	bhud.clear_score_text()
+	bhud.countup.clear()  # the last pot's row fades before this pot's count-up
 	nerve.close_throw()
 	pot_dice.append_array(potted_now)
 	# Back to the home framing (the reveal left the camera zoomed in on the
@@ -170,6 +174,7 @@ func bank() -> Dictionary:
 		return {}
 	bhud.tutorial.on_action(&"bank")
 	bhud.clear_score_text()
+	help_corner.dismiss()  # G1: the first Bank fades the controls text
 	fast_forward_juice()
 	var sel := run.selection()
 	var hot_before := run.hot_hands
@@ -250,6 +255,7 @@ func pick_die(i: int) -> bool:
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	nerve.on_potted()
+	help_corner.on_pot()  # G1: the controls text fades 30 s after the first pot
 	_layout_throw()
 	if not run.potted.is_empty():
 		bhud.tutorial.on_action(&"potted")
