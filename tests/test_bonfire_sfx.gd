@@ -48,7 +48,7 @@ func _test_files() -> void:
 	for event in BonfireSynth.LOOPS:
 		var wav := load("res://audio/sfx/%s.wav" % event) as AudioStreamWAV
 		_check(wav != null and wav.loop_mode == AudioStreamWAV.LOOP_FORWARD, "loop: %s is imported as a forward loop" % event)
-		_check(is_equal_approx(_len(event), BonfireSynth.LOOP_SECONDS), "loop: %s is %.1f s" % [event, BonfireSynth.LOOP_SECONDS])
+		_check(absf(_len(event) - BonfireSynth.LOOP_LENGTHS[event]) < 0.001, "loop: %s is %.1f s" % [event, BonfireSynth.LOOP_LENGTHS[event]])
 	# Normal sequence (<= 1.2 s): the stinger of tiers 0-2 must fit inside it.
 	for event: StringName in [&"score_tick", &"count_tick", &"mult_slam", &"combo_banner", &"bounty_claimed"]:
 		_check(_len(event) <= 0.5, "timing: %s is short (%.2f s)" % [event, _len(event)])
@@ -121,6 +121,12 @@ func _test_bed() -> void:
 		max_step = maxf(max_step, step)
 	_check(sqrt(d / e) < 0.1, "bed: crowd_low has no broadband hiss (diff/rms %.3f)" % sqrt(d / e))
 	_check(absf(x[0] - x[n - 1]) <= max_step * 1.5, "bed: crowd_low loop seam is continuous (%.4f)" % absf(x[0] - x[n - 1]))
+	_check(BonfireSynth.LOOP_LENGTHS.values().all(func(l): return l >= 4.0 and BonfireSynth.LOOP_LENGTHS.values().count(l) == 1), "bed: stem loops are >= 4 s and unique")
+	for event in BonfireSynth.LOOPS:
+		var w := BonfireSynth.make(event).data
+		var dc := 0.0
+		for i in w.size() / 2: dc += w.decode_s16(i * 2) / 32768.0 / (w.size() / 2)
+		_check(absf(dc) < 0.0005, "bed: %s has no DC offset (%.5f)" % [event, dc])
 
 
 func _test_players() -> void:
