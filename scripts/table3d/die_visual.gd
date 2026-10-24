@@ -37,13 +37,24 @@ var material: String = "bone":
 	set(v):
 		material = v
 		_update_hull_outline()
+		if body_material != null:
+			_apply_glow(glow_lit, glow_cold)
 
-## Playtest fix (AD): lit glass dice also get a thin inverted-hull outline in
-## dark warm ink, because the rim alone is too faint on pale glass at 48 px.
-## Opt-in per material family; bone/brass/wood/obsidian stay rim-only.
-const HULL_OUTLINE_FAMILIES: Array[String] = ["frosted_glass"]
-const HULL_OUTLINE_WIDTH := 0.012   # metres
-const HULL_OUTLINE_COLOR := Color("#2A2018")
+## Playtest fix (PM + AD): the lit cue per material family. A family listed
+## here gets an inverted-hull outline, shown only while lit:
+##   wood / obsidian: 0.015 m ember #E8622A, emission 0.6, rim 1.0, no body tint;
+##   frosted glass:   0.012 m dark ink #2A2018, no emission.
+## Bone and brass (and anything unlisted) keep the plain lit rim.
+const HULL_OUTLINE_FAMILIES := {
+	"wood": {"width": 0.015, "color": Color("#E8622A"), "emission": 0.6},
+	"obsidian": {"width": 0.015, "color": Color("#E8622A"), "emission": 0.6},
+	"frosted_glass": {"width": 0.012, "color": Color("#2A2018"), "emission": 0.0},
+}
+## Lit rim energy per family (default STATE_RIM_ENERGY).
+const FAMILY_RIM_ENERGY := {"wood": 1.0, "obsidian": 1.0}
+## Families whose lit look adds no warm body tint (shader lit_albedo_mix_max 0).
+const NO_LIT_TINT_FAMILIES: Array[String] = ["wood", "obsidian"]
+const LIT_ALBEDO_MIX_MAX := 0.35
 var hull_outline: MeshInstance3D
 
 ## 0 or 1: which of the pair this is.
@@ -214,7 +225,8 @@ var glow_boost: float = 0.0
 func _apply_glow(lit: float, cold: float) -> void:
 	glow_lit = lit
 	glow_cold = cold
-	body_material.set_shader_parameter("state_rim_energy", STATE_RIM_ENERGY + 0.13 * glow_boost)
+	body_material.set_shader_parameter("state_rim_energy", rim_energy_for(material) + 0.13 * glow_boost)
+	body_material.set_shader_parameter("lit_albedo_mix_max", 0.0 if material in NO_LIT_TINT_FAMILIES else LIT_ALBEDO_MIX_MAX)
 	body_material.set_shader_parameter("die_lit", lit)
 	body_material.set_shader_parameter("die_cold", cold)
 	if pip_material == null:
@@ -235,28 +247,40 @@ func _apply_glow(lit: float, cold: float) -> void:
 
 ## Whether this die's material family takes the lit hull outline.
 static func has_hull_outline(family: String) -> bool:
-	return family in HULL_OUTLINE_FAMILIES
+	return HULL_OUTLINE_FAMILIES.has(family)
+
+
+## The lit rim energy for a material family.
+static func rim_energy_for(family: String) -> float:
+	return float(FAMILY_RIM_ENERGY.get(family, STATE_RIM_ENERGY))
 
 
 ## Adds or removes the inverted-hull outline for the current family.
 func _update_hull_outline() -> void:
 	if faces == null:
 		return
+	if hull_outline != null and hull_outline.get_meta("family", "") != material:
+		hull_outline.queue_free()
+		hull_outline = null
 	if not has_hull_outline(material):
 		if hull_outline != null:
 			hull_outline.queue_free()
 			hull_outline = null
 		return
 	if hull_outline == null:
+		var spec: Dictionary = HULL_OUTLINE_FAMILIES[material]
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.cull_mode = BaseMaterial3D.CULL_FRONT
-		m.albedo_color = HULL_OUTLINE_COLOR
-		m.emission_enabled = false
+		m.albedo_color = spec["color"]
+		m.emission_enabled = float(spec["emission"]) > 0.0
+		m.emission = spec["color"]
+		m.emission_energy_multiplier = float(spec["emission"])
 		m.grow = true
-		m.grow_amount = HULL_OUTLINE_WIDTH
+		m.grow_amount = float(spec["width"])
 		hull_outline = MeshInstance3D.new()
 		hull_outline.name = "HullOutline"
+		hull_outline.set_meta("family", material)
 		hull_outline.mesh = (faces.get_node("Body") as MeshInstance3D).mesh
 		hull_outline.material_override = m
 		hull_outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
