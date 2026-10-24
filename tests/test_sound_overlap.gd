@@ -91,20 +91,17 @@ func impact_test() -> void:
 	await process_frame
 
 
-## A stand-in crowd that counts start/stop calls.
-func spy_crowd() -> Node:
-	var g := GDScript.new()
-	g.source_code = "extends Node\nvar stops := 0\nfunc start(_f := 0.6): pass\nfunc set_pot_fraction(_f, _s := 0.4): pass\nfunc stop(_f := 0.6): stops += 1\n"
-	g.reload()
-	var n := Node.new()
-	n.set_script(g)
-	return n
+# --- Crowd: each way a table ends really stops it ---------------------------
+# These run the real code paths (Leave button, last hand, forfeit while the
+# dice roll, scene exit) on a sandbox Bonfire table and then look at the
+# crowd's own AudioStreamPlayers. No source-text checks.
 
-
-func make_bonfire() -> Bonfire3D:
+## A sandbox Bonfire table (run mode, sped up) with its crowd playing.
+func make_bonfire(table_seed: int) -> Bonfire3D:
 	var tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var st := TableSetup.sandbox(tuning, 5)
-	st.table_seed = 5
+	st.run_mode = true
+	st.table_seed = table_seed
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
 	s.test_speed = 10.0
@@ -112,35 +109,123 @@ func make_bonfire() -> Bonfire3D:
 	root.add_child(s)
 	await process_frame
 	await process_frame
-	s.juice.crowd = spy_crowd()
-	s.juice.add_child(s.juice.crowd)
+	s.juice.crowd_start()
+	await process_frame
 	return s
 
 
-func crowd_test() -> void:
-	var s := await make_bonfire()
-	check(s.juice.crowd.stops == 0, "crowd playing during the table")
-	check(s.forfeit(), "forfeit")
-	check(s.juice.crowd.stops >= 1, "forfeit stops the crowd")
+## The crowd's players (the murmur / chatter / roar stems).
+func crowd_players(s: Bonfire3D) -> Array:
+	if s.juice.crowd == null:
+		return []
+	return s.juice.crowd.get_children().filter(func(c: Node) -> bool: return c is AudioStreamPlayer)
+
+
+func crowd_playing(s: Bonfire3D) -> bool:
+	return crowd_players(s).any(func(p: AudioStreamPlayer) -> bool: return p.playing)
+
+
+## True once every crowd player has stopped (the stop fades out over
+## about 0.6 s, so this waits up to 2 s of real time).
+func crowd_stops(s: Bonfire3D) -> bool:
+	var until := Time.get_ticks_msec() + 2000
+	while Time.get_ticks_msec() < until:
+		if not crowd_playing(s):
+			return true
+		await process_frame
+	return false
+
+
+## Throws rigged faces and waits for the whole throw sequence to finish.
+func throw_faces(s: Bonfire3D, faces: Array[int]) -> void:
+	s.rig_faces(faces)
+	if not s.quick_throw():
+		check(false, "throw %s starts" % str(faces))
+		return
+	await s.sequence_finished
+
+
+func wait_bet(s: Bonfire3D) -> void:
+	for k in 600:
+		if s.phase == Table3D.Phase.BET:
+			return
+		await process_frame
+
+
+## One hand: throw, pick dice `idx`, bank.
+func bank_hand(s: Bonfire3D, faces: Array[int], idx: Array[int]) -> void:
+	await wait_bet(s)
+	await throw_faces(s, faces)
+	for i in idx:
+		s.pick_die(i)
+	await s.bank()
+	await wait_bet(s)
+
+
+## Banks the three hands that clear the sandbox goal (as in test_leave_table).
+func clear_table(s: Bonfire3D) -> void:
+	await bank_hand(s, [1, 2, 3, 6, 6] as Array[int], [0, 1, 2] as Array[int])
+	await bank_hand(s, [4, 4, 4, 2, 6] as Array[int], [0, 1, 2] as Array[int])
+	await bank_hand(s, [2, 2, 6, 6, 3] as Array[int], [0, 1, 2, 3] as Array[int])
+
+
+func done(s: Bonfire3D) -> void:
 	s.queue_free()
 	await process_frame
-	# Scene exit: the real crowd's players stop.
-	var s2 := await make_bonfire()
-	var real := CrowdLayers.new()
-	s2.juice.crowd = real
-	s2.juice.add_child(real)
+	Engine.time_scale = 1.0
+
+
+func crowd_test() -> void:
+	# 1) Leave: the Leave table button between hands after the clear.
+	var s := await make_bonfire(5)
+	check(crowd_playing(s), "leave: crowd plays during the table")
+	await clear_table(s)
+	s.juice.crowd_start()  # make sure it is sounding right before leaving
 	await process_frame
-	real.start(0.0)
+	check(s.run.cleared and s.can_leave_now(), "leave: table cleared, Leave is live")
+	s.bhud.leave_pressed.emit()
+	check(s.run.is_over(), "leave: the table ended")
+	check(await crowd_stops(s), "leave stops the crowd")
+	await done(s)
+
+	# 2) Table end: the hands run out, the last hand ends the table.
+	s = await make_bonfire(6)
+	await clear_table(s)
+	await bank_hand(s, [6, 6, 2, 4, 3] as Array[int], [0, 1] as Array[int])
+	check(not s.run.is_over() and crowd_playing(s), "table end: crowd still on before the last hand")
+	await bank_hand(s, [6, 6, 2, 4, 3] as Array[int], [0, 1] as Array[int])
+	check(s.run.is_over(), "table end: out of hands")
+	check(await crowd_stops(s), "the table's last hand stops the crowd")
+	await done(s)
+
+	# 3) Forfeit while the dice are rolling: the run is forfeited mid-throw
+	# (bypassing Bonfire3D.forfeit(), which has its own stop), so only the
+	# throw's end (_end_sequence_after_forfeit) can stop the crowd.
+	s = await make_bonfire(7)
+	await wait_bet(s)
+	s.rig_faces([1, 2, 3, 6, 6] as Array[int])
+	check(s.quick_throw(), "forfeit mid-roll: throw starts")
+	check(s.run.forfeit(), "forfeit mid-roll: run forfeited while rolling")
+	check(crowd_playing(s), "forfeit mid-roll: crowd still on until the throw ends")
+	await s.sequence_finished
+	check(s.phase == Table3D.Phase.OVER, "forfeit mid-roll: table over after the throw")
+	check(await crowd_stops(s), "forfeit mid-roll stops the crowd")
+	await done(s)
+
+	# 4) Forfeit between hands (Pause > Forfeit table).
+	s = await make_bonfire(8)
+	await wait_bet(s)
+	check(s.forfeit(), "forfeit")
+	check(await crowd_stops(s), "forfeit stops the crowd")
+	await done(s)
+
+	# 5) Scene exit: leaving the tree stops the crowd at once. A player
+	# that only left the tree reports not playing but resumes when the
+	# node comes back, so the check re-adds the table and looks again.
+	s = await make_bonfire(9)
+	check(crowd_playing(s), "scene exit: crowd plays")
+	root.remove_child(s)
+	root.add_child(s)
 	await process_frame
-	var players: Array = real.get_children().filter(func(c: Node) -> bool: return c is AudioStreamPlayer)
-	check(not players.is_empty() and players.any(func(p: AudioStreamPlayer) -> bool: return p.playing), "real crowd started")
-	root.remove_child(s2)
-	check(players.all(func(p: AudioStreamPlayer) -> bool: return not p.playing), "scene exit stops the crowd")
-	s2.free()
-	# Leave and the last-hand end both call it (source check).
-	var src := FileAccess.get_file_as_string("res://scripts/bonfire/bonfire_3d.gd")
-	var leave_body := src.substr(src.find("func leave()"), 700)
-	check(leave_body.contains("juice.crowd_stop()"), "leave stops the crowd")
-	var pb := FileAccess.get_file_as_string("res://scripts/bonfire/bonfire_pot_bank.gd")
-	var after := pb.substr(pb.find("func _after_hand()"), 900)
-	check(after.contains("juice.crowd_stop()"), "the table's last hand stops the crowd")
+	check(not crowd_players(s).is_empty() and not crowd_playing(s), "scene exit stops the crowd")
+	await done(s)
