@@ -171,6 +171,7 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	last_values = values
 	var lit := run.lit()
 	throw_resolved.emit(values, lit)
+	emit_selection()
 	if not ok and run.free_rethrow:
 		# Nonstandard dice: a full throw that lit nothing is thrown again free.
 		bhud.flash("Nothing lit: free rethrow", Palette.BONE)
@@ -380,3 +381,16 @@ func _bust() -> void:
 	hand_result.emit(r)
 	await _wait(1.0)
 	await _after_hand()
+
+
+## Sends events.selection_changed with the potted and joinable die ids.
+func emit_selection() -> void:
+	var potted_ids: Array = []
+	var joinable_ids: Array = []
+	if run != null and run.state == BonfireRun.State.PICK:
+		for i in mini(throw_dice.size(), run.throw_faces.size()):
+			if run.potted.has(i):
+				potted_ids.append(event_id(throw_dice[i]))
+			elif run.can_join(i):
+				joinable_ids.append(event_id(throw_dice[i]))
+	events.selection_changed.emit(potted_ids, joinable_ids)

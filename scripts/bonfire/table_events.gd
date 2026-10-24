@@ -85,6 +85,12 @@ signal mod_triggered(row_id: StringName, tier: int, die_id: int, intensity: floa
 ## (+ pip_s, lift_s on scoring). Same ctx keys as mod_triggered.
 signal triggers_resolved(triggers: Array)
 
+## The pot selection changed: after a pot or unpot (pick_die), when a throw
+## resolves, and after a Nerve nudge or undo. Both arrays hold die event ids
+## (Table3D.event_id): the potted dice, and the dice that could join them
+## (BonfireRun.can_join). Empty arrays when not picking.
+signal selection_changed(potted_ids: Array, joinable_ids: Array)
+
 ## Seconds an effect starts before its pip tick (triggers_resolved).
 const PIP_LEAD := 0.167
 
