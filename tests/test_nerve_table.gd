@@ -57,6 +57,7 @@ func _run() -> void:
 	await rescue_bust()
 	await repeated_values()
 	await drag_flow()
+	await armed_then_drag()
 	await hn1_once()
 	run_side()
 	print("nerve_table: %d passed, %d failed" % [_passed, _failed])
@@ -180,6 +181,21 @@ func drag(s: Bonfire3D, i: int, dy: float) -> bool:
 	up.position = at + Vector2(0, dy)
 	var took := s.nerve.handle_input(down)
 	return s.nerve.handle_input(up) and took
+
+
+## Press Nerve (armed), then nudge by drag instead: armed clears, so taps
+## pot again instead of being refused as nudge picks.
+func armed_then_drag() -> void:
+	var s: Bonfire3D = await make_table()
+	var n: NerveTable = s.nerve
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	await process_frame
+	check(n.arm() and n.armed, "Nerve armed")
+	check(drag(s, 4, 60.0) and s.run.throw_faces[4] == 5, "drag nudges the 6 to 5")
+	check(not n.armed, "the drag nudge clears armed")
+	check(drag(s, 0, 0.0) and s.run.potted.has(0), "a tap on a 3 pots it")
+	s.queue_free()
+	await process_frame
 
 
 ## QA #126: the press no longer pots; the release decides (drag = nudge).

@@ -360,6 +360,9 @@ func _close_ui() -> void:
 ## Re-runs copies and the lit check for NerveState's faces, turns the dice
 ## on the felt and refreshes their lit / cold look.
 func _apply() -> void:
+	# Any nudge or undo uses up an armed press: a drag nudge after pressing
+	# Nerve must not leave later taps going to state.pick.
+	armed = false
 	var th := throw_for(state.slots)
 	run.relight(th)
 	arrows_die = -1
