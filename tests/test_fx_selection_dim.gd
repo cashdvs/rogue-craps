@@ -122,14 +122,18 @@ func _run() -> void:
 	check(s.is_lit(five), "dim is visual only: scoring still says lit")
 	check(five.outline_dimmed and five.hull_outline.visible and is_equal_approx((five.hull_outline.material_override as StandardMaterial3D).albedo_color.a, 0.25), "dimmed 5 keeps a 25% outline")
 	check(not fx.is_dimmed(s.throw_dice[0]), "the potted 3 is not dimmed")
-	# Synchronous: the per-frame fallback would re-dim on the next frame.
+	check(not s.run.can_join(3) and s.run.can_join(1) and not s.run.can_join(0), "real run.can_join: 5 no, other 3 yes, potted no")
+	check(s.events.selection_changed.is_connected(fx._on_selection_changed), "listens to the real selection_changed")
+	check(not fx.has_method(&"_process"), "no per-frame selection polling")
 	fx.clear()
 	check(not fx.is_dimmed(five) and not five.outline_dimmed, "clear() relights the 5")
-	fx.refresh()
-	check(fx.is_dimmed(five), "refresh re-dims while still selected")
+	await process_frame
+	check(not fx.is_dimmed(five), "nothing re-dims without a selection_changed")
+	s.emit_selection()
+	check(fx.is_dimmed(five), "the real selection_changed re-dims")
 	s.events.table_cleared.emit()
 	check(not fx.is_dimmed(five) and not five.outline_dimmed, "table_cleared drops the dim")
-	fx.refresh()
+	s.emit_selection()
 	check(fx.is_dimmed(five), "dimmed again for the unpot check")
 	check(s.pick_die(0), "unpot the 3")
 	await process_frame

@@ -3,12 +3,10 @@
 ## so only the dice you can still add keep their ember glow. Unselecting, or
 ## any change that makes them joinable again, relights them.
 ##
-## Feel layer only: it never decides what can join. It asks the run:
-##   run.can_join(i) -> bool          (Godot Dev's flag, preferred), else
-##   BonfireScoring.can_extend(potted + [i], ...)  (the same pure query
-##   BonfireRun.toggle already uses; read-only).
-## and listens to table.events.selection_changed(potted_ids, joinable_ids)
-## when that signal exists. Until then it watches run.potted each frame.
+## Feel layer only: it never decides what can join. It asks the run,
+## run.can_join(i) (#164), and refreshes on
+## table.events.selection_changed(potted_ids, joinable_ids) and drops every
+## dim on table_cleared.
 ##
 ## Art rules: glow never fire; no tint on the die body (it only toggles the
 ## die's existing lit/plain material state plus DieVisual.set_dimmed's faint
@@ -22,26 +20,19 @@ extends Node
 var table: Node
 ## Dice currently dimmed by this listener (DieVisual -> true).
 var _dimmed: Dictionary = {}
-var _key: String = ""
 
 
 func _ready() -> void:
 	table = get_parent()
 	var ev: Object = table.get("events") if table != null else null
 	if ev != null and ev.has_signal(&"selection_changed"):
-		ev.connect(&"selection_changed", func(_p: Array, _j: Array) -> void: refresh())
+		ev.connect(&"selection_changed", _on_selection_changed)
 	if ev != null and ev.has_signal(&"table_cleared"):
 		ev.connect(&"table_cleared", clear)
 
 
-func _process(_dt: float) -> void:
-	var run: Object = _run()
-	if run == null:
-		return
-	var k := "%d|%s|%s" % [int(run.get("state")), str(run.get("potted")), str(run.get("throw_faces"))]
-	if k != _key:
-		_key = k
-		refresh()
+func _on_selection_changed(_potted_ids: Array, _joinable_ids: Array) -> void:
+	refresh()
 
 
 func _run() -> Object:
@@ -52,14 +43,7 @@ func _run() -> Object:
 
 ## True if die index i (not potted) can still join the current selection.
 static func joinable(run: Object, i: int) -> bool:
-	if run.has_method(&"can_join"):
-		return bool(run.call(&"can_join", i))
-	var potted: Array = run.get("potted")
-	if potted.is_empty():
-		return true
-	var next: Array = potted.duplicate()
-	next.append(i)
-	return BonfireScoring.can_extend(next, run.call(&"throw_dice"), run.get("tuning"), run.call(&"rule_ctx"))
+	return bool(run.call(&"can_join", i))
 
 
 ## Indices of lit, unpotted dice that should be dimmed now.
@@ -108,7 +92,6 @@ func _restore(d: Variant) -> void:
 func clear() -> void:
 	for d in _dimmed.keys():
 		_restore(d)
-	_key = ""
 
 
 ## True while this listener is showing die d dimmed (lit, unpotted, can't
