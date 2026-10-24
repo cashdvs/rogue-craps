@@ -27,7 +27,48 @@ class FakeRun:
 		return i == 1
 
 
+## Minimal run + table for dim_indices() (no scene): state, potted, can_join.
+class StubRun:
+	extends RefCounted
+	var state: int = BonfireRun.State.PICK
+	var potted: Array = [0]
+	func can_join(_i: int) -> bool:
+		return false
+
+
+class StubTable:
+	extends Node
+	var run: Object
+	var throw_dice: Array = [0, 1, 2]
+	func is_lit(_d: Variant) -> bool:
+		return true
+
+
+func _stub_fx(run: StubRun) -> SelectionDimFx:
+	var tb := StubTable.new()
+	tb.run = run
+	var fx := SelectionDimFx.new()
+	fx.table = tb
+	return fx
+
+
+func _unit() -> void:
+	var r := StubRun.new()
+	var fx := _stub_fx(r)
+	check(str(fx.dim_indices()) == "[1, 2]", "PICK: unjoinable lit dice dim, potted die never: %s" % str(fx.dim_indices()))
+	check(not fx.dim_indices().has(0), "a selected (potted) die is never dimmed")
+	for st in [BonfireRun.State.AIM, BonfireRun.State.CLEARED, BonfireRun.State.FAILED]:
+		r.state = st
+		check(fx.dim_indices().is_empty(), "nothing dims outside PICK (state %d)" % st)
+	r.state = BonfireRun.State.PICK
+	r.potted = []
+	check(fx.dim_indices().is_empty(), "nothing dims with no selection")
+	fx.table.free()
+	fx.free()
+
+
 func _run() -> void:
+	_unit()
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	# Prefers Godot Dev's run.can_join flag when it exists.
 	var fr := FakeRun.new()
@@ -79,6 +120,17 @@ func _run() -> void:
 	check(five.glow_lit == 0.0 and five.glow_cold == 0.0, "dim = plain look, never cold grey")
 	check(three.glow_lit > 0.5, "joinable 3 keeps its glow")
 	check(s.is_lit(five), "dim is visual only: scoring still says lit")
+	check(five.outline_dimmed and five.hull_outline.visible and is_equal_approx((five.hull_outline.material_override as StandardMaterial3D).albedo_color.a, 0.25), "dimmed 5 keeps a 25% outline")
+	check(not fx.is_dimmed(s.throw_dice[0]), "the potted 3 is not dimmed")
+	# Synchronous: the per-frame fallback would re-dim on the next frame.
+	fx.clear()
+	check(not fx.is_dimmed(five) and not five.outline_dimmed, "clear() relights the 5")
+	fx.refresh()
+	check(fx.is_dimmed(five), "refresh re-dims while still selected")
+	s.events.table_cleared.emit()
+	check(not fx.is_dimmed(five) and not five.outline_dimmed, "table_cleared drops the dim")
+	fx.refresh()
+	check(fx.is_dimmed(five), "dimmed again for the unpot check")
 	check(s.pick_die(0), "unpot the 3")
 	await process_frame
 	check(not fx.is_dimmed(five), "unselecting relights the 5")

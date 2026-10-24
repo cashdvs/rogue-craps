@@ -40,16 +40,22 @@ var material: String = "bone":
 		if body_material != null:
 			_apply_glow(glow_lit, glow_cold)
 
-## Playtest fix (PM + AD): the lit cue per material family. A family listed
-## here gets an inverted-hull outline, shown only while lit:
-##   wood / obsidian: 0.015 m ember #E8622A, emission 0.6, rim 1.0, no body tint;
-##   frosted glass:   0.012 m dark ink #2A2018, no emission.
-## Bone and brass (and anything unlisted) keep the plain lit rim.
+## Playtest fix (PM + AD): the lit cue. Every family gets the same
+## inverted-hull ember outline, 0.015 m #E8622A, emission 0.6, shown only
+## while lit (AD #162: also replaces glass's old dark #2A2018 ink outline).
+## A dimmed die (lit but can't join the selection, SelectionDimFx) keeps it
+## at DIM_OUTLINE_ALPHA with no emission; plain and cold dice show none.
+const HULL_OUTLINE := {"width": 0.015, "color": Color("#E8622A"), "emission": 0.6}
 const HULL_OUTLINE_FAMILIES := {
-	"wood": {"width": 0.015, "color": Color("#E8622A"), "emission": 0.6},
-	"obsidian": {"width": 0.015, "color": Color("#E8622A"), "emission": 0.6},
-	"frosted_glass": {"width": 0.012, "color": Color("#2A2018"), "emission": 0.0},
+	"bone": HULL_OUTLINE,
+	"brass": HULL_OUTLINE,
+	"wood": HULL_OUTLINE,
+	"obsidian": HULL_OUTLINE,
+	"frosted_glass": HULL_OUTLINE,
 }
+const DIM_OUTLINE_ALPHA := 0.25
+## True while SelectionDimFx shows this die dimmed (see set_dimmed).
+var outline_dimmed: bool = false
 ## Lit rim energy per family (default STATE_RIM_ENERGY).
 const FAMILY_RIM_ENERGY := {"wood": 1.0, "obsidian": 1.0}
 ## Families whose lit look adds no warm body tint (shader lit_albedo_mix_max 0).
@@ -190,6 +196,7 @@ var _glow_tween: Tween
 ## Shows the die as lit (scoring), cold (didn't score) or plain (both false).
 ## Material only: no lights, no particles. `instant` skips the tween.
 func set_glow_state(lit: bool, cold: bool, instant: bool = false) -> void:
+	outline_dimmed = false
 	var to_lit := 1.0 if lit else 0.0
 	var to_cold := 1.0 if (cold and not lit) else 0.0
 	if _glow_tween != null:
@@ -204,6 +211,14 @@ func set_glow_state(lit: bool, cold: bool, instant: bool = false) -> void:
 	_glow_tween = create_tween()
 	_glow_tween.tween_method(func(k: float) -> void:
 		_apply_glow(lerpf(from_lit, to_lit, k), lerpf(from_cold, to_cold, k)), 0.0, 1.0, t)
+
+
+## Dimmed (lit but can't join the selection): the plain body look plus the
+## hull outline at DIM_OUTLINE_ALPHA, emission 0. Any set_glow_state ends it.
+func set_dimmed(instant: bool = false) -> void:
+	set_glow_state(false, false, instant)
+	outline_dimmed = true
+	_apply_outline_state()
 
 
 ## A brighter flare of the lit glow (Hot Hand): the pip cores burn hotter
@@ -241,8 +256,20 @@ func _apply_glow(lit: float, cold: float) -> void:
 	pip_core_material.set_shader_parameter("energy", PIP_CORE_ENERGY * lit * (1.0 + 0.7 * glow_boost))
 	for c in _pip_cores:
 		c.visible = PIP_CORE_ENERGY > 0.0 and lit > 0.01
-	if hull_outline != null:
-		hull_outline.visible = lit > 0.01
+	_apply_outline_state()
+
+
+## Outline: full while lit, faint and non-emissive while dimmed, else hidden.
+func _apply_outline_state() -> void:
+	if hull_outline == null:
+		return
+	var m := hull_outline.material_override as StandardMaterial3D
+	var spec: Dictionary = HULL_OUTLINE_FAMILIES.get(material, HULL_OUTLINE)
+	var dim := outline_dimmed and glow_lit <= 0.01
+	hull_outline.visible = glow_lit > 0.01 or dim
+	m.albedo_color.a = DIM_OUTLINE_ALPHA if dim else 1.0
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if dim else BaseMaterial3D.TRANSPARENCY_DISABLED
+	m.emission_energy_multiplier = 0.0 if dim else float(spec["emission"])
 
 
 ## Whether this die's material family takes the lit hull outline.
@@ -285,7 +312,7 @@ func _update_hull_outline() -> void:
 		hull_outline.material_override = m
 		hull_outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		faces.add_child(hull_outline)
-	hull_outline.visible = glow_lit > 0.01
+	_apply_outline_state()
 
 
 # --- Mesh building ---------------------------------------------------------------

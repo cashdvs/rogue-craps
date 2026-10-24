@@ -11,11 +11,14 @@
 ## when that signal exists. Until then it watches run.potted each frame.
 ##
 ## Art rules: glow never fire; no tint on the die body (it only toggles the
-## die's existing lit/plain material state, never cold grey, which means
+## die's existing lit/plain material state plus DieVisual.set_dimmed's faint
+## outline, never cold grey, which means
 ## "didn't score"); no particles; reads at 48 px (glow vs no glow).
 class_name SelectionDimFx
 extends Node
 
+## The Table3D this listener sits under (its parent, set in _ready); read
+## for run, throw_dice, is_lit() and events. Public so tests can inspect it.
 var table: Node
 ## Dice currently dimmed by this listener (DieVisual -> true).
 var _dimmed: Dictionary = {}
@@ -91,7 +94,7 @@ func refresh() -> void:
 			_restore(d)
 	for d in want:
 		if not _dimmed.has(d):
-			(d as DieVisual).set_glow_state(false, false)
+			(d as DieVisual).set_dimmed()
 			_dimmed[d] = true
 
 
@@ -108,5 +111,7 @@ func clear() -> void:
 	_key = ""
 
 
+## True while this listener is showing die d dimmed (lit, unpotted, can't
+## join the current selection). Visual state only; scoring is untouched.
 func is_dimmed(d: DieVisual) -> bool:
 	return _dimmed.has(d)

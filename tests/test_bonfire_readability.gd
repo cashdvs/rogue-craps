@@ -137,14 +137,15 @@ func _scene() -> void:
 	_check_shader_cap_and_rim((d4.body_material as ShaderMaterial).shader.code)
 	var sh_src := (d4.body_material as ShaderMaterial).shader.code
 	check(sh_src.contains("state_rim_power = 5.0") and sh_src.contains("state_rim_energy = 0.6") and sh_src.contains("lit_albedo_mix_max = 0.35"), "toon_noir: rim 5.0 / 0.6, lit albedo mix capped at 0.35")
-	# PM + AD: lit cue per family (outline only while lit).
-	check(d4.material == "bone" and d4.hull_outline == null, "bone: plain lit rim, no hull outline")
+	# PM + AD (#162): every family gets the ember hull outline while lit.
 	for fam in ["bone", "brass"]:
-		check(not DieVisual.has_hull_outline(fam) and is_equal_approx(DieVisual.rim_energy_for(fam), 0.6), "%s: unchanged (rim 0.6, no outline)" % fam)
+		check(DieVisual.has_hull_outline(fam) and is_equal_approx(DieVisual.rim_energy_for(fam), 0.6), "%s: ember outline, rim 0.6" % fam)
 	var want := {
+		"bone": [0.015, Color("#E8622A"), 0.6, 0.6, 0.35],
+		"brass": [0.015, Color("#E8622A"), 0.6, 0.6, 0.35],
 		"wood": [0.015, Color("#E8622A"), 0.6, 1.0, 0.0],
 		"obsidian": [0.015, Color("#E8622A"), 0.6, 1.0, 0.0],
-		"frosted_glass": [0.012, Color("#2A2018"), 0.0, 0.6, 0.35],
+		"frosted_glass": [0.015, Color("#E8622A"), 0.6, 0.6, 0.35],
 	}
 	var gd: DieVisual = s.throw_dice[1]
 	for fam in want:
@@ -163,9 +164,17 @@ func _scene() -> void:
 		check(is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), w[3]), "%s: lit rim energy %.1f" % [fam, w[3]])
 		check(is_equal_approx(float(gd.body_material.get_shader_parameter("lit_albedo_mix_max")), w[4]), "%s: lit body tint cap %.2f" % [fam, w[4]])
 		check(float(gd.pip_material.get_shader_parameter("emission_energy")) < 0.0001, "%s: pips non-emissive" % fam)
+		check(hm != null and is_equal_approx(hm.albedo_color.a, 1.0), "%s: lit outline full alpha" % fam)
+		gd.set_dimmed(true)
+		check(ho.visible and hm.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA and is_equal_approx(hm.albedo_color.a, 0.25), "%s: dimmed outline at 25%% alpha" % fam)
+		check(is_equal_approx(hm.emission_energy_multiplier, 0.0) and gd.glow_lit == 0.0, "%s: dimmed outline emission 0, body plain" % fam)
+		gd.set_glow_state(false, true, true)
+		check(not ho.visible, "%s: cold die, no outline" % fam)
+		gd.set_glow_state(true, false, true)
+		check(ho.visible and is_equal_approx(hm.albedo_color.a, 1.0) and is_equal_approx(hm.emission_energy_multiplier, w[2]), "%s: relit restores full outline" % fam)
 	gd.material = "bone"
 	gd.set_glow_state(true, false, true)
-	check(gd.hull_outline == null and is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), 0.6), "back to bone: no outline, rim 0.6")
+	check(gd.hull_outline != null and gd.hull_outline.visible and is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), 0.6), "back to bone: ember outline, rim 0.6")
 	check(DieGlow.TIER_EMISSION == [0.1, 0.15, 0.2, 0.3] and DieGlow.TIER_HALO_ALPHA == [0.10, 0.14, 0.18, 0.24], "die_glow tiers: emission/halo toned down")
 	# Refusal: bounce back + callout (its sound is the VFX / audio side's).
 	var before := d2.position
