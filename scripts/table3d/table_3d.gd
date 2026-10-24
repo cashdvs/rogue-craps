@@ -193,6 +193,7 @@ func _ready() -> void:
 	add_child(TableAudio.new())
 	add_child(TriggerFx.new())
 	add_child(LightingLayersFx.new())
+	add_child(SelectionDimFx.new())
 	_build_world()
 	_build_hud()
 	_build_end_screen()

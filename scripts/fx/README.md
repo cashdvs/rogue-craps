@@ -159,3 +159,13 @@ height ≤ die top).
 VFX half of `lighting_layers_spec.md` (lights and Environment, layers 1-3, are Godot Dev's). Hooked by one line in `Table3D._ready()`: `add_child(LightingLayersFx.new())`.
 - `ContactShadows`: one unshaded black quad per die at y 0.002, following the die's XZ (+0.01 toward -x/+z), never its rotation. Diameter 1.6 x edge; alpha 0.55 Forward+ / 0.65 Compat-Mobile at rest, x (1 - h/0.25); scale x (1 + 0.6 h/0.25); hidden above 0.25 m, while held (Phase.HELD) and for `pot_dice`. Only reads the die's position: the die material is never touched. It hides the die's old built-in `Blob` node so the two don't stack.
 - `LampDust`: GPUParticles3D 48 (Forward+) / CPUParticles3D 16 (else), cylinder r 0.45 m y 0.25-1.20 m, 2-4 mm (3-4 mobile) additive #FFE2B0 at 0.18 / 0.15, cone-masked to 38 deg, never drawn below y 0.08 (shader floor; the drift only rises). Off (not emitting, hidden) under reduced motion, polled from `table.is_reduced_motion()`.
+
+## SelectionDimFx
+
+`selection_dim_fx.gd` (child of the 3D table). Once dice are potted for a
+combo, lit unpotted dice that can't join it drop to the plain (unlit) look;
+unselecting relights them. Visual only: `_lights` / scoring are untouched.
+Joinability comes from `run.can_join(i)` (Godot Dev) when present, else the
+read-only `BonfireScoring.can_extend(potted + [i], ...)` that `toggle` uses.
+Refreshes on `table.events.selection_changed` when it exists, otherwise when
+`run.potted` / `throw_faces` / `state` change. Never cold grey, no tint, no particles.
