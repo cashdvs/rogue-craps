@@ -31,6 +31,10 @@ var hints_seen: Dictionary = {}
 ## Debug throw overlay on the Bonfire table (flick px/s, launch m/s, curve).
 ## Session only, never saved. Also on with the user arg `-- --throw-debug`.
 var throw_debug: bool = false
+## Tests only: a stand-in for DisplayServer with get_mode(), set_mode(mode)
+## and set_vsync(on), so a test can record every window call. null = the
+## real DisplayServer.
+var display_stub: Object = null
 
 
 func _ready() -> void:
@@ -131,7 +135,15 @@ func apply(display: bool = true) -> void:
 		var v := float(get(k))
 		AudioServer.set_bus_mute(idx, v <= 0.001)
 		AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(v, 0.0001)))
-	if display and DisplayServer.get_name() != "headless":
+	if not display:
+		return
+	if display_stub != null:
+		var m := window_mode_to_set(fullscreen, display_stub.get_mode())
+		if m >= 0:
+			display_stub.set_mode(m)
+		display_stub.set_vsync(vsync)
+		return
+	if DisplayServer.get_name() != "headless":
 		var mode := window_mode_to_set(fullscreen, DisplayServer.window_get_mode())
 		if mode >= 0 and not OS.has_feature("web") and not is_mobile():
 			DisplayServer.window_set_mode(mode)
