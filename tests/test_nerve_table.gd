@@ -102,9 +102,22 @@ func nudge_flow() -> void:
 	bs.pressed = true
 	check(n.handle_input(bs) and s.run.throw_faces[4] == 6, "Backspace undoes: back to 6")
 	check(n.nudge(4, NerveState.DOWN) == 5, "nudge the 6 down again")
+	var z := InputEventKey.new()
+	z.keycode = KEY_Z
+	z.pressed = true
+	check(n.handle_input(z) and s.run.throw_faces[4] == 6, "Z undoes too: back to 6")
+	# The pip and the rescue Nerve button call token_pressed (undo), not arm.
+	check(n.nudge(4, NerveState.DOWN) == 5, "nudge again (pip)")
+	s.nerve_ui.pip.pressed.emit()
+	check(s.run.throw_faces[4] == 6 and not n.armed, "pip press undoes the nudge (token_pressed, not arm)")
+	check(n.nudge(4, NerveState.DOWN) == 5, "nudge again (rescue button)")
+	s.nerve_ui.rescue_nerve.pressed.emit()
+	check(s.run.throw_faces[4] == 6 and not n.armed, "rescue Nerve button undoes the nudge (token_pressed, not arm)")
+	check(n.nudge(4, NerveState.DOWN) == 5, "nudge the 6 down once more")
 	# Pot it: tapping the nudged 5 pots it with the new face; no undo after.
 	check(not n.tap(4) and s.pick_die(4) and s.run.throw_faces[4] == 5 and s.run.potted.has(4), "tap the nudged 5: it pots as a 5")
 	check(not n.can_undo() and not n.undo_pending(), "after a pot: no undo")
+	check(n.state.uses_left() == 0 and s.nerve_ui.pip.disabled, "Nerve spent and nothing to undo: pip greyed out")
 	check(not n.tap(4) or s.run.throw_faces[4] == 2, "tap after the pot doesn't undo (pot / undo)")
 	check(n.state.refusal(n.hid(0)) == "nerve_potted_refusal" or n.state.uses_left() == 0, "potted die: refused")
 	s.queue_free()

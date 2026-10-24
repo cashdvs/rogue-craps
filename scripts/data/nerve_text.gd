@@ -12,7 +12,7 @@ const TEXT: Dictionary[String, String] = {
 	"nerve_pick": "Pick a die, then tap up or down.",
 	"nerve_ready": "Nerve ready: 1 per table.",
 	"nerve_spent": "Nerve spent for this table.",
-	"nerve_undo": "Tap Nerve (or Backspace) to undo before you pot, rethrow or bank.",
+	"nerve_undo": "Tap Nerve (or Backspace/Z) to undo before you pot, rethrow or bank.",
 	"nerve_used_refusal": "Nerve is already used this table.",
 	"nerve_high_refusal": "This die can't go higher.",
 	"nerve_low_refusal": "This die can't go lower.",
