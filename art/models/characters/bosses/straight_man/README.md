@@ -12,3 +12,9 @@ Built on the shared Smiles rig: 29 bones and every Smiles clip, with armature `S
 - **Tuning env vars:** HEAD_DROP, FLAT_TOP, ROD_OFF, ROD_LEN, ROD_ANG, ROD_SHIFT. The rod length is capped by the clips: with a 40 cm rod, Smiles' raised-hand taunt pushes the tip out of the phone frame (-13 to -54 px).
 - **Rig gap:** the brief wants the rod to rap the felt. That needs a dedicated rap clip (or a taunt variant). Today he only does the shared Smiles clips, with the rod rigid on chip.
 - **Renders:** straight_man/v1/ (front, side, sil, sil_x8, game_pc, game_phone).
+
+## v1b (AD rulings)
+- **Rod seat:** ROD_OFF is now "0.012,-0.018,-0.01", so the rod crosses the front of the fingers right at the grip. Prop clip: PC 31 / mobile 28 frames, against Smiles' 45. Seating it any deeper, through the fist, gave 51–56 frames.
+- **No oxblood:** the tie and rod bands are now `sm_brass` (0.70) and the pocket square is `sm_bone` (0.90). Each has its own material slot. Dealers use brass, bone and greys only.
+- **Metrics:** tris 3,316 / 1,578. GAP MIN 66.1 / 27.2 px. Phone top 17 px. Phone felt 30.0%. Forward+.
+- **Renders:** straight_man/v1b/ (front, game_phone).

@@ -18,3 +18,5 @@ Run it with: `blender -b --factory-startup --python tools/check_prop_clip.py -- 
   | Shuffle v1 cards | 25 / 23 |
 
 - **Checker quirk:** in mc_cheer, check_prop_clip.py reports a stray "Icosphere" object at the origin (about 50 mm). It shows up for Smiles too, so it comes from the glTF import and not from the models. Ignore it, or filter it out when reading the results.
+- **TODO (polish): Straight Man felt rap.** The brief's rod rapping the felt needs a dedicated clip, or a taunt variant on the shared rig. For now he only plays the shared Smiles clips.
+- **Palette rule (AD):** dealers use brass, bone and greys only, with no oxblood. Accent colours each get their own material slot.

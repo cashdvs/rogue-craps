@@ -11,7 +11,7 @@ Swap slots: PitBoss_Body (Smiles_Body), PitBoss_Head (Smiles_Head), PitBoss_Cap 
 PitBoss_Plaque (Smiles_Chip, on "chip").
 
 Design (BRIEF.md, The Pit Boss): wide block, flat cap, no neck, barrel shoulders, cigar; signature prop = brass
-flip-plaque showing ONE numeral (2-6) + an oxblood bar. Blockout plaque: "4" on the front face, "2" on the back
+flip-plaque showing ONE numeral (2-6) + a bone bar (AD: no oxblood). Blockout plaque: "4" on the front face, "2" on the back
 (a flip plaque has two faces; each face carries one numeral - see report). Grey values only (no palette yet).
 """
 import math, os, sys
@@ -26,7 +26,7 @@ import build_smiles as bs  # noqa: E402
 
 # grey blockout slots: (name, grey value) - value steps only, so the forms read without a palette
 GREYS = [("pitboss_skin", 0.62), ("pitboss_shirt", 0.80), ("pitboss_vest", 0.38), ("pitboss_black", 0.12),
-         ("pitboss_brass", 0.70), ("pitboss_oxblood", 0.22), ("pitboss_cap", 0.30), ("pitboss_eye", 0.05),
+         ("pitboss_brass", 0.70), ("pitboss_bone", 0.90), ("pitboss_cap", 0.30), ("pitboss_eye", 0.05),
          ("pitboss_cigar", 0.26), ("pitboss_ash", 0.55)]
 bs.MATS = [n for n, _ in GREYS]
 rot = bs.rot
@@ -121,7 +121,7 @@ def build_model(arm, mobile):
         for k in DIGIT[digit]:
             (oy, oz), (ly, lz) = SEG[k]
             pl.box((x, c.y + oy * sw * 1.6 * side * -1, c.z + 0.006 + oz * sh), (0.003, ly * sw * 1.6 + 0.003, lz * sh + 0.003), "pitboss_black", "chip")
-        pl.box((x, c.y, c.z - Hh * 0.5 + 0.008), (0.003, W * 0.86, 0.008), "pitboss_oxblood", "chip")  # oxblood bar
+        pl.box((x, c.y, c.z - Hh * 0.5 + 0.008), (0.003, W * 0.86, 0.008), "pitboss_bone", "chip")  # bone bar (AD: no oxblood; was oxblood)
     ob_pl = pl.finish(arm)
     return [ob_body, ob_head, ob_cap, ob_pl]
 

@@ -4,7 +4,7 @@ blender -b --factory-startup --python art/models/characters/bosses/straight_man/
 -> ../straight_man.glb (PC) + ../straight_man_mobile.glb
 
 Design (BRIEF): tallest, thinnest rectangle; flat-top; rod held as a strict diagonal. Deadpan tailor, chalk
-pinstripe + oxblood. Prop: tailor's rod with 3 oxblood-taped sections (raps the felt). Grey values only.
+pinstripe; AD: no oxblood -> brass + bone. Prop: tailor's rod with 3 brass-taped sections (raps the felt). Grey values only.
 Slots: StraightMan_Body, StraightMan_Head, StraightMan_Hair (flat-top, on "visor"), StraightMan_Rod (on "chip").
 """
 import math, os, sys
@@ -17,14 +17,14 @@ OUT = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.normpath(os.path.join(HERE, "../../../smiles/src")))
 import build_smiles as bs  # noqa: E402
 
-GREYS = [("sm_skin", 0.62), ("sm_suit", 0.34), ("sm_chalk", 0.72), ("sm_shirt", 0.85), ("sm_oxblood", 0.22),
+GREYS = [("sm_skin", 0.62), ("sm_suit", 0.34), ("sm_chalk", 0.72), ("sm_shirt", 0.85), ("sm_brass", 0.70), ("sm_bone", 0.90),
          ("sm_black", 0.10), ("sm_hair", 0.18), ("sm_eye", 0.05), ("sm_rod", 0.66)]
 bs.MATS = [n for n, _ in GREYS]
 rot = bs.rot
 E = lambda k, d: float(os.environ.get(k, d))
 HEAD_DROP = E("HEAD_DROP", "0.05")
 FLAT_TOP = E("FLAT_TOP", "0.705")
-ROD_OFF = Vector(tuple(float(x) for x in os.environ.get("ROD_OFF", "0,-0.045,-0.06").split(",")))
+ROD_OFF = Vector(tuple(float(x) for x in os.environ.get("ROD_OFF", "0.012,-0.018,-0.01").split(",")))
 ROD_LEN = E("ROD_LEN", "0.30")
 ROD_ANG = E("ROD_ANG", "45")
 ROD_SHIFT = E("ROD_SHIFT", "-0.04")  # grip 4 cm below the rod centre (rod sits mostly above the hand): keeps the rod in frame in taunt + off the head in cheat
@@ -43,12 +43,12 @@ def build_model(arm, mobile):
     b.tube([((0, 0, -0.03), 0.112), ((0, 0, 0.22), 0.115)], "sm_suit", "spine", seg=S(16), flat=0.72)
     b.tube([((0, 0, 0.2), 0.115), ((0, 0, 0.40), 0.12), ((0, 0, 0.45), 0.10)], "sm_suit", "chest", seg=S(16), flat=0.72)
     b.box((0, 0.0, 0.43), (0.27, 0.15, 0.05), "sm_suit", "chest")  # square shoulder line (rectangle top corners)
-    # chalk pinstripes (front), shirt V, oxblood tie + pocket square
+    # chalk pinstripes (front), shirt V, brass tie + bone pocket square
     for x in (-0.075, -0.045, 0.045, 0.075):
         b.box((x, -0.083, 0.13), (0.004, 0.006, 0.6 if False else 0.52), "sm_chalk", "spine")
     b.box((0, -0.086, 0.38), (0.05, 0.01, 0.11), "sm_shirt", "chest")
-    b.box((0, -0.093, 0.35), (0.018, 0.008, 0.14), "sm_oxblood", "chest")
-    b.box((0.06, -0.088, 0.36), (0.03, 0.008, 0.015), "sm_oxblood", "chest")
+    b.box((0, -0.093, 0.35), (0.018, 0.008, 0.14), "sm_brass", "chest")
+    b.box((0.06, -0.088, 0.36), (0.03, 0.008, 0.015), "sm_bone", "chest")
     for z in (0.05, 0.13):
         b.ellipsoid((0.0, -0.087, z), (0.007, 0.005, 0.007), "sm_black", "spine", seg=(S(6), S(4)))
     # long neck column + high collar (he is the tall one)
@@ -89,7 +89,7 @@ def build_model(arm, mobile):
 
     rd = P("StraightMan_Rod")
     # tailor's rod, a STRICT 45 deg diagonal in the picture plane (upper end out to his right, lower end in + down),
-    # gripped just under the fingertips (chip bone) so it rests off the fingers; 3 oxblood tape bands
+    # gripped just under the fingertips (chip bone) so it rests off the fingers; 3 brass tape bands
     c = Vector(bs.BONES["chip"][1]) + ROD_OFF
     a = math.radians(ROD_ANG)
     d = Vector((-math.sin(a), 0, math.cos(a)))
@@ -98,7 +98,7 @@ def build_model(arm, mobile):
     rd.tube([(p0, 0.008), (p1, 0.008)], "sm_rod", "chip", seg=S(6))
     for f in (0.2, 0.5, 0.8):
         q0 = p0 + (p1 - p0) * (f - 0.04); q1 = p0 + (p1 - p0) * (f + 0.04)
-        rd.tube([(q0, 0.0095), (q1, 0.0095)], "sm_oxblood", "chip", seg=S(6))
+        rd.tube([(q0, 0.0095), (q1, 0.0095)], "sm_brass", "chip", seg=S(6))
     ob_rd = rd.finish(arm)
     return [ob_body, ob_head, ob_hair, ob_rd]
 
