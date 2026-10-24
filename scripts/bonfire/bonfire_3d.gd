@@ -71,6 +71,10 @@ func _ready() -> void:
 	# (AD spec Addendum A, G1; see help_corner.gd).
 	help_corner = HelpCorner.new()
 	bhud.add_child(help_corner)
+	# A finished count-up ("TRIPS!" / "117") must not stay up while the
+	# next throw is picked (QA #160): it fades when the next throw leaves
+	# the hand, or as soon as it finishes if it's still counting then.
+	thrown.connect(func(_speed: float) -> void: _clear_count_up_when_done())
 	bhud.bank_pressed.connect(func() -> void: bank())
 	bhud.throw_pressed.connect(func() -> void: throw_again())
 	bhud.restart_pressed.connect(func() -> void: new_run(-1 if bonfire_seed < 0 else bonfire_seed + 1))
@@ -352,3 +356,12 @@ func _end_sequence_after_forfeit() -> void:
 	Engine.time_scale = 1.0
 	_refresh_hud()
 	sequence_finished.emit()
+
+
+## Fades the count-up row and banner (BonfireCountUp.clear, 0.25 s) now,
+## or right after it finishes if it is still counting.
+func _clear_count_up_when_done() -> void:
+	if bhud.countup.is_playing():
+		bhud.countup.finished.connect(func() -> void: bhud.countup.clear(), CONNECT_ONE_SHOT)
+	else:
+		bhud.countup.clear()
