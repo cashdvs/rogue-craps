@@ -10,7 +10,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=glb)
 arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
 meshes = [o for o in bpy.data.objects if o.type == "MESH"]
-is_prop = lambda o: any(k in o.name for k in ("Plaque", "Chip", "Cards", "Rod", "Cloche"))
+is_prop = lambda o: any(k in o.name for k in ("Plaque", "Chip", "Cards", "Rod", "Cloche", "Lancet"))
 props = [o for o in meshes if is_prop(o)]; others = [o for o in meshes if not is_prop(o)]
 def islands(o):
     bm = bmesh.new(); bm.from_mesh(o.data); bm.verts.ensure_lookup_table()
