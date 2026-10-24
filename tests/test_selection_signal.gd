@@ -51,7 +51,7 @@ func _run() -> void:
 	check(r.can_join(3), "the nudged 3 can join")
 	check(sent.size() == 1 and sent[0][1].has(id.call(3)), "nudge sends the new joinable die")
 	sent.clear()
-	check(s.nerve.undo_pending(), "undo the nudge")
+	check(s.nerve.undo(3), "undo the nudge")
 	check(not r.can_join(3) and sent.size() == 1 and not sent[0][1].has(id.call(3)), "undo sends it again, without the 2")
 	# Pot a 3: it is potted, not joinable; the other 3s still join.
 	sent.clear()
