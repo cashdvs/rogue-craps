@@ -49,12 +49,14 @@ There are three 3.0 s looping stems, `crowd_low`, `crowd_mid` and `crowd_high`, 
 
 | f | low | mid | high |
 |---|---|---|---|
-| 0.0 | -9 dB (murmur) | off | off |
+| 0.0 | -9 dB (room tone + murmur) | off | off |
 | 0.3 | 0 dB | -9 dB | off |
 | 0.6 | 0 dB | 0 dB | -28 dB |
 | 1.0 | 0 dB | 0 dB | 0 dB (roar) |
 
-On top of that, `CrowdLayers.volume_db` (default -6 dB) sets the overall crowd level. Changes glide over 0.4 s.
+On top of that, `CrowdLayers.volume_db` (default -14 dB) sets the overall crowd level. Changes glide over 0.4 s.
+
+**Rev 2 (playtest, "too loud, not satisfying"):** the bed sits about 8.6 dB lower (empty-pot RMS -36.3 → -44.9 dBFS, measured against the same roll + score sequence; the dice, chips and scoring now sit 25–27 dB above it instead of 16–19). `crowd_low` is now a warm C-minor room drone (C2, G2, C3, E♭3 sines swelling slowly; every frequency is a whole number of cycles per loop, so the seam is continuous) with 8 distant voices under it, peak 0.2 (was 14 voices at 0.35). `crowd_mid` and `crowd_high` have fewer, darker voices (low-passed at 1.0/1.2 kHz) and less roar rumble. `tests/test_bonfire_sfx.gd` checks the bed's level, that it has no broadband hiss and that the seam is continuous.
 
 ## Mod trigger cues
 
