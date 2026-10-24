@@ -45,7 +45,7 @@ func wait_bet(s: Bonfire3D) -> void:
 
 ## The log without the die-level noise (impacts, lit changes).
 func main_order() -> Array:
-	return log.filter(func(e: Array) -> bool: return not [&"die_impact", &"die_lit_changed"].has(e[0])).map(func(e: Array) -> StringName: return e[0])
+	return log.filter(func(e: Array) -> bool: return not [&"die_impact", &"die_lit_changed", &"selection_changed"].has(e[0])).map(func(e: Array) -> StringName: return e[0])
 
 
 func first(name: StringName, from: int = 0) -> int:
@@ -156,7 +156,11 @@ func _run() -> void:
 	check(cl >= 0 and log[cl][1] == &"triple", "bounty_claimed(triple)")
 	var bu := first(&"bust")
 	check(bu >= 0 and int(log[bu][1]) == t.bust_soul_loss and log[bu][2] == [3, 4], "bust(soul_loss = %d, the 2 busted dice 3, 4) (%s)" % [t.bust_soul_loss, str(log[bu] if bu >= 0 else [])])
-	var tr_bust: Array = log[bu - 1][1] if bu > 0 and log[bu - 1][0] == &"triggers_resolved" else []
+	# selection_changed (empty: not picking) may sit between them.
+	var tb := bu - 1
+	while tb > 0 and log[tb][0] == &"selection_changed":
+		tb -= 1
+	var tr_bust: Array = log[tb][1] if bu > 0 and log[tb][0] == &"triggers_resolved" else []
 	check(tr_bust.size() == 1 and tr_bust[0]["stage"] == &"lit" and tr_bust[0]["row_id"] == &"bust" and tr_bust[0]["ctx"]["die_ids"] == [3, 4],
 		"the bust throw's triggers: one lit-check entry, bust (%s)" % str(tr_bust))
 	var plain_scoring := log.filter(func(e: Array) -> bool: return e[0] == &"triggers_resolved" and not (e[1] as Array).is_empty())

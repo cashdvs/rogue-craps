@@ -221,6 +221,7 @@ func nudge(i: int, dir: int) -> int:
 		return -1
 	_apply()
 	table.events.die_nudged.emit(table.event_id(table.throw_dice[i]), from, to, dir)
+	table.emit_selection()
 	table._set_why(NerveText.get_text("nerve_undo"))
 	return to
 
@@ -238,6 +239,7 @@ func undo(i: int) -> bool:
 	_apply()
 	var dir := NerveState.DOWN if from > back else NerveState.UP
 	table.events.die_nudged.emit(table.event_id(table.throw_dice[i]), from, back, dir)
+	table.emit_selection()
 	return true
 
 
