@@ -1,4 +1,6 @@
-# The Pit Boss — grey blockout v1 (Floor 1 boss dealer)
+# The Pit Boss — final, reference boss dealer (Floor 1)
+
+> v3 (2026-10-24): AD-approved blockout taken to final. Toon-noir materials, ink, HeadTrack/HeadAnchor and `tests/test_pit_boss.gd`. See **v3** at the end. The other five bosses copy this setup.
 
 Bust plus the signature prop, built on the **shared Smiles rig**. `src/build_pit_boss.py` imports
 `smiles/src/build_smiles.py` for the bones, the Part helper and every clip, so nothing about the rig is forked:
@@ -7,7 +9,7 @@ Bust plus the signature prop, built on the **shared Smiles rig**. `src/build_pit
 - the same origin, scale and armature name (`Smiles`)
 - clips idle / taunt / grudging / cheat / deal / mc_idle / mc_cheer
 
-`scenes/pit_boss(_mobile).tscn` is a straight swap for `smiles(_mobile).tscn` at the dealer spot (-0.42, -0.47, -0.86), with idle on autoplay. There is no HeadTrack or HeadAnchor yet.
+`scenes/pit_boss(_mobile).tscn` is a straight swap for `smiles(_mobile).tscn` at the dealer spot (-0.42, -0.47, -0.86), with idle on autoplay, HeadTrack (LookAtModifier3D) and HeadAnchor (BoneAttachment3D) on `head`, the same as Smiles (added in v3).
 
 | Slot | Smiles equivalent | Bone |
 |---|---|---|
@@ -55,3 +57,36 @@ Brazier and goal-plaque clearance uses the tests/test_smiles.gd camera v3 framin
 
 ## v2b (AD: no oxblood)
 - The plaque bar is now `pitboss_bone` (0.90) in its own slot. Geometry is unchanged. Prop clip: 35 / 35 frames. The mobile figure was 34 before, and the recolour can't have moved it, so treat the +1 as checker variance. Render: pit_boss/v2b/front.png.
+
+## v3 final (reference dealer, AD approved the blockout)
+- **Materials** (`materials/*.tres`, built by `src/make_pit_boss.gd -- materials`): one toon_noir ShaderMaterial per glTF slot, each with an ink hull `next_pass` (`outline.gdshader`, #0E1414, 0.0048, the same as Smiles). The thin 0.0018 ink is on black / ash / cigar. Eyes have no ink.
+- **Palette:** brass #B08D3C, bone #E8DCC0, pewter #8A8D8F and greys only.
+  - Every colour uniform is set explicitly: shadow, ambient, rim, spec and emission. This matters because the shader defaults are oxblood shadow/ambient and a teal rim.
+  - `emission_energy` is 0 everywhere.
+  - Accents (brass, bone) stay in their own slots.
+- **Hooks:** HeadTrack (LookAtModifier3D on `head`; ±60° yaw, ±20° pitch, 0.25 s sine ease-out, influence 0 until Godot Dev targets it) and HeadAnchor (BoneAttachment3D on `head`), under `Model/Smiles/Skeleton3D`.
+- **Rebuild:** `GODOT=… BLENDER=… art/models/characters/bosses/pit_boss/src/rebuild_pit_boss.sh` (Blender build → materials → `tools/write_boss_imports.py` (uids kept) → `--import` → scenes).
+- **Test:** `tests/test_pit_boss.gd` checks 166 cases:
+  - rig bones and parents against `test_smiles.gd`
+  - clip lengths and loop wraps
+  - tris
+  - toon + ink + palette + no emission on every slot and surface (the palette rule self-checks: oxblood, cyan and violet must fail)
+  - no lights or scripts
+  - HeadTrack and HeadAnchor
+  - brazier gap ≥20 px in both game cams
+  - felt left clear (a depth-aware vertex-splat proxy over the render's felt sample grid, with a self-check)
+  - plaque: brass/black/bone, chip bone only, "4"/"2" faces, palmed in cheat
+  - slot swap: cap on visor only and plaque on chip only, and a cap override doesn't touch the head
+  - a prop-clip regression guard
+- **Metrics:**
+  - Tris: PC 7,176, mobile 2,922.
+  - Gap min (test sweep): PC 55.7 px, phone 23.1 px.
+  - Felt: PC 32.4%, phone 30.2% (lit, Forward+).
+  - Prop clip: Blender per-shell check 35 / 35. The coarse in-engine check reads 150 for both and is guarded at ≤160.
+- **Renders:** `/workspace/dice/art/renders/boss_dealers/pit_boss/final/game_pc.png`, `game_phone.png`.
+
+### Template for the other five bosses
+1. `bosses/tools/boss_toon.gd` holds the palette constants, the `brass()/bone()/pewter()/cloth()/base()` param builders, `materials()` (toon + ink .tres) and `scene()` (Model + HeadTrack + HeadAnchor).
+2. `bosses/tools/write_boss_imports.py <boss> <slots…>` writes the external-material `.glb.import` files and keeps the uids.
+3. `tests/support/boss_dealer_checks.gd` covers counters, the palette and emission check, game cams, CPU skinning, the brazier gap, the felt proxy and prop-clip frames.
+4. For a new boss, copy `make_pit_boss.gd`, `rebuild_pit_boss.sh` and `tests/test_pit_boss.gd`, then change the slot table, part names and swap bones.
