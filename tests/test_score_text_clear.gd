@@ -91,11 +91,19 @@ func _run() -> void:
 	check(not s.help_label.visible, "dismiss fades the controls text")
 	hc.start_table(s.help_label, false, false)
 	check(not s.help_label.visible, "later tables: no controls text")
-	# The card's link turns the Table 1 tutorial back on.
-	var gs := root.get_node_or_null("GameSettings")
-	if gs != null:
-		gs.set_option(&"tutorial_enabled", false)
-		hc.replay_tutorial()
-		check(bool(gs.get("tutorial_enabled")), "Replay tutorial sets the flag")
+	# The card's link turns the Table 1 tutorial back on. A throwaway
+	# settings object: nothing is written to user://settings.cfg.
+	var fake := FakeSettings.new()
+	hc.settings = fake
+	hc.replay_tutorial()
+	check(fake.calls == [[&"tutorial_enabled", true]], "Replay tutorial sets the flag (%s)" % str(fake.calls))
 	print("test_score_text_clear: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+## Records set_option calls instead of saving them.
+class FakeSettings:
+	var calls: Array = []
+
+	func set_option(key: StringName, value: Variant) -> void:
+		calls.append([key, value])

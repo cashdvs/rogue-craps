@@ -191,6 +191,7 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   | `scripts/bonfire/bonfire_table_layout.gd` | `BonfireTableLayout` | camera, phone / landscape fit, pot and hand positions, screen picking |
   | `scripts/bonfire/bonfire_throw_flow.gd` | `BonfireThrowFlow` | one throw: launch, settle, rule triggers, face changes, bust |
   | `scripts/bonfire/bonfire_pot_bank.gd` | `BonfirePotBank` (`Bonfire3D` extends it) | pot, throw again, bank and count-up, Hot Hand, Nerve glue |
+  | `scripts/bonfire/help_corner.gd` | `HelpCorner` (child of `Bonfire3D`, made in `_ready`) | first-table controls text: fades 30 s after the first pot or on the first Bank, stays off on later tables; F1 / ? card with the Replay-tutorial link (`settings` can be swapped for a stub in tests) |
   | `scripts/bonfire/bonfire_hud_build.gd` | `BonfireHudBuild` (extends `Control`) | HUD variables; builds the labels, buttons and panels |
   | `scripts/bonfire/bonfire_hud_goal.gd` | `BonfireHudGoal` (`BonfireHud` extends it) | goal / bounty readout, meters, stamps, UI scale |
   | `scripts/bonfire/bonfire_juice_sound.gd` | `BonfireJuiceSound` (`BonfireJuice` extends it) | the juice adapter's constants, variables, hook log and every sound (SfxManager events with fallbacks, crowd layers) |

@@ -27,6 +27,9 @@ var replay_button: Button
 var dismissed: bool = false
 var reduced_motion: bool = false
 var _pot_timer: SceneTreeTimer
+## The settings the Replay link changes; null = the GameSettings autoload.
+## Tests set a throwaway object here so nothing is saved to disk.
+var settings: Object = null
 
 
 func _init() -> void:
@@ -117,7 +120,7 @@ func toggle_card() -> void:
 
 ## The card's link: turns the Table 1 tutorial back on (the Settings flag).
 func replay_tutorial() -> void:
-	var gs := get_node_or_null("/root/GameSettings")
+	var gs: Object = settings if settings != null else get_node_or_null("/root/GameSettings")
 	if gs != null:
 		gs.set_option(&"tutorial_enabled", true)
 	card.visible = false
