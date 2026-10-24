@@ -39,3 +39,4 @@ don't change); the old version is in git history.
 | `table_cleared.wav` | new (core-loop cues): TABLE CLEARED sting | `BonfireSynth.make` |
 | `no_score.wav` | new: a non-scoring die's soft bounce | `BonfireSynth._no_score` |
 | `trigger_<row>.wav` | new (mod trigger cues): one cue per trigger FX spec row, plus `trigger_generic`, `trigger_cluster` and the `trigger_flavor_<flavour>` layers; baked by `tools/bake_sfx.gd` like the rest (`ModTriggerSynth.bake_all()`) | `ModTriggerSynth.make` (recipes: `ModTriggerRecipes.build`) |
+| `nerve_nudge.wav`, `nerve_nudge_01..03.wav` | new (Nerve nudge): a brass dial detent click + soft C6 ping + wooden tick, 3 takes | `SfxSynth._dial_tick` |
