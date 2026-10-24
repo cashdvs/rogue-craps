@@ -31,6 +31,7 @@ func throw_again() -> bool:
 		_refuse(why if why != "" else "Pot at least one lit die first.")
 		return false
 	bhud.tutorial.on_action(&"rethrow")
+	bhud.clear_score_text()
 	nerve.close_throw()
 	pot_dice.append_array(potted_now)
 	# Back to the home framing (the reveal left the camera zoomed in on the
@@ -168,6 +169,7 @@ func bank() -> Dictionary:
 		_refuse("Pot at least one lit die to bank.")
 		return {}
 	bhud.tutorial.on_action(&"bank")
+	bhud.clear_score_text()
 	fast_forward_juice()
 	var sel := run.selection()
 	var hot_before := run.hot_hands
@@ -323,6 +325,7 @@ func nerve_bust() -> void:
 
 
 func _after_hand() -> void:
+	bhud.clear_score_text()
 	if run.is_over():
 		# Out of hands uncleared: the Soul meter drops by the table's
 		# penalty, like a bust or forfeit (QA M4). A cleared table costs no

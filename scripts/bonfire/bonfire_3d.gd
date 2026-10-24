@@ -55,6 +55,9 @@ func _ready() -> void:
 	stack.visible = false
 	info_box.visible = false
 	puck.visible = false
+	# The old controls cheat sheet in the top-left corner: a playtester
+	# asked for it gone (the hints and buttons already say this).
+	help_label.visible = false
 	help_label.text = "Grab the dice and flick (Space: quick throw). Click lit dice to pot ONE combo.\nB: Bank   Space: throw the rest   T: speed 1x/2x/Instant   R: reduced motion"
 	(table.felt_material as ShaderMaterial).set_shader_parameter("use_overlay", false)
 	all_dice = dice.duplicate()
@@ -147,6 +150,7 @@ func new_run(seed_value: int = -1) -> void:
 		bhud.countup.fast_forward()
 	bhud.countup.clear(0.0)
 	bhud.display_hold = {}
+	bhud.clear_score_text()  # nothing from the last table sticks
 	bhud.pulse_cards([])
 	_throw_claims = []
 	juice.crowd_start()
