@@ -91,8 +91,111 @@ func _check(path: String) -> void:
 			print("  GAP %s %-8s %6.1f px (closest %s)" % [ck, c, best[ck], at[ck]])
 	print("  GAP MIN pc %.1f px | phone %.1f px | %s (>= %d) | top-most vertex y: pc %.0f px, phone %.0f px (<0 = cut by frame top)" % [worst["pc"], worst["phone"],
 		"PASS" if worst["pc"] >= BRAZIER_CLEAR_PX and worst["phone"] >= BRAZIER_CLEAR_PX else "FAIL", BRAZIER_CLEAR_PX, top["pc"], top["phone"]])
+	await _prop_clip(s, skel, ap)
 	s.queue_free()
 	await process_frame
+
+
+## Prop (chip-bone mesh) vs body/head: for every clip frame where the prop is drawn (chip scale > 0.05), count prop
+## vertices that sit inside the rest of the dealer (nearest triangle's outward normal faces away) and the deepest one.
+func _prop_clip(s: Node3D, skel: Skeleton3D, ap: AnimationPlayer) -> void:
+	var total_bad := 0
+	for c in ["idle", "taunt", "grudging", "cheat", "deal", "mc_idle", "mc_cheer"]:
+		var a := ap.get_animation(c)
+		var t := 0.0
+		var bad: Array[String] = []
+		var deepest := 0.0
+		while t <= a.length + 0.001:
+			ap.play(c)
+			ap.seek(t, true)
+			var sc := skel.get_bone_pose_scale(skel.find_bone("chip")).x
+			if sc > 0.05:
+				var g := _geo(s, skel)
+				var prop: PackedVector3Array = g[0]
+				var tris: PackedVector3Array = g[1]
+				var box := AABB(prop[0], Vector3.ZERO)
+				for q in prop:
+					box = box.expand(q)
+				box = box.grow(0.03)
+				var near := PackedVector3Array()
+				for i in range(0, tris.size(), 3):
+					if box.has_point(tris[i]) or box.has_point(tris[i + 1]) or box.has_point(tris[i + 2]):
+						near.append_array([tris[i], tris[i + 1], tris[i + 2]])
+				var n_in := 0
+				for q in prop:
+					var best := INF
+					var sd := 0.0
+					for i in range(0, near.size(), 3):
+						var cp := _closest_on_tri(q, near[i], near[i + 1], near[i + 2])
+						var d := q.distance_to(cp)
+						if d < best - 1e-6:
+							best = d
+							var nrm := (near[i + 1] - near[i]).cross(near[i + 2] - near[i]).normalized()
+							sd = (q - cp).dot(nrm)
+					if best < INF and sd < -1e-4 and best < 0.03:
+						n_in += 1
+						deepest = maxf(deepest, best)
+				if n_in > 0:
+					bad.append("@%.2f sc %.2f: %d verts" % [t, sc, n_in])
+			t += 0.05
+		total_bad += bad.size()
+		print("  PROPCLIP %-8s %s" % [c, "clean" if bad.is_empty() else "%d frames, deepest %.1f mm: %s" % [bad.size(), deepest * 1000.0, bad.slice(0, 4)]])
+	print("  PROPCLIP total frames with the prop inside the hand/body: %d" % total_bad)
+
+
+func _closest_on_tri(p: Vector3, a: Vector3, b: Vector3, c: Vector3) -> Vector3:
+	var pl := Plane(a, b, c)
+	var pp := pl.project(p)
+	var n := (b - a).cross(c - a)
+	if n.length_squared() < 1e-14:
+		return Geometry3D.get_closest_point_to_segment(p, a, b)
+	if n.dot((b - a).cross(pp - a)) >= 0 and n.dot((c - b).cross(pp - b)) >= 0 and n.dot((a - c).cross(pp - c)) >= 0:
+		return pp
+	var best := Geometry3D.get_closest_point_to_segment(p, a, b)
+	for e in [[b, c], [c, a]]:
+		var q := Geometry3D.get_closest_point_to_segment(p, e[0], e[1])
+		if p.distance_to(q) < p.distance_to(best):
+			best = q
+	return best
+
+
+## [prop vertices, other triangles (flat, 3 per tri)] skinned to world space.
+func _geo(s: Node3D, skel: Skeleton3D) -> Array:
+	var prop := PackedVector3Array()
+	var tris := PackedVector3Array()
+	for mi: MeshInstance3D in s.find_children("*", "MeshInstance3D", true, false):
+		var is_prop := mi.name.contains("Plaque") or mi.name.contains("Chip") or mi.name.contains("Cards")
+		var skin := mi.skin
+		var mats: Array[Transform3D] = []
+		var gl := false
+		for i in skin.get_bind_count():
+			var b := skin.get_bind_name(i)
+			var bi := skel.find_bone(b) if b != "" else skin.get_bind_bone(i)
+			mats.append(skel.global_transform * skel.get_bone_global_pose(bi) * skin.get_bind_pose(i))
+		for si in mi.mesh.get_surface_count():
+			var arr := mi.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var bs: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+			var ws: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+			var k := ws.size() / maxi(vs.size(), 1)
+			var w := PackedVector3Array()
+			w.resize(vs.size())
+			for vi in vs.size():
+				var j := 0
+				for jj in k:
+					if ws[vi * k + jj] > ws[vi * k + j]:
+						j = jj
+				w[vi] = mats[bs[vi * k + j]] * vs[vi]
+			if is_prop:
+				prop.append_array(w)
+			else:
+				var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+				var mname := (mi.get_active_material(si).resource_name if mi.get_active_material(si) else "")
+				if mname.contains("glow"):
+					continue
+				for ti in idx:
+					tris.append(w[ti])
+	return [prop, tris]
 
 
 func _skinned(s: Node3D, skel: Skeleton3D) -> PackedVector3Array:
