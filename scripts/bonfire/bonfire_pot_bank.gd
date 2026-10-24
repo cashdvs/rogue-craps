@@ -248,7 +248,6 @@ func pick_die(i: int) -> bool:
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	nerve.on_potted()
-	emit_selection()
 	_layout_throw()
 	if not run.potted.is_empty():
 		bhud.tutorial.on_action(&"potted")

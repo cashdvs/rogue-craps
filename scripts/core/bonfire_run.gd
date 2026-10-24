@@ -131,17 +131,6 @@ func toggle(i: int) -> bool:
 	return true
 
 
-## True if throw die [param i] could be potted next: it is in the current
-## throw, not potted yet, and fits the combo with the dice already potted.
-## With nothing potted this is "die i lights" (VFX: joinable dice glow).
-func can_join(i: int) -> bool:
-	if state != State.PICK or i < 0 or i >= throw_faces.size() or potted.has(i):
-		return false
-	var next := potted.duplicate()
-	next.append(i)
-	return BonfireScoring.can_extend(next, throw_dice(), tuning, rule_ctx())
-
-
 ## "" if the current selection may be thrown on, else why not.
 func rethrow_block_reason() -> String:
 	if not can_continue():
