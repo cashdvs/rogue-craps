@@ -21,7 +21,18 @@ GREYS = [("ash_iron", 0.28), ("ash_iron_dark", 0.14), ("ash_skin", 0.58), ("ash_
          ("ash_soot", 0.20), ("ash_coal", 0.50), ("ash_eye", 0.05), ("ash_tash", 0.78)]
 bs.MATS = [n for n, _ in GREYS]
 rot = bs.rot
-PIPE_TOP = float(os.environ.get("PIPE_TOP", "0.70"))
+PIPE_TOP = float(os.environ.get("PIPE_TOP", "0.75"))  # v2: brim at 0.64 -> 11 cm pipe
+HEAD_DROP = float(os.environ.get("HEAD_DROP", "0.04"))  # v2: extra drop (on top of the built-in 5 cm) so the taller pipe fits the phone frame
+
+# v2 RIG FORK (AD): Smiles' skeleton + exactly ONE extra bone, the firebox door hinge (vertical axis at the door's
+# stage-left edge, child of spine). Added in-process only; build_smiles.py is untouched, so Smiles is unaffected.
+DOOR_HINGE = (0.075, -0.19, 0.12)
+bs.BONES["firebox_door"] = ("spine", DOOR_HINGE)
+DOOR_OPEN = float(os.environ.get("DOOR_OPEN", "105"))
+# taunt: door flings open on the wind-up -> roar, holds while he points, slams shut on the wind-back
+_DOOR = {0.0: 0, 0.12: 0, 0.19: DOOR_OPEN * 1.08, 0.25: DOOR_OPEN, 1.0: DOOR_OPEN, 1.2: 0, 1.4: 0}
+_L, _keys, _loop = bs.CLIPS["taunt"]
+bs.CLIPS["taunt"] = (_L, [(t, {**p, "firebox_door": (0, 0, _DOOR.get(t, DOOR_OPEN if 0.19 <= t <= 1.0 else 0))}) for t, p in _keys], _loop)
 
 
 def build_model(arm, mobile):
@@ -37,10 +48,11 @@ def build_model(arm, mobile):
     body.ellipsoid((0, 0.0, 0.14), (0.23, 0.19, 0.24), "ash_iron", "spine", seg=(S(22), S(14)))
     body.ellipsoid((0, 0.0, 0.36), (0.20, 0.165, 0.13), "ash_iron", "chest", seg=(S(20), S(10)))
     body.tube([((0, 0, 0.24), 0.222), ((0, 0, 0.26), 0.222)], "ash_brass", "chest", seg=S(22), flat=0.84, caps=False)  # brass belly band
-    body.box((0, -0.178, 0.12), (0.15, 0.03, 0.13), "ash_iron_dark", "spine", rot=rot(-8, 0, 0))  # firebox door (cold)
+    body.box((0, -0.212, 0.12), (0.15, 0.012, 0.13), "ash_iron_dark", "firebox_door")  # firebox door (cold), on the v2 hinge bone
+    body.box((0, -0.18, 0.12), (0.13, 0.03, 0.11), "ash_soot", "spine")  # firebox mouth (dark, seen when the door is open)
     for i in range(4):
-        body.box((-0.045 + i * 0.03, -0.196, 0.12), (0.008, 0.01, 0.1), "ash_coal", "spine", rot=rot(-8, 0, 0))  # grate bars (dull coal, unlit)
-    body.ellipsoid((0.06, -0.19, 0.12), (0.012, 0.01, 0.012), "ash_brass", "spine", seg=(S(8), S(5)))  # door latch
+        body.box((-0.045 + i * 0.03, -0.199, 0.12), (0.008, 0.01, 0.09), "ash_coal", "spine")  # grate bars (dull coal, unlit)
+    body.ellipsoid((-0.06, -0.222, 0.12), (0.012, 0.01, 0.012), "ash_brass", "firebox_door", seg=(S(8), S(5)))  # door latch
     # no neck: a squat collar ring of iron straight under the jaw
     body.tube([((0, 0, 0.44), 0.11), ((0, -0.01, 0.50), 0.095)], "ash_iron_dark", "neck", seg=S(16), flat=0.9)
     for s, sx in (("L", 1), ("R", -1)):
@@ -73,6 +85,7 @@ def build_model(arm, mobile):
         head.tube([((sx * 0.01, -0.098, 0.548), 0.016), ((sx * 0.055, -0.098, 0.53), 0.02), ((sx * 0.105, -0.075, 0.49), 0.014), ((sx * 0.118, -0.06, 0.46), 0.006)],
                   "ash_tash", "jaw", seg=S(8))
     head.ellipsoid((0, -0.102, 0.565), (0.02, 0.02, 0.02), "ash_skin", "head", seg=(S(10), S(6)))  # nose
+    bmesh.ops.translate(head.bm, verts=list(head.bm.verts), vec=Vector((0, 0, -HEAD_DROP)))
     ob_head = head.finish(arm)
 
     pipe = P("Ashmouth_Pipe")
@@ -81,6 +94,7 @@ def build_model(arm, mobile):
     pipe.tube([((0, 0, 0.64), 0.072), ((0, 0, PIPE_TOP), 0.068)], "ash_iron", "visor", seg=S(14), flat=1.0)
     pipe.tube([((0, 0, PIPE_TOP - 0.004), 0.076), ((0, 0, PIPE_TOP + 0.006), 0.076)], "ash_iron_dark", "visor", seg=S(14), flat=1.0)
     pipe.tube([((0, 0, 0.655), 0.0725), ((0, 0, 0.67), 0.0715)], "ash_soot", "visor", seg=S(14), flat=1.0, caps=False)
+    bmesh.ops.translate(pipe.bm, verts=list(pipe.bm.verts), vec=Vector((0, 0, -HEAD_DROP)))
     ob_pipe = pipe.finish(arm)
     return [ob_body, ob_head, ob_pipe]
 
