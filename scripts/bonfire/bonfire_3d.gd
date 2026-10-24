@@ -199,6 +199,7 @@ func forfeit() -> bool:
 		return false
 	_kill_hand_tweens()
 	phase = Phase.OVER
+	juice.crowd_stop()
 	_burn_soul(maxi(_soul_shown - run.soul, 0))
 	for d in all_dice:
 		_set_lit(d, false)
@@ -223,6 +224,7 @@ func leave() -> bool:
 	_kill_hand_tweens()
 	pause_menu.set_forfeit_enabled(false)
 	phase = Phase.OVER
+	juice.crowd_stop()
 	for d in all_dice:
 		_set_lit(d, false)
 	_emit_table_cleared()
@@ -351,6 +353,7 @@ func _process(delta: float) -> void:
 ## A throw finished playing after the table was forfeited mid-roll.
 func _end_sequence_after_forfeit() -> void:
 	phase = Phase.OVER
+	juice.crowd_stop()
 	_skip = false
 	Engine.time_scale = 1.0
 	_refresh_hud()

@@ -100,8 +100,36 @@ func play(event: StringName, pitch: float = 1.0, volume_db: float = 0.0, pitch_j
 	player.stream = _streams[event] if takes.is_empty() else takes[pick_variant(event)] as AudioStream
 	player.pitch_scale = maxf(0.05, pitch + _rng.randf_range(-pitch_jitter, pitch_jitter))
 	player.volume_db = volume_db
+	player.set_meta(&"event", event)  # so stop_event() can find it
 	player.play()
 	played.emit(event)
+
+
+## Stops every player still sounding [param event]. Returns how many.
+func stop_event(event: StringName) -> int:
+	var n := 0
+	for player in _players:
+		if player.playing and player.get_meta(&"event", &"") == event:
+			player.stop()
+			n += 1
+	return n
+
+
+## Plays [param event] after stopping its last copy, so a sound repeated
+## faster than it lasts (the 0.45 s dice_shake every 0.22 s) never stacks.
+func play_alone(event: StringName, pitch: float = 1.0, volume_db: float = 0.0) -> void:
+	stop_event(event)
+	play(event, pitch, volume_db)
+
+
+## Per-die impact rate limit: true (and records the time) if die [param key]
+## may make an impact sound now, at most one per IMPACT_MIN_GAP_S.
+func impact_allowed(key: int) -> bool:
+	var now := _game_time if impact_clock < 0.0 else impact_clock
+	if now - float(_last_impact.get(key, -1e9)) < ThrowSynth.IMPACT_MIN_GAP_S:
+		return false
+	_last_impact[key] = now
+	return true
 
 
 ## A throw leaves the hand: plays the fwip layers and the rattle burst, all
@@ -126,11 +154,8 @@ func play_impact(kind: StringName, speed_mps: float, material: StringName = &"bo
 	var p := ThrowSynth.impact_params(kind, speed_mps, material)
 	if p.is_empty():
 		return false
-	var now := _game_time if impact_clock < 0.0 else impact_clock
-	if die_id >= 0:
-		if now - float(_last_impact.get(die_id, -1e9)) < ThrowSynth.IMPACT_MIN_GAP_S:
-			return false
-		_last_impact[die_id] = now
+	if die_id >= 0 and not impact_allowed(die_id):
+		return false
 	play(p["event"], p["pitch"], p["volume_db"], 0.03)
 	if p["click_db"] > -40.0:
 		play(ThrowSynth.CLICK, p["pitch"] * 1.1, p["click_db"], 0.05)

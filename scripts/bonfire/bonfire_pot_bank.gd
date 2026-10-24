@@ -339,6 +339,7 @@ func _after_hand() -> void:
 		_burn_soul(maxi(_soul_shown - run.soul, 0))
 		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER
+		juice.crowd_stop()  # the table ended
 		_taunt(&"bonfire_clear" if run.state == BonfireRun.State.CLEARED else &"bonfire_fail")
 		bhud.show_end(run)
 		_refresh_hud()
