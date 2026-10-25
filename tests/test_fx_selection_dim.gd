@@ -144,6 +144,26 @@ func _run() -> void:
 		await process_frame
 	check(five.glow_lit > 0.5, "5 glows again")
 	check(five.body_material.get_shader_parameter("albedo") == albedo0, "body albedo untouched")
+	# #164: a bank sends selection_changed([], []); that empty emit clears the dim.
+	check(s.pick_die(0), "pot the 3 again")
+	await process_frame
+	check(fx.is_dimmed(five), "5 dimmed before the bank")
+	var empties: Array = []
+	var rec := func(p: Array, j: Array) -> void: empties.append([p, j])
+	s.events.selection_changed.connect(rec)
+	s.events.selection_changed.emit([], [])
+	check(not fx.is_dimmed(five) and not five.outline_dimmed, "empty selection_changed clears the dim")
+	s.emit_selection()
+	check(fx.is_dimmed(five), "dimmed again before the real bank")
+	empties.clear()
+	check(s.pick_die(1) and s.pick_die(2), "pot all three 3s (bankable trips)")
+	await process_frame
+	check(fx.is_dimmed(five) and s.run.can_continue(), "trips potted, 5 dimmed, can bank")
+	s.bank()
+	await process_frame
+	check(empties.any(func(e: Array) -> bool: return (e[0] as Array).is_empty() and (e[1] as Array).is_empty()), "the real bank emits selection_changed([], [])")
+	check(not fx.is_dimmed(five) and not five.outline_dimmed, "the real bank clears the dim")
+	s.events.selection_changed.disconnect(rec)
 	sv.queue_free()
 	_finish()
 

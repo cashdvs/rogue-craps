@@ -5,8 +5,7 @@
 ## face the seeded DiceRoller picked is the one that ends up on top.
 ##
 ## Face layout (opposite faces sum to 7), in the die's local space:
-##   +Y = 1, -Y = 6, +X = 2, -X = 5, +Z = 3, -Z = 4
-## (Meshes, face table and pips: DieFaceArt.)
+##   +Y = 1, -Y = 6, +X = 2, -X = 5, +Z = 3, -Z = 4 (meshes, face table, pips: DieFaceArt)
 class_name DieVisual
 extends DieFaceArt
 
@@ -40,23 +39,14 @@ var material: String = "bone":
 		if body_material != null:
 			_apply_glow(glow_lit, glow_cold)
 
-## Playtest fix (PM + AD): the lit cue. Every family gets the same
-## inverted-hull ember outline, 0.010 m #E8622A, emission 0.4, shown only
-## while lit (AD #162: also replaces glass's old dark #2A2018 ink outline).
-## A dimmed die (lit but can't join the selection, SelectionDimFx) shows it
-## in DIM_OUTLINE_COLOR with no emission; plain and cold dice show none.
-## The hull (shaders/3d/die_hull_outline.gdshader) grows in view space from
-## the die centre and is nudged toward the camera, so it is even on every side
-## (a world-space grow showed the far wall above the top faces).
+## Lit cue (PM + AD): every family's ember hull outline, shown only while lit
+## (AD #162 replaced glass's ink outline). Dimmed (SelectionDimFx): DIM_OUTLINE_COLOR,
+## no emission. Plain and cold dice: none.
+## Hull: shaders/3d/die_hull_outline.gdshader (even view-space grow from centre).
 const HULL_OUTLINE := {"width": 0.010, "color": Color("#E8622A"), "emission": 0.4}
 const HULL_OUTLINE_SHADER := preload("res://shaders/3d/die_hull_outline.gdshader")
-const HULL_OUTLINE_FAMILIES := {
-	"bone": HULL_OUTLINE,
-	"brass": HULL_OUTLINE,
-	"wood": HULL_OUTLINE,
-	"obsidian": HULL_OUTLINE,
-	"frosted_glass": HULL_OUTLINE,
-}
+const HULL_OUTLINE_FAMILIES := {"bone": HULL_OUTLINE, "brass": HULL_OUTLINE, "wood": HULL_OUTLINE,
+	"obsidian": HULL_OUTLINE, "frosted_glass": HULL_OUTLINE}
 ## Dimmed outline: opaque warm neutral, no emission (AD #162 v2).
 const DIM_OUTLINE_COLOR := Color("#8A8478")
 ## True while SelectionDimFx shows this die dimmed (see set_dimmed).

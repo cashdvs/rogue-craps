@@ -31,7 +31,11 @@ func _ready() -> void:
 		ev.connect(&"table_cleared", clear)
 
 
-func _on_selection_changed(_potted_ids: Array, _joinable_ids: Array) -> void:
+## An empty emit (bank, bust, outside PICK; #164) means nothing is selected: clear.
+func _on_selection_changed(potted_ids: Array, _joinable_ids: Array) -> void:
+	if potted_ids.is_empty():
+		clear()
+		return
 	refresh()
 
 
