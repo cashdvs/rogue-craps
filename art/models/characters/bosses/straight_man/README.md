@@ -18,3 +18,11 @@ Built on the shared Smiles rig: 29 bones and every Smiles clip, with armature `S
 - **No oxblood:** the tie and rod bands are now `sm_brass` (0.70) and the pocket square is `sm_bone` (0.90). Each has its own material slot. Dealers use brass, bone and greys only.
 - **Metrics:** tris 3,316 / 1,578. GAP MIN 66.1 / 27.2 px. Phone top 17 px. Phone felt 30.0%. Forward+.
 - **Renders:** straight_man/v1b/ (front, game_phone).
+
+## Toon final (Oct 24, 2026), templated on the Pit Boss
+- Materials: `src/make_straight_man.gd` on `../tools/boss_toon.gd` (brass, bone, greys one value step up, pewter; bone rim #E8DCC0 at 0.30; neutral ambient #3A3732 at 0.40; emission 0). Accents keep their own slots. External `.tres` in `materials/`, wired by `../tools/write_boss_imports.py`.
+- Scenes: `scenes/straight_man(_mobile).tscn` with Model, HeadTrack (LookAtModifier3D on head, influence 0) and HeadAnchor (BoneAttachment3D on head).
+- Rebuild: `GODOT=… BLENDER=… src/rebuild_straight_man.sh` (SKIP_BLENDER=1 keeps the current .glb).
+- Test: `tests/test_straight_man.gd` (186 checks, all pass), including the two AD ambient conditions on every material.
+- Tris PC / mobile 3,316 / 1,578. Brazier gap min PC / phone 66.2 / 27.3 px. Felt luma PC / phone 31.7 / 30.9% (Forward+). Prop clip (Blender, PC) 31 frames.
+- Renders: `/workspace/dice/art/renders/boss_dealers/straight_man/final/game_pc.png`, `game_phone.png`.

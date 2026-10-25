@@ -14433,6 +14433,58 @@ _subresources={
 "slice_99/start_frame": 0,
 "slices/amount": 0
 }
+},
+"materials": {
+"sm_black": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_black.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_black.tres"
+},
+"sm_bone": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_bone.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_bone.tres"
+},
+"sm_brass": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_brass.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_brass.tres"
+},
+"sm_chalk": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_chalk.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_chalk.tres"
+},
+"sm_eye": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_eye.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_eye.tres"
+},
+"sm_hair": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_hair.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_hair.tres"
+},
+"sm_rod": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_rod.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_rod.tres"
+},
+"sm_shirt": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_shirt.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_shirt.tres"
+},
+"sm_skin": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_skin.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_skin.tres"
+},
+"sm_suit": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/straight_man/materials/sm_suit.tres",
+"use_external/path": "res://art/models/characters/bosses/straight_man/materials/sm_suit.tres"
+}
 }
 }
 gltf/naming_version=2
