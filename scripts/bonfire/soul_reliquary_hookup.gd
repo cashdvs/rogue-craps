@@ -70,11 +70,15 @@ func layout(kind: StringName) -> void:
 		_marker.name = "SoulReliquaryMarker"
 		add_child(_marker)
 	_marker.transform = marker_for(kind)
+	_clear_key = []
+	nudge = Vector3.ZERO
 	# The prop reads its plate layout from its parent marker in _ready().
 	_marker.set_meta(&"plate_layout", "stacked" if kind == PORTRAIT else "row")
 	if prop == null:
 		prop = (load(PHONE_SCENE if want_phone else PC_SCENE) as PackedScene).instantiate() as Node3D
 		_marker.add_child(prop)
+		# The vessel material is shared: clear a ghost a freed prop left lit.
+		prop.set_ghost(0.0, 0.0)
 		if shown_max > 0:
 			prop.set_soul(shown_soul, shown_max, false)
 	else:
@@ -130,13 +134,49 @@ func bust(run: BonfireRun, cam: Camera3D) -> Rect2:
 	return plate_rect(cam)
 
 
+## Slides the prop along the rail (table x / z, up to MAX_NUDGE m) until
+## its plate is clear of `avoid` (screen px), e.g. the Throw / Bank column
+## in portrait. Tries the smallest moves first; stays put if none works.
+## Returns the offset used (tests read nudge).
+const MAX_NUDGE := 0.4
+var nudge := Vector3.ZERO
+var _clear_key := []
+func clear_of(avoid: Rect2, cam: Camera3D) -> Vector3:
+	if prop == null or cam == null:
+		return Vector3.ZERO
+	# Same screen, same column, same camera: the answer hasn't changed.
+	var key := [avoid, cam.get_viewport().get_visible_rect().size, cam.global_transform, layout_kind]
+	if key == _clear_key:
+		return nudge
+	_clear_key = key
+	var home := marker_for(layout_kind)
+	nudge = Vector3.ZERO
+	_marker.transform = home
+	if not plate_rect(cam).intersects(avoid):
+		return nudge
+	var step := 0.02
+	var d := step
+	while d <= MAX_NUDGE + 0.001:
+		for dir in [Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(1, 0, 0), Vector3(-1, 0, 0)]:
+			_marker.transform = home.translated(dir * d)
+			var r := plate_rect(cam)
+			if r.size.x > 0.0 and not r.intersects(avoid):
+				nudge = dir * d
+				return nudge
+		d += step
+	_marker.transform = home
+	return nudge
+
+
 ## The digits plate on screen (for overlays, margins and hint arrows).
 func plate_rect(cam: Camera3D) -> Rect2:
 	if prop == null or cam == null or not prop.is_inside_tree():
 		return Rect2()
 	var r := Rect2()
 	var first := true
-	for path in ["Rig/Plate", "Rig/Frame", "Rig/Stacked"]:
+	# Row plate (PC / landscape) or the stacked plate (portrait); hidden
+	# parts are skipped, so only the plate on show counts.
+	for path in ["Rig/Plate", "Rig/Frame", "Rig/Stacked/Plate", "Rig/Stacked/Frame"]:
 		var mi := prop.get_node_or_null(path) as VisualInstance3D
 		if mi == null or not mi.is_visible_in_tree():
 			continue
@@ -158,7 +198,7 @@ func _lose(n: int, from_fill: float) -> void:
 	if reduced_motion:
 		return
 	prop.set_ghost(from_fill, 1.0)
-	var tw := create_tween()
+	var tw := prop.create_tween()  # dies with the prop if it is swapped
 	tw.tween_method(func(a: float) -> void: prop.set_ghost(from_fill, a), 1.0, 0.0, GHOST_TIME)
 	_shudder(0.006 if _next_is_bust else 0.002, 0.3 if _next_is_bust else 0.2)
 
@@ -168,7 +208,7 @@ func _heal(n: int) -> void:
 	_float_text("+%d" % n, HEAL_CYAN)
 	if reduced_motion:
 		return
-	var tw := create_tween()
+	var tw := prop.create_tween()  # dies with the prop if it is swapped
 	tw.tween_property(prop, "pulse", 1.0, 0.12)
 	tw.tween_property(prop, "pulse", 0.0, 0.35)
 
@@ -179,7 +219,7 @@ func _shudder(amount: float, time: float) -> void:
 	if rig == null:
 		return
 	var home := rig.position
-	var tw := create_tween()
+	var tw := prop.create_tween()  # dies with the prop if it is swapped
 	var steps := 6
 	for i in steps:
 		var side := amount * (1.0 - float(i) / steps) * (1.0 if i % 2 == 0 else -1.0)

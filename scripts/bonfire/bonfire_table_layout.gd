@@ -7,6 +7,10 @@ extends BonfireTableLook
 
 ## The 3D Soul Reliquary that replaces the flat Soul bar (#167).
 var reliquary: SoulReliquaryHookup
+## Windows shorter than this (real pixels) use the phone Reliquary.
+const SHORT_WINDOW_PX := 720
+## Pretend window size for tests (zero = use the real window).
+var window_px_override := Vector2i.ZERO
 
 
 ## HUD numbers before a pot is committed (shown until its count-up lands).
@@ -309,15 +313,23 @@ func _slide_for(base: Vector3, pts: Array[Vector3]) -> Array[float]:
 
 
 ## Which Reliquary layout this screen uses: portrait, phone (landscape
-## phone or any short screen: narrow screens get the phone prop, a shrunk
-## PC plate is unreadable), or PC.
+## phone, or a short window: narrow screens get the phone prop, a shrunk
+## PC plate is unreadable), or PC. The canvas is always scaled to 1080 tall,
+## so "short" looks at the real window size in pixels.
 func reliquary_kind() -> StringName:
 	var vs := get_viewport().get_visible_rect().size
 	if vs.y > vs.x:
 		return SoulReliquaryHookup.PORTRAIT
-	if (phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y) or vs.y < 720.0:
+	if (phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y) or window_px().y < SHORT_WINDOW_PX:
 		return SoulReliquaryHookup.PHONE
 	return SoulReliquaryHookup.PC
+
+
+## The real window size in pixels (tests can set window_px_override).
+func window_px() -> Vector2i:
+	if window_px_override != Vector2i.ZERO:
+		return window_px_override
+	return get_window().size
 
 
 ## Makes / moves the Reliquary and hides the old 2D Soul bar for good.
@@ -330,6 +342,9 @@ func _place_reliquary() -> void:
 		soul_meter.visible = false
 	reliquary.reduced_motion = reduced_motion
 	reliquary.layout(reliquary_kind())
+	# Portrait: the stacked plate must not sit under Throw / Bank.
+	if reliquary.layout_kind == SoulReliquaryHookup.PORTRAIT and camera != null and bhud != null:
+		reliquary.clear_of(button_column_rect().grow(16.0), camera.cam)
 
 
 ## The Reliquary's plate on screen (empty before it exists).
@@ -337,3 +352,9 @@ func reliquary_rect() -> Rect2:
 	if reliquary == null or camera == null:
 		return Rect2()
 	return reliquary.plate_rect(camera.cam)
+
+
+## The Throw / Bank / Leave column on screen (HUD canvas px).
+func button_column_rect() -> Rect2:
+	var col := bhud.throw_button.get_parent() as Control
+	return col.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, col.size)

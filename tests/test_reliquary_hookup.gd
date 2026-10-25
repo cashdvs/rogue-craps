@@ -92,8 +92,96 @@ func _run() -> void:
 	r.layout(SoulReliquaryHookup.PC)
 	check(r.prop.scene_file_path == SoulReliquaryHookup.PC_SCENE and r.prop.plate_layout == "row", "PC: PC prop, row plate")
 	check(r.prop.label_text() == "%d/%d" % [run.soul, run.max_soul], "swapped prop keeps the Soul")
-	s.fit_phone(Vector2(844, 390))
-	check(s.reliquary_kind() == SoulReliquaryHookup.PHONE, "phone screen uses the phone layout")
 
+	await _motion_tests(s)
+	await _layout_tests(s)
+	await _portrait_tests(t)
 	print("reliquary hookup: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+func ghost_alpha(r: SoulReliquaryHookup) -> float:
+	return float((r.prop.call("_mat") as ShaderMaterial).get_shader_parameter("ghost_alpha"))
+
+
+## Projected screen box of one plate mesh (for the union check).
+func mesh_rect(r: SoulReliquaryHookup, path: String, cam: Camera3D) -> Rect2:
+	var mi := r.prop.get_node(path) as VisualInstance3D
+	var box := mi.get_aabb()
+	var out := Rect2(cam.unproject_position(mi.global_transform * box.get_endpoint(0)), Vector2.ZERO)
+	for i in 8:
+		out = out.expand(cam.unproject_position(mi.global_transform * box.get_endpoint(i)))
+	return out
+
+
+## A Soul loss starts the red ghost, fades it, and shakes the Rig.
+func _motion_tests(s: Bonfire3D) -> void:
+	var r := s.reliquary
+	r.reduced_motion = false
+	s.reduced_motion = false
+	s._refresh_hud()  # settle the layout first (an earlier check swapped props)
+	await create_timer(1.0).timeout  # earlier tweens done
+	var rig := r.prop.get_node("Rig") as Node3D
+	var home := rig.position
+	check(ghost_alpha(r) < 0.05, "no ghost before the loss (%s)" % ghost_alpha(r))
+	s.run.soul -= 3
+	s._refresh_hud()
+	check(ghost_alpha(r) > 0.5, "loss: the red ghost starts lit (%s)" % ghost_alpha(r))
+	var moved := false
+	for i in 6:
+		await process_frame
+		moved = moved or rig.position.distance_to(home) > 0.0005
+	check(moved, "loss: the Rig shudders")
+	await create_timer(1.0).timeout
+	check(ghost_alpha(r) < 0.05, "loss: the ghost fades out (%s)" % ghost_alpha(r))
+	check(rig.position.is_equal_approx(home), "the shudder settles back home")
+
+
+## Short windows and phone landscape get the phone prop; tall ones PC.
+func _layout_tests(s: Bonfire3D) -> void:
+	var r := s.reliquary
+	s.fit_phone(Vector2.ZERO)
+	s.phone_screen = Vector2.ZERO
+	s.window_px_override = Vector2i(1920, 1080)
+	s._refresh_hud()
+	check(s.reliquary_kind() == SoulReliquaryHookup.PC and r.prop.scene_file_path == SoulReliquaryHookup.PC_SCENE, "1920x1080 window: PC prop (%s)" % s.reliquary_kind())
+	var cam := s.camera.cam
+	var plate := r.plate_rect(cam)
+	var want := mesh_rect(r, "Rig/Plate", cam).merge(mesh_rect(r, "Rig/Frame", cam))
+	check(plate.position.is_equal_approx(want.position) and plate.size.is_equal_approx(want.size), "plate rect = Plate + Frame (%s vs %s)" % [plate, want])
+	s.window_px_override = Vector2i(1280, 600)
+	s._refresh_hud()
+	check(s.reliquary_kind() == SoulReliquaryHookup.PHONE and r.prop.scene_file_path == SoulReliquaryHookup.PHONE_SCENE, "1280x600 window (under 720 px): phone prop")
+	s.window_px_override = Vector2i(1920, 1080)
+	s.fit_phone(Vector2(844, 390))
+	s._refresh_hud()
+	check(s.reliquary_kind() == SoulReliquaryHookup.PHONE and r.prop.scene_file_path == SoulReliquaryHookup.PHONE_SCENE and r.prop.plate_layout == "row", "phone landscape 844x390: phone prop, row plate")
+
+
+## A real portrait canvas (390x844 phone -> 1920x4155): stacked plate, on
+## screen, clear of Throw / Bank, and the overlays use it.
+func _portrait_tests(t: BonfireTuning) -> void:
+	var sv := SubViewport.new()
+	sv.size = Vector2i(1920, 4155)
+	root.add_child(sv)
+	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+	s.setup = TableSetup.sandbox(t, 5)
+	s.tutorial_override = 0
+	sv.add_child(s)
+	await process_frame
+	await process_frame
+	var r := s.reliquary
+	var cam := s.camera.cam
+	check(s.reliquary_kind() == SoulReliquaryHookup.PORTRAIT and r.layout_kind == SoulReliquaryHookup.PORTRAIT, "portrait canvas: portrait layout (%s)" % s.reliquary_kind())
+	check(r.prop.scene_file_path == SoulReliquaryHookup.PHONE_SCENE and r.prop.plate_layout == "stacked", "portrait: phone prop, stacked plate")
+	var plate := s.reliquary_rect()
+	var want := mesh_rect(r, "Rig/Stacked/Plate", cam).merge(mesh_rect(r, "Rig/Stacked/Frame", cam))
+	check(plate.size.x > 20.0 and plate.size.y > 20.0 and plate.position.x > 1.0, "portrait plate rect is real, not the corner (%s)" % plate)
+	check(plate.position.is_equal_approx(want.position) and plate.size.is_equal_approx(want.size), "portrait rect = stacked Plate + Frame")
+	check(not plate.intersects(s.button_column_rect()), "portrait plate clear of Throw / Bank (%s vs %s)" % [plate, s.button_column_rect()])
+	check(s.onboarding == null or s.onboarding.anchor_rect(&"soul", {}) == plate, "portrait onboarding arrow at the plate")
+	# Pretend the buttons cover the plate: the nudge must slide it clear.
+	r._clear_key = []
+	var at := r.clear_of(plate.grow(4.0), cam)
+	check(at != Vector3.ZERO and not r.plate_rect(cam).intersects(plate.grow(4.0)), "clear_of slides the plate out from under a covering rect (%s)" % at)
+	sv.queue_free()
