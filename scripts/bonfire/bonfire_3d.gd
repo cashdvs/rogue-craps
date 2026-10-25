@@ -48,6 +48,12 @@ func _ready() -> void:
 	total_dice_per_throw = clampi(setup.dice.size(), 1, MAX_HANDFUL)
 	_apply_camera_tuning()
 	super()
+	# Smiles, or this boss's dealer in his place (BonfireDealerArt).
+	dealer_art = BonfireDealerArt.new()
+	dealer_art.name = "DealerArtSwap"
+	add_child(dealer_art)
+	dealer_art.setup(self, setup.rules)
+	taunted.connect(func(_e: StringName, _l: String) -> void: dealer_art.taunt())
 	# The status line sits between x 520 and 1400, clear of the bottom-left
 	# THROW / BANK column (ends at x 494) and the hand at the bottom right.
 	why_label.position = Vector2(520, 990)
