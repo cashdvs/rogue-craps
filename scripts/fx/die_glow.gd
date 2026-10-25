@@ -16,12 +16,12 @@ extends RefCounted
 ## Glow tier colours, tier 0 (under 100) .. 3 (1000+), JuicePlan score tiers.
 const TIER_COLORS: Array[Color] = [Color("#E89A3C"), Color("#E8622A"), Color("#E2C06A"), Color("#FFE6A8")]
 ## Body emission per tier. Only the top tier's ember-core colour may bloom.
-const TIER_EMISSION: Array[float] = [0.45, 0.7, 0.95, 1.3]
+const TIER_EMISSION: Array[float] = [0.1, 0.15, 0.2, 0.3]
 ## Rim (fresnel) glow strength per tier.
 const TIER_RIM: Array[float] = [0.5, 0.75, 1.0, 1.3]
 ## Halo card size (x die edge) and alpha per tier.
 const TIER_HALO_SIZE: Array[float] = [1.4, 1.5, 1.65, 1.8]
-const TIER_HALO_ALPHA: Array[float] = [0.22, 0.3, 0.38, 0.5]
+const TIER_HALO_ALPHA: Array[float] = [0.10, 0.14, 0.18, 0.24]
 ## Ember trail: spark life (Art Director: fades within ~0.3 s), emit step.
 const TRAIL_LIFE: float = 0.26
 const TRAIL_STEP: float = 0.045

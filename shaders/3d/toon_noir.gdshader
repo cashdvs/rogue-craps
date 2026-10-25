@@ -74,8 +74,10 @@ uniform vec3 cold_warm_grey = vec3(1.00, 0.96, 0.90);
 // glow are warm / red: without this a cold die reads brown, not grey).
 uniform float cold_light_desat = 0.8;
 uniform vec4 state_rim_color : source_color = vec4(0.910, 0.384, 0.165, 1.0); // #E8622A
-uniform float state_rim_energy = 0.85;
-uniform float state_rim_power = 2.5;
+uniform float state_rim_energy = 0.6;
+uniform float state_rim_power = 5.0;
+// Playtest fix: a lit die only warms its albedo this much (pips/body stay readable).
+uniform float lit_albedo_mix_max = 0.35;
 
 varying vec3 obj_pos;
 varying vec3 obj_normal;
@@ -129,7 +131,7 @@ void fragment() {
 		vec3 lit_col = col * lit_albedo_mul;
 		float luma = dot(col, vec3(0.299, 0.587, 0.114));
 		vec3 cold_col = mix(col, luma * cold_warm_grey, cold_desat) * cold_albedo_mul;
-		col = mix(col, lit_col, die_lit);
+		col = mix(col, lit_col, min(die_lit, lit_albedo_mix_max));
 		col = mix(col, cold_col, cold_k);
 	}
 	ALBEDO = col;
