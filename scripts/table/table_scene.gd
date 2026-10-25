@@ -646,7 +646,8 @@ func _process(delta: float) -> void:
 		_rattle_t -= delta
 		if _rattle_t <= 0.0:
 			_rattle_t = 0.22
-			sfx.play(&"dice_shake", 1.0, -8.0)
+			# Stop the last 0.45 s copy first, or they stack into a constant rattle.
+			sfx.play_alone(&"dice_shake", 1.0, -8.0)
 	elif phase == Phase.BET and _hand_shake > 0.0:
 		for i in _dice.size():
 			_dice[i].position = _hand_spot(i) + Vector2(_fx_rng.randf_range(-6, 6), 0)
@@ -778,7 +779,7 @@ func _play_roll(velocity: Vector2, release_pos: Vector2) -> void:
 		return
 
 	throw_started.emit()
-	sfx.play(&"dice_shake")
+	sfx.play_alone(&"dice_shake")  # cuts the held rattle copy
 	_set_why("")
 	sum_text.visible = false
 	# Plan both paths from the flick, then animate toward the chosen faces.
@@ -1286,6 +1287,10 @@ func _arc_step(p: float, node: Node2D, from: Vector2, to: Vector2, arc: float) -
 
 
 func _on_die_impact(die: DieView, strength: float) -> void:
+	# Same per-die limit as the 3D table (SfxManager.play_impact): a die
+	# chattering on the felt makes one sound per IMPACT_MIN_GAP_S.
+	if not sfx.impact_allowed(die.get_instance_id()):
+		return
 	sfx.play(&"dice_hit", 0.8 + strength * 0.4, -10.0 + strength * 8.0)
 	if strength >= 0.5:
 		_burst(die.position + Vector2(0, 40), 6, [Color(Palette.BONE, 0.3), Color(Palette.BONE, 0.0)], 30.0, 120.0, Vector2.ZERO, 3.0, 6.0, 0.5)

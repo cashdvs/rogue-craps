@@ -1,0 +1,54 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/characters/bosses/collector/materials/ink_collector.tres" id="1_q2207"]
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="2_b1osk"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_q2207")
+shader = ExtResource("2_b1osk")
+shader_parameter/albedo = Color(0.7, 0.7, 0.7, 1)
+shader_parameter/shadow_color = Color(0.266, 0.266, 0.266, 1)
+shader_parameter/mid_tint = 0.7
+shader_parameter/wrap = 0.25
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = null
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = Color(0.22745098, 0.21568628, 0.19607843, 1)
+shader_parameter/ambient_energy = 0.4
+shader_parameter/spec_size = 0.0
+shader_parameter/spec_color = Color(0.95686275, 0.9254902, 0.84705883, 1)
+shader_parameter/spec_strength = 0.0
+shader_parameter/rim_color = Color(0.9098039, 0.8627451, 0.7529412, 1)
+shader_parameter/rim_power = 2.0
+shader_parameter/rim_strength = 0.3
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/roughness = 0.75
+shader_parameter/use_overlay = null
+shader_parameter/overlay_tint = null
+shader_parameter/overlay_emission = null
+shader_parameter/overlay_pivot = null
+shader_parameter/overlay_scale = null
+shader_parameter/overlay_shift = null
+shader_parameter/grime = null
+shader_parameter/grime_color = null
+shader_parameter/flash = null
+shader_parameter/flash_color = null
+shader_parameter/scorch = null
+shader_parameter/chip_mode = null
+shader_parameter/notch_color = null
+shader_parameter/ring_color = null
+shader_parameter/chip_radius = null
+shader_parameter/die_lit = null
+shader_parameter/die_cold = null
+shader_parameter/lit_albedo_mul = null
+shader_parameter/cold_albedo_mul = null
+shader_parameter/cold_desat = null
+shader_parameter/cold_warm_grey = null
+shader_parameter/cold_light_desat = null
+shader_parameter/state_rim_color = null
+shader_parameter/state_rim_energy = null
+shader_parameter/state_rim_power = null

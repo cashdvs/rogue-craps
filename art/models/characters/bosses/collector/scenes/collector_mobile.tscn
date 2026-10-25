@@ -1,0 +1,28 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/characters/bosses/collector/collector_mobile.glb" id="1_4u855"]
+
+[node name="Collector" type="Node3D" unique_id=693866273]
+
+[node name="Model" parent="." unique_id=1871832132 instance=ExtResource("1_4u855")]
+
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1871832132, 887902579) index="4" unique_id=1863880929]
+influence = 0.0
+bone_name = "head"
+duration = 0.25
+transition_type = 1
+ease_type = 1
+use_angle_limitation = true
+symmetry_limitation = true
+primary_limit_angle = 2.0943952
+primary_damp_threshold = 1.0
+secondary_limit_angle = 0.6981317
+secondary_damp_threshold = 1.0
+
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1871832132, 887902579) index="5" unique_id=1955552283]
+bone_name = "head"
+
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=662038494]
+autoplay = &"idle"
+
+[editable path="Model"]

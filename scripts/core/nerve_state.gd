@@ -119,6 +119,11 @@ func nudged_die() -> int:
 	return _nudged_die
 
 
+## The face slot the pending nudge turned from (0 if none is pending).
+func nudged_from() -> int:
+	return _from_slot
+
+
 ## Die index being picked (arrows shown), or -1.
 func picking_die() -> int:
 	return _picking

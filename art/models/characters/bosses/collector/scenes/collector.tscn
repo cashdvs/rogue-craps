@@ -1,0 +1,28 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/characters/bosses/collector/collector.glb" id="1_padvi"]
+
+[node name="Collector" type="Node3D" unique_id=450037301]
+
+[node name="Model" parent="." unique_id=1912813482 instance=ExtResource("1_padvi")]
+
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1912813482, 2047777222) index="4" unique_id=496342747]
+influence = 0.0
+bone_name = "head"
+duration = 0.25
+transition_type = 1
+ease_type = 1
+use_angle_limitation = true
+symmetry_limitation = true
+primary_limit_angle = 2.0943952
+primary_damp_threshold = 1.0
+secondary_limit_angle = 0.6981317
+secondary_damp_threshold = 1.0
+
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1912813482, 2047777222) index="5" unique_id=283582532]
+bone_name = "head"
+
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=2097461966]
+autoplay = &"idle"
+
+[editable path="Model"]
