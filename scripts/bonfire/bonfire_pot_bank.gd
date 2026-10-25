@@ -182,6 +182,8 @@ func bank() -> Dictionary:
 	nerve.close_throw()
 	var r := run.bank()
 	phase = Phase.RESOLVE
+	# Not picking any more: tell listeners nothing is potted or joinable.
+	emit_selection()
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
 	_hold_display(hold)
 	if bhud.countup.is_playing():
