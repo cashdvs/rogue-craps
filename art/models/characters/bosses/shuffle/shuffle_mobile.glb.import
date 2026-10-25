@@ -14433,6 +14433,53 @@ _subresources={
 "slice_99/start_frame": 0,
 "slices/amount": 0
 }
+},
+"materials": {
+"shuffle_card": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_card.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_card.tres"
+},
+"shuffle_cardback": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_cardback.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_cardback.tres"
+},
+"shuffle_eye": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_eye.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_eye.tres"
+},
+"shuffle_glove": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_glove.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_glove.tres"
+},
+"shuffle_gown": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_gown.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_gown.tres"
+},
+"shuffle_hair": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_hair.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_hair.tres"
+},
+"shuffle_lip": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_lip.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_lip.tres"
+},
+"shuffle_skin": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_skin.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_skin.tres"
+},
+"shuffle_trim": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/shuffle/materials/shuffle_trim.tres",
+"use_external/path": "res://art/models/characters/bosses/shuffle/materials/shuffle_trim.tres"
+}
 }
 }
 gltf/naming_version=2
