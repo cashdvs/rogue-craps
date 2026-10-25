@@ -37,7 +37,8 @@ func _check(c: bool, name: String) -> void:
 func _test_data() -> void:
 	var by := {}
 	for s in _run.shapes:
-		by[s.id] = s
+		if not s.is_rare():  # rare dice: tests/test_rare_dice.gd
+			by[s.id] = s
 	var want := {&"powder_keg": ["Powder Keg", 18, [1, 1, 2, 2, 3, 3], {3: &"twin"}, &""],
 		&"ferryman": ["Ferryman's Coin", 18, [5, 0], {}, &"ferryman"],
 		&"caltrop": ["Caltrop", 18, [1, 2, 3, 4], {}, &"caltrop"],
@@ -56,9 +57,9 @@ func _test_data() -> void:
 	_check(coin.weights == ([1.0, 1.0] as Array[float]), "data: Ferryman's Coin weights 1/1 (heads, tails)")
 	var on: Array[StringName] = []
 	for s: DieShape in _run.shapes:
-		if s.enabled:
+		if s.enabled and not s.is_rare():
 			on.append(s.id)
-	_check(on == ([&"powder_keg"] as Array[StringName]), "data: only the Powder Keg is enabled")
+	_check(on == ([&"powder_keg"] as Array[StringName]), "data: only the Powder Keg is enabled (common shapes)")
 	_check(is_equal_approx(_run.shape_offer_chance, 0.25), "data: shape slot about 1 in 4 of dice offers")
 
 

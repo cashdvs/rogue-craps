@@ -84,6 +84,16 @@ const DIE_POWDER_KEG: StringName = &"powder_keg"
 ## Die: Knucklebone, shape talus (#102 model knucklebone_talus).
 const DIE_KNUCKLEBONE: StringName = &"knucklebone"
 
+# --- Die ids: rare dice (design/rare_dice_v1.md; plain d6 + preset_mods, rarity rare) ---
+## Die: Pyre Die, d6; 6 Hellfire, 5 Ember Pip (resources/dice/shapes/pyre.tres).
+const DIE_PYRE: StringName = &"pyre"
+## Die: Gilt Die, d6; 1 and 5 Gilded (resources/dice/shapes/gilt.tres).
+const DIE_GILT: StringName = &"gilt"
+## Die: Lodestone Die, d6; 6 Wild (resources/dice/shapes/lodestone.tres).
+const DIE_LODESTONE: StringName = &"lodestone"
+## Die: Ossuary Die, d6; 3 and 6 Twin (resources/dice/shapes/ossuary.tres).
+const DIE_OSSUARY: StringName = &"ossuary"
+
 ## die id -> {"shape": shape id, "name": display name}.
 const ALL: Dictionary = {
 	DIE_BONE: {"shape": SHAPE_D6, "name": "Bone Die"},
@@ -105,6 +115,10 @@ const ALL: Dictionary = {
 	# Body is a d6 printed 1-1-2-2-3-3; "d3" is display-only. Art key powder_keg_d6.
 	DIE_POWDER_KEG: {"shape": SHAPE_D6, "name": "Powder Keg"},
 	DIE_KNUCKLEBONE: {"shape": SHAPE_TALUS, "name": "Knucklebone"},
+	DIE_PYRE: {"shape": SHAPE_D6, "name": "Pyre Die"},
+	DIE_GILT: {"shape": SHAPE_D6, "name": "Gilt Die"},
+	DIE_LODESTONE: {"shape": SHAPE_D6, "name": "Lodestone Die"},
+	DIE_OSSUARY: {"shape": SHAPE_D6, "name": "Ossuary Die"},
 }
 
 ## Old spelling -> canonical die id. Lookups accept these during the rename window only.

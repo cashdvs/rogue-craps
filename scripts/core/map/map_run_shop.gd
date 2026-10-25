@@ -36,12 +36,15 @@ func rest_seal(combo: StringName) -> bool:
 
 ## n dice offers (shop slots / Elite reward): each is a shaped die with
 ## RunData.shape_offer_chance (enabled shapes, equal weight), else a special
-## die; no offer repeats.
+## die; no offer repeats. Rare dice are never in these pools (see _rare_offer).
 func _dice_offers(rng: RandomNumberGenerator, n: int) -> Array[SpecialDieData]:
-	var specials: Array[SpecialDieData] = data.special_dice.duplicate()
+	var specials: Array[SpecialDieData] = []
+	for d in data.special_dice:
+		if not d.is_rare():
+			specials.append(d)
 	var shapes: Array[SpecialDieData] = []
 	for s in data.shapes:
-		if s.enabled:
+		if s.enabled and not s.is_rare():
 			shapes.append(s)
 	var out: Array[SpecialDieData] = []
 	while out.size() < n and not (specials.is_empty() and shapes.is_empty()):
@@ -55,12 +58,38 @@ func _roll_shop() -> void:
 	var rng := _rng(&"shop", shop_rerolls + 1000 * shop_free_rerolls)
 	shop_dice.clear()
 	shop_dice = _dice_offers(rng, data.shop_dice)
+	var rare := _rare_offer(_rng(&"shop_rare", shop_rerolls + 1000 * shop_free_rerolls))
+	if rare != null and shop_dice.size() >= 2:
+		shop_dice[1] = rare
 	shop_mods.clear()
 	var mpool: Array[FaceModData] = data.face_mods.duplicate()
 	while shop_mods.size() < data.shop_mods and not mpool.is_empty():
 		shop_mods.append(mpool.pop_at(rng.randi_range(0, mpool.size() - 1)))
 	shop_seals = _seal_offers(rng, data.shop_seals)
 	shop_premium_seal = _premium_offer(rng)
+
+
+## This floor's rare-die chance (RunData.shop_rare_die_chance, last entry
+## past its end, 0 if empty).
+func rare_die_chance() -> float:
+	var c := data.shop_rare_die_chance
+	return c[mini(floor_index, c.size() - 1)] if not c.is_empty() else 0.0
+
+
+## The shop's rare roll (rare_dice_v1 §4): with rare_die_chance(), one enabled
+## rare die (equal weight) the player doesn't own yet; else null. Own rng so
+## the common offers keep their seeds.
+func _rare_offer(rng: RandomNumberGenerator) -> SpecialDieData:
+	if rng.randf() >= rare_die_chance():
+		return null
+	var owned := {}
+	for d in progress.dice:
+		owned[d.shape] = true
+	var pool: Array[SpecialDieData] = []
+	for s in data.shapes:
+		if s.enabled and s.is_rare() and not owned.has(s.id):
+			pool.append(s)
+	return pool[rng.randi_range(0, pool.size() - 1)] if not pool.is_empty() else null
 
 
 ## The guaranteed rare Seal (P4): one of RunData.rare_seals, preferring one the

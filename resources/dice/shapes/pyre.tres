@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
+
+[resource]
+script = ExtResource("1_rare")
+enabled = true
+preset_mods = {
+5: &"ember_pip",
+6: &"hellfire"
+}
+id = &"pyre"
+display_name = "Pyre Die"
+description = "A die whose 6 is Hellfire and 5 is Ember Pip."
+rarity = &"rare"
+price = 30

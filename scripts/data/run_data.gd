@@ -97,6 +97,10 @@ extends Resource
 ## use the last entry), rounded to whole Embers. Dice, mods, Seals and the
 ## Soul Draught; never rerolls, sell values or event prices.
 @export var shop_floor_price_percent: Array[int] = [0, 25, 50]
+## Rare dice (design/rare_dice_v1.md §4): chance per shop roll, by floor (last
+## entry past its end), that the second dice slot becomes a rare die (rarity
+## &"rare" shapes, equal weight, none already owned). Shop only.
+@export var shop_rare_die_chance: Array[float] = [0.10, 0.20, 0.30]
 ## Soul Draught, in every shop (economy_balance_v1 P3): +shop_soul_amount max
 ## Soul (also heals that much) for shop_soul_price Embers, + shop_soul_step
 ## per Draught bought this run (12, 16, 20...). Same rate as the Toll Keeper.

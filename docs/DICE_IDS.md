@@ -45,6 +45,7 @@ Owner: Systems Dev. Adding a die = add it here and in `DiceIds.ALL` in the same 
 | `ferryman` | coin | Ferryman's Coin | `coin` (#50 `coin.tres` id, audio), `ferrymans_coin` (audio), `ferryman_d2` (#102), cues `coin_*` | #50, #61, #102, audio | Systems Dev, 3D Artist (`ferryman_d2` → `ferryman_coin`), Sound Designer. Ruled by Game Designer, 2026-10-19 |
 | `powder_keg` | **d6** | Powder Keg | `keg`, `keg_3`, flavour `trigger_flavor_keg` (audio), `powder_keg_d3` (old asset key → alias) | #50, #102, audio | 3D Artist (#102 `powder_keg_d3` → `powder_keg_d6`), Sound Designer. Ruled by Game Designer, 2026-10-19 |
 | `knucklebone` | talus | Knucklebone | `knucklebone_talus` (asset key, fine) | #50, #102, audio | none. Ruled by Game Designer, 2026-10-19. (`knucklebone_d6` is a retired asset with no die id, not an alias.) |
+| `pyre` `gilt` `lodestone` `ossuary` | d6 | Pyre Die, Gilt Die, Lodestone Die, Ossuary Die | — | Rare dice (design/rare_dice_v1.md): resources/dice/shapes/*.tres, `rarity = &"rare"`, plain 1-6 with `preset_mods`; shop rare roll only. Art keys `<die_id>_d6` (PR 2; reuse asset-only `hellfire_d6` / `gilded_d6` bodies) | none |
 
 ### Rename lists (owners)
 
