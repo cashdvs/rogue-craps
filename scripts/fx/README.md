@@ -179,6 +179,16 @@ the edge except under reduced motion / Instant, where it only fades. Leftover nu
 if present, else `cue(&"nerve_spent")`, else nothing. Strip: `tools/capture_nerve_spent.gd`
 (Forward+/Vulkan only). Tests: `tests/test_nerve_spent_fx.gd`.
 
+## SelectionDimFx
+
+`selection_dim_fx.gd` (child of the 3D table). Once dice are potted for a
+combo, lit unpotted dice that can't join it drop to the plain (unlit) look;
+unselecting relights them. Visual only: `_lights` / scoring are untouched.
+Joinability comes from `run.can_join(i)` (Godot Dev) when present, else the
+read-only `BonfireScoring.can_extend(potted + [i], ...)` that `toggle` uses.
+Refreshes on `table.events.selection_changed` when it exists, otherwise when
+`run.potted` / `throw_faces` / `state` change. Never cold grey, no tint, no particles.
+
 ## Ashmouth puffs (`ashmouth_puff_fx.gd`)
 Boss-dealer FX for Ashmouth "Smiles": an ash puff out of the firebox door at 0.19 s and a soot puff out of the stovepipe at 1.2 s of the `taunt` clip. **Hookup:** `AshmouthPuffFx` is a child of the Ashmouth dealer root (added by the #166 rebuild). In `_ready` it finds the root's `Model` AnimationPlayer and the `FireboxDoor` / `PipeMouth` sockets (a missing socket just means no puff there) and watches the playhead every frame, so speed changes, seeks and replays fire each beat once.
 - **Bursts:** a one-shot copy of the socket emitter, moved under the nearest ancestor's `fx_root` (else `current_scene`), in world space (`local_coords = false`), freed after its lifetime, so a cloud outlives the dealer and never follows him.
