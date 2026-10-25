@@ -37,6 +37,8 @@ func _run() -> void:
 	_test_soot_colour_dir()
 	await _test_outlives_dealer()
 	await _test_fallback_root()
+	_test_ash_over_rail()
+	_test_soot_cap()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -284,3 +286,99 @@ func _test_fallback_root() -> void:
 	for b in got:
 		if is_instance_valid(b):
 			b.free()
+
+
+func _rail(parent: Node, top: float) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = "Backboard"
+	var bm := BoxMesh.new()
+	bm.size = Vector3(2.0, 0.066, 0.034)
+	mi.mesh = bm
+	parent.add_child(mi)
+	mi.global_position = Vector3(0, top - 0.033, -0.5)
+	return mi
+
+
+func _ash_burst(fx: Fx) -> Node3D:
+	var got: Array = []
+	var cb := func(_k: StringName, b: Node3D) -> void: got.append(b)
+	fx.burst_spawned.connect(cb)
+	fx.puff(&"ash")
+	fx.burst_spawned.disconnect(cb)
+	return got[0] if not got.is_empty() else null
+
+
+func _test_ash_over_rail() -> void:
+	var rig := _rig()
+	var fx := _fx(rig)
+	rig.global_position = Vector3(-0.42, -0.47, -0.86)
+	var door := (rig.get_node(Fx.DOOR_SOCKET) as Node3D).global_position
+	# No rail: exported lift.
+	var b0 := _ash_burst(fx)
+	_check(b0 != null and absf(b0.global_position.y - (door.y + fx.ash_lift)) < 0.001, "no rail: ash at socket + ash_lift")
+	_check(absf(fx.ash_lift - 0.47) < 0.001, "documented default ash_lift 0.47 m")
+	# Rail on the board (sibling of the dealer): spawn just over the lip at the door XZ.
+	var rail := _rail(_board, 0.066)
+	var wall := _rail(_board, 2.3)  # tall wall behind the dealer: not the lip
+	wall.name = "WallBack"
+	wall.global_position.z = -1.6
+	var deco := Node3D.new()
+	_board.add_child(deco)
+	var hidden := _rail(deco, 1.0)  # hidden rail: ignored
+	hidden.visible = false
+	var b := _ash_burst(fx)
+	_check(absf(fx.rail_top_y() - 0.066) < 0.001, "rail lip found from board geometry (%.3f)" % fx.rail_top_y())
+	_check(b != null and absf(b.global_position.y - (0.066 + Fx.ASH_RAIL_CLEAR)) < 0.001, "ash spawns just over the rail lip")
+	_check(b != null and b.global_position.y >= 0.066 + 0.01, "ash spawn clears the rail lip by >= 1 cm")
+	_check(b != null and absf(b.global_position.x - door.x) < 0.001 and absf(b.global_position.z - door.z) < 0.001, "ash keeps the door XZ")
+	var d: Vector3 = Fx.PUFFS[&"ash"]["dir"]
+	_check(d.y > 0.7 * d.length() and d.z > 0.0, "ash billows up and out (front)")
+	_check(float(Fx.PUFFS[&"ash"]["gravity"]) >= 0.0, "ash does not sink back behind the rail")
+	# A low rail never pulls the ash below the door.
+	rail.global_position.y = door.y - 0.5
+	_check(absf(fx.ash_spawn_y(door) - door.y) < 0.001, "low rail: ash never below the socket")
+	rail.free()
+	wall.free()
+	deco.free()
+	rig.free()
+
+
+func _test_soot_cap() -> void:
+	var rig := _rig()
+	var fx := _fx(rig)
+	rig.global_position = Vector3.ZERO
+	var pipe := rig.get_node(Fx.PIPE_SOCKET) as Node3D
+	pipe.position = Vector3(0, 0.2, 0)
+	var cam := Camera3D.new()
+	_board.add_child(cam)
+	cam.global_position = Vector3(0, 1.6, 1.5)
+	cam.look_at(Vector3(0, -0.35, 0.3))
+	cam.current = true
+	var vp := cam.get_viewport()
+	var min_px := fx.soot_top_margin * vp.get_visible_rect().size.y
+	_check(absf(fx.soot_top_margin * 780.0 - 8.0) >= 0.0 and fx.soot_top_margin * 780.0 >= 8.0, "margin >= 8 px of a 780 px phone frame")
+	# Frame top just above the pipe: cap must kick in.
+	cam.fov = 20.0
+	var top := fx.frame_top_y(pipe.global_position)
+	var got: Array = []
+	fx.burst_spawned.connect(func(_k: StringName, b: Node3D) -> void: got.append(b))
+	fx.puff(&"soot")
+	_check(top < pipe.global_position.y + Fx.cloud_rise(&"soot"), "setup: uncapped soot would leave the frame (top %.3f)" % top)
+	if not got.is_empty():
+		var b: Node3D = got[0]
+		var k: float = b.get_meta("soot_k", 1.0)
+		var cloud_top := b.global_position.y + Fx.cloud_rise(&"soot", k)
+		var px := cam.unproject_position(Vector3(b.global_position.x, cloud_top, b.global_position.z)).y
+		_check(k < 1.0, "soot rise scaled down (k %.2f)" % k)
+		_check(px >= min_px - 0.5, "capped soot cloud top inside the margin (%.1f px >= %.1f)" % [px, min_px])
+		var v := ((b as GPUParticles3D).process_material as ParticleProcessMaterial).initial_velocity_max
+		_check(absf(v - float(Fx.PUFFS[&"soot"]["speed"]) * k) < 0.001, "capped speed applied to the burst")
+		var tmpl := (fx.emitters[&"soot"] as GPUParticles3D).process_material as ParticleProcessMaterial
+		_check(absf(tmpl.initial_velocity_max - float(Fx.PUFFS[&"soot"]["speed"])) < 0.001, "template speed untouched")
+	# Wide frame: no cap.
+	cam.fov = 75.0
+	got.clear()
+	fx.puff(&"soot")
+	_check(not got.is_empty() and float(got[0].get_meta("soot_k", 1.0)) == 1.0, "plenty of room: soot uncapped")
+	cam.free()
+	rig.free()

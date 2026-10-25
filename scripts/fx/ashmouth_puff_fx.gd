@@ -14,6 +14,13 @@
 ## global transform kept, so the burst outlives the dealer scene; it frees
 ## itself after its lifetime.
 ##
+## Framing (AD option a, game_phone): the door sits behind the board's far
+## rail, so the ash spawns at the door socket's XZ but lifted to just over the
+## rail lip (top of the board's Backboard / WallBack mesh + ASH_RAIL_CLEAR) and
+## billows up from there. With no rail found, [member ash_lift] is used. The
+## soot rise is capped so the whole cloud stays [member soot_top_margin] of the
+## viewport height inside the top of the active camera's frame.
+##
 ## Art rules: greys / soot only (no fire, no cyan, red or violet), each burst
 ## under 0.6 s. Mobile: CPUParticles3D on Compatibility, low counts. Reduced
 ## motion: about a third of the particles.
@@ -35,9 +42,13 @@ const PIPE_SOCKET := "Model/Smiles/Skeleton3D/PipeMouthAttach/PipeMouth"
 ## dot (m, start size), grow (end/start scale), radius (emission sphere, m),
 ## damping (m/s^2), dir (dealer-local; +Z is out of his front, -Z is back).
 const PUFFS := {
-	&"ash": {"color": Color("#A8A49C"), "count": 14, "count_mobile": 8, "life": 0.45, "speed": 0.095, "dot": 0.045, "grow": 1.5, "radius": 0.008, "damping": 0.25, "gravity": -0.05, "dir": Vector3(0, 0.2, 1)},
+	&"ash": {"color": Color("#A8A49C"), "count": 14, "count_mobile": 8, "life": 0.45, "speed": 0.095, "dot": 0.045, "grow": 1.5, "radius": 0.008, "damping": 0.25, "gravity": 0.05, "dir": Vector3(0, 1, 0.5)},
 	&"soot": {"color": Color("#6E6A64"), "count": 10, "count_mobile": 6, "life": 0.55, "speed": 0.09, "dot": 0.05, "grow": 1.5, "radius": 0.006, "damping": 0.25, "gravity": 0.05, "dir": Vector3(0, 1, -0.35)},
 }
+## Rail meshes the ash must clear (Hearth board, then Table3D).
+const RAIL_NAMES := ["Backboard", "WallBack"]
+## Gap between the rail lip and the ash spawn (m).
+const ASH_RAIL_CLEAR := 0.03
 ## Extra time before a spawned burst frees itself.
 const FREE_PAD := 0.1
 const REDUCED_MOTION_SCALE := 0.3
@@ -46,6 +57,12 @@ const REDUCED_MOTION_SCALE := 0.3
 var reduced_motion: bool = false
 ## Forces the CPUParticles3D path (Compatibility / mobile); else read from the renderer.
 var mobile: bool = false
+## Fallback ash lift above the door socket (m) when no rail mesh is found:
+## Hearth far rail lip (y 0.066) - door socket (y -0.373) + ASH_RAIL_CLEAR.
+@export var ash_lift: float = 0.47
+## Soot cloud top must stay this fraction of the viewport height below the
+## frame top (8 px of a 390 pt phone at 2x = 780 px is 1.03%; 1.6% for slack).
+@export var soot_top_margin: float = 0.016
 ## When false, _ready keeps [member mobile] as set (tests).
 var detect_renderer: bool = true
 ## The AnimationPlayer driving the taunt (found under the parent's Model).
@@ -113,9 +130,14 @@ func puff(kind: StringName) -> void:
 	b.name = "%s_%d" % [e.name, Time.get_ticks_usec()]
 	b.set("amount", particle_count(kind))
 	# Socket position, dealer facing (so "up / back / out of the door" read in his frame).
-	var xf := Transform3D(_facing_basis(), e.global_position)
+	var at := e.global_position
+	if kind == &"ash":
+		at.y = ash_spawn_y(at)
+	var xf := Transform3D(_facing_basis(), at)
 	host.add_child(b)
 	b.global_transform = xf
+	if kind == &"soot":
+		_cap_soot(b)
 	b.set("emitting", true)
 	b.call(&"restart")
 	var t := float(PUFFS[kind]["life"]) + FREE_PAD
@@ -137,6 +159,119 @@ func fx_root() -> Node:
 		n = n.get_parent()
 	var tree := get_tree()
 	return tree.current_scene if tree.current_scene != null else tree.root
+
+
+## Ash spawn height: just over the rail lip in front of the door, or the
+## socket + [member ash_lift] when there is no rail. Never below the socket.
+func ash_spawn_y(socket_pos: Vector3) -> float:
+	var top := rail_top_y()
+	if is_nan(top):
+		return socket_pos.y + ash_lift
+	return maxf(socket_pos.y, top + ASH_RAIL_CLEAR)
+
+
+## World Y of the rail lip in front of the door: the top of the visible rail
+## meshes (RAIL_NAMES, nearest ancestor first) that span the door's X and sit
+## in front of it (dealer +Z). NAN when none.
+func rail_top_y() -> float:
+	var door := get_parent().get_node_or_null(DOOR_SOCKET) as Node3D if get_parent() != null else null
+	if door == null or not door.is_inside_tree():
+		return NAN
+	var at := door.global_position
+	var fwd := _facing_basis().z
+	var n: Node = get_parent().get_parent()
+	while n != null:
+		var top := -INF
+		for nm: String in RAIL_NAMES:
+			for r in n.find_children(nm, "", true, false):
+				var meshes: Array = [r] if r is MeshInstance3D else []
+				meshes.append_array(r.find_children("*", "MeshInstance3D", true, false))
+				for m in meshes:
+					var mi := m as MeshInstance3D
+					if not mi.is_visible_in_tree():
+						continue
+					var ab := mi.global_transform * mi.get_aabb()
+					if at.x < ab.position.x or at.x > ab.end.x:
+						continue
+					if (ab.get_center() - at).dot(fwd) <= 0.0:
+						continue
+					top = maxf(top, ab.end.y)
+		if top > -INF:
+			return top
+		n = n.get_parent()
+	return NAN
+
+
+## Highest world point a puff cloud reaches above its spawn (m).
+static func cloud_rise(kind: StringName, k: float = 1.0) -> float:
+	var s: Dictionary = PUFFS[kind]
+	var v := float(s["speed"]) * k
+	var d := float(s["damping"])
+	var life := float(s["life"])
+	var t := minf(life, v / d) if d > 0.0 else life
+	var dir: Vector3 = (s["dir"] as Vector3).normalized()
+	var travel := v * t - 0.5 * d * t * t
+	return maxf(0.0, dir.y) * travel + 0.5 * maxf(0.0, float(s["gravity"]) * k) * life * life \
+		+ float(s["radius"]) + 0.5 * float(s["dot"]) * float(s["grow"])
+
+
+## Highest world Y at (x, z) that stays soot_top_margin inside the top of the
+## active camera's frame, or INF without a camera.
+func frame_top_y(at: Vector3) -> float:
+	var vp := get_viewport()
+	var cam := vp.get_camera_3d() if vp != null else null
+	if cam == null:
+		return INF
+	var min_px := soot_top_margin * vp.get_visible_rect().size.y
+	# Search below the camera's height only: points above it can project back
+	# into the frame (wrap) and fool the test.
+	var lo := at.y - 1.0
+	var hi := minf(at.y + 2.0, cam.global_position.y - 0.05)
+	if hi <= at.y:
+		return INF
+	var inside := func(y: float) -> bool:
+		var p := Vector3(at.x, y, at.z)
+		return not cam.is_position_behind(p) and cam.unproject_position(p).y >= min_px
+	if inside.call(hi):
+		return INF
+	for i in 30:
+		var mid := (lo + hi) * 0.5
+		if inside.call(mid):
+			lo = mid
+		else:
+			hi = mid
+	return lo
+
+
+## Scales the soot burst's speed (then lowers it) so its cloud top stays
+## inside the frame. Returns the speed scale used.
+func _cap_soot(b: Node3D) -> float:
+	var at := b.global_position
+	var room := frame_top_y(at) - at.y
+	if room == INF or room >= cloud_rise(&"soot"):
+		return 1.0
+	var k := 1.0
+	while k > 0.0 and cloud_rise(&"soot", k) > room:
+		k -= 0.05
+	k = maxf(k, 0.0)
+	var spec: Dictionary = PUFFS[&"soot"]
+	var v := float(spec["speed"]) * k
+	var g := Vector3(0, float(spec["gravity"]) * k, 0)
+	if b is CPUParticles3D:
+		(b as CPUParticles3D).initial_velocity_min = v * 0.6
+		(b as CPUParticles3D).initial_velocity_max = v
+		(b as CPUParticles3D).gravity = g
+	else:
+		var pm := ((b as GPUParticles3D).process_material as ParticleProcessMaterial).duplicate() as ParticleProcessMaterial
+		pm.initial_velocity_min = v * 0.6
+		pm.initial_velocity_max = v
+		pm.gravity = g
+		(b as GPUParticles3D).process_material = pm
+	var over := cloud_rise(&"soot", k) - room
+	if over > 0.0:
+		b.global_position.y -= over
+	b.set_meta("soot_k", k)
+	return k
 
 
 ## Approximate cloud diameter (m): dot at full grow plus twice the travel.
