@@ -22,3 +22,11 @@ Checks: `src/check_shuffle.gd` (tris/gaps/top-most vertex), `../tools/check_prop
 - Hair span 0.26 m vs 0.142 m face = 1.83×. Top-most vertex: phone 19 px, PC 162 px. Tris PC 4,798, mobile 2,028. Gaps PC 75.0 px, phone 29.4 px.
 - Fan and clip unchanged (23 / 23 frames vs Smiles' 45).
 - Renders: shuffle/v3/. Phone felt 30.4%, Forward+.
+
+## Toon final (Oct 24, 2026), templated on the Pit Boss
+- Materials: `src/make_shuffle.gd` on `../tools/boss_toon.gd` (brass, bone, greys one value step up, pewter; bone rim #E8DCC0 at 0.30; neutral ambient #3A3732 at 0.40; emission 0). Accents keep their own slots. External `.tres` in `materials/`, wired by `../tools/write_boss_imports.py`.
+- Scenes: `scenes/shuffle(_mobile).tscn` with Model, HeadTrack (LookAtModifier3D on head, influence 0) and HeadAnchor (BoneAttachment3D on head).
+- Rebuild: `GODOT=… BLENDER=… src/rebuild_shuffle.sh` (SKIP_BLENDER=1 keeps the current .glb).
+- Test: `tests/test_shuffle.gd` (180 checks, all pass), including the two AD ambient conditions on every material.
+- Tris PC / mobile 4,798 / 2,028. Brazier gap min PC / phone 75.0 / 29.4 px. Felt luma PC / phone 31.2 / 30.5% (Forward+). Prop clip (Blender, PC) 23 frames.
+- Renders: `/workspace/dice/art/renders/boss_dealers/shuffle/final/game_pc.png`, `game_phone.png`.
