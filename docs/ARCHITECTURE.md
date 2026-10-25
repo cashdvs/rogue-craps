@@ -108,7 +108,7 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
   `DieShape`s with `rarity = &"rare"` (`pyre`, `gilt`, `lodestone`, `ossuary`) never enter the
   common or Elite pools; each shop rolls `RunData.shop_rare_die_chance[floor]` (`_rare_offer`,
   own seed) and on a hit the second dice slot becomes an unowned rare. Their pre-carved faces are
-  locked (`RunProgress.face_locked`; `set_face` refuses). **Rest**: heal, carve a free mod, or level a Seal. **Events**: `EventApplier`
+  locked (`RunProgress.face_locked`; `set_face` refuses; event remove-mod uses `removable_faces`/`has_removable_mod`, which skip them). **Rest**: heal, carve a free mod, or level a Seal. **Events**: `EventApplier`
   checks and applies each choice's effects.
 - **`RunScreen`** (`scenes/run.tscn`) only displays `MapRun` and forwards clicks. Its
   "Stub: clear / miss" buttons show only with `debug_table_stubs` on in a debug build.

@@ -106,6 +106,18 @@ func _test_odds() -> void:
 		run._roll_shop()
 		dup = dup or run.shop_dice[1].id == &"pyre"
 	_check(not dup, "odds: an owned rare isn't offered again")
+	# GD ruling on #174: all four owned -> the roll misses, slot 2 keeps its normal offer.
+	var all_ok := true
+	for s in 400:
+		var run := MapRun.new(_run, s)
+		run.floor_index = 2
+		run.progress.dice.resize(2)
+		for id in RARES:
+			run.progress.add_die(id)
+		run.screen = S.SHOP
+		run._roll_shop()
+		all_ok = all_ok and run.shop_dice.size() == 2 and run.shop_dice[1] != null and not run.shop_dice[1].is_rare()
+	_check(all_ok, "odds: owning all four rares, slot 2 keeps a normal (non-empty) offer")
 
 
 func _test_prices_and_sell() -> void:
