@@ -65,5 +65,65 @@ func _run() -> void:
 	# A refused tap (the 6) changes nothing and sends nothing.
 	sent.clear()
 	check(not s.pick_die(4) and sent.is_empty(), "refused pot: no signal")
+	s.queue_free()
+	await not_picking()
 	print("test_selection_signal: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+## Outside the picking phase the signal sends two empty arrays: after a
+## bust and after a bank (glows must switch off).
+func not_picking() -> void:
+	await process_frame
+	var s := await make_table()
+	var r := s.run
+	# Pot the trips, rethrow, then 2-6: a bust (no Nerve, so no rescue).
+	s.rig_faces([3, 3, 3, 2, 6] as Array[int])
+	s.quick_throw()
+	await s.sequence_finished
+	s.pick_die(0)
+	s.pick_die(1)
+	s.pick_die(2)
+	check(s.throw_again(), "rethrow the 2 and the 6")
+	sent.clear()
+	s.rig_faces([2, 6] as Array[int])
+	s.quick_throw()
+	await s.sequence_finished
+	check(r.state != BonfireRun.State.PICK, "2-6 busts")
+	check(not sent.is_empty() and sent.back()[0].is_empty() and sent.back()[1].is_empty(), "bust sends empty arrays (%s)" % str(sent))
+	# A fresh hand: pot the trips and bank.
+	await create_timer(0.5).timeout
+	s.rig_faces([3, 3, 3, 2, 6] as Array[int])
+	s.quick_throw()
+	await s.sequence_finished
+	s.pick_die(0)
+	s.pick_die(1)
+	s.pick_die(2)
+	# The guard itself: with dice potted but the run not in PICK, empty.
+	sent.clear()
+	r.state = BonfireRun.State.AIM
+	s.emit_selection()
+	r.state = BonfireRun.State.PICK
+	check(sent.size() == 1 and sent[0][0].is_empty() and sent[0][1].is_empty(), "not PICK (dice potted): empty arrays (%s)" % str(sent))
+	sent.clear()
+	s.bank()
+	check(r.state != BonfireRun.State.PICK, "banked")
+	check(sent.size() == 1 and sent[0][0].is_empty() and sent[0][1].is_empty(), "bank sends empty arrays (%s)" % str(sent))
+	s.queue_free()
+
+
+func make_table() -> Bonfire3D:
+	var tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var st := TableSetup.sandbox(tuning, 5)
+	st.table_seed = 5
+	st.nerve_uses = 0
+	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+	s.setup = st
+	s.test_speed = 10.0
+	s.tutorial_override = 0
+	root.add_child(s)
+	await process_frame
+	await process_frame
+	s.reduced_motion = true
+	s.events.selection_changed.connect(func(p: Array, j: Array) -> void: sent.append([p, j]))
+	return s
