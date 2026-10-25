@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
+
+[resource]
+script = ExtResource("1_rare")
+enabled = true
+preset_mods = {
+1: &"gilded",
+5: &"gilded"
+}
+id = &"gilt"
+display_name = "Gilt Die"
+description = "A die whose 1 and 5 are Gilded: +1 Ember each."
+rarity = &"rare"
+price = 22

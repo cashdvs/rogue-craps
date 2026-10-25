@@ -104,7 +104,11 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 - **Shop** (`MapRun._roll_shop`, `buy_die`, `buy_mod`, `buy_seal`, `shop_reroll`, `sell_die`):
   offers come from `RunData.special_dice`, `face_mods` and the Seal combos; counts and prices
   are in `RunData` ("Shop" group). Face mods cost `mod_price_step_percent` more per mod already
-  on that die. **Rest**: heal, carve a free mod, or level a Seal. **Events**: `EventApplier`
+  on that die (pre-carved preset faces don't count). **Rare dice** (design/rare_dice_v1.md):
+  `DieShape`s with `rarity = &"rare"` (`pyre`, `gilt`, `lodestone`, `ossuary`) never enter the
+  common or Elite pools; each shop rolls `RunData.shop_rare_die_chance[floor]` (`_rare_offer`,
+  own seed) and on a hit the second dice slot becomes an unowned rare. Their pre-carved faces are
+  locked (`RunProgress.face_locked`; `set_face` refuses). **Rest**: heal, carve a free mod, or level a Seal. **Events**: `EventApplier`
   checks and applies each choice's effects.
 - **`RunScreen`** (`scenes/run.tscn`) only displays `MapRun` and forwards clicks. Its
   "Stub: clear / miss" buttons show only with `debug_table_stubs` on in a debug build.

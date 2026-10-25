@@ -110,6 +110,17 @@ func mod_price(mod: FaceModData, die_i: int) -> int:
 	return mod.price * (100 + data.mod_price_step_percent * n) / 100
 
 
+## Face face_i of die i is a rare die's pre-carved face (rare_dice_v1 §3:
+## carved at the forge, can't be recarved, blanked or removed). Other
+## shapes' presets (Lantern, Powder Keg, ...) stay as before.
+func face_locked(die_i: int, face_i: int) -> bool:
+	if die_i < 0 or die_i >= dice.size() or face_i < 0 or face_i >= dice[die_i].faces.size():
+		return false
+	var d := dice[die_i]
+	var sh := shape_data(d.shape) if d.shape != DiceIds.DIE_BONE else null
+	return sh != null and sh.is_rare() and sh.is_preset(face_i, d.faces[face_i])
+
+
 ## Embers a die sells for (special dice: half their price; plain dice: 0).
 func sell_value(die_i: int) -> int:
 	var d := die_def(die_i)
@@ -193,9 +204,12 @@ func has_face_mod() -> bool:
 	return not modded_faces().is_empty()
 
 
-## Put mod `mod_id` (&"" = clear) on face face_i of die die_i. False if out of range.
+## Put mod `mod_id` (&"" = clear) on face face_i of die die_i. False if out
+## of range or the face is a rare die's locked pre-carved face.
 func set_face(die_i: int, face_i: int, mod_id: StringName) -> bool:
 	if die_i < 0 or die_i >= dice.size() or face_i < 0 or face_i >= dice[die_i].faces.size():
+		return false
+	if face_locked(die_i, face_i) and mod_id != dice[die_i].faces[face_i]:
 		return false
 	dice[die_i].faces[face_i] = mod_id
 	changed.emit()

@@ -11,6 +11,9 @@ extends Resource
 ## Second tooltip line (strings_v1.md "details" row): the rest of the
 ## rule that didn't fit the short line. Empty = none.
 @export var details: String = ""
+## &"common" (default) or &"rare" (design/rare_dice_v1.md §4): rares are
+## offered only by the shop's rare roll, never the common pools or Elite.
+@export var rarity: StringName = &"common"
 
 
 ## The tooltip: the short line, then the details line if any.
@@ -23,3 +26,8 @@ func tooltip() -> String:
 @export var faces: Array[int] = [1, 2, 3, 4, 5, 6]
 ## Roll weight per face slot; empty = even.
 @export var weights: Array[float] = []
+
+
+## True for a rare die (rarity &"rare").
+func is_rare() -> bool:
+	return rarity == &"rare"
