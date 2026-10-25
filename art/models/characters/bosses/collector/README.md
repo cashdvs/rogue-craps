@@ -23,3 +23,13 @@
 
 ## v1b
 Reframed front/sil (frame=1.3, cy=0.16) so the cloche is in shot. In-game the cloche is visible in both game_pc and game_phone, held at the rail lip over the felt edge (see cloche_check_*.png, with vs hidden). Renders: art/renders/boss_dealers/collector/v1b/. Signed off.
+
+## Toon final (Oct 24, 2026), templated on the Pit Boss
+- Materials: `src/make_collector.gd` on `../tools/boss_toon.gd` (brass, bone, greys one value step up, pewter; bone rim #E8DCC0 at 0.30; neutral ambient #3A3732 at 0.40; emission 0). Accents keep their own slots. External `.tres` in `materials/`, wired by `../tools/write_boss_imports.py`.
+- Scenes: `scenes/collector(_mobile).tscn` with Model, HeadTrack (LookAtModifier3D on head, influence 0) and HeadAnchor (BoneAttachment3D on head).
+- Rebuild: `GODOT=… BLENDER=… src/rebuild_collector.sh` (SKIP_BLENDER=1 keeps the current .glb).
+- Test: `tests/test_collector.gd` (180 checks, all pass), including the two AD ambient conditions on every material.
+- Tris PC / mobile 4,622 / 2,006. Brazier gap min PC / phone 62.7 / 25.9 px. Felt luma PC / phone 32.1 / 30.6% (Forward+). Prop clip (Blender, PC) 39 frames.
+- Renders: `/workspace/dice/art/renders/boss_dealers/collector/final/game_pc.png`, `game_phone.png`.
+- The cloche stays glass-grey as blocked (`col_glass`, opaque toon glass). It is only ever held in hand; it never covers dice.
+- Phone felt reads at the 30% line (29.1–30.6% across reruns from renderer flicker; final still 30.6%).
