@@ -199,7 +199,8 @@ func _lose(n: int, from_fill: float) -> void:
 		return
 	prop.set_ghost(from_fill, 1.0)
 	var tw := prop.create_tween()  # dies with the prop if it is swapped
-	tw.tween_method(func(a: float) -> void: prop.set_ghost(from_fill, a), 1.0, 0.0, GHOST_TIME)
+	var p := prop  # this prop, not whichever one is current later
+	tw.tween_method(func(a: float) -> void: p.set_ghost(from_fill, a), 1.0, 0.0, GHOST_TIME)
 	_shudder(0.006 if _next_is_bust else 0.002, 0.3 if _next_is_bust else 0.2)
 
 
