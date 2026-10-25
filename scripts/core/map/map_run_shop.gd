@@ -78,7 +78,8 @@ func rare_die_chance() -> float:
 
 ## The shop's rare roll (rare_dice_v1 §4): with rare_die_chance(), one enabled
 ## rare die (equal weight) the player doesn't own yet; else null. Own rng so
-## the common offers keep their seeds.
+## the common offers keep their seeds. All four owned: null (a miss), so
+## slot 2 keeps its normal offer (GD ruling on #174).
 func _rare_offer(rng: RandomNumberGenerator) -> SpecialDieData:
 	if rng.randf() >= rare_die_chance():
 		return null
