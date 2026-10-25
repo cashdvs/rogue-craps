@@ -16,6 +16,18 @@ const PEWTER := Color("#8A8D8F")
 ## default ambient is oxblood-tinted. This is the shade-band ambient term, not emission_energy (which stays 0).
 const AMBIENT := Color("#3A3732")
 const AMBIENT_ENERGY := 0.40
+## AD sign-off conditions on that ambient (Oct 24, 2026), checked per material by
+## tests/support/boss_dealer_checks.gd check_material():
+##  (a) it never pushes a surface above its lit value. toon_noir adds it in fragment() as
+##      EMISSION += mix(albedo, shadow_color, AMBIENT_SHADE_MIX) * ambient_color * ambient_energy * 2.0
+##      (linear), and the lit band in light() tops out at albedo. So per channel that term must stay <= the
+##      linear albedo, i.e. the ambient only lifts the shade band and a lit face still reads lighter.
+##  (b) it stays under the bloom / glow threshold: max channel of the whole EMISSION output (ambient term +
+##      emission_color * emission_energy, which is 0 here) < GLOW_THRESHOLD, the WorldEnvironment
+##      glow_hdr_threshold (scripts/table3d/table_3d.gd, 1.0). The dice keep their own glow under it at 0.85.
+## Raising AMBIENT / AMBIENT_ENERGY or a shadow_color must keep both true; the dealer tests fail otherwise.
+const AMBIENT_SHADE_MIX := 0.7
+const GLOW_THRESHOLD := 1.0
 ## Bone rim (AD 2026-10-24): every dealer gets a low bone-tinted fresnel rim so its silhouette reads against the
 ## far wall. Lit-side only (toon_noir light()), so it adds no emission; emission_energy stays 0.
 const RIM_BONE := Color("#E8DCC0")
@@ -60,6 +72,21 @@ static func cloth(v: float, extra: Dictionary = {}) -> Dictionary:
 	return base(grey(g), grey(g * 0.38), extra)
 
 
+## Skin used by the human dealers: warm bone-grey (Pit Boss v2 value).
+static func skin(extra: Dictionary = {}) -> Dictionary:
+	return base(Color("#C2B9A8"), Color("#5A554C"), {"mid_tint": 0.74}.merged(extra, true))
+
+
+## Pupils / embedded dark detail: no rim, no ink.
+static func eye() -> Dictionary:
+	return base(grey(0.05), grey(0.02), {"rim_strength": 0.0})
+
+
+## Opaque toon "glass" (Collector cloche, Bloodletter lenses): a light grey with a hard bone glint.
+static func glass(v: float, extra: Dictionary = {}) -> Dictionary:
+	return base(grey(v), grey(v * 0.42), {"spec_size": 0.9, "spec_strength": 0.6, "rim_strength": 0.45}.merged(extra, true))
+
+
 static func ink(dir: String, name: String, width: float) -> Material:
 	var m := ShaderMaterial.new()
 	m.shader = load(OUTLINE)
@@ -93,7 +120,12 @@ static func materials(dir: String, boss: String, slots: Dictionary, inks: Dictio
 
 ## Wrapper scene, same layout as smiles.tscn: Model (editable glb instance, idle autoplay) + HeadTrack
 ## (LookAtModifier3D on "head", influence 0 until Godot Dev targets it) + HeadAnchor (BoneAttachment3D on "head").
-static func scene(dir: String, boss: String, root_name: String) -> void:
+## opts (optional):
+##   "sockets": [[attach_name, bone, marker_name, Vector3 offset], ...] -> BoneAttachment3D + Marker3D under the
+##              skeleton (FX hook points, e.g. Ashmouth's FireboxDoor / PipeMouth).
+##   "fx": [[node_name, script_path], ...] -> plain Node child of the root with that script, added only when the
+##         script exists in this checkout (so a scene never references a missing file; rerun scenes once it lands).
+static func scene(dir: String, boss: String, root_name: String, opts: Dictionary = {}) -> void:
 	for lod in ["", "_mobile"]:
 		var glb := load(dir + "%s%s.glb" % [boss, lod]) as PackedScene
 		var root := Node3D.new()
@@ -127,6 +159,26 @@ static func scene(dir: String, boss: String, root_name: String) -> void:
 		anchor.bone_name = "head"
 		skel.add_child(anchor)
 		anchor.owner = root
+		for so: Array in opts.get("sockets", []):
+			var att := BoneAttachment3D.new()
+			att.name = so[0]
+			att.bone_name = so[1]
+			skel.add_child(att)
+			att.owner = root
+			var mk := Marker3D.new()
+			mk.name = so[2]
+			mk.position = so[3]
+			att.add_child(mk)
+			mk.owner = root
+		for fx: Array in opts.get("fx", []):
+			if ResourceLoader.exists(fx[1]):
+				var n := Node.new()
+				n.name = fx[0]
+				n.set_script(load(fx[1]))
+				root.add_child(n)
+				n.owner = root
+			else:
+				print("boss_toon: %s skipped, %s not in this checkout" % [fx[0], fx[1]])
 		var ps := PackedScene.new()
 		ps.pack(root)
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir + "scenes"))
