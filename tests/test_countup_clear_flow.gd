@@ -53,6 +53,19 @@ func settle(s: Bonfire3D) -> void:
 	await create_timer(0.4).timeout
 
 
+## The three lines under the Pot, joined: preview | notes | risk.
+func lines(s: Bonfire3D) -> String:
+	return "%s|%s|%s" % [s.bhud.throw_label.text, s.bhud.notes_label.text, s.bhud.risk_label.text]
+
+
+## Pots TRIPS and checks the old preview, notes and risk are showing, so the
+## checks after rethrow / bank / leave / new run start from a stale line.
+func pot_with_preview(s: Bonfire3D, what: String) -> void:
+	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	await process_frame
+	check(s.bhud.throw_label.text.begins_with("TRIPS") and s.bhud.risk_label.text != "", "%s: preview and risk shown first (%s)" % [what, lines(s)])
+
+
 func shown(s: Bonfire3D) -> bool:
 	var c := s.bhud.countup
 	return c.row.modulate.a > 0.05 or c.banner_panel.modulate.a > 0.05
@@ -64,6 +77,7 @@ func _run() -> void:
 	await forfeit_flow()
 	await new_run_flow()
 	await hand_end_flow()
+	await leave_flow()
 	await still_counting_flow()
 	print("test_countup_clear_flow: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -71,11 +85,10 @@ func _run() -> void:
 
 func rethrow_flow() -> void:
 	var s := await make_table()
-	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
-	s._refresh_hud()
-	check(s.bhud.throw_label.text.begins_with("TRIPS"), "TRIPS preview before the rethrow")
+	await pot_with_preview(s, "rethrow")
 	check(s.throw_again(), "rethrow")
-	check(s.bhud.throw_label.text == "", "rethrow clears the score line at once")
+	# The same-frame HUD refresh rewrites all three lines (count-up playing).
+	check(lines(s) == "||", "rethrow: no stale line under the Pot (%s)" % lines(s))
 	await settle(s)
 	# The next throw: picking it must not show the old TRIPS! / total.
 	s.rig_faces([5, 2] as Array[int])
@@ -91,9 +104,9 @@ func rethrow_flow() -> void:
 func bank_flow() -> void:
 	var s := await make_table()
 	check(s.help_label.visible, "first table: controls text shown")
-	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	await pot_with_preview(s, "bank")
 	s.bank()
-	check(s.bhud.throw_label.text == "", "bank clears the score line")
+	check(lines(s) == "||", "bank: no stale line under the Pot (%s)" % lines(s))
 	await settle(s)
 	check(not shown(s), "after the bank: count-up row and banner gone")
 	check(s.help_corner.dismissed and not s.help_label.visible, "the first Bank fades the controls text")
@@ -118,6 +131,7 @@ func new_run_flow() -> void:
 	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
 	s.throw_again()
 	s.new_run(7)
+	check(s.bhud.throw_label.text.begins_with("Grab") and s.bhud.notes_label.text == "" and s.bhud.risk_label.text == "", "new run: no stale line under the Pot (%s)" % lines(s))
 	await process_frame
 	check(not shown(s), "new run clears the count-up at once")
 	check(s.bhud.throw_label.text.begins_with("Grab"), "new run: only the deal prompt (%s)" % s.bhud.throw_label.text)
@@ -139,6 +153,32 @@ func hand_end_flow() -> void:
 	process_frame.disconnect(watch)
 	check(not during_reset.is_empty(), "hand end: the RESET pause was seen")
 	check(during_reset.all(func(t: String) -> bool: return t == ""), "hand end: no line under the Pot between hands (saw %s)" % str(during_reset.filter(func(t: String) -> bool: return t != "").slice(0, 1)))
+	s.queue_free()
+	await process_frame
+
+
+## Leave: clear the table, then Leave. Leave is only live between hands, so
+## no real preview is up; the test writes old score lines into the labels
+## and leave()'s HUD refresh must rewrite all three.
+func leave_flow() -> void:
+	var s := await make_table()
+	for hand in [[[1, 2, 3, 6, 6], 3], [[4, 4, 4, 2, 6], 3], [[2, 2, 6, 6, 3], 4]]:
+		for k in 600:
+			if s.phase == Table3D.Phase.BET:
+				break
+			await process_frame
+		await throw_and_pot(s, Array(hand[0], TYPE_INT, "", null), hand[1])
+		await s.bank()
+	for k in 600:
+		if s.can_leave_now():
+			break
+		await process_frame
+	check(s.can_leave_now(), "leave: table cleared, Leave is live")
+	s.bhud.throw_label.text = "TRIPS: (30+9) x3 = 117"
+	s.bhud.notes_label.text = "Hot Hand +1"
+	s.bhud.risk_label.text = "2 cold dice: 1 in 3 chance nothing lights"
+	check(s.leave(), "leave")
+	check(lines(s) == "||", "leave: no stale line under the Pot (%s)" % lines(s))
 	s.queue_free()
 	await process_frame
 

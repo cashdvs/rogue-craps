@@ -70,8 +70,10 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	action_reason.text = why["throw"] if why["throw"] != "" else (why["bank"] if picking else "")
 
 
-## Clears the score lines under the Pot (preview, notes, risk). Called on
-## rethrow, bank, hand end and a new table so no old line sticks (playtest).
+## Clears the score lines under the Pot (preview, notes, risk). Called at
+## hand end, where no HUD refresh runs during the short pause between hands.
+## Rethrow, bank, leave and a new table don't need it: refresh() runs in the
+## same frame and rewrites all three lines (QA #160).
 func clear_score_text() -> void:
 	throw_label.text = ""
 	notes_label.text = ""

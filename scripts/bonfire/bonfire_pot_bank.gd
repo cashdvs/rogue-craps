@@ -34,7 +34,6 @@ func throw_again() -> bool:
 		_refuse(why if why != "" else "Pot at least one lit die first.")
 		return false
 	bhud.tutorial.on_action(&"rethrow")
-	bhud.clear_score_text()
 	bhud.countup.clear()  # the last pot's row fades before this pot's count-up
 	nerve.close_throw()
 	pot_dice.append_array(potted_now)
@@ -173,7 +172,6 @@ func bank() -> Dictionary:
 		_refuse("Pot at least one lit die to bank.")
 		return {}
 	bhud.tutorial.on_action(&"bank")
-	bhud.clear_score_text()
 	help_corner.dismiss()  # G1: the first Bank fades the controls text
 	fast_forward_juice()
 	var sel := run.selection()
