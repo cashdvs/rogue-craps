@@ -39,6 +39,8 @@ func _run() -> void:
 	await _test_fallback_root()
 	_test_ash_over_rail()
 	_test_soot_cap()
+	_test_table_reduced_motion()
+	_test_world_space()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -382,3 +384,66 @@ func _test_soot_cap() -> void:
 	_check(not got.is_empty() and float(got[0].get_meta("soot_k", 1.0)) == 1.0, "plenty of room: soot uncapped")
 	cam.free()
 	rig.free()
+
+
+const TABLE_RM_SRC := "extends Node3D\nvar fx_root: Node3D\nvar rm := false\nfunc is_reduced_motion() -> bool:\n\treturn rm\n"
+
+
+## QA #165: reduced motion follows the table's setting (live), the export overrides.
+func _test_table_reduced_motion() -> void:
+	var gs := GDScript.new()
+	gs.source_code = TABLE_RM_SRC
+	gs.reload()
+	var table := Node3D.new()
+	table.set_script(gs)
+	root.add_child(table)
+	var fxr := Node3D.new()
+	table.add_child(fxr)
+	table.set("fx_root", fxr)
+	var rig := _rig()
+	table.add_child(rig)
+	var fx: Fx = Fx.new()
+	fx.detect_renderer = false
+	rig.add_child(fx)
+	fx.setup(rig)
+	fx.set_process(false)
+	var full := int(Fx.PUFFS[&"ash"]["count"])
+	_check(not fx.motion_reduced() and fx.particle_count(&"ash") == full, "table off: full count")
+	table.set("rm", true)
+	_check(fx.motion_reduced() and fx.particle_count(&"ash") <= ceili(full * 0.3), "table reduced motion on: reduced count (%d)" % fx.particle_count(&"ash"))
+	var b := _ash_burst(fx)
+	_check(b != null and int(b.get("amount")) == fx.particle_count(&"ash"), "puff after the toggle uses the reduced count")
+	table.set("rm", false)
+	fx.reduced_motion = true
+	_check(fx.particle_count(&"ash") <= ceili(full * 0.3), "export override wins over table off")
+	fx.reduced_motion = false
+	var plain := Node3D.new()
+	root.add_child(plain)
+	var rig2 := _rig()
+	plain.add_child(rig2)
+	var fx2: Fx = Fx.new()
+	fx2.detect_renderer = false
+	rig2.add_child(fx2)
+	fx2.setup(rig2)
+	fx2.set_process(false)
+	_check(not fx2.motion_reduced(), "no table: export decides (off)")
+	var gs2 := GDScript.new()
+	gs2.source_code = "extends Node3D\nvar reduced_motion := true\n"
+	gs2.reload()
+	plain.set_script(gs2)
+	_check(fx2.motion_reduced(), "Bonfire3D-style reduced_motion property is read too")
+	table.free()
+	plain.free()
+
+
+## QA #165: bursts simulate in world space, so the cloud stays put when the dealer moves.
+func _test_world_space() -> void:
+	var rig := _rig()
+	var fx := _fx(rig)
+	for kind: StringName in Fx.PUFFS:
+		_check(fx.emitters[kind].get("local_coords") == false, "%s emitter world space (local_coords false)" % kind)
+	var b := _ash_burst(fx)
+	_check(b != null and b.get("local_coords") == false, "ash burst world space")
+	var cfx := _fx(_rig(), true)
+	_check(cfx.emitters[&"soot"].get("local_coords") == false, "CPU soot emitter world space")
+	rig.queue_free()

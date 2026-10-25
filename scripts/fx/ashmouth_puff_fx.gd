@@ -53,7 +53,10 @@ const ASH_RAIL_CLEAR := 0.03
 const FREE_PAD := 0.1
 const REDUCED_MOTION_SCALE := 0.3
 
-## Fewer particles (REDUCED_MOTION_SCALE) when true.
+## Override: fewer particles (REDUCED_MOTION_SCALE) when true, whatever the
+## table says. Left false, the game setting is read live from the nearest
+## ancestor's is_reduced_motion() (Table3D) or `reduced_motion` (Bonfire3D,
+## Dealer3D), so toggling the option mid-run applies on the next puff.
 @export var reduced_motion: bool = false
 ## Forces the CPUParticles3D path (Compatibility / mobile); else read from the renderer.
 var mobile: bool = false
@@ -290,11 +293,26 @@ func _facing_basis() -> Basis:
 	return p.global_basis.orthonormalized() if p != null and p.is_inside_tree() else Basis.IDENTITY
 
 
+## True when the override is on or the table/dealer above us has reduced motion.
+func motion_reduced() -> bool:
+	if reduced_motion:
+		return true
+	var n := get_parent()
+	while n != null:
+		if n.has_method(&"is_reduced_motion"):
+			return bool(n.call(&"is_reduced_motion"))
+		var v: Variant = n.get("reduced_motion")
+		if v is bool:
+			return v
+		n = n.get_parent()
+	return false
+
+
 ## Particles per burst for this renderer and motion setting.
 func particle_count(kind: StringName) -> int:
 	var spec: Dictionary = PUFFS[kind]
 	var n: int = spec["count_mobile"] if mobile else spec["count"]
-	return maxi(1, ceili(n * REDUCED_MOTION_SCALE)) if reduced_motion else n
+	return maxi(1, ceili(n * REDUCED_MOTION_SCALE)) if motion_reduced() else n
 
 
 func _make_emitter(kind: StringName) -> Node3D:
