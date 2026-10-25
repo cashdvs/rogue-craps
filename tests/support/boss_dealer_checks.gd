@@ -10,6 +10,8 @@ extends RefCounted
 const TOON := "res://shaders/3d/toon_noir.gdshader"
 const OUTLINE := "res://shaders/3d/outline.gdshader"
 const INK := Color("#0E1414")
+const RIM_BONE := Color("#E8DCC0")
+const RIM_MAX := 0.5
 const DEALER_POS := Vector3(-0.42, -0.47, -0.86)
 const RAIL_TOP := 0.14
 const GAME_CAMS: Dictionary = {"pc": [Vector2i(1920, 1080), 2.40, Vector3(0, 0, 0.26)], "phone": [Vector2i(844, 390), 2.04, Vector3(0, 0, 0.34)]}
@@ -85,6 +87,10 @@ func check_material(m: Material, label: String, inked: bool) -> void:
 	ok(bad.is_empty(), "%s: palette brass/bone/grey/pewter only %s" % [label, bad])
 	var e: Variant = param(sm, "emission_energy")
 	ok(e == null or float(e) == 0.0, "%s: no emission (emission_energy %s)" % [label, e])
+	var rs := float(param(sm, "rim_strength"))
+	if rs > 0.0:  # dealer rim (boss_toon.gd RIM_BONE): bone-tinted and low, so it lifts the silhouette without glowing
+		ok((param(sm, "rim_color") as Color).is_equal_approx(RIM_BONE) and rs <= RIM_MAX,
+			"%s: rim is bone #E8DCC0 at low strength (%.2f <= %.2f)" % [label, rs, RIM_MAX])
 	var nx := sm.next_pass as ShaderMaterial
 	if inked:
 		ok(nx != null and nx.shader and nx.shader.resource_path == OUTLINE and (nx.get_shader_parameter("color") as Color).is_equal_approx(INK),

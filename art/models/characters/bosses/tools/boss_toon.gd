@@ -12,7 +12,17 @@ const PIT_BLACK := Color("#0E1414")  # ink (same as Smiles)
 const BRASS := Color("#B08D3C")
 const BONE := Color("#E8DCC0")
 const PEWTER := Color("#8A8D8F")
-const AMBIENT := Color("#141416")  # neutral: the shader default ambient is oxblood-tinted
+## Neutral warm-grey room ambient (v2: lifted from #141416 so shade sides read against the far wall). The shader
+## default ambient is oxblood-tinted. This is the shade-band ambient term, not emission_energy (which stays 0).
+const AMBIENT := Color("#3A3732")
+const AMBIENT_ENERGY := 0.40
+## Bone rim (AD 2026-10-24): every dealer gets a low bone-tinted fresnel rim so its silhouette reads against the
+## far wall. Lit-side only (toon_noir light()), so it adds no emission; emission_energy stays 0.
+const RIM_BONE := Color("#E8DCC0")
+const RIM_STRENGTH := 0.30
+const RIM_POWER := 2.0
+## One value step for dealer greys (cloth / grey() helpers): the v1 greys read too dark at game zoom.
+const GREY_STEP := 0.08
 const INK_W := 0.0048
 const INK_THIN_W := 0.0018
 ## Every colour parameter the toon shader takes; all are written explicitly so no red/teal shader default leaks in.
@@ -26,14 +36,14 @@ static func grey(v: float) -> Color:
 ## Base params for a dealer surface: neutral ambient + a soft pewter rim, emission hard off.
 static func base(albedo: Color, shadow: Color, extra: Dictionary = {}) -> Dictionary:
 	var d := {"albedo": albedo, "shadow_color": shadow, "mid_tint": 0.7, "wrap": 0.25, "roughness": 0.75,
-		"ambient_color": AMBIENT, "spec_color": Color("#F4ECD8"), "spec_size": 0.0, "spec_strength": 0.0,
-		"rim_color": Color("#C9CBCC"), "rim_strength": 0.35, "rim_power": 2.4,
+		"ambient_color": AMBIENT, "ambient_energy": AMBIENT_ENERGY, "spec_color": Color("#F4ECD8"), "spec_size": 0.0, "spec_strength": 0.0,
+		"rim_color": RIM_BONE, "rim_strength": RIM_STRENGTH, "rim_power": RIM_POWER,
 		"emission_color": Color.BLACK, "emission_energy": 0.0}
 	return d.merged(extra, true)
 
 
 static func brass(extra: Dictionary = {}) -> Dictionary:
-	return base(BRASS, Color("#4A3A1A"), {"spec_size": 0.92, "spec_strength": 0.55, "rim_color": Color("#E6D39C")}.merged(extra, true))
+	return base(BRASS, Color("#4A3A1A"), {"spec_size": 0.92, "spec_strength": 0.55}.merged(extra, true))
 
 
 static func bone(extra: Dictionary = {}) -> Dictionary:
@@ -44,8 +54,10 @@ static func pewter(extra: Dictionary = {}) -> Dictionary:
 	return base(PEWTER, Color("#2E3032"), {"spec_size": 0.9, "spec_strength": 0.4}.merged(extra, true))
 
 
+## Grey cloth at v + GREY_STEP (callers pass the v1 value, so all bosses shift together).
 static func cloth(v: float, extra: Dictionary = {}) -> Dictionary:
-	return base(grey(v), grey(v * 0.38), extra)
+	var g := v + GREY_STEP
+	return base(grey(g), grey(g * 0.38), extra)
 
 
 static func ink(dir: String, name: String, width: float) -> Material:

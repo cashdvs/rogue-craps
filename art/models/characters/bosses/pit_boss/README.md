@@ -90,3 +90,26 @@ Brazier and goal-plaque clearance uses the tests/test_smiles.gd camera v3 framin
 2. `bosses/tools/write_boss_imports.py <boss> <slots…>` writes the external-material `.glb.import` files and keeps the uids.
 3. `tests/support/boss_dealer_checks.gd` covers counters, the palette and emission check, game cams, CPU skinning, the brazier gap, the felt proxy and prop-clip frames.
 4. For a new boss, copy `make_pit_boss.gd`, `rebuild_pit_boss.sh` and `tests/test_pit_boss.gd`, then change the slot table, part names and swap bones.
+
+## v3b dark-read fix (AD 2026-10-24, materials only, no board lights)
+- **Shared, in `boss_toon.gd`, so every dealer inherits it:**
+  - Bone rim `RIM_BONE` #E8DCC0, `RIM_STRENGTH` 0.30, `RIM_POWER` 2.0. The black slot keeps 0.45.
+  - The rim lights only on the lit side (toon_noir `light()`), so `emission_energy` stays 0.
+  - `GREY_STEP` 0.08 is added in `cloth()`.
+  - Neutral room ambient changed from #141416 / 0.25 to `AMBIENT` #3A3732 at `AMBIENT_ENERGY` 0.40. This is the shader's shade-band ambient term, not emission. It did the most visible work: the rim alone barely shows, because the dealer sits outside most of the lamp's reach.
+- **Pit Boss (one value step up):**
+
+  | Slot | v1 | v3b |
+  |---|---|---|
+  | Vest | 0.30 | 0.38 |
+  | Cap | 0.22 | 0.30 |
+  | Black | 0.11 | 0.19 |
+  | Skin | #B5AC9B | #C2B9A8 |
+  | Cigar | #4E4A45 | #625D57 |
+  | Ash | #8A8D8F | #9DA0A2 |
+
+  The plaque's bone face (`pitboss_bone`) is lifted with shadow #787264 and mid_tint 0.80.
+- **Gate:** on game_phone, the cap brim, cigar and shoulder line now read against the far wall.
+  - Felt: PC 33.8%, phone 30.4%.
+  - Renders: `/workspace/dice/art/renders/boss_dealers/pit_boss/final_v2/`
+- **Test:** `test_pit_boss.gd` now also checks that each rim is bone and low (≤ 0.5). 175 checks.
