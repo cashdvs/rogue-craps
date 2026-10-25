@@ -10,6 +10,8 @@ signal face_picked(face_index: int)
 
 const NEXT_MOD := "Next mod on this die: %d Embers."
 const TAKEN := "This face already has a face mod."
+## strings_v1 rare_carved_locked: a rare die's pre-carved face (rare_dice_v1 §3).
+const LOCKED := EconomyStrings.RARE_CARVED_LOCKED
 const FACE_SIZE := Vector2(92, 40)
 
 var info: DieCardInfo
@@ -47,7 +49,7 @@ func set_die(card_info: DieCardInfo, read_only: bool = true, allowed: Callable =
 		else:
 			b.disabled = allowed.is_valid() and not bool(allowed.call(f))
 			if b.disabled and mod != &"" and mod != RunDie.BLANK:
-				b.tooltip_text += "\n" + TAKEN
+				b.tooltip_text += "\n" + (LOCKED if bool(face.get("locked", false)) else TAKEN)
 			b.pressed.connect(func() -> void: face_picked.emit(f))
 		row.add_child(b)
 	add_child(row)

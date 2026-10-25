@@ -144,6 +144,26 @@ const ASSET_ONLY_KEYS: Dictionary = {
 }
 
 
+## Rare dice art (rare_dice_v1 §8, PR 2): asset key -> the existing body model
+## (res://art/models/dice/<body>.glb) it loads until 3D Artist ships its own
+## variant. Pyre/Gilt reuse the asset-only hellfire_d6/gilded_d6 bodies;
+## Lodestone (glass) and Ossuary (bone) take the nearest body. Drop an entry
+## once <key>.glb exists; body_key() then returns the key itself.
+const RARE_ART_BODIES: Dictionary = {
+	&"pyre_d6": &"hellfire_d6", &"gilt_d6": &"gilded_d6",
+	&"lodestone_d6": &"mirror_d6", &"ossuary_d6": &"bone_d6",
+}
+
+
+## Model body key for [param die_id]: its asset key, or the stand-in from
+## RARE_ART_BODIES when that key's own .glb isn't in art/models/dice yet.
+static func body_key(die_id: StringName) -> StringName:
+	var k := asset_key(die_id)
+	if RARE_ART_BODIES.has(k) and not ResourceLoader.exists("res://art/models/dice/%s.glb" % k):
+		return RARE_ART_BODIES[k]
+	return k
+
+
 ## True if [param id] is a canonical die id.
 static func is_die(id: StringName) -> bool:
 	return ALL.has(id)

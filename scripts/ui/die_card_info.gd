@@ -30,7 +30,8 @@ static func from_run(progress: RunProgress, die_index: int) -> DieCardInfo:
 	for f in die.faces.size():
 		var mod: StringName = die.faces[f]
 		var value: int = def.faces[f] if def != null and f < def.faces.size() else f + 1
-		info.faces.append({"value": value, "mod": mod, "mod_name": mod_name(progress, mod)})
+		info.faces.append({"value": value, "mod": mod, "mod_name": mod_name(progress, mod),
+			"locked": progress.face_locked(die_index, f)})
 	return info
 
 
