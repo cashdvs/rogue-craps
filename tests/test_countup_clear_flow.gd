@@ -138,7 +138,7 @@ func hand_end_flow() -> void:
 	await s.bank()
 	process_frame.disconnect(watch)
 	check(not during_reset.is_empty(), "hand end: the RESET pause was seen")
-	check(during_reset.all(func(t: String) -> bool: return t == ""), "hand end: no line under the Pot between hands (saw \"%s\")" % during_reset.filter(func(t: String) -> bool: return t != "").front())
+	check(during_reset.all(func(t: String) -> bool: return t == ""), "hand end: no line under the Pot between hands (saw %s)" % str(during_reset.filter(func(t: String) -> bool: return t != "").slice(0, 1)))
 	s.queue_free()
 	await process_frame
 
