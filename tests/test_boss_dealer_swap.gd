@@ -194,10 +194,11 @@ func _mobile_variant_loads() -> void:
 	await process_frame
 
 
-## PR #172's own id for Madame Shuffle, and the faces fallback until it lands.
+## PR #172's own id for Madame Shuffle shows the Shuffle dealer; pit_boss
+## with faces [2, 4] is just the Pit Boss now (no faces fallback).
 func _stopgap_id_is_shuffle() -> void:
 	check(BonfireDealerArt.art_for_rules([{"id": &"madame_shuffle_stopgap", "params": {"faces": [2, 4]}}]) == "shuffle", "madame_shuffle_stopgap -> shuffle")
-	check(BonfireDealerArt.art_for_rules([{"id": &"pit_boss", "params": {"faces": [2, 4]}}]) == "shuffle", "fallback: pit_boss faces [2,4] -> shuffle")
+	check(BonfireDealerArt.art_for_rules([{"id": &"pit_boss", "params": {"faces": [2, 4]}}]) == "pit_boss", "no faces fallback: pit_boss [2,4] stays pit_boss")
 	check(BonfireDealerArt.art_for_rules([{"id": &"pit_boss", "params": {"faces": [2, 3, 4, 5, 6]}}]) == "pit_boss", "real Pit Boss stays pit_boss")
 	var s := await make_table(0, _setup_with([{"id": &"madame_shuffle_stopgap", "params": {"faces": [2, 4]}}]))
 	_check_only(s, "shuffle", "boss madame_shuffle_stopgap")

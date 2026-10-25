@@ -228,7 +228,7 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
 - **Dealer art (#171):** `scripts/bonfire/bonfire_dealer_art.gd` (`BonfireDealerArt`, `table.dealer_art`) puts ONE dealer scene at Smiles' spot `(-0.42, -0.47, -0.86)`:
   - The dealer stands `GREYBOX_RAIL_LIFT` (0.12 m) above `DEALER_SPOT` so faces clear the greybox far rail; set it to 0 when the Hearth board ships.
   - Normal and Elite tables show Smiles. A boss table swaps in that boss's scene (`BOSS_ART`: cheat id → `art/models/characters/bosses/<folder>/`) instead of Smiles, never beside him. The Compatibility / mobile renderer loads `*_mobile.tscn`.
-  - Boss is read from the cheat id in `TableSetup.rules`. Madame Shuffle: `madame_shuffle_stopgap` (PR #172); until #172 is on main, the fallback `pit_boss` + `faces [2, 4]` also means Shuffle (TODO: remove after #172).
+  - Boss is read from the cheat id in `TableSetup.rules`. Madame Shuffle: `madame_shuffle_stopgap` (PR #172) maps to the `shuffle` dealer; there is no faces fallback, so `pit_boss` is always the Pit Boss.
   - Floor-3 bosses with no dealer scene yet (Baron Vig, Mister Wick, Odds Bodkin) keep Smiles. A missing scene file brings back the greybox `Dealer3D` bust.
   - The greybox bust is hidden while art stands there; its rake and head anchor (speech bubble) stay. `Table3D.taunted` plays `taunt`, then `idle`.
   - A swapped-out dealer is freed at once, except Ashmouth mid-taunt: hidden and kept until ~1.75 s so his soot puff finishes. His `AshmouthPuffFx.reduced_motion` follows `Bonfire3D.reduced_motion` live.

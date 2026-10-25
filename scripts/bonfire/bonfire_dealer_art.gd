@@ -5,9 +5,8 @@
 ## How a boss table is spotted: the run passes the boss cheat in
 ## TableSetup.rules as {"id": ..., "params": ...} (RunTableSetup.rule_entries,
 ## Systems Dev). The cheat id says which boss sits at the table.
-## Madame Shuffle: PR #172 gives her stopgap rule its own id,
-## madame_shuffle_stopgap (mapped below). Until #172 is on main her .tres still
-## reuses the Pit Boss id with faces [2, 4], so those faces tell her apart.
+## Madame Shuffle: her stopgap rule has its own id, madame_shuffle_stopgap
+## (PR #172), mapped below. A plain pit_boss id is always the Pit Boss.
 ## Bosses without a dealer scene yet (floor 3) keep Smiles.
 ##
 ## The greybox Dealer3D bust is hidden while an art dealer stands here; its
@@ -37,10 +36,6 @@ const BOSS_ART := {
 	&"collector": "collector",
 	&"bloodletter": "bloodletter",
 }
-## Madame Shuffle's stopgap params under the Pit Boss id.
-## TODO: remove this fallback (and its check in art_for_rules) once PR #172
-## (madame_shuffle_stopgap id) is merged; see madame_shuffle.tres metadata/stopgap.
-const SHUFFLE_FACES := [2, 4]
 ## Ashmouth's soot puff fires at the 1.2 s door slam and lives ~0.55 s, so
 ## his scene must stay alive until about 1.75 s into the taunt.
 const ASHMOUTH_KEEP_ALIVE := 1.75
@@ -63,10 +58,6 @@ static func art_for_rules(rules: Array) -> String:
 		var id := StringName(e.get("id", &""))
 		if not BOSS_ART.has(id):
 			continue
-		var faces: Array = (e.get("params", {}) as Dictionary).get("faces", [])
-		# Fallback until PR #172: Shuffle under the Pit Boss id. Remove after #172.
-		if id == &"pit_boss" and faces == SHUFFLE_FACES:
-			return "shuffle"
 		return BOSS_ART[id]
 	return "smiles"
 
