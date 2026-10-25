@@ -77,8 +77,8 @@ func _test_locked_tooltip() -> void:
 		for f in info.faces.size():
 			var face: Dictionary = info.faces[f]
 			var tip: String = (row.get_child(f) as Button).tooltip_text
-			_check(bool(face["locked"]) == p.face_locked(d, f), "%s face %d locked flag" % [id, f])
-			if bool(face["locked"]):
+			_check(bool(face.get("locked", false)) == p.face_locked(d, f), "%s face %d locked flag" % [id, f])
+			if bool(face.get("locked", false)):
 				seen += 1
 				_check(EconomyStrings.RARE_CARVED_LOCKED in tip and not DieCard.TAKEN in tip, "%s face %d locked tooltip" % [id, f])
 		_check(seen > 0, "%s has forge-carved faces" % id)
