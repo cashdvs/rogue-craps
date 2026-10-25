@@ -5,6 +5,9 @@
 class_name BonfireTableLayout
 extends BonfireTableLook
 
+## The 3D Soul Reliquary that replaces the flat Soul bar (#167).
+var reliquary: SoulReliquaryHookup
+
 
 ## HUD numbers before a pot is committed (shown until its count-up lands).
 func _display_snapshot(sel: Dictionary) -> Dictionary:
@@ -49,6 +52,7 @@ func _update_portrait_hud() -> void:
 		return
 	var vs := get_viewport().get_visible_rect().size
 	var portrait := vs.y > vs.x
+	_place_reliquary()
 	bhud.set_portrait(portrait)
 	var phone_land := not portrait and phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y
 	bhud.set_ui_scale(ui_pt_px(portrait), BonfireHud.PHONE_LANDSCAPE_CARDS if phone_land else 1.0)
@@ -194,8 +198,9 @@ func _fit_landscape_felt() -> void:
 		return
 	var margin := 8.0 * ui_pt_px(false)
 	var left := margin
-	if soul_meter != null and soul_meter.is_visible_in_tree():
-		left = soul_meter.get_global_rect().end.x + margin
+	var plate := reliquary_rect()
+	if plate.size.x > 0.0:
+		left = plate.end.x + margin
 	# The band must fit every pose the camera takes in play: home, and the
 	# reveal glide (closer in, pivot slid up to cam_follow_clamp each way).
 	# Home must fit both edges; in the glide only the left end (under the
@@ -301,3 +306,34 @@ func _slide_for(base: Vector3, pts: Array[Vector3]) -> Array[float]:
 			best_margin = margin
 			best = off
 	return [best, best_margin]
+
+
+## Which Reliquary layout this screen uses: portrait, phone (landscape
+## phone or any short screen: narrow screens get the phone prop, a shrunk
+## PC plate is unreadable), or PC.
+func reliquary_kind() -> StringName:
+	var vs := get_viewport().get_visible_rect().size
+	if vs.y > vs.x:
+		return SoulReliquaryHookup.PORTRAIT
+	if (phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y) or vs.y < 720.0:
+		return SoulReliquaryHookup.PHONE
+	return SoulReliquaryHookup.PC
+
+
+## Makes / moves the Reliquary and hides the old 2D Soul bar for good.
+func _place_reliquary() -> void:
+	if reliquary == null:
+		reliquary = SoulReliquaryHookup.new()
+		reliquary.name = "SoulReliquary"
+		add_child(reliquary)
+	if soul_meter != null:
+		soul_meter.visible = false
+	reliquary.reduced_motion = reduced_motion
+	reliquary.layout(reliquary_kind())
+
+
+## The Reliquary's plate on screen (empty before it exists).
+func reliquary_rect() -> Rect2:
+	if reliquary == null or camera == null:
+		return Rect2()
+	return reliquary.plate_rect(camera.cam)
