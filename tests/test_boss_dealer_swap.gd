@@ -27,6 +27,12 @@ func _run() -> void:
 	await _ashmouth_reduced_motion()
 	await _taunt_plays_clip()
 	await _ashmouth_kept_alive_on_swap()
+	await _missing_scene_restores_greybox()
+	await _swapped_out_dealer_is_freed()
+	_mobile_paths()
+	await _mobile_variant_loads()
+	await _stopgap_id_is_shuffle()
+	await _heads_in_frame_over_rail()
 	print("test_boss_dealer_swap: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -54,7 +60,7 @@ func _check_only(s: Bonfire3D, folder: String, label: String) -> void:
 		return
 	var n := scenes[0] as Node3D
 	check(n.scene_file_path.get_file().get_basename().trim_suffix("_mobile") == folder, "%s: shows %s (%s)" % [label, folder, n.scene_file_path])
-	check(n.position.is_equal_approx(BonfireDealerArt.DEALER_SPOT), "%s: stands at the dealer spot (%s)" % [label, n.position])
+	check(n.position.is_equal_approx(BonfireDealerArt.DEALER_SPOT + BonfireDealerArt.GREYBOX_RAIL_LIFT), "%s: stands at the dealer spot (%s)" % [label, n.position])
 	check(n.is_visible_in_tree(), "%s: dealer scene visible" % label)
 	var smiles_shown := scenes.any(func(x: Node) -> bool: return x.scene_file_path.contains("/smiles/"))
 	check(smiles_shown == (folder == "smiles"), "%s: Smiles shown only on non-boss tables" % label)
@@ -134,5 +140,94 @@ func _ashmouth_kept_alive_on_swap() -> void:
 	check(is_instance_valid(old), "Ashmouth still alive before 1.75 s")
 	await create_timer(0.8).timeout
 	check(not is_instance_valid(old), "Ashmouth freed after ~1.75 s")
+	s.queue_free()
+	await process_frame
+
+
+## A boss whose scene file is missing: no art, so the greybox bust comes back.
+func _missing_scene_restores_greybox() -> void:
+	var s := await _table_with(["pit_boss"])
+	s.dealer_art.show_art("no_such_boss")
+	await process_frame
+	check(_dealer_scenes(s).is_empty(), "missing art: no dealer scene left")
+	check(s.dealer.head.visible, "missing art: greybox bust visible again")
+	check(s.dealer_art.scene == null, "missing art: scene is null")
+	s.queue_free()
+	await process_frame
+
+
+## Swapping a non-Ashmouth dealer frees the old scene (no leak).
+func _swapped_out_dealer_is_freed() -> void:
+	var s := await _table_with([])
+	var old := s.dealer_art.scene
+	s.dealer_art.show_art("pit_boss")
+	await process_frame
+	check(not is_instance_valid(old), "Smiles swapped out: old scene freed")
+	_check_only(s, "pit_boss", "after Smiles -> Pit Boss swap")
+	var old2 := s.dealer_art.scene
+	s.dealer_art.show_art("collector")
+	await process_frame
+	check(not is_instance_valid(old2), "Pit Boss swapped out: old scene freed")
+	_check_only(s, "collector", "after Pit Boss -> Collector swap")
+	s.queue_free()
+	await process_frame
+
+
+## The low-poly variant path for Smiles and every boss (mobile = true).
+func _mobile_paths() -> void:
+	for id: String in ["smiles"] + BOSSES.values():
+		var p := BonfireDealerArt.scene_path(id, true)
+		check(p.ends_with("/%s_mobile.tscn" % id) and ResourceLoader.exists(p), "mobile path for %s (%s)" % [id, p])
+		var pc := BonfireDealerArt.scene_path(id, false)
+		check(pc.ends_with("/%s.tscn" % id), "PC path for %s (%s)" % [id, pc])
+
+
+## show_art(mobile = true) really instances the _mobile scene at the spot.
+func _mobile_variant_loads() -> void:
+	var s := await _table_with([])
+	for id: String in ["smiles", "ashmouth", "shuffle"]:
+		s.dealer_art.show_art(id, true)
+		await process_frame
+		var scenes := _dealer_scenes(s)
+		check(scenes.size() == 1 and scenes[0].scene_file_path.ends_with("/%s_mobile.tscn" % id), "mobile %s loads %s" % [id, scenes.map(func(n: Node) -> String: return n.scene_file_path)])
+	s.queue_free()
+	await process_frame
+
+
+## PR #172's own id for Madame Shuffle, and the faces fallback until it lands.
+func _stopgap_id_is_shuffle() -> void:
+	check(BonfireDealerArt.art_for_rules([{"id": &"madame_shuffle_stopgap", "params": {"faces": [2, 4]}}]) == "shuffle", "madame_shuffle_stopgap -> shuffle")
+	check(BonfireDealerArt.art_for_rules([{"id": &"pit_boss", "params": {"faces": [2, 4]}}]) == "shuffle", "fallback: pit_boss faces [2,4] -> shuffle")
+	check(BonfireDealerArt.art_for_rules([{"id": &"pit_boss", "params": {"faces": [2, 3, 4, 5, 6]}}]) == "pit_boss", "real Pit Boss stays pit_boss")
+	var s := await make_table(0, _setup_with([{"id": &"madame_shuffle_stopgap", "params": {"faces": [2, 4]}}]))
+	_check_only(s, "shuffle", "boss madame_shuffle_stopgap")
+	s.queue_free()
+	await process_frame
+
+
+func _setup_with(rules: Array) -> TableSetup:
+	var st := TableSetup.sandbox(t, 5)
+	st.rules = rules
+	return st
+
+
+## PC 16:9: every dealer's top is inside the frame and above the far rail
+## top in screen space (the greybox rail used to hide the faces).
+func _heads_in_frame_over_rail() -> void:
+	root.size = Vector2i(1920, 1080)
+	var s := await _table_with([])
+	var cam := root.get_viewport().get_camera_3d()
+	for id: String in ["smiles"] + BOSSES.values():
+		s.dealer_art.show_art(id)
+		await process_frame
+		var top := -9.0
+		for mi: MeshInstance3D in s.dealer_art.scene.find_children("*", "MeshInstance3D", true, false):
+			top = maxf(top, (mi.global_transform * mi.get_aabb()).end.y)
+		var top_px := cam.unproject_position(Vector3(-0.42, top, -0.86)).y
+		check(top_px > 0.0, "%s: top inside the frame (%.0f px)" % [id, top_px])
+		# The greybox far rail hides anything lower than ~0.18 m above its
+		# top at this camera angle (QA shots: hats only), so the head band
+		# must clear that. Smallest boss (Straight Man) is ~0.195 m up.
+		check(top - CameraFraming.RAIL_TOP_Y > 0.18, "%s: head clears the far rail (%.3f m)" % [id, top - CameraFraming.RAIL_TOP_Y])
 	s.queue_free()
 	await process_frame

@@ -5,8 +5,9 @@
 ## How a boss table is spotted: the run passes the boss cheat in
 ## TableSetup.rules as {"id": ..., "params": ...} (RunTableSetup.rule_entries,
 ## Systems Dev). The cheat id says which boss sits at the table.
-## Madame Shuffle is a stopgap that reuses the Pit Boss id with faces [2, 4]
-## (resources/map/rules/madame_shuffle.tres), so her faces tell her apart.
+## Madame Shuffle: PR #172 gives her stopgap rule its own id,
+## madame_shuffle_stopgap (mapped below). Until #172 is on main her .tres still
+## reuses the Pit Boss id with faces [2, 4], so those faces tell her apart.
 ## Bosses without a dealer scene yet (floor 3) keep Smiles.
 ##
 ## The greybox Dealer3D bust is hidden while an art dealer stands here; its
@@ -18,18 +19,27 @@ extends Node
 ## Smiles stands here (art/dealer-smiles README "Placement"); every boss scene
 ## is built as a straight swap for Smiles at this anchor.
 const DEALER_SPOT := Vector3(-0.42, -0.47, -0.86)
+## Smiles' spot was set for the Hearth board, whose far rail lip is low.
+## Gameplay still uses the greybox table, whose far rail hides the dealers'
+## faces at that height (QA on #171: only hats / hands showed on PC), so the
+## dealer stands this much higher. Their tops still clear the frame top
+## (~0.25 m of headroom left). Set to 0 when the Hearth board ships.
+const GREYBOX_RAIL_LIFT := Vector3(0, 0.12, 0)
 const SMILES := "res://art/models/characters/smiles/scenes/smiles.tscn"
 const BOSS_DIR := "res://art/models/characters/bosses/%s/scenes/%s.tscn"
 ## Boss cheat id -> boss art folder.
 const BOSS_ART := {
 	&"pit_boss": "pit_boss",
 	&"madame_shuffle": "shuffle",
+	&"madame_shuffle_stopgap": "shuffle",
 	&"ashmouth": "ashmouth",
 	&"straight_man": "straight_man",
 	&"collector": "collector",
 	&"bloodletter": "bloodletter",
 }
 ## Madame Shuffle's stopgap params under the Pit Boss id.
+## TODO: remove this fallback (and its check in art_for_rules) once PR #172
+## (madame_shuffle_stopgap id) is merged; see madame_shuffle.tres metadata/stopgap.
 const SHUFFLE_FACES := [2, 4]
 ## Ashmouth's soot puff fires at the 1.2 s door slam and lives ~0.55 s, so
 ## his scene must stay alive until about 1.75 s into the taunt.
@@ -54,6 +64,7 @@ static func art_for_rules(rules: Array) -> String:
 		if not BOSS_ART.has(id):
 			continue
 		var faces: Array = (e.get("params", {}) as Dictionary).get("faces", [])
+		# Fallback until PR #172: Shuffle under the Pit Boss id. Remove after #172.
 		if id == &"pit_boss" and faces == SHUFFLE_FACES:
 			return "shuffle"
 		return BOSS_ART[id]
@@ -89,7 +100,7 @@ func show_art(id: String, mobile: bool = false) -> void:
 		return
 	scene = (load(path) as PackedScene).instantiate() as Node3D
 	scene.name = "DealerArt"
-	scene.position = DEALER_SPOT
+	scene.position = DEALER_SPOT + GREYBOX_RAIL_LIFT
 	table.add_child(scene)
 	_show_greybox(false)
 	var found := scene.find_children("*", "AnimationPlayer", true, false)

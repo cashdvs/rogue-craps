@@ -13,7 +13,8 @@ A 3D, top-down dice roguelite set in an underworld casino, by **Tiny Anvil Games
   the points or throw the rest again. Nothing lights = bust (you lose the hand's pot and Soul).
   Clear a table by banking every required **bounty** (Two Pairs, Run of 4, ...) within its hands.
 - **The run:** 3 floors, each a branching Slay the Spire-style map of Table, Elite, Event, Shop
-  and Rest nodes, with a **boss** at the top who cheats (one rule-bending twist).
+  and Rest nodes, with a **boss** at the top who cheats (one rule-bending twist). The boss
+  takes the dealer's place behind the table; other tables are dealt by Smiles.
 - **Build:** tables pay **Embers**. Spend them in the **Shop** on special dice for your
   **dice bag**, **face mods** carved onto single faces, and Infernal Seals that level up combos.
   **Soul** is your health; at 0 the run is over.

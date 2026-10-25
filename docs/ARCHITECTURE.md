@@ -173,6 +173,8 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
    handler, use its `id` with your own `display_name` / `description`. A new behavior is a new
    `TableRule` subclass in `scripts/core/rules/` (Godot Dev). Unknown ids show as labels only.
 4. Test: `tests/test_map_run.gd` (the run picks it) and `tests/test_bonfire_rules.gd` (the rule).
+5. Dealer art (optional): add `art/models/characters/bosses/<folder>/scenes/<folder>.tscn` (+ `_mobile.tscn`)
+   and map the cheat `id` to `<folder>` in `BonfireDealerArt.BOSS_ART`. Without it the table keeps Smiles.
 
 
 <!-- SECTION: Godot Dev — table & scoring (owner text; replace freely) -->
@@ -222,6 +224,15 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - `scripts/bonfire/bonfire_onboarding.gd` (`BonfireOnboarding`, `table.onboarding`): when the Table 1 tutorial runs, which hint to ask for at each table moment, and the seeded tutorial throws. The hint panel itself is `bonfire_tutorial.gd`.
   - `GameSettings`: `hints_seen` (saved: how often each hint has shown) and `throw_debug` (this session only). `-- --throw-debug` on the command line, or F3 in debug builds, shows the throw overlay. Display apply: `apply(display)` always sets volumes. It only touches the window (mode, VSync) at boot (`_ready` → `apply()`) or when `set_option` changes Fullscreen or VSync (`needs_display_apply`). `window_mode_to_set` leaves a minimized window alone and skips a mode that is already set. Saving hints or tutorial flags never touches the window. Tests record the calls through `display_stub` (`tests/test_window_mode.gd`).
   - Captures: `tools/capture_readability.gd` and `tools/capture_onboarding.gd`.
+
+- **Dealer art (#171):** `scripts/bonfire/bonfire_dealer_art.gd` (`BonfireDealerArt`, `table.dealer_art`) puts ONE dealer scene at Smiles' spot `(-0.42, -0.47, -0.86)`:
+  - The dealer stands `GREYBOX_RAIL_LIFT` (0.12 m) above `DEALER_SPOT` so faces clear the greybox far rail; set it to 0 when the Hearth board ships.
+  - Normal and Elite tables show Smiles. A boss table swaps in that boss's scene (`BOSS_ART`: cheat id → `art/models/characters/bosses/<folder>/`) instead of Smiles, never beside him. The Compatibility / mobile renderer loads `*_mobile.tscn`.
+  - Boss is read from the cheat id in `TableSetup.rules`. Madame Shuffle: `madame_shuffle_stopgap` (PR #172); until #172 is on main, the fallback `pit_boss` + `faces [2, 4]` also means Shuffle (TODO: remove after #172).
+  - Floor-3 bosses with no dealer scene yet (Baron Vig, Mister Wick, Odds Bodkin) keep Smiles. A missing scene file brings back the greybox `Dealer3D` bust.
+  - The greybox bust is hidden while art stands there; its rake and head anchor (speech bubble) stay. `Table3D.taunted` plays `taunt`, then `idle`.
+  - A swapped-out dealer is freed at once, except Ashmouth mid-taunt: hidden and kept until ~1.75 s so his soot puff finishes. His `AshmouthPuffFx.reduced_motion` follows `Bonfire3D.reduced_motion` live.
+  - Test: `tests/test_boss_dealer_swap.gd`.
 
 <!-- SECTION: VFX Dev — FX (owner text; replace freely) -->
 ## FX and juice (owner: VFX Dev)
