@@ -192,6 +192,7 @@ func _ready() -> void:
 	# for throw, impact, hot_hand, no_score, and table_cleared (one-owner rule).
 	add_child(TableAudio.new())
 	add_child(TriggerFx.new())
+	add_child(NerveTurnFx.new())
 	add_child(LightingLayersFx.new())
 	_build_world()
 	_build_hud()

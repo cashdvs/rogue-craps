@@ -155,6 +155,15 @@ The lift / drop "lit" look is not DieGlow: it's `table._set_lit` (the `die_lit` 
 violet or Soul cyan. Tests: `tests/test_fx_no_fire_on_dice.gd` (shapes, colours, peak spark/trail
 height ≤ die top).
 
+## Nerve "die turns" accent (VFX)
+`scripts/fx/nerve_turn_fx.gd` (NerveTurnFx, one `add_child` in table_3d.gd) listens to
+`table.events.die_nudged` and adds a quick warm white-gold (#FFE6A8, 1.5x peak) flick in the nudge
+direction, one thin bevel sweep (procedural 64x8 `band` texture, Ember gold #FFE0A0 at 1.0 peak so it never clips on ivory, ~1.3x width) that slides along the camera-side top edge, kept off the pips (min depth >= `PIP_REACH`), and a short glint of motes **beside** the die (never over the face centre,
+never rising), reusing the glint_streak / spark_dot_soft art. The face rotation is
+TableDie.set_face's own tween. Under 0.3 s. Reduced motion / Instant: the sweep only. Leftover pieces are cleared on re-nudge of the same die, undo, `dice_thrown` and `table_cleared` (`clear(die)`); `hold` + `advance(dt)` step tweens for captures. Sound goes
+through TableAudio (`nerve_nudge`, falling back to `chip_place`). Strip:
+`tools/capture_nerve_turn.gd`. Tests: `tests/test_nerve_turn_fx.gd`.
+
 ## Lighting layers 4-5 (`lighting_layers_fx.gd`)
 VFX half of `lighting_layers_spec.md` (lights and Environment, layers 1-3, are Godot Dev's). Hooked by one line in `Table3D._ready()`: `add_child(LightingLayersFx.new())`.
 - `ContactShadows`: one unshaded black quad per die at y 0.002, following the die's XZ (+0.01 toward -x/+z), never its rotation. Diameter 1.6 x edge; alpha 0.55 Forward+ / 0.65 Compat-Mobile at rest, x (1 - h/0.25); scale x (1 + 0.6 h/0.25); hidden above 0.25 m, while held (Phase.HELD) and for `pot_dice`. Only reads the die's position: the die material is never touched. It hides the die's old built-in `Blob` node so the two don't stack.
