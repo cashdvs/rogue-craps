@@ -16,6 +16,7 @@ const EVENTS: Array[StringName] = [
 	&"dice_shake", &"dice_hit", &"dice_settle", &"chip_place",
 	&"chip_collect", &"win_big", &"seven_out", &"soul_burn", &"dealer_taunt",
 	&"chip_refuse", &"heartbeat", &"tension", &"rim_hit", &"dice_grab", &"dice_drop",
+	&"nerve_nudge",
 ]
 
 ## Events that also come as several takes (variants), and how many. Hits that
@@ -26,6 +27,7 @@ const VARIANTS: Dictionary[StringName, int] = {
 	&"dice_hit": 4,
 	&"rim_hit": 3,
 	&"chip_place": 4,
+	&"nerve_nudge": 3,
 }
 
 # Fixed seed: placeholder sounds come out identical every time.
@@ -66,6 +68,8 @@ static func make(event: StringName) -> AudioStreamWAV:
 			samples = _clack(0.06, 1800.0)
 		&"dice_drop":
 			samples = _knock(0.12, 700.0, 150.0, 0.6)
+		&"nerve_nudge":
+			samples = _dial_tick(0.09, 1046.5, 1.0)
 		_:
 			push_error("SfxSynth: unknown event %s" % event)
 			samples = PackedFloat32Array([0.0])
@@ -106,6 +110,9 @@ static func make_variant(event: StringName, n: int) -> AudioStreamWAV:
 		&"chip_place":
 			# Clay chip clack with a jittered ping ratio, so stacks sparkle.
 			samples = _chip_clack(0.08 + k * 0.004, 2600.0 * (1.0 + _jit(0.1)), _rng.randf_range(1.38, 1.56), _rng.randf_range(2.1, 2.45))
+		&"nerve_nudge":
+			# Same C6 detent; takes vary the ping by a few cents and the click.
+			samples = _dial_tick(0.08 + k * 0.01, 1046.5 * (1.0 + _jit(0.008)), 1.0 + _jit(0.15))
 		_:
 			push_error("SfxSynth: no variants for event %s" % event)
 			return make(event)
@@ -198,6 +205,28 @@ static func _chip_clack(seconds: float, ping_hz: float, ratio: float, ratio2: fl
 		var ping := (sin(TAU * ping_hz * t) + 0.6 * sin(TAU * ping_hz * ratio * t) + 0.25 * sin(TAU * ping_hz * ratio2 * t)) * exp(-t * 55.0)
 		var tock := sin(TAU * 420.0 * t) * exp(-t * 120.0) * 0.3
 		buf[i] = noise * 0.7 + ping * 0.35 + tock
+	return buf
+
+
+## A brass dial clicking one detent (Nerve nudge / undo): a tiny damped
+## click, a soft brass ping (C6 + inharmonic 2.76x partial) and a low wooden
+## tick under it. No noise, quick decay, so it can repeat without fatigue.
+static func _dial_tick(seconds: float, ping_hz: float, click: float) -> PackedFloat32Array:
+	var buf := _buffer(seconds)
+	for i in buf.size():
+		var t := float(i) / MIX_RATE
+		var clk := sin(TAU * 3200.0 * t) * exp(-t * 900.0) * click
+		var ping := (sin(TAU * ping_hz * t) + 0.3 * sin(TAU * ping_hz * 2.76 * t) * exp(-t * 60.0)) * exp(-t * 45.0)
+		var tock := sin(TAU * 260.0 * t) * exp(-t * 110.0)
+		buf[i] = (clk * 0.5 + ping * 0.35 + tock * 0.45) * minf(t * MIX_RATE / 8.0, 1.0)
+	return _fade_out(buf, 0.015)
+
+
+## Linear fade over the last `seconds` (no click when a short tick ends).
+static func _fade_out(buf: PackedFloat32Array, seconds: float) -> PackedFloat32Array:
+	var n := mini(int(seconds * MIX_RATE), buf.size())
+	for j in n:
+		buf[buf.size() - 1 - j] *= float(j) / n
 	return buf
 
 

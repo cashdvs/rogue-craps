@@ -1,0 +1,128 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://art/models/props/soul_reliquary/scripts/soul_reliquary.gd" id="1_8oqs8"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_plinth.res" id="2_pxsa6"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_plate.res" id="3_f6trv"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_frame.res" id="4_j5ed6"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_crack.res" id="5_v36m1"]
+[ext_resource type="FontFile" path="res://fonts/BarlowCondensed-Bold.ttf" id="6_yvko4"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_plate_stacked.res" id="7_gw2aw"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_frame_stacked.res" id="8_nl0dm"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_crack_stacked.res" id="9_dhwup"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_ring.res" id="10_rh54y"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_bars.res" id="11_rc013"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_vessel.res" id="12_mbicf"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_dome.res" id="13_d6nb8"]
+[ext_resource type="ArrayMesh" path="res://art/models/props/soul_reliquary/meshes/reliquary_cap.res" id="14_atk4q"]
+
+[node name="SoulReliquary" type="Node3D" unique_id=1278714386]
+script = ExtResource("1_8oqs8")
+
+[node name="Rig" type="Node3D" parent="." unique_id=1828942282]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
+
+[node name="Plinth" type="MeshInstance3D" parent="Rig" unique_id=2141049412]
+mesh = ExtResource("2_pxsa6")
+
+[node name="Plate" type="MeshInstance3D" parent="Rig" unique_id=287629796]
+layers = 512
+mesh = ExtResource("3_f6trv")
+
+[node name="Frame" type="MeshInstance3D" parent="Rig" unique_id=1505547721]
+mesh = ExtResource("4_j5ed6")
+
+[node name="Crack" type="MeshInstance3D" parent="Rig" unique_id=759772573]
+visible = false
+mesh = ExtResource("5_v36m1")
+
+[node name="Digits" type="Label3D" parent="Rig" unique_id=124628313]
+transform = Transform3D(1, 0, 0, 0, 0.81117636, 0.5848016, 0, -0.5848016, 0.81117636, 0, 0.022201762, 0.06447341)
+double_sided = false
+texture_filter = 5
+modulate = Color(0.94509804, 0.89411765, 0.76862746, 1)
+text = "35/35"
+font = ExtResource("6_yvko4")
+font_size = 128
+outline_size = 0
+
+[node name="Stacked" type="Node3D" parent="Rig" unique_id=753027614]
+visible = false
+
+[node name="Plate" type="MeshInstance3D" parent="Rig/Stacked" unique_id=2147038849]
+layers = 512
+mesh = ExtResource("7_gw2aw")
+
+[node name="Frame" type="MeshInstance3D" parent="Rig/Stacked" unique_id=100829585]
+mesh = ExtResource("8_nl0dm")
+
+[node name="Crack" type="MeshInstance3D" parent="Rig/Stacked" unique_id=2010474465]
+visible = false
+mesh = ExtResource("9_dhwup")
+
+[node name="DigitsCur" type="Label3D" parent="Rig/Stacked" unique_id=706746075]
+transform = Transform3D(1, 0, 0, 0, 0.6691306, 0.7431448, 0, -0.7431448, 0.6691306, 0.013, 0.06512832, 0.077927746)
+double_sided = false
+texture_filter = 5
+modulate = Color(0.94509804, 0.89411765, 0.76862746, 1)
+text = "18"
+font = ExtResource("6_yvko4")
+font_size = 128
+outline_size = 0
+
+[node name="DigitsMax" type="Label3D" parent="Rig/Stacked" unique_id=1756201053]
+transform = Transform3D(1, 0, 0, 0, 0.6691306, 0.7431448, 0, -0.7431448, 0.6691306, 0.013, 0.024980474, 0.12251644)
+double_sided = false
+texture_filter = 5
+modulate = Color(0.94509804, 0.89411765, 0.76862746, 1)
+text = "35"
+font = ExtResource("6_yvko4")
+font_size = 128
+outline_size = 0
+
+[node name="PlateCenter" type="Marker3D" parent="Rig/Stacked" unique_id=711017861]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.013, 0.045221675, 0.10003631)
+
+[node name="Cage" type="Node3D" parent="Rig" unique_id=952364337]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.051, 0)
+
+[node name="RingBottom" type="MeshInstance3D" parent="Rig/Cage" unique_id=581115720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, 0)
+mesh = ExtResource("10_rh54y")
+
+[node name="Bars" type="MeshInstance3D" parent="Rig/Cage" unique_id=1273363618]
+mesh = ExtResource("11_rc013")
+
+[node name="Vessel" type="MeshInstance3D" parent="Rig/Cage" unique_id=1856110827]
+mesh = ExtResource("12_mbicf")
+
+[node name="Top" type="Node3D" parent="Rig/Cage" unique_id=953836932]
+
+[node name="RingTop" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=1704592114]
+mesh = ExtResource("10_rh54y")
+
+[node name="Dome" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=1172325779]
+mesh = ExtResource("13_d6nb8")
+
+[node name="Cap" type="MeshInstance3D" parent="Rig/Cage/Top" unique_id=2085375508]
+mesh = ExtResource("14_atk4q")
+
+[node name="DeltaAnchor" type="Marker3D" parent="Rig/Cage/Top" unique_id=1628380045]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0)
+
+[node name="LiquidTop" type="Marker3D" parent="Rig/Cage" unique_id=907337261]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.034)
+
+[node name="TooltipAnchor" type="Marker3D" parent="Rig" unique_id=481570841]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.049, 0.079)
+
+[node name="PlateCenter" type="Marker3D" parent="Rig" unique_id=44476473]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.022201762, 0.06447341)
+
+[node name="BrassFill" type="OmniLight3D" parent="." unique_id=1468662543]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.255, 0.105000004)
+light_color = Color(1, 0.6901961, 0.4392157, 1)
+light_energy = 0.6
+light_specular = 0.2
+light_cull_mask = 1048063
+omni_range = 0.3
+omni_attenuation = 2.0

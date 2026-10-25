@@ -37,7 +37,20 @@ const EYE_L := Vector3(-0.0166, 0.0616, 0.0181)   # build_hearth.py eye_pos(-1)
 const EYE_SIZE := Vector2(0.0163, 0.0096)          # eye radii x 1.41 = 2x area (Art Director, Oct 18)
 const CANDLE_X := 1.135
 const CANDLE_Z: Array[float] = [-0.42, -0.24, 0.24, 0.42]
+# AD Oct 23 (Soul Reliquary v2): candles mean hands only, so the two left-rail candles beside the reliquary
+# (Candle3 at z -0.24, Candle5 at z +0.24) are not built; the left rail there belongs to the Soul meter.
+const RAIL_CANDLES_CUT: Array[int] = [3, 5]
 const CANDLE_Y := 0.105
+# Soul Reliquary (art/models/props/soul_reliquary). The near rail left of the candle row is under the Throw/Bank
+# buttons on PC + landscape phone, so it sits on the LEFT rail between the rail candles at z -0.24 / 0.24 (where the
+# player's eye already goes for the flat bar). Portrait: the bottom rail is full (candle row, cauldron, Nerve token)
+# and its ends are off-screen. AD Oct 23 (v2): never on the felt; it sits on the screen-left rail (world near rail)
+# lip, pulled in along z until fully framed, at 0.65x so its plinth clears the throw zone (z <= 0.50); the
+# marker's plate_layout meta swaps in the stacked cur-over-max placard so every digit reads >= 24 px (AD v3).
+const SOUL_RELIQUARY_AT := Vector3(-1.07, 0.105, 0.14)          # Anchors/SoulReliquary (PC)
+const SOUL_RELIQUARY_PHONE_AT := Vector3(-1.07, 0.105, 0.195)    # Anchors/SoulReliquaryPhone (landscape phone)
+const SOUL_RELIQUARY_PORTRAIT_AT := Vector3(-0.12, 0.104, 0.555)  # Anchors/SoulReliquaryPortrait, yaw 90, 0.65x, stacked plate (AD v3; x -0.12 clears Throw)
+const SOUL_RELIQUARY_PORTRAIT_SCALE := 0.65   # plinth r 0.054*1.5*0.65 = 0.053 -> footprint z 0.502..0.608 (dice reach 0.50)
 const FACE_OUT := 0.04                        # demon faces pushed out along the corner diagonal
 ## Set dressing (detail pass, Oct 19): build_dressing.py pivots (board space) and the ambient spots.
 const PROP_INK := 0.0025                      # prop outline = ~60 % of the dice ink (0.0042)
@@ -489,6 +502,18 @@ func _board(mobile: bool) -> void:
 		cap.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-45.0 * sx)), Vector3(sx, 0, -1).normalized() * FACE_OUT)
 	var tray := _inst(D + "cauldron%s.tscn" % lod, "Tray", an.get_node("ChipTray"))
 	tray.set("fill", 0.5)
+	# Soul Reliquary markers (Godot Dev: instance soul_reliquary(_mobile).tscn under the one for the layout)
+	for m in [["SoulReliquary", SOUL_RELIQUARY_AT, 0.0], ["SoulReliquaryPhone", SOUL_RELIQUARY_PHONE_AT, 0.0],
+			["SoulReliquaryPortrait", SOUL_RELIQUARY_PORTRAIT_AT, 90.0]]:
+		var mk := Marker3D.new()
+		mk.name = m[0]
+		mk.position = m[1]
+		mk.rotation_degrees.y = m[2]
+		if m[0] == "SoulReliquaryPortrait":
+			mk.scale = Vector3.ONE * SOUL_RELIQUARY_PORTRAIT_SCALE
+			mk.set_meta("plate_layout", "stacked")   # portrait-only stacked cur / max placard (AD v3)
+		an.add_child(mk)
+		an.move_child(mk, an.get_node("Zones").get_index())
 	# Hearth subtree: candles, the FX hub and its clips.
 	var hearth := _scripted("Hearth", "hearth_fx")
 	board.add_child(hearth)
@@ -505,6 +530,8 @@ func _board(mobile: bool) -> void:
 	# Lighting order: alternate left / right from the far end to the player: 1 = L far ... 8 = R near.
 	for i in 8:
 		var left := i % 2 == 0
+		if RAIL_CANDLES_CUT.has(i + 1):
+			continue
 		var z: float = CANDLE_Z[i / 2]
 		var c := _inst(D + "candle%s.tscn" % lod, "Candle%d" % (i + 1), rows["RailLeft" if left else "RailRight"])
 		c.position = Vector3(-CANDLE_X if left else CANDLE_X, CANDLE_Y, z)

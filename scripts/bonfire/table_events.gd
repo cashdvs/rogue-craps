@@ -57,6 +57,11 @@ signal boss_cheat(cheat_id: StringName, die_ids: Array)
 ## slot `from_face` to `to_face` (1-based, TableDie slots); dir = +1 up or
 ## -1 down. An undo emits it again with the faces swapped and dir reversed.
 signal die_nudged(die_id: int, from_face: int, to_face: int, dir: int)
+## Nerve: a pending nudge was kept for good (NerveState.commit() spent it on
+## a pot, rethrow or bank, including a rescue-save). Faces are 1-based face
+## slots, like die_nudged. Fires once per spent nudge; never on undo, and
+## never when no nudge was pending.
+signal nerve_spent(die_id: int, from_face: int, to_face: int)
 ## A face mod scored during the count-up, as the count reaches its die (its
 ## first pip). row_id: the mod id (its row in the mods table). tier: the
 ## pot's score tier (0-4, JuicePlan.tier). intensity: 0..1 (tier / 4).

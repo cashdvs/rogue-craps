@@ -29,7 +29,8 @@ colliders, no light nodes (everything glows with emissive; the table's Lamp3D li
 | `Anchors/Corner_NL/Cap`, `Corner_NR/Cap` | Board A brass corner caps (unchanged) |
 | `Anchors/ChipTray/Tray` | §8 optional chip tray slot, switched on: `cauldron.tscn` (iron pot on 3 legs outside the right rail, ember mound with brass coin flecks) |
 | `Anchors/BurnLine`, `Anchors/Zones` | empty (as Board A) |
-| `Hearth` | FX hub (`scripts/hearth_fx.gd`), `Candles/RailLeft/Candle1,3,5,7`, `Candles/RailRight/Candle2,4,6,8`, `AnimationPlayer`, `SeamPlayer` |
+| `Anchors/SoulReliquary`, `SoulReliquaryPhone`, `SoulReliquaryPortrait` | Soul Reliquary markers (PC/landscape left rail, row plate). Portrait: rail lip (-0.12, 0.104, 0.555), yaw 90, 0.65x, `metadata/plate_layout = "stacked"` (AD Oct 23 v3) |
+| `Hearth` | FX hub (`scripts/hearth_fx.gd`), `Candles/RailLeft/Candle1,7` (3 and 5 cut for the Soul Reliquary, AD Oct 23), `Candles/RailRight/Candle2,4,6,8`, `AnimationPlayer`, `SeamPlayer` |
 
 Candles stand on the side rails at x = +-1.135, z = -0.42 / -0.24 / 0.24 / 0.42 (top < 0.19 m), lit in
 the order L far, R far, L, R ... R near. All 8 share `candle.tscn` (one mesh, `candle_wax.tres` +
@@ -44,6 +45,8 @@ fx.eyes = 0..3         # both demon faces: off / ember / hot / white-core (Hot H
 fx.eyes_left = -1..3   # optional per-face override (-1 = follow eyes); eyes_right likewise
 fx.fill = 0.0..1.0     # ember cauldron (bank)
 fx.lit_count = 0..8    # progress candles (12.5 % of the table goal each); reaching 8 plays "flare"
+# with candles cut (6 left) step s lights ceil(s*n/8) present candles in lit order; when s*n/8 is not whole
+# the newest lit candle burns low (heat x KINDLE 0.45), so all 9 steps read differently (hearth_fx.candles_lit_for)
 fx.seam = 0.0..1.0     # idle glow of the ember seam (default 0.6)
 fx.pulse_seam()        # one 0.15 s seam pulse (per lit die); SeamPlayer "seam_pulse", overlaps other clips
 fx.bust()              # AnimationPlayer "snuff": everything out, charcoal smoke wisps, relights to the previous state
