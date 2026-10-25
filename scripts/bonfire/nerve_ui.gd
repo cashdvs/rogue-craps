@@ -55,7 +55,7 @@ func _build() -> void:
 	pip.text = NerveText.get_text("nerve_button")
 	pip.tooltip_text = NerveText.get_text("nerve_tooltip")
 	pip.custom_minimum_size = PIP_SIZE
-	pip.pressed.connect(func() -> void: nerve.arm())
+	pip.pressed.connect(func() -> void: nerve.token_pressed())
 	pip.size_flags_horizontal = Control.SIZE_SHRINK_END
 	box.add_child(pip)
 	pip_state = Label.new()
@@ -78,7 +78,7 @@ func _build() -> void:
 	col.add_child(row)
 	rescue_nerve = Button.new()
 	rescue_nerve.text = NerveText.get_text("nerve_button")
-	rescue_nerve.pressed.connect(func() -> void: nerve.arm())
+	rescue_nerve.pressed.connect(func() -> void: nerve.token_pressed())
 	row.add_child(rescue_nerve)
 	rescue_bust = Button.new()
 	rescue_bust.text = "Bust"
@@ -112,7 +112,7 @@ func refresh() -> void:
 	var st := nerve.state
 	var left := st.uses_left()
 	pip.text = "%s  %d" % [NerveText.get_text("nerve_button"), left]
-	pip.disabled = left <= 0 or st.nudged_die() >= 0
+	pip.disabled = not nerve.can_undo() and (left <= 0 or st.nudged_die() >= 0)  # enabled while it can undo
 	match st.ui_state():
 		NerveState.UiState.PICKING:
 			pip_state.text = NerveText.get_text("nerve_pick")
@@ -126,7 +126,7 @@ func refresh() -> void:
 	# The rescue prompt has its own Nerve button: no pip beside it.
 	pip_box.visible = not rescue_panel.visible
 	_place_panels()
-	rescue_nerve.disabled = left <= 0 or st.nudged_die() >= 0
+	rescue_nerve.disabled = not nerve.can_undo() and (left <= 0 or st.nudged_die() >= 0)  # enabled while it can undo
 	_place_arrows()
 
 

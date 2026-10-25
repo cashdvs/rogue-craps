@@ -258,6 +258,26 @@ func undo(i: int) -> bool:
 	return true
 
 
+## True while a nudge can still be undone (nothing potted, no rethrow).
+func can_undo() -> bool:
+	return can_show() and not pot_closed and state.nudged_die() >= 0
+
+
+## Undoes the pending nudge, whichever die it is on. True if it did.
+func undo_pending() -> bool:
+	if not can_undo():
+		return false
+	return undo(index_of(state.nudged_die()))
+
+
+## The Nerve token (the pip, or the rescue prompt's Nerve button): undo a
+## pending nudge, otherwise arm Nerve for a pick.
+func token_pressed() -> bool:
+	if can_undo():
+		return undo_pending()
+	return arm()
+
+
 ## A click on settled die [param i]. Returns true if Nerve used it (then
 ## the table doesn't pot it): the nudged die (undo), or a die picked after
 ## the Nerve button or in the rescue pause (shows the arrows).
@@ -265,8 +285,11 @@ func tap(i: int) -> bool:
 	if not can_show():
 		return false
 	var h := hid(i)
-	if h >= 0 and state.nudged_die() == h and not pot_closed:
-		return undo(i)
+	# Tapping the nudged die pots it with its new face (nerve_v1.md, Oct 24
+	# ruling): return false so the table's normal pot runs. Undo lives on
+	# the Nerve token (token_pressed) and Backspace / Z.
+	if h >= 0 and state.nudged_die() == h:
+		return false
 	if not armed and not run.bust_pending:
 		return false
 	if pot_closed or run.potted.has(i):
@@ -308,6 +331,9 @@ func handle_input(event: InputEvent) -> bool:
 			table.pick_die(was)
 		return true
 	var key := event as InputEventKey
+	# Backspace / Z on PC: the same undo as the Nerve token.
+	if key != null and key.pressed and not key.echo and (key.keycode == KEY_BACKSPACE or key.keycode == KEY_Z):
+		return undo_pending()
 	if key != null and key.pressed and not key.echo and arrows_die >= 0:
 		if key.keycode == KEY_UP or key.keycode == KEY_DOWN:
 			nudge(arrows_die, NerveState.UP if key.keycode == KEY_UP else NerveState.DOWN)
@@ -349,6 +375,9 @@ func _close_ui() -> void:
 ## Re-runs copies and the lit check for NerveState's faces, turns the dice
 ## on the felt and refreshes their lit / cold look.
 func _apply() -> void:
+	# Any nudge or undo uses up an armed press: a drag nudge after pressing
+	# Nerve must not leave later taps going to state.pick.
+	armed = false
 	var th := throw_for(state.slots)
 	run.relight(th)
 	arrows_die = -1
