@@ -187,6 +187,8 @@ func bank() -> Dictionary:
 	nerve.close_throw()
 	var r := run.bank()
 	phase = Phase.RESOLVE
+	# Not picking any more: tell listeners nothing is potted or joinable.
+	emit_selection()
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
 	_hold_display(hold)
 	if bhud.countup.is_playing():
@@ -253,6 +255,7 @@ func pick_die(i: int) -> bool:
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	nerve.on_potted()
+	emit_selection()
 	help_corner.on_pot()  # G1: the controls text fades 30 s after the first pot
 	_layout_throw()
 	if not run.potted.is_empty():
