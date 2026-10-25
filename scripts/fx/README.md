@@ -169,6 +169,16 @@ VFX half of `lighting_layers_spec.md` (lights and Environment, layers 1-3, are G
 - `ContactShadows`: one unshaded black quad per die at y 0.002, following the die's XZ (+0.01 toward -x/+z), never its rotation. Diameter 1.6 x edge; alpha 0.55 Forward+ / 0.65 Compat-Mobile at rest, x (1 - h/0.25); scale x (1 + 0.6 h/0.25); hidden above 0.25 m, while held (Phase.HELD) and for `pot_dice`. Only reads the die's position: the die material is never touched. It hides the die's old built-in `Blob` node so the two don't stack.
 - `LampDust`: GPUParticles3D 48 (Forward+) / CPUParticles3D 16 (else), cylinder r 0.45 m y 0.25-1.20 m, 2-4 mm (3-4 mobile) additive #FFE2B0 at 0.18 / 0.15, cone-masked to 38 deg, never drawn below y 0.08 (shader floor; the drift only rises). Off (not emitting, hidden) under reduced motion, polled from `table.is_reduced_motion()`.
 
+## Nerve "spent" cue (VFX)
+`scripts/fx/nerve_spent_fx.gd` (NerveSpentFx, one `add_child` in table_3d.gd) listens to
+`table.events.nerve_spent(die_id, from_face, to_face)` (Godot Dev's #143, now on main, so the cue works in game;
+still has_signal-guarded). Once per spend it lays one thin warm Ember gold (#FFC870, 1.0 peak, 0.16 x edge) glint band
+flat on the die's camera-side top bevel (off the pips), fading in 0.26 s (≤ 0.3 s); it stretches 1.15x along
+the edge except under reduced motion / Instant, where it only fades. Leftover nudge FX on that die
+(sibling `NerveTurnFx.clear(die)`, has_method-guarded) are cleared first; the glint itself is cleared on `dice_thrown` / `rethrow` / `close_throw` (whichever exist), undo (`die_nudged` on that die) and `table_cleared`. Sound: `TableAudio.nerve_spent()`
+if present, else `cue(&"nerve_spent")`, else nothing. Strip: `tools/capture_nerve_spent.gd`
+(Forward+/Vulkan only). Tests: `tests/test_nerve_spent_fx.gd`.
+
 ## SelectionDimFx
 
 `selection_dim_fx.gd` (child of the 3D table). Once dice are potted for a
