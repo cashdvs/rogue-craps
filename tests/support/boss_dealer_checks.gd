@@ -12,6 +12,11 @@ const OUTLINE := "res://shaders/3d/outline.gdshader"
 const INK := Color("#0E1414")
 const RIM_BONE := Color("#E8DCC0")
 const RIM_MAX := 0.5
+## Dealer ambient conditions (AD, Oct 24, 2026; documented in boss_toon.gd): the toon_noir ambient term
+## mix(albedo, shadow, 0.7) * ambient_color * ambient_energy * 2 (linear) must (a) stay <= the lit value (albedo)
+## per channel and (b) keep the whole EMISSION output under the glow threshold (table_3d glow_hdr_threshold).
+const AMBIENT_SHADE_MIX := 0.7
+const GLOW_THRESHOLD := 1.0
 const DEALER_POS := Vector3(-0.42, -0.47, -0.86)
 const RAIL_TOP := 0.14
 const GAME_CAMS: Dictionary = {"pc": [Vector2i(1920, 1080), 2.40, Vector3(0, 0, 0.26)], "phone": [Vector2i(844, 390), 2.04, Vector3(0, 0, 0.34)]}
@@ -91,12 +96,34 @@ func check_material(m: Material, label: String, inked: bool) -> void:
 	if rs > 0.0:  # dealer rim (boss_toon.gd RIM_BONE): bone-tinted and low, so it lifts the silhouette without glowing
 		ok((param(sm, "rim_color") as Color).is_equal_approx(RIM_BONE) and rs <= RIM_MAX,
 			"%s: rim is bone #E8DCC0 at low strength (%.2f <= %.2f)" % [label, rs, RIM_MAX])
+	var amb := ambient_term(sm)
+	var lit := (param(sm, "albedo") as Color).srgb_to_linear()
+	var worst := 0.0
+	for ch in 3:
+		worst = maxf(worst, amb[ch] / maxf(lit[ch], 0.002))
+	ok(worst <= 1.0, "%s: ambient never lifts a surface above its lit value (ambient/lit %.2f <= 1)" % [label, worst])
+	var em := (param(sm, "emission_color") as Color).srgb_to_linear()
+	var ee := float(param(sm, "emission_energy"))
+	var peak := 0.0
+	for ch in 3:
+		peak = maxf(peak, amb[ch] + em[ch] * ee)
+	ok(peak < GLOW_THRESHOLD, "%s: ambient emission under the glow threshold (peak %.3f < %.1f)" % [label, peak, GLOW_THRESHOLD])
 	var nx := sm.next_pass as ShaderMaterial
 	if inked:
 		ok(nx != null and nx.shader and nx.shader.resource_path == OUTLINE and (nx.get_shader_parameter("color") as Color).is_equal_approx(INK),
 			"%s: ink hull (outline.gdshader, #0E1414)" % label)
 	else:
 		ok(nx == null, "%s: no ink hull (small detail)" % label)
+
+
+## toon_noir fragment() ambient term (linear rgb), as added to EMISSION.
+static func ambient_term(sm: ShaderMaterial) -> Vector3:
+	var a := (param(sm, "albedo") as Color).srgb_to_linear()
+	var sh := (param(sm, "shadow_color") as Color).srgb_to_linear()
+	var ac := (param(sm, "ambient_color") as Color).srgb_to_linear()
+	var k := float(param(sm, "ambient_energy")) * 2.0
+	var shade := Vector3(a.r, a.g, a.b).lerp(Vector3(sh.r, sh.g, sh.b), AMBIENT_SHADE_MIX)
+	return shade * Vector3(ac.r, ac.g, ac.b) * k
 
 
 func game_cam(kind: String) -> Camera3D:
@@ -249,6 +276,8 @@ func prop_clip_frames(s: Node3D, skel: Skeleton3D, ap: AnimationPlayer, clips: A
 				var g := _geo(s, skel)
 				var prop: PackedVector3Array = g[0]
 				var tris: PackedVector3Array = g[1]
+				if prop.is_empty():  # boss with no hand prop (Ashmouth)
+					break
 				var box := AABB(prop[0], Vector3.ZERO)
 				for q in prop:
 					box = box.expand(q)
