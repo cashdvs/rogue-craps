@@ -164,7 +164,8 @@ func new_run(seed_value: int = -1) -> void:
 	_cleared_emitted = false
 	events.table_started.emit()
 	bhud.end_panel.visible = false
-	soul_meter.setup(run.soul, run.max_soul)
+	soul_meter.setup(run.soul, run.max_soul)  # hidden; kept as a data mirror
+	reliquary.sync(run, false)
 	_soul_shown = run.soul
 	_reset_hand_dice()
 	pause_menu.set_forfeit_enabled(true)
@@ -252,6 +253,8 @@ func _refresh_hud() -> void:
 	_update_portrait_hud()
 	if bhud != null:
 		bhud.leave_button.visible = can_leave_now()
+	if reliquary != null and run != null:
+		reliquary.sync(run)
 	if bhud != null and run != null:
 		bhud.rethrow_prompt = rethrow_prompt() if phase == Phase.BET else ""
 		bhud.refresh(run, phase == Phase.BET)

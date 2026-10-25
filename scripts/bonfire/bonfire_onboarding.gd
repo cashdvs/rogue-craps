@@ -366,7 +366,7 @@ func anchor_rect(anchor: StringName, ctx: Dictionary) -> Rect2:
 		&"embers":
 			return bhud.points_label.get_global_rect()
 		&"soul":
-			return t.soul_meter.get_global_rect()
+			return t.reliquary_rect()
 		&"rules":
 			return bhud.rules_panel.get_global_rect()
 	return Rect2()
