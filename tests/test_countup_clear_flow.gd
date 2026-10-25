@@ -63,6 +63,8 @@ func _run() -> void:
 	await bank_flow()
 	await forfeit_flow()
 	await new_run_flow()
+	await hand_end_flow()
+	await still_counting_flow()
 	print("test_countup_clear_flow: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -119,5 +121,47 @@ func new_run_flow() -> void:
 	await process_frame
 	check(not shown(s), "new run clears the count-up at once")
 	check(s.bhud.throw_label.text.begins_with("Grab"), "new run: only the deal prompt (%s)" % s.bhud.throw_label.text)
+	s.queue_free()
+	await process_frame
+
+
+## Hand end: after a bank, the short pause before the next hand (RESET)
+## shows no line under the Pot; _after_hand() clears it.
+func hand_end_flow() -> void:
+	var s := await make_table()
+	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	var during_reset: Array[String] = []
+	var watch := func() -> void:
+		if s.phase == Table3D.Phase.RESET:
+			during_reset.append(s.bhud.throw_label.text + s.bhud.notes_label.text + s.bhud.risk_label.text)
+	process_frame.connect(watch)
+	await s.bank()
+	process_frame.disconnect(watch)
+	check(not during_reset.is_empty(), "hand end: the RESET pause was seen")
+	check(during_reset.all(func(t: String) -> bool: return t == ""), "hand end: no line under the Pot between hands (saw \"%s\")" % during_reset.filter(func(t: String) -> bool: return t != "").front())
+	s.queue_free()
+	await process_frame
+
+
+## The `thrown` hook (_clear_count_up_when_done) while the rethrow's
+## count-up is still running: the count-up keeps going, and its row and
+## banner fade only once it finishes (the `finished` one-shot).
+## Note: a real Bonfire throw fast-forwards the count-up (fast_forward_juice)
+## before it emits `thrown`, so this test emits `thrown` itself during a
+## real count-up to reach that branch.
+func still_counting_flow() -> void:
+	var s := await make_table()
+	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	check(s.throw_again(), "still counting: rethrow")
+	check(s.bhud.countup.is_playing(), "still counting: the rethrow's count-up runs")
+	s.thrown.emit(1000.0)
+	await process_frame
+	check(s.bhud.countup.is_playing() and not s.bhud.countup.fast_forwarded, "still counting: the hook doesn't cut the count-up short")
+	for k in 600:
+		if not s.bhud.countup.is_playing():
+			break
+		await process_frame
+	await create_timer(0.4).timeout
+	check(not shown(s), "still counting: row and banner fade once it finishes")
 	s.queue_free()
 	await process_frame
