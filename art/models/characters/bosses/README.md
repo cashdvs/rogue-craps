@@ -24,6 +24,13 @@ Run it with: `blender -b --factory-startup --python tools/check_prop_clip.py -- 
 
   The in-engine guard in each `tests/test_<boss>.gd` (coarse nearest-triangle, 30 mm band, all 7 clips) is capped at 160 frames per LOD.
 
+- **Each dealer .glb carries its own copy of the Smiles skeleton and the 7 clips (by design).** All 12 files (6 dealers × PC/mobile) embed the rig and idle, taunt, grudging, cheat, deal, mc_idle, mc_cheer, baked by each `build_<boss>.py` from `smiles/src/build_smiles.py`. A shared AnimationLibrary was evaluated (QA, PR #166) and not adopted: Ashmouth forks the rig (extra `firebox_door` bone, its own taunt keys), each glb's RESET track comes from its own rest pose, and swapping libraries on the editable glb instances risks silent animation regressions for ~1 MB of savings. **Any edit to Smiles' rig or clips therefore needs all six dealers rebuilt** (repo root; then run their tests):
+  ```
+  export GODOT=/home/box/tools/godot/godot BLENDER=/home/box/tools/blender/blender-4.5.14-linux-x64/blender
+  for b in pit_boss shuffle ashmouth straight_man collector bloodletter; do art/models/characters/bosses/$b/src/rebuild_$b.sh; done
+  for b in pit_boss shuffle ashmouth straight_man collector bloodletter; do $GODOT --headless --path . --script res://tests/test_$b.gd; done
+  ```
+- **`.glb.import` files are ~490 KB each (expected).** `tools/write_boss_imports.py` writes a ~4 KB file; Godot's importer rewrites it on every `--import` with every default spelled out, chiefly 256 empty `slice_N/*` entries for each of the 7 clips (~14k lines). Trimming them does not stick (the next import or editor open re-expands them) and Smiles' imports are the same size, so they are left as Godot writes them.
 - **Checker quirk:** in mc_cheer, check_prop_clip.py reports a stray "Icosphere" object at the origin (about 50 mm). It shows up for Smiles too, so it comes from the glTF import and not from the models. Ignore it, or filter it out when reading the results.
 - **TODO (polish): Straight Man felt rap.** The brief's rod rapping the felt needs a dedicated clip, or a taunt variant on the shared rig. For now he only plays the shared Smiles clips.
 - **TODO (polish, optional): Collector cloche beat.** He lifts the cloche to peek, or tips it at the player. Rule: the cloche never covers dice.
