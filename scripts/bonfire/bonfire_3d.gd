@@ -156,7 +156,6 @@ func new_run(seed_value: int = -1) -> void:
 		bhud.countup.fast_forward()
 	bhud.countup.clear(0.0)
 	bhud.display_hold = {}
-	bhud.clear_score_text()  # nothing from the last table sticks
 	bhud.pulse_cards([])
 	_throw_claims = []
 	juice.crowd_start()
