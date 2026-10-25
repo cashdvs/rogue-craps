@@ -1,6 +1,7 @@
 ## Procedural sounds for Bonfire scoring (design: bonfire_map_events_juice.md
 ## section 3): pip ticks, the mult slam, 4 score-tier stingers, Hot Hand,
-## bank, bounty stamp, bust, the Soul flask crack and 3 looping crowd stems.
+## bank, bounty stamp, bust and the Soul flask crack. The 3 looping crowd stems
+## and the shared buffer helpers live in CrowdStemSynth (the base class).
 ## Same recipe style as SfxSynth (sines, noise, decays; 22,050 Hz mono 16-bit).
 ##
 ## The one-shots go through SfxManager like every other event. The crowd
@@ -13,9 +14,7 @@
 ## no_score) are bone, felt and wood only; fire/ember texture is only on bust
 ## and in bank's embers.
 class_name BonfireSynth
-extends RefCounted
-
-const MIX_RATE: int = SfxSynth.MIX_RATE
+extends CrowdStemSynth
 
 ## One-shot events (played with SfxManager.play).
 const EVENTS: Array[StringName] = [
@@ -44,10 +43,6 @@ const TIER_STINGERS: Array[StringName] = [
 	&"stinger_ember", &"stinger_flames", &"stinger_inferno", &"stinger_pillar",
 ]
 
-## Looping crowd stems, quietest first (played by CrowdLayers).
-const LOOPS: Array[StringName] = [&"crowd_low", &"crowd_mid", &"crowd_high"]
-const LOOP_SECONDS: float = 3.0
-
 ## Pip ticks climb this scale (semitones above the tick's root note, C5):
 ## harmonic minor, a little devilish. Tick index 0 is the first die.
 const TICK_SCALE: Array[int] = [0, 2, 3, 5, 7, 8, 11, 12, 14, 15, 17, 19]
@@ -58,10 +53,8 @@ const LEVELS: Dictionary[StringName, float] = {
 	&"stinger_ember": 0.6, &"stinger_flames": 0.72, &"stinger_inferno": 0.85, &"stinger_pillar": 0.9,
 	&"hot_hand": 0.8, &"bank": 0.8, &"bounty_claimed": 0.8, &"bust": 0.85, &"soul_flask_crack": 0.75,
 	&"table_cleared": 0.9, &"no_score": 0.45,
-	&"crowd_low": 0.35, &"crowd_mid": 0.45, &"crowd_high": 0.55,
+	&"crowd_low": 0.2, &"crowd_mid": 0.45, &"crowd_high": 0.55,
 }
-
-static var _rng := RandomNumberGenerator.new()
 
 
 ## Pitch for pip tick number `index` (0, 1, 2, ...) of the current pot. Pass
@@ -75,18 +68,6 @@ static func tick_pitch(index: int) -> float:
 ## Stinger event for a score tier (0-3, see TIER_STINGERS).
 static func stinger_for_tier(tier: int) -> StringName:
 	return TIER_STINGERS[clampi(tier, 0, TIER_STINGERS.size() - 1)]
-
-
-## Volume (dB) for each crowd stem [low, mid, high] at an unbanked-pot
-## fraction (0 = empty pot, 1 = as big as it gets; game logic decides the
-## scale). Low murmurs all the time, mid joins from 0.2, the roar from 0.55.
-static func crowd_gains_db(pot_fraction: float) -> PackedFloat32Array:
-	var f := clampf(pot_fraction, 0.0, 1.0)
-	var lin: Array[float] = [0.35 + 0.65 * smoothstep(0.0, 0.3, f), smoothstep(0.2, 0.6, f), smoothstep(0.55, 1.0, f)]
-	var out := PackedFloat32Array()
-	for a in lin:
-		out.append(maxf(linear_to_db(a), -60.0))
-	return out
 
 
 static func make(event: StringName) -> AudioStreamWAV:
@@ -123,12 +104,8 @@ static func make(event: StringName) -> AudioStreamWAV:
 			s = _no_score(0.3)
 		&"soul_flask_crack":
 			s = _flask(0.85)
-		&"crowd_low":
-			s = _loop(_crowd(LOOP_SECONDS + 0.3, 14, 280.0, 800.0, -1.0))
-		&"crowd_mid":
-			s = _loop(_crowd(LOOP_SECONDS + 0.3, 20, 400.0, 1500.0, -1.0))
-		&"crowd_high":
-			s = _loop(_mix([_crowd(LOOP_SECONDS + 0.3, 24, 500.0, 1800.0, -1.0), _roar(LOOP_SECONDS + 0.3, -1.0, 0.0)], [1.0, 0.5]))
+		&"crowd_low", &"crowd_mid", &"crowd_high":
+			s = _stem(event)
 		_:
 			push_error("BonfireSynth: unknown event %s" % event)
 			s = PackedFloat32Array([0.0])
@@ -235,61 +212,6 @@ static func _chord(seconds: float, hz: Array, decay: float) -> PackedFloat32Arra
 		var env := minf(t * 60.0, 1.0) * exp(-t * 3.0 / decay * 2.0) * (0.85 + 0.15 * sin(TAU * 5.5 * t))
 		buf[i] = v * env / hz.size()
 	return _fade_tail(buf, 0.2)
-
-
-## A fire roar: rumbling low-passed noise with crackle. peak_s < 0 = steady
-## (for loops); otherwise it swells to peak_s and dies away.
-static func _roar(seconds: float, peak_s: float, crackle: float) -> PackedFloat32Array:
-	var buf := _buffer(seconds)
-	var lp := 0.0
-	var lp2 := 0.0
-	for i in buf.size():
-		var t := float(i) / MIX_RATE
-		var env := 1.0
-		if peak_s >= 0.0:
-			env = minf(t / maxf(peak_s, 0.01), 1.0) * exp(-maxf(t - peak_s, 0.0) * 2.2)
-		lp += (_rng.randf_range(-1.0, 1.0) - lp) * 0.12
-		lp2 += (lp - lp2) * 0.2
-		var pop := _rng.randf_range(-1.0, 1.0) if _rng.randf() < crackle else 0.0
-		buf[i] = (lp2 * 3.0 + pop * 0.5) * env
-	return _fade_tail(buf, 0.1) if peak_s >= 0.0 else buf
-
-
-## A crowd: `voices` band-limited noise voices (each a "person") whose
-## loudness rises and falls in syllables. Syllable rates are whole cycles per
-## LOOP_SECONDS, so the stems loop cleanly. peak_s >= 0 makes it a one-shot
-## roar that swells to peak_s; < 0 keeps it steady.
-static func _crowd(seconds: float, voices: int, lo_hz: float, hi_hz: float, peak_s: float) -> PackedFloat32Array:
-	var buf := _buffer(seconds)
-	for v in voices:
-		var fc := _rng.randf_range(lo_hz, hi_hz)
-		var a := clampf(TAU * fc * 1.4 / MIX_RATE, 0.0, 1.0)
-		var b := clampf(TAU * fc * 0.6 / MIX_RATE, 0.0, 1.0)
-		var rate := float(_rng.randi_range(6, 18)) / LOOP_SECONDS
-		var ph := _rng.randf_range(0.0, TAU)
-		var gain := _rng.randf_range(0.5, 1.0)
-		var lp := 0.0
-		var lp2 := 0.0
-		for i in buf.size():
-			var t := float(i) / MIX_RATE
-			lp += (_rng.randf_range(-1.0, 1.0) - lp) * a
-			lp2 += (lp - lp2) * b
-			var syl := pow(0.5 + 0.5 * sin(TAU * rate * t + ph), 2.0)
-			buf[i] += (lp - lp2) * syl * gain
-	# Two gentle low-passes over the whole crowd: voices, not hiss.
-	var c := clampf(TAU * hi_hz * 0.9 / MIX_RATE, 0.0, 1.0)
-	var y1 := 0.0
-	var y2 := 0.0
-	for i in buf.size():
-		y1 += (buf[i] - y1) * c
-		y2 += (y1 - y2) * c
-		buf[i] = y2
-	if peak_s >= 0.0:
-		for i in buf.size():
-			var t := float(i) / MIX_RATE
-			buf[i] *= minf(t / peak_s, 1.0) * exp(-maxf(t - peak_s, 0.0) * 2.0)
-		return _fade_tail(buf, 0.15)
-	return buf
 
 
 ## The hellish cash register: two mechanism clacks, the drawer sliding out,
@@ -439,69 +361,3 @@ static func _flask(seconds: float) -> PackedFloat32Array:
 			var f := 700.0 + 900.0 * minf(t / 0.025, 1.0)
 			buf[start + j] += sin(TAU * f * t) * exp(-t * 60.0) * 0.45
 	return _fade_tail(buf, 0.05)
-
-
-# --- Helpers ------------------------------------------------------------------
-
-static func _buffer(seconds: float) -> PackedFloat32Array:
-	var buf := PackedFloat32Array()
-	buf.resize(int(seconds * MIX_RATE))
-	return buf
-
-
-## Sums layers (each scaled by its gain) into one buffer as long as the longest.
-static func _mix(layers: Array[PackedFloat32Array], gains: Array[float]) -> PackedFloat32Array:
-	var n := 0
-	for l in layers:
-		n = maxi(n, l.size())
-	var out := PackedFloat32Array()
-	out.resize(n)
-	for k in layers.size():
-		for i in layers[k].size():
-			out[i] += layers[k][i] * gains[k]
-	return out
-
-
-## Shifts a sound later by `seconds` (pads the front with silence).
-static func _delay(buf: PackedFloat32Array, seconds: float) -> PackedFloat32Array:
-	var pad := PackedFloat32Array()
-	pad.resize(int(seconds * MIX_RATE))
-	pad.append_array(buf)
-	return pad
-
-
-## Turns LOOP_SECONDS + 0.3 s of sound into a seamless LOOP_SECONDS loop by
-## crossfading the extra tail over the start.
-static func _loop(buf: PackedFloat32Array) -> PackedFloat32Array:
-	var n := int(LOOP_SECONDS * MIX_RATE)
-	var x := mini(buf.size() - n, int(0.3 * MIX_RATE))
-	var out := buf.slice(0, n)
-	for i in x:
-		var k := float(i) / x
-		out[i] = buf[i] * k + buf[n + i] * (1.0 - k)
-	return out
-
-
-## Linear fade over the last `seconds`, so a tail always ends in silence.
-static func _fade_tail(buf: PackedFloat32Array, seconds: float) -> PackedFloat32Array:
-	var n := mini(int(seconds * MIX_RATE), buf.size())
-	for j in n:
-		buf[buf.size() - 1 - j] *= float(j) / n
-	return buf
-
-
-## Converts -1..1 floats into a 16-bit AudioStreamWAV peaking at `level`.
-static func to_wav(samples: PackedFloat32Array, level: float) -> AudioStreamWAV:
-	var peak := 0.0001
-	for s in samples:
-		peak = maxf(peak, absf(s))
-	var data := PackedByteArray()
-	data.resize(samples.size() * 2)
-	for i in samples.size():
-		data.encode_s16(i * 2, int(clampf(samples[i] / peak * level, -1.0, 1.0) * 32767.0))
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_16_BITS
-	wav.mix_rate = MIX_RATE
-	wav.stereo = false
-	wav.data = data
-	return wav

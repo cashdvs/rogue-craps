@@ -15,8 +15,9 @@ extends Node
 const SFX_DIR: String = "res://audio/sfx/"
 const SILENT_DB: float = -60.0
 
-## Overall crowd level on top of the per-stem gains.
-@export var volume_db: float = -6.0
+## Overall crowd level on top of the per-stem gains. -14 dB (was -6): the
+## bed sits well under the dice, chips and scoring (playtest, main 7b978b9).
+@export var volume_db: float = -14.0
 ## The unbanked-pot fraction the volumes are heading towards (0..1).
 var pot_fraction: float = 0.0
 
@@ -38,7 +39,7 @@ func _ready() -> void:
 ## Starts all stems in sync (silent), then fades to the current pot level.
 func start(fade_seconds: float = 0.6) -> void:
 	for p in _players:
-		p.play()
+		if not p.playing: p.play()  # a new run calls start() again: no restart click
 	set_pot_fraction(pot_fraction, fade_seconds)
 
 
