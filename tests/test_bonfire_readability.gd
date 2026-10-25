@@ -124,7 +124,49 @@ func _scene() -> void:
 	for d in s.throw_dice:
 		lights += d.find_children("*", "OmniLight3D", true, false).size()
 	check(lights == 0, "glow only: no lights on the dice")
-	check(d4.pip_core_material != null and float(d4.pip_core_material.get_shader_parameter("energy")) > 2.9, "lit pips: hot cores (emission 3.0)")
+	# Playtest fix: lit = thin rim, pips stay dark ink (no ember lerp, no emission, no cores).
+	check(is_equal_approx(DieVisual.PIP_MID_ENERGY, 0.0) and is_equal_approx(DieVisual.PIP_CORE_ENERGY, 0.0), "lit pip energies are 0")
+	check(d4.pip_core_material != null and float(d4.pip_core_material.get_shader_parameter("energy")) < 0.0001, "lit pips: no hot cores")
+	check(float(d4.pip_material.get_shader_parameter("emission_energy")) < 0.0001, "lit pips: no emission")
+	check((d4.pip_material.get_shader_parameter("albedo") as Color).is_equal_approx(d4._pip_color), "lit pips keep their ink colour")
+	var cores_on := 0
+	for c in d4._pip_cores:
+		cores_on += 1 if c.visible else 0
+	check(cores_on == 0, "lit pips: cores hidden")
+	check(is_equal_approx(float(d4.body_material.get_shader_parameter("state_rim_energy")), 0.6), "lit rim energy 0.6")
+	_check_shader_cap_and_rim((d4.body_material as ShaderMaterial).shader.code)
+	var sh_src := (d4.body_material as ShaderMaterial).shader.code
+	check(sh_src.contains("state_rim_power = 5.0") and sh_src.contains("state_rim_energy = 0.6") and sh_src.contains("lit_albedo_mix_max = 0.35"), "toon_noir: rim 5.0 / 0.6, lit albedo mix capped at 0.35")
+	# PM + AD: lit cue per family (outline only while lit).
+	check(d4.material == "bone" and d4.hull_outline == null, "bone: plain lit rim, no hull outline")
+	for fam in ["bone", "brass"]:
+		check(not DieVisual.has_hull_outline(fam) and is_equal_approx(DieVisual.rim_energy_for(fam), 0.6), "%s: unchanged (rim 0.6, no outline)" % fam)
+	var want := {
+		"wood": [0.015, Color("#E8622A"), 0.6, 1.0, 0.0],
+		"obsidian": [0.015, Color("#E8622A"), 0.6, 1.0, 0.0],
+		"frosted_glass": [0.012, Color("#2A2018"), 0.0, 0.6, 0.35],
+	}
+	var gd: DieVisual = s.throw_dice[1]
+	for fam in want:
+		var w: Array = want[fam]
+		gd.material = fam
+		gd.set_glow_state(false, false, true)
+		var ho := gd.hull_outline
+		check(ho != null and not ho.visible, "%s: outline off when unlit" % fam)
+		gd.set_glow_state(true, false, true)
+		check(ho != null and ho.visible, "%s: outline on when lit" % fam)
+		var hm := ho.material_override as StandardMaterial3D if ho != null else null
+		check(hm != null and hm.albedo_color.is_equal_approx(w[1]), "%s: outline colour %s" % [fam, (w[1] as Color).to_html(false)])
+		check(hm != null and hm.grow and is_equal_approx(hm.grow_amount, w[0]), "%s: outline width %.3f m" % [fam, w[0]])
+		var em := hm.emission_energy_multiplier if hm != null and hm.emission_enabled else 0.0
+		check(hm != null and is_equal_approx(em, w[2]) and hm.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED and hm.cull_mode == BaseMaterial3D.CULL_FRONT, "%s: unshaded inverted hull, emission %.1f" % [fam, w[2]])
+		check(is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), w[3]), "%s: lit rim energy %.1f" % [fam, w[3]])
+		check(is_equal_approx(float(gd.body_material.get_shader_parameter("lit_albedo_mix_max")), w[4]), "%s: lit body tint cap %.2f" % [fam, w[4]])
+		check(float(gd.pip_material.get_shader_parameter("emission_energy")) < 0.0001, "%s: pips non-emissive" % fam)
+	gd.material = "bone"
+	gd.set_glow_state(true, false, true)
+	check(gd.hull_outline == null and is_equal_approx(float(gd.body_material.get_shader_parameter("state_rim_energy")), 0.6), "back to bone: no outline, rim 0.6")
+	check(DieGlow.TIER_EMISSION == [0.1, 0.15, 0.2, 0.3] and DieGlow.TIER_HALO_ALPHA == [0.10, 0.14, 0.18, 0.24], "die_glow tiers: emission/halo toned down")
 	# Refusal: bounce back + callout (its sound is the VFX / audio side's).
 	var before := d2.position
 	var refused: Array = []
@@ -238,3 +280,28 @@ func _debug_overlay() -> void:
 	check(not s.throw_debug_label.visible, "F3 / flag off hides it")
 	sv.queue_free()
 	await process_frame
+
+
+## Behavioural check of the toon_noir lit tint cap and rim colour, from the
+## shader source itself: evaluates the mix weight the shader really uses.
+func _check_shader_cap_and_rim(code: String) -> void:
+	var re := RegEx.create_from_string("col\\s*=\\s*mix\\(col,\\s*lit_col,\\s*(.+?)\\);")
+	var m := re.search(code)
+	check(m != null, "toon_noir: lit tint mix found")
+	var cap := RegEx.create_from_string("uniform float lit_albedo_mix_max\\s*=\\s*([0-9.]+)").search(code)
+	if m == null or cap == null:
+		check(false, "toon_noir: lit_albedo_mix_max uniform found")
+		return
+	var e := Expression.new()
+	var ok := e.parse(m.get_string(1), ["die_lit", "lit_albedo_mix_max"]) == OK
+	var w_full: float = e.execute([1.0, float(cap.get_string(1))]) if ok else -1.0
+	var w_low: float = e.execute([0.2, float(cap.get_string(1))]) if ok else -1.0
+	check(ok and is_equal_approx(w_full, 0.35), "toon_noir: a fully lit die tints its albedo at most 0.35 (got %.2f)" % w_full)
+	check(ok and is_equal_approx(w_low, 0.2), "toon_noir: below the cap the tint follows die_lit (got %.2f)" % w_low)
+	var rim := RegEx.create_from_string("uniform vec4 state_rim_color\\s*:\\s*source_color\\s*=\\s*vec4\\(([^)]*)\\)").search(code)
+	var rc := Color.BLACK
+	if rim != null:
+		var p := rim.get_string(1).split(",")
+		rc = Color(float(p[0]), float(p[1]), float(p[2]))
+	check(rim != null and rc.to_html(false).to_upper() == "E8622A", "toon_noir: lit rim colour is ember #E8622A (got %s)" % rc.to_html(false))
+	check(code.contains("die_lit * state_rim_color.rgb * state_rim_energy * fres"), "toon_noir: the lit rim uses state_rim_color")
