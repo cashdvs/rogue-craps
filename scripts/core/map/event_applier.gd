@@ -58,7 +58,7 @@ static func why_not(choice: EventChoiceData, p: RunProgress, table_ahead: bool =
 		return "Not enough Soul."
 	if ember_cost > p.embers:
 		return "Not enough Embers."
-	if choice.requires_face_mod and not p.has_face_mod():
+	if choice.requires_face_mod and not p.has_removable_mod():
 		return "You have no face mod to give."
 	return ""
 
@@ -92,12 +92,13 @@ static func picks_needed(choice: EventChoiceData) -> int:
 
 
 ## Is (die, face) a legal pick for effect `e`? ADD: a face with no mod on
-## it (Blank can be carved over); REMOVE: a face holding a real mod.
+## it (Blank can be carved over); REMOVE: a face holding a real mod that
+## isn't a rare's locked pre-carved face.
 static func pick_ok(e: EventEffectData, p: RunProgress, pick: Vector2i) -> bool:
 	if e.kind == K.SELL_DIE:
 		return pick.x >= 0 and pick.x < p.dice.size() and pick.y >= 0 and pick.y < p.dice[pick.x].faces.size()
 	if e.kind == K.REMOVE_FACE_MOD:
-		return p.modded_faces().has(pick)
+		return p.removable_faces().has(pick)
 	return pick.x >= 0 and pick.x < p.dice.size() and pick.y >= 0 and pick.y < p.dice[pick.x].faces.size() \
 		and p.dice[pick.x].faces[pick.y] in [&"", RunDie.BLANK]
 
@@ -207,7 +208,7 @@ static func _random_target(e: EventEffectData, p: RunProgress, rng: RandomNumber
 		last: Vector2i) -> Vector2i:
 	var pool: Array[Vector2i] = []
 	if e.kind == K.REMOVE_FACE_MOD:
-		pool = p.modded_faces()
+		pool = p.removable_faces()
 	elif e.target == T.RANDOM_OTHER_SAME_DIE:
 		if last.x < 0:
 			return Vector2i(-1, -1)

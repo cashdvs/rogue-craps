@@ -204,6 +204,17 @@ func has_face_mod() -> bool:
 	return not modded_faces().is_empty()
 
 
+## modded_faces() minus a rare die's locked pre-carved faces: what an event
+## can take away (rare_dice_v1 ruling 5).
+func removable_faces() -> Array[Vector2i]:
+	return modded_faces().filter(func(at: Vector2i) -> bool: return not face_locked(at.x, at.y))
+
+
+## Owns at least one face mod an event could remove (see removable_faces).
+func has_removable_mod() -> bool:
+	return not removable_faces().is_empty()
+
+
 ## Put mod `mod_id` (&"" = clear) on face face_i of die die_i. False if out
 ## of range or the face is a rare die's locked pre-carved face.
 func set_face(die_i: int, face_i: int, mod_id: StringName) -> bool:
