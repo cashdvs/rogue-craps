@@ -14433,6 +14433,53 @@ _subresources={
 "slice_99/start_frame": 0,
 "slices/amount": 0
 }
+},
+"materials": {
+"ash_brass": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_brass.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_brass.tres"
+},
+"ash_coal": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_coal.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_coal.tres"
+},
+"ash_eye": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_eye.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_eye.tres"
+},
+"ash_iron": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_iron.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_iron.tres"
+},
+"ash_iron_dark": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_iron_dark.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_iron_dark.tres"
+},
+"ash_skin": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_skin.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_skin.tres"
+},
+"ash_sleeve": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_sleeve.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_sleeve.tres"
+},
+"ash_soot": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_soot.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_soot.tres"
+},
+"ash_tash": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/ashmouth/materials/ash_tash.tres",
+"use_external/path": "res://art/models/characters/bosses/ashmouth/materials/ash_tash.tres"
+}
 }
 }
 gltf/naming_version=2
