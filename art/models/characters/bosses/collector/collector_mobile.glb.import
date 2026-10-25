@@ -14433,6 +14433,53 @@ _subresources={
 "slice_99/start_frame": 0,
 "slices/amount": 0
 }
+},
+"materials": {
+"col_black": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_black.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_black.tres"
+},
+"col_bone": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_bone.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_bone.tres"
+},
+"col_brass": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_brass.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_brass.tres"
+},
+"col_coat": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_coat.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_coat.tres"
+},
+"col_eye": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_eye.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_eye.tres"
+},
+"col_fur": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_fur.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_fur.tres"
+},
+"col_fur_dark": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_fur_dark.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_fur_dark.tres"
+},
+"col_glass": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_glass.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_glass.tres"
+},
+"col_scarf": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/collector/materials/col_scarf.tres",
+"use_external/path": "res://art/models/characters/bosses/collector/materials/col_scarf.tres"
+}
 }
 }
 gltf/naming_version=2
