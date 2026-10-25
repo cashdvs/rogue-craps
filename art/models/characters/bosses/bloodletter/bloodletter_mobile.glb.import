@@ -14433,6 +14433,63 @@ _subresources={
 "slice_99/start_frame": 0,
 "slices/amount": 0
 }
+},
+"materials": {
+"bl_apron": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_apron.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_apron.tres"
+},
+"bl_bone": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_bone.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_bone.tres"
+},
+"bl_brass": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_brass.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_brass.tres"
+},
+"bl_coat": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_coat.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_coat.tres"
+},
+"bl_collar": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_collar.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_collar.tres"
+},
+"bl_eye": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_eye.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_eye.tres"
+},
+"bl_glass": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_glass.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_glass.tres"
+},
+"bl_hair": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_hair.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_hair.tres"
+},
+"bl_pewter": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_pewter.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_pewter.tres"
+},
+"bl_silver": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_silver.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_silver.tres"
+},
+"bl_skin": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://art/models/characters/bosses/bloodletter/materials/bl_skin.tres",
+"use_external/path": "res://art/models/characters/bosses/bloodletter/materials/bl_skin.tres"
+}
 }
 }
 gltf/naming_version=2
