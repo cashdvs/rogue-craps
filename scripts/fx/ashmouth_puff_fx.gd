@@ -54,7 +54,7 @@ const FREE_PAD := 0.1
 const REDUCED_MOTION_SCALE := 0.3
 
 ## Fewer particles (REDUCED_MOTION_SCALE) when true.
-var reduced_motion: bool = false
+@export var reduced_motion: bool = false
 ## Forces the CPUParticles3D path (Compatibility / mobile); else read from the renderer.
 var mobile: bool = false
 ## Fallback ash lift above the door socket (m) when no rail mesh is found:
