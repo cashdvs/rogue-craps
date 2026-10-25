@@ -169,6 +169,16 @@ VFX half of `lighting_layers_spec.md` (lights and Environment, layers 1-3, are G
 - `ContactShadows`: one unshaded black quad per die at y 0.002, following the die's XZ (+0.01 toward -x/+z), never its rotation. Diameter 1.6 x edge; alpha 0.55 Forward+ / 0.65 Compat-Mobile at rest, x (1 - h/0.25); scale x (1 + 0.6 h/0.25); hidden above 0.25 m, while held (Phase.HELD) and for `pot_dice`. Only reads the die's position: the die material is never touched. It hides the die's old built-in `Blob` node so the two don't stack.
 - `LampDust`: GPUParticles3D 48 (Forward+) / CPUParticles3D 16 (else), cylinder r 0.45 m y 0.25-1.20 m, 2-4 mm (3-4 mobile) additive #FFE2B0 at 0.18 / 0.15, cone-masked to 38 deg, never drawn below y 0.08 (shader floor; the drift only rises). Off (not emitting, hidden) under reduced motion, polled from `table.is_reduced_motion()`.
 
+## SelectionDimFx
+
+`selection_dim_fx.gd` (child of the 3D table). Once dice are potted for a
+combo, lit unpotted dice that can't join it drop to the plain (unlit) look;
+unselecting relights them. Visual only: `_lights` / scoring are untouched.
+Joinability comes from `run.can_join(i)` (Godot Dev) when present, else the
+read-only `BonfireScoring.can_extend(potted + [i], ...)` that `toggle` uses.
+Refreshes on `table.events.selection_changed` when it exists, otherwise when
+`run.potted` / `throw_faces` / `state` change. Never cold grey, no tint, no particles.
+
 ## Ashmouth puffs (`ashmouth_puff_fx.gd`)
 Boss-dealer FX for Ashmouth "Smiles": an ash puff out of the firebox door at 0.19 s and a soot puff out of the stovepipe at 1.2 s of the `taunt` clip. **Hookup:** `AshmouthPuffFx` is a child of the Ashmouth dealer root (added by the #166 rebuild). In `_ready` it finds the root's `Model` AnimationPlayer and the `FireboxDoor` / `PipeMouth` sockets (a missing socket just means no puff there) and watches the playhead every frame, so speed changes, seeks and replays fire each beat once.
 - **Bursts:** a one-shot copy of the socket emitter, moved under the nearest ancestor's `fx_root` (else `current_scene`), in world space (`local_coords = false`), freed after its lifetime, so a cloud outlives the dealer and never follows him.
