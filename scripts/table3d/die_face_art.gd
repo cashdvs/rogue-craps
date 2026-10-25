@@ -218,7 +218,10 @@ func _add_pips() -> void:
 	pip_mesh.height = 0.06 * edge
 	pip_mesh.radial_segments = 12
 	pip_mesh.rings = 1
-	var pip_mat := Toon.mat(_pip_color, Color.BLACK, {"roughness": 0.8, "ambient_energy": 0.1})
+	# Light (bone-ink) pips on dark dice shade toward their own colour, not
+	# black: a black shadow under the warm lamp read as a reddish cast (AD #162).
+	var pip_shadow := _pip_color.darkened(0.25) if _pip_color.get_luminance() > 0.5 else Color.BLACK
+	var pip_mat := Toon.mat(_pip_color, pip_shadow, {"roughness": 0.8, "ambient_energy": 0.1} if pip_shadow == Color.BLACK else {"roughness": 0.8, "ambient_energy": 0.6, "ambient_color": _pip_color, "mid_tint": 1.0})
 	pip_material = pip_mat
 	# The pip core: an unshaded disc (~55% of the pip radius) just above the
 	# pip floor. It is what the Art Director's pip mask "G" channel meant;

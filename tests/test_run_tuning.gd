@@ -168,9 +168,19 @@ func _test_tuning_addendum() -> void:
 			print("  rule mismatch: ", n)
 	_check(rok, "addendum: rule hands_delta and descriptions")
 	var ms: RunRuleData = load("res://resources/map/rules/madame_shuffle.tres")
-	_check(ms.id == &"pit_boss" and ms.display_name == "Madame Shuffle" and ms.kind == RunRuleData.Kind.CHEAT and str(ms.params) == str({"faces": [2, 4]}),
-		"addendum: Madame Shuffle is an interim pit_boss on faces 2 and 4")
-	_check(str(ms.get_meta("stopgap", "")).contains("pit_boss") and str(ms.get_meta("stopgap", "")).contains("madame_shuffle"),
+	_check(ms.id == &"madame_shuffle_stopgap" and ms.display_name == "Madame Shuffle" and ms.kind == RunRuleData.Kind.CHEAT and str(ms.params) == str({"faces": [2, 4]}),
+		"addendum: Madame Shuffle is an interim Pit Boss handler on faces 2 and 4")
+	_check(ms.id != pb_id() and TableRules.SCRIPTS.get(ms.id) == TableRules.SCRIPTS[&"pit_boss"],
+		"Madame Shuffle has her own id (not pit_boss) on the Pit Boss handler")
+	var ids := {}
+	for f: FloorData in _data.floors:
+		for r: RunRuleData in f.boss_cheats:
+			ids[r.id] = ids.get(r.id, []) + [r.display_name] if not (ids.get(r.id, []) as Array).has(r.display_name) else ids[r.id]
+	var uniq := true
+	for k in ids:
+		uniq = uniq and (ids[k] as Array).size() == 1
+	_check(uniq and ids.has(&"madame_shuffle_stopgap"), "every boss cheat id names exactly one boss (%s)" % str(ids))
+	_check(str(ms.get_meta("stopgap", "")).contains("Pit Boss") and str(ms.get_meta("stopgap", "")).contains("madame_shuffle"),
 		"addendum: Madame Shuffle's .tres marks the pit_boss stopgap")
 	var fs: RunRuleData = load("res://resources/map/rules/first_throw.tres")
 	var sm: RunRuleData = load("res://resources/map/rules/straight_man.tres")
@@ -212,3 +222,7 @@ func _test_tuning_addendum_3() -> void:
 			saw_other = true
 	_check(saw_ash and saw_other and hok,
 		"addendum 3: Floor 1 Ashmouth boss tables have 6 hands, Pit Boss / Madame have 7")
+
+
+func pb_id() -> StringName:
+	return (load("res://resources/map/rules/pit_boss.tres") as RunRuleData).id
