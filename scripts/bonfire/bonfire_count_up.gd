@@ -131,6 +131,9 @@ func play(d: Dictionary, p: Dictionary, clock_speed: float = 1.0, reduced: bool 
 	eq_label.modulate.a = 0.0
 	total_label.text = ""
 	banner_panel.modulate.a = 0.0
+	# A clear() fade still running (pot then rethrow) must not hide this row.
+	if _clear_tw != null and _clear_tw.is_valid():
+		_clear_tw.kill()
 	row.modulate.a = 1.0
 	_playing = true
 
@@ -267,13 +270,17 @@ func fast_forward() -> void:
 	_finish()
 
 
+## The running clear() fade, so a new count-up can stop it.
+var _clear_tw: Tween
+
+
 ## Fades the row and banner out (the hand ended).
 func clear(fade: float = 0.25) -> void:
 	if _playing:
 		fast_forward()
-	var tw := create_tween().set_ignore_time_scale(true).set_parallel(true)
-	tw.tween_property(row, "modulate:a", 0.0, fade)
-	tw.tween_property(banner_panel, "modulate:a", 0.0, fade)
+	_clear_tw = create_tween().set_ignore_time_scale(true).set_parallel(true)
+	_clear_tw.tween_property(row, "modulate:a", 0.0, fade)
+	_clear_tw.tween_property(banner_panel, "modulate:a", 0.0, fade)
 
 
 func _punch(c: Control, peak: float) -> void:

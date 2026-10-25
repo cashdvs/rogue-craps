@@ -28,6 +28,12 @@ through the table's `SfxManager`
 
 **Rev 2 (core-loop cues):** `hot_hand`, `bank`, `bounty_claimed` and `bust` were revised and `table_cleared` and `no_score` added; the event names and calls are unchanged, so existing hooks keep working. `BonfireSynth.REVISED` says what each revision replaced. Rule: dice sounds are bone, felt and wood; fire/ember texture goes only on `bust` and in `bank`'s embers (`tests/test_core_loop_cues.gd` checks the dice cues have no hiss or crackle).
 
+## Nerve nudge
+
+| Event | When | Call |
+|---|---|---|
+| `nerve_nudge` **(new)** | every Nerve nudge and undo (VFX Dev's #140 plays it through `TableAudio`, falling back to `chip_place` if it's missing) | `sfx.play(&"nerve_nudge")`. A brass dial clicking one detent: 80–110 ms, a tiny click, a soft C6 brass ping and a low wooden tick, no noise. `SfxSynth` recipe `_dial_tick`, 3 takes (`nerve_nudge_01..03`, a few cents apart) rotated without repeats so rapid nudges don't sound robotic. Peaks at the SfxSynth level (0.85); play it at about -6 dB if it stacks with chip sounds. |
+
 ## Crowd (unbanked pot)
 
 ```gdscript

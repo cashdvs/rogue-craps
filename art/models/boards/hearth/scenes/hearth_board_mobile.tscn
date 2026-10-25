@@ -463,6 +463,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.11, -0.61)
 [node name="RailProp_FR" type="Marker3D" parent="Anchors" unique_id=242363243]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.11, -0.61)
 
+[node name="SoulReliquary" type="Marker3D" parent="Anchors" unique_id=731150211]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.07, 0.105, 0.14)
+
+[node name="SoulReliquaryPhone" type="Marker3D" parent="Anchors" unique_id=731150212]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.07, 0.105, 0.195)
+
+[node name="SoulReliquaryPortrait" type="Marker3D" parent="Anchors" unique_id=731150213]
+transform = Transform3D(0, 0, 0.65, 0, 0.65, 0, -0.65, 0, 0, -0.12, 0.104, 0.555)
+metadata/plate_layout = "stacked"
+
 [node name="Zones" type="Node3D" parent="Anchors" unique_id=1530824838]
 
 [node name="Ambient" type="Node3D" parent="." unique_id=833021472]
@@ -476,18 +486,6 @@ script = ExtResource("13_i6woa")
 
 [node name="Candle1" parent="Hearth/Candles/RailLeft" unique_id=1097347134 instance=ExtResource("14_h4i74")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.42)
-glow_tilt = 16.0
-
-[node name="Candle3" parent="Hearth/Candles/RailLeft" unique_id=388657607 instance=ExtResource("14_h4i74")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, -0.24)
-height = 0.92
-spin = 1.4
-glow_tilt = 16.0
-
-[node name="Candle5" parent="Hearth/Candles/RailLeft" unique_id=2080808016 instance=ExtResource("14_h4i74")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.135, 0.105, 0.24)
-height = 1.1
-spin = 2.8
 glow_tilt = 16.0
 
 [node name="Candle7" parent="Hearth/Candles/RailLeft" unique_id=1488668532 instance=ExtResource("14_h4i74")]

@@ -29,7 +29,7 @@ _Last checked against `main` at `6557c35` (Godot 4.7.2), 2026-10-19._
 | 4 | Export templates in CI | done | `export.yml` (cached download of the 4.7.2 templates) |
 | 5 | Version string | partial | `project.godot` `application/config/version`; stamped by CI; not shown in the UI |
 | 6 | Save and settings location (`user://`) | partial | `scripts/settings/game_settings.gd` → `user://settings.cfg`; no run save; custom user dir decided (`Tiny Anvil Games/Dice of the Damned`), lands in #75 |
-| 7 | Resolution, window mode, fullscreen | partial | `project.godot [display]`; `GameSettings.fullscreen` / `vsync`; `scripts/ui/options_panel.gd`; minimum window 1280×720 decided (#77) |
+| 7 | Resolution, window mode, fullscreen | partial | `project.godot [display]`; `GameSettings.fullscreen` / `vsync`; `scripts/ui/options_panel.gd`; minimum window 1280×720 decided (#77); the window mode and VSync are applied only at boot or when that option changes (`GameSettings.needs_display_apply` / `window_mode_to_set`; minimized is left alone; #159) |
 | 8 | Stretch settings and aspect ratios (16:9, 16:10 Deck, ultrawide) | partial | `project.godot [display] window/stretch/*`; 1280×800 required, verification in #78 |
 | 9 | Controller support (Steam Deck) | missing (menus partial) | no `[input]` section in `project.godot`; mouse/touch-only table and map |
 | 10 | Pause on focus loss | missing | `scripts/ui/pause_menu.gd` has no `NOTIFICATION_APPLICATION_FOCUS_OUT` handling |
