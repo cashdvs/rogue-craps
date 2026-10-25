@@ -1,12 +1,13 @@
 [gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://art/models/characters/bosses/ashmouth/ashmouth_mobile.glb" id="1_7ck1j"]
+[ext_resource type="PackedScene" path="res://art/models/characters/bosses/ashmouth/ashmouth_mobile.glb" id="1_tflg4"]
+[ext_resource type="Script" path="res://scripts/fx/ashmouth_puff_fx.gd" id="2_k37j0"]
 
-[node name="Ashmouth" type="Node3D" unique_id=1297062468]
+[node name="Ashmouth" type="Node3D" unique_id=1055493127]
 
-[node name="Model" parent="." unique_id=1216965277 instance=ExtResource("1_7ck1j")]
+[node name="Model" parent="." unique_id=162558070 instance=ExtResource("1_tflg4")]
 
-[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1216965277, 499458268) index="3" unique_id=539664048]
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(162558070, 2128469555) index="3" unique_id=1545275618]
 influence = 0.0
 bone_name = "head"
 duration = 0.25
@@ -19,22 +20,25 @@ primary_damp_threshold = 1.0
 secondary_limit_angle = 0.6981317
 secondary_damp_threshold = 1.0
 
-[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1216965277, 499458268) index="4" unique_id=1572224257]
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(162558070, 2128469555) index="4" unique_id=1400806117]
 bone_name = "head"
 
-[node name="PipeMouthAttach" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1216965277, 499458268) index="5" unique_id=812406309]
+[node name="PipeMouthAttach" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(162558070, 2128469555) index="5" unique_id=1666010427]
 bone_name = "visor"
 
-[node name="PipeMouth" type="Marker3D" parent="Model/Smiles/Skeleton3D/PipeMouthAttach" unique_id=1869432058]
+[node name="PipeMouth" type="Marker3D" parent="Model/Smiles/Skeleton3D/PipeMouthAttach" unique_id=877915036]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.026, -0.03)
 
-[node name="FireboxDoorAttach" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1216965277, 499458268) index="6" unique_id=1979073611]
+[node name="FireboxDoorAttach" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(162558070, 2128469555) index="6" unique_id=257744637]
 bone_name = "firebox_door"
 
-[node name="FireboxDoor" type="Marker3D" parent="Model/Smiles/Skeleton3D/FireboxDoorAttach" unique_id=219470333]
+[node name="FireboxDoor" type="Marker3D" parent="Model/Smiles/Skeleton3D/FireboxDoorAttach" unique_id=199558858]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.075, 0, 0.028)
 
-[node name="AnimationPlayer" parent="Model" index="1" unique_id=1780587003]
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=1014622151]
 autoplay = &"idle"
+
+[node name="AshmouthPuffFx" type="Node" parent="." unique_id=874459260]
+script = ExtResource("2_k37j0")
 
 [editable path="Model"]
