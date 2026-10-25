@@ -158,11 +158,11 @@ func _layout_tests(s: Bonfire3D) -> void:
 	check(s.reliquary_kind() == SoulReliquaryHookup.PHONE and r.prop.scene_file_path == SoulReliquaryHookup.PHONE_SCENE and r.prop.plate_layout == "row", "phone landscape 844x390: phone prop, row plate")
 
 
-## A real portrait canvas (390x844 phone -> 1920x4155): stacked plate, on
+## A real portrait canvas (720x1560 phone window -> 1920x4160): stacked plate, on
 ## screen, clear of Throw / Bank, and the overlays use it.
 func _portrait_tests(t: BonfireTuning) -> void:
 	var sv := SubViewport.new()
-	sv.size = Vector2i(1920, 4155)
+	sv.size = Vector2i(1920, 4160)
 	root.add_child(sv)
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = TableSetup.sandbox(t, 5)
@@ -170,6 +170,9 @@ func _portrait_tests(t: BonfireTuning) -> void:
 	sv.add_child(s)
 	await process_frame
 	await process_frame
+	# Headless skips the phone framing a real 720x1560 window gets: apply it.
+	s.fit_phone(Vector2(720, 1560))
+	s._refresh_hud()
 	var r := s.reliquary
 	var cam := s.camera.cam
 	check(s.reliquary_kind() == SoulReliquaryHookup.PORTRAIT and r.layout_kind == SoulReliquaryHookup.PORTRAIT, "portrait canvas: portrait layout (%s)" % s.reliquary_kind())
