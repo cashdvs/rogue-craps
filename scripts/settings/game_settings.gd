@@ -31,6 +31,10 @@ var hints_seen: Dictionary = {}
 ## Debug throw overlay on the Bonfire table (flick px/s, launch m/s, curve).
 ## Session only, never saved. Also on with the user arg `-- --throw-debug`.
 var throw_debug: bool = false
+## Tests only: a stand-in for DisplayServer with get_mode(), set_mode(mode)
+## and set_vsync(on), so a test can record every window call. null = the
+## real DisplayServer.
+var display_stub: Object = null
 
 
 func _ready() -> void:
@@ -63,11 +67,14 @@ func set_option(key: StringName, value: Variant) -> void:
 		value = clampf(float(value), SENSITIVITY_RANGE.x, SENSITIVITY_RANGE.y)
 	elif BUSES.has(key):
 		value = clampf(float(value), 0.0, 1.0)
+	var old: Variant = get(key)
 	set(key, value)
 	if key == &"tutorial_enabled" and bool(value):
 		tutorial_seen = false
 		hints_seen = {}
-	apply()
+	# Only touch the window when a display option really changed. Saving a
+	# hint or the tutorial flag must never resize/minimize the window.
+	apply(needs_display_apply(key, old, value))
 	save_settings()
 	changed.emit(key)
 
@@ -94,7 +101,32 @@ func load_settings() -> bool:
 	return true
 
 
-func apply() -> void:
+## Keys that change the window or the screen sync.
+const DISPLAY_KEYS: Array[StringName] = [&"fullscreen", &"vsync"]
+
+
+## True when changing `key` from `old` to `new` should re-apply the window
+## mode / VSync. Pure logic, so tests can check it headless.
+static func needs_display_apply(key: StringName, old: Variant, new: Variant) -> bool:
+	return DISPLAY_KEYS.has(key) and old != new
+
+
+## True when the window must be switched. `current` is what the OS says now.
+## Maximized counts as windowed and exclusive fullscreen counts as
+## fullscreen, so we never fight the player's own window choice. A minimized
+## window is left alone (the player alt-tabbed away).
+static func window_mode_to_set(want_fullscreen: bool, current: int) -> int:
+	if current == DisplayServer.WINDOW_MODE_MINIMIZED:
+		return -1
+	var is_full := current == DisplayServer.WINDOW_MODE_FULLSCREEN or current == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	if want_fullscreen == is_full:
+		return -1
+	return DisplayServer.WINDOW_MODE_FULLSCREEN if want_fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+
+
+## Applies volumes always; the window mode and VSync only when `display` is
+## true (at startup and when Fullscreen/VSync change).
+func apply(display: bool = true) -> void:
 	ensure_buses()
 	for k: StringName in BUSES:
 		var idx := AudioServer.get_bus_index(BUSES[k])
@@ -103,10 +135,18 @@ func apply() -> void:
 		var v := float(get(k))
 		AudioServer.set_bus_mute(idx, v <= 0.001)
 		AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(v, 0.0001)))
+	if not display:
+		return
+	if display_stub != null:
+		var m := window_mode_to_set(fullscreen, display_stub.get_mode())
+		if m >= 0:
+			display_stub.set_mode(m)
+		display_stub.set_vsync(vsync)
+		return
 	if DisplayServer.get_name() != "headless":
-		var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
-		if DisplayServer.window_get_mode() != want and not OS.has_feature("web") and not is_mobile():
-			DisplayServer.window_set_mode(want)
+		var mode := window_mode_to_set(fullscreen, DisplayServer.window_get_mode())
+		if mode >= 0 and not OS.has_feature("web") and not is_mobile():
+			DisplayServer.window_set_mode(mode)
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
 
 

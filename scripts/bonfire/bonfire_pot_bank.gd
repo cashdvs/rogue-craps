@@ -5,6 +5,9 @@
 class_name BonfirePotBank
 extends BonfireThrowFlow
 
+## The top-left "?" button and the first-table controls text (help_corner.gd).
+var help_corner: HelpCorner
+
 
 ## Space / THROW: in AIM throws the dice; after a throw, pots the picked dice
 ## and gathers the cold ones (or all of them on a Hot Hand) into the hand.
@@ -31,6 +34,7 @@ func throw_again() -> bool:
 		_refuse(why if why != "" else "Pot at least one lit die first.")
 		return false
 	bhud.tutorial.on_action(&"rethrow")
+	bhud.countup.clear()  # the last pot's row fades before this pot's count-up
 	nerve.close_throw()
 	pot_dice.append_array(potted_now)
 	# Back to the home framing (the reveal left the camera zoomed in on the
@@ -168,6 +172,7 @@ func bank() -> Dictionary:
 		_refuse("Pot at least one lit die to bank.")
 		return {}
 	bhud.tutorial.on_action(&"bank")
+	help_corner.dismiss()  # G1: the first Bank fades the controls text
 	fast_forward_juice()
 	var sel := run.selection()
 	var hot_before := run.hot_hands
@@ -251,6 +256,7 @@ func pick_die(i: int) -> bool:
 	sfx.play(&"chip_place", 1.1, -3.0)
 	nerve.on_potted()
 	emit_selection()
+	help_corner.on_pot()  # G1: the controls text fades 30 s after the first pot
 	_layout_throw()
 	if not run.potted.is_empty():
 		bhud.tutorial.on_action(&"potted")
@@ -326,6 +332,7 @@ func nerve_bust() -> void:
 
 
 func _after_hand() -> void:
+	bhud.clear_score_text()
 	if run.is_over():
 		# Out of hands uncleared: the Soul meter drops by the table's
 		# penalty, like a bust or forfeit (QA M4). A cleared table costs no
@@ -335,6 +342,7 @@ func _after_hand() -> void:
 		_burn_soul(maxi(_soul_shown - run.soul, 0))
 		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER
+		juice.crowd_stop()  # the table ended
 		_taunt(&"bonfire_clear" if run.state == BonfireRun.State.CLEARED else &"bonfire_fail")
 		bhud.show_end(run)
 		_refresh_hud()

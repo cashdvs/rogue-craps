@@ -32,7 +32,11 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 		pot_label.text = "Pot %d" % run.hand_pot()
 	notes_label.text = ""
 	risk_label.text = ""
-	if picking:
+	if display_hold.has("pot_from"):
+		# A count-up is playing (rethrow / bank): the old preview line or
+		# "Not a combo yet." would stick under the Pot, so show nothing.
+		throw_label.text = ""
+	elif picking:
 		var sel := run.selection()
 		if sel["valid"]:
 			# The live pot preview, e.g. "TRIPS: (30+12) x3 = 126", and what
@@ -64,6 +68,16 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	bank_button.tooltip_text = why["bank"]
 	# The caption names the first greyed-out button's reason while picking.
 	action_reason.text = why["throw"] if why["throw"] != "" else (why["bank"] if picking else "")
+
+
+## Clears the score lines under the Pot (preview, notes, risk). Called at
+## hand end, where no HUD refresh runs during the short pause between hands.
+## Rethrow, bank, leave and a new table don't need it: refresh() runs in the
+## same frame and rewrites all three lines (QA #160).
+func clear_score_text() -> void:
+	throw_label.text = ""
+	notes_label.text = ""
+	risk_label.text = ""
 
 
 ## The held pot counts up with the count-up (f = 0..1).

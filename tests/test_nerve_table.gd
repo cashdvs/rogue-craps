@@ -57,6 +57,7 @@ func _run() -> void:
 	await rescue_bust()
 	await repeated_values()
 	await drag_flow()
+	await armed_then_drag()
 	await hn1_once()
 	run_side()
 	print("nerve_table: %d passed, %d failed" % [_passed, _failed])
@@ -77,9 +78,12 @@ func nudge_flow() -> void:
 	check(to == 3 and s.run.throw_faces[3] == 3 and s.throw_dice[3].up_slot() == 3, "nudge up: the 2 shows 3 on the felt")
 	check(s.run.lit().has(3) and s.is_lit(s.throw_dice[3]), "lit re-runs: the new 3 lights")
 	check(nudges.size() == 1 and nudges[0][1] == 2 and nudges[0][2] == 3 and nudges[0][3] == 1 and nudges[0][0] == s.event_id(s.throw_dice[3]), "die_nudged(id, 2, 3, +1) (%s)" % str(nudges))
-	check(n.state.uses_left() == 0 and s.nerve_ui.pip.disabled, "Nerve spent: pip greyed out")
+	check(n.state.uses_left() == 0 and n.can_undo(), "Nerve used: 0 left, the pip now offers undo")
 	check(n.nudge(4, NerveState.DOWN) == -1 and s.why_label.text == NerveText.get_text("nerve_used_refusal"), "a second nudge is refused with nerve_used_refusal")
-	check(n.tap(3) and s.run.throw_faces[3] == 2 and s.throw_dice[3].up_slot() == 2 and not s.run.lit().has(3), "tap the nudged die: undo back to 2, cold again")
+	# Oct 24 ruling: a tap on the nudged die pots it, undo is on the token.
+	check(not n.tap(3), "tap the nudged die: Nerve leaves it to the table's pot")
+	check(n.can_undo() and not s.nerve_ui.pip.disabled, "the token (pip) is enabled to undo")
+	check(n.token_pressed() and s.run.throw_faces[3] == 2 and s.throw_dice[3].up_slot() == 2 and not s.run.lit().has(3), "token undo: back to 2, cold again")
 	check(nudges.size() == 2 and nudges[1][1] == 3 and nudges[1][2] == 2 and nudges[1][3] == -1, "undo emits die_nudged(3 -> 2, -1)")
 	check(n.state.uses_left() == 1, "undo gives Nerve back")
 	# Nerve button -> click a die -> arrows; a 6 can't go higher.
@@ -93,8 +97,27 @@ func nudge_flow() -> void:
 	key.keycode = KEY_DOWN
 	key.pressed = true
 	check(n.handle_input(key) and s.run.throw_faces[4] == 5, "Down key turns the 6 to 5")
-	# Pot it: locked, no undo.
-	check(s.pick_die(0), "pot a 3")
+	var bs := InputEventKey.new()
+	bs.keycode = KEY_BACKSPACE
+	bs.pressed = true
+	check(n.handle_input(bs) and s.run.throw_faces[4] == 6, "Backspace undoes: back to 6")
+	check(n.nudge(4, NerveState.DOWN) == 5, "nudge the 6 down again")
+	var z := InputEventKey.new()
+	z.keycode = KEY_Z
+	z.pressed = true
+	check(n.handle_input(z) and s.run.throw_faces[4] == 6, "Z undoes too: back to 6")
+	# The pip and the rescue Nerve button call token_pressed (undo), not arm.
+	check(n.nudge(4, NerveState.DOWN) == 5, "nudge again (pip)")
+	s.nerve_ui.pip.pressed.emit()
+	check(s.run.throw_faces[4] == 6 and not n.armed, "pip press undoes the nudge (token_pressed, not arm)")
+	check(n.nudge(4, NerveState.DOWN) == 5, "nudge again (rescue button)")
+	s.nerve_ui.rescue_nerve.pressed.emit()
+	check(s.run.throw_faces[4] == 6 and not n.armed, "rescue Nerve button undoes the nudge (token_pressed, not arm)")
+	check(n.nudge(4, NerveState.DOWN) == 5, "nudge the 6 down once more")
+	# Pot it: tapping the nudged 5 pots it with the new face; no undo after.
+	check(not n.tap(4) and s.pick_die(4) and s.run.throw_faces[4] == 5 and s.run.potted.has(4), "tap the nudged 5: it pots as a 5")
+	check(not n.can_undo() and not n.undo_pending(), "after a pot: no undo")
+	check(n.state.uses_left() == 0 and s.nerve_ui.pip.disabled, "Nerve spent and nothing to undo: pip greyed out")
 	check(not n.tap(4) or s.run.throw_faces[4] == 2, "tap after the pot doesn't undo (pot / undo)")
 	check(n.state.refusal(n.hid(0)) == "nerve_potted_refusal" or n.state.uses_left() == 0, "potted die: refused")
 	s.queue_free()
@@ -171,6 +194,21 @@ func drag(s: Bonfire3D, i: int, dy: float) -> bool:
 	up.position = at + Vector2(0, dy)
 	var took := s.nerve.handle_input(down)
 	return s.nerve.handle_input(up) and took
+
+
+## Press Nerve (armed), then nudge by drag instead: armed clears, so taps
+## pot again instead of being refused as nudge picks.
+func armed_then_drag() -> void:
+	var s: Bonfire3D = await make_table()
+	var n: NerveTable = s.nerve
+	await throw_faces(s, [3, 3, 3, 2, 6] as Array[int])
+	await process_frame
+	check(n.arm() and n.armed, "Nerve armed")
+	check(drag(s, 4, 60.0) and s.run.throw_faces[4] == 5, "drag nudges the 6 to 5")
+	check(not n.armed, "the drag nudge clears armed")
+	check(drag(s, 0, 0.0) and s.run.potted.has(0), "a tap on a 3 pots it")
+	s.queue_free()
+	await process_frame
 
 
 ## QA #126: the press no longer pots; the release decides (drag = nudge).

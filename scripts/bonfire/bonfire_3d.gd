@@ -15,6 +15,7 @@
 class_name Bonfire3D
 extends BonfirePotBank
 
+
 # This script is the top of a chain of layers, each in its own short file:
 #   bonfire_table_state.gd  (BonfireTableState)  signals, constants, variables, queries
 #   bonfire_table_look.gd   (BonfireTableLook)   dice looks / decals / lit glow (art seam)
@@ -66,6 +67,14 @@ func _ready() -> void:
 		apply_die_look(all_dice[i], td)
 	bhud = BonfireHud.new()
 	hud.add_child(bhud)
+	# Top-left help: the text only on the first table, plus the "?" button
+	# (AD spec Addendum A, G1; see help_corner.gd).
+	help_corner = HelpCorner.new()
+	bhud.add_child(help_corner)
+	# A finished count-up ("TRIPS!" / "117") must not stay up while the
+	# next throw is picked (QA #160): it fades when the next throw leaves
+	# the hand, or as soon as it finishes if it's still counting then.
+	thrown.connect(func(_speed: float) -> void: _clear_count_up_when_done())
 	bhud.bank_pressed.connect(func() -> void: bank())
 	bhud.throw_pressed.connect(func() -> void: throw_again())
 	bhud.restart_pressed.connect(func() -> void: new_run(-1 if bonfire_seed < 0 else bonfire_seed + 1))
@@ -161,6 +170,7 @@ func new_run(seed_value: int = -1) -> void:
 	pause_menu.set_forfeit_enabled(true)
 	phase = Phase.BET
 	_set_why("Grab the %d dice and flick them. Dice that can score glow." % run.cold)
+	help_corner.start_table(help_label, setup.first_table, reduced_motion)
 	onboarding.on_table_start()
 	_refresh_hud()
 
@@ -189,9 +199,11 @@ func forfeit() -> bool:
 		return false
 	_kill_hand_tweens()
 	phase = Phase.OVER
+	juice.crowd_stop()
 	_burn_soul(maxi(_soul_shown - run.soul, 0))
 	for d in all_dice:
 		_set_lit(d, false)
+	bhud.countup.clear()  # no count-up row left over the end panel
 	_set_why("Table forfeited.")
 	bhud.show_end(run)
 	_refresh_hud()
@@ -212,10 +224,12 @@ func leave() -> bool:
 	_kill_hand_tweens()
 	pause_menu.set_forfeit_enabled(false)
 	phase = Phase.OVER
+	juice.crowd_stop()
 	for d in all_dice:
 		_set_lit(d, false)
 	_emit_table_cleared()
 	_taunt(&"bonfire_clear")
+	bhud.countup.clear()
 	_set_why("You left the table. Cleared!")
 	bhud.show_end(run)
 	_refresh_hud()
@@ -243,7 +257,9 @@ func _refresh_hud() -> void:
 		bhud.refresh(run, phase == Phase.BET)
 		# The rethrow risk line and the table's status line share the bottom
 		# row: while the risk shows, the status line steps aside (QA #63).
-		why_label.visible = bhud.risk_label.text == ""
+		# G3: it also hides when it only repeats the orange prompt.
+		why_label.visible = bhud.risk_label.text == "" \
+				and not HelpCorner.repeats_prompt(why_label.text, bhud.throw_label.text)
 		bhud.pulse_cards(claimable_bounties())
 	if felt_label != null and run != null:
 		var lines: Array[String] = []
@@ -288,6 +304,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if mb != null and mb.button_index == MOUSE_BUTTON_RIGHT:
 		return
 	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == KEY_F1:
+		help_corner.toggle_card()  # the controls card (not the sandbox debug panel)
+		get_viewport().set_input_as_handled()
+		return
 	if key != null and key.pressed and not key.echo:
 		match key.keycode:
 			KEY_ESCAPE:
@@ -333,7 +353,17 @@ func _process(delta: float) -> void:
 ## A throw finished playing after the table was forfeited mid-roll.
 func _end_sequence_after_forfeit() -> void:
 	phase = Phase.OVER
+	juice.crowd_stop()
 	_skip = false
 	Engine.time_scale = 1.0
 	_refresh_hud()
 	sequence_finished.emit()
+
+
+## Fades the count-up row and banner (BonfireCountUp.clear, 0.25 s) now,
+## or right after it finishes if it is still counting.
+func _clear_count_up_when_done() -> void:
+	if bhud.countup.is_playing():
+		bhud.countup.finished.connect(func() -> void: bhud.countup.clear(), CONNECT_ONE_SHOT)
+	else:
+		bhud.countup.clear()

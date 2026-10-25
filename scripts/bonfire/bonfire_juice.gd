@@ -24,6 +24,12 @@ func _init() -> void:
 ## short is undone the same way its timer would have.
 func _exit_tree() -> void:
 	_timers.stop_all()
+	# Scene exit: the crowd stops at once (no fade tween on a node leaving
+	# the tree), so it never keeps murmuring after the table goes.
+	if crowd != null:
+		for c in crowd.get_children():
+			if c is AudioStreamPlayer:
+				(c as AudioStreamPlayer).stop()
 	if _slowmo_scale > 0.0 and is_equal_approx(Engine.time_scale, _slowmo_scale):
 		Engine.time_scale = 1.0
 	_slowmo_scale = 0.0

@@ -192,6 +192,7 @@ func _ready() -> void:
 	# for throw, impact, hot_hand, no_score, and table_cleared (one-owner rule).
 	add_child(TableAudio.new())
 	add_child(TriggerFx.new())
+	add_child(NerveTurnFx.new())
 	add_child(LightingLayersFx.new())
 	add_child(SelectionDimFx.new())
 	_build_world()
@@ -1018,7 +1019,8 @@ func _update_held(delta: float) -> void:
 	_rattle_t -= delta
 	if _rattle_t <= 0.0:
 		_rattle_t = 0.22
-		sfx.play(&"dice_shake", 1.0, -8.0)
+		# Stop the last 0.45 s copy first, or they stack into a constant rattle.
+		sfx.play_alone(&"dice_shake", 1.0, -8.0)
 
 
 # --- Betting ---------------------------------------------------------------------------
