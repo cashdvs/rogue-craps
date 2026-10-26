@@ -173,6 +173,7 @@ func _test_die_render_and_pips() -> void:
 	_check(r != null and r.view.find_children("*", "MeshInstance3D", true, false).size() > 0, "die item shows its 3D model")
 	_check(not (_item(ShopOffer.Kind.MOD, 0).icon is ShopDieRender), "mod item uses a stand-in, not a die render")
 	ss.card.show_for(die)
+	_check(ss.card.find_children("*", "EmberPrice", true, false).size() == 1, "card price uses the shared EmberPrice coin")
 	var d: SpecialDieData = run.shop_dice[1]
 	var faces := ss.card.find_children("FaceStrip", "", true, false)[0].get_children()
 	_check(faces.size() == d.faces.size(), "strip has one face per die face %d vs %d" % [faces.size(), d.faces.size()])
