@@ -72,6 +72,8 @@ func _test_lights() -> void:
 		var key: DirectionalLight3D = lights[0]
 		var fill: DirectionalLight3D = lights[1]
 		_check(key.light_color.r > key.light_color.b, "key light is warm")
+		var fc := fill.light_color
+		_check(fc.r > fc.b + 0.05 and fc.r >= fc.g and fc.g >= fc.b, "fill light is warm, not cold (%s)" % fc)
 		_check(key.light_energy > fill.light_energy * 2 and fill.light_energy > 0.0, "fill is soft next to the key")
 		_check(key.global_basis.z.dot(fill.global_basis.z) < 0.5, "fill comes from another side")
 	var envs: Array = view.get_children().filter(func(n: Node) -> bool: return n is WorldEnvironment)
@@ -139,6 +141,8 @@ func _test_dealer_layouts() -> void:
 		_check(absf(fig.get_center().x - vw / 2.0) < 1.0, "Smiles centred for %s" % c[0])
 		_check(fig.size.y > r.size.y * 0.8, "Smiles fills the band for %s" % c[0])
 		var lip := Rect2(ss.dealer.rail.global_position, ss.dealer.rail.size)
+		_check(absf(fig.end.y - lip.end.y) <= 0.5, "Smiles stands on the rail, feet tucked under it (bottom %.1f, rail %.1f..%.1f) for %s" % [fig.end.y, lip.position.y, lip.end.y, c[0]])
+		_check(st.stretch_mode == TextureRect.STRETCH_SCALE and st.expand_mode == TextureRect.EXPAND_IGNORE_SIZE and st.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Smiles still scales and ignores the mouse for %s" % c[0])
 		_check(lip.position.y > fig.position.y + fig.size.y * 0.75 and lip.end.y <= r.end.y + 0.5, "rail sits below his head and shoulders for %s" % c[0])
 		_check(is_equal_approx(lip.position.x, 0.0) and is_equal_approx(lip.size.x, vw) and ss.dealer.shadow.size.x == vw and ss.dealer.shadow.position.y >= ss.dealer.rail.get_rect().end.y - 0.5, "full-width rail with shadow line for %s" % c[0])
 		var plate := ss.embers_label.get_parent()
