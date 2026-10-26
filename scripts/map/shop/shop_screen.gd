@@ -1,7 +1,7 @@
 ## The visual Ember Shop (art/concept/shop_redesign/HANDOFF_SPEC.md): a wooden
 ## counter with shelves of goods, each with a brass price tag. Rules and prices
 ## stay in MapRunShop; this only lays the goods out and forwards clicks.
-## Later PRs slot in: A2 the dealer behind the rail and real icons, B a ShopCard
+## Smiles (DealerBackdrop) stands behind the rail. Later PRs slot in: B a ShopCard
 ## on ShopItem.focus_item, C the bag row under the counter, D the rare chip.
 class_name ShopScreen
 extends Control
@@ -15,11 +15,13 @@ const BRASS := Color("#C9A24A")
 const CREAM := Color("#E8DCC0")
 
 ## Per layout, in spec px (§2): counter top (px, or a fraction of the height
-## when < 1) and bottom, art size, items per shelf, buttons row y, title size.
+## when < 1) and bottom, art size, items per shelf, buttons row y, title size,
+## and the dealer box: left and right edge (fractions of the width) and its
+## top in spec px; [] = no dealer (landscape has no room).
 const LAYOUTS := {
-	Layout.PC: {"top": 0.34, "bottom": 0.78, "art": 120.0, "per_shelf": [3, 5], "buttons": 0.85, "title": 32},
-	Layout.LANDSCAPE: {"top": 62.0, "bottom": 0.74, "art": 46.0, "per_shelf": [8], "buttons": 0.85, "title": 22},
-	Layout.PORTRAIT: {"top": 170.0, "bottom": 0.775, "art": 58.0, "per_shelf": [3, 3, 3], "buttons": 0.9, "title": 16},
+	Layout.PC: {"top": 0.34, "bottom": 0.78, "art": 120.0, "per_shelf": [3, 5], "buttons": 0.85, "title": 32, "dealer": [0.38, 0.62, 70.0]},
+	Layout.LANDSCAPE: {"top": 62.0, "bottom": 0.74, "art": 46.0, "per_shelf": [8], "buttons": 0.85, "title": 22, "dealer": []},
+	Layout.PORTRAIT: {"top": 170.0, "bottom": 0.775, "art": 58.0, "per_shelf": [3, 3, 3], "buttons": 0.9, "title": 16, "dealer": [0.25, 0.75, 64.0]},
 }
 ## PC Sell / Swap, Reroll, Leave sizes (spec px); phones fit their text.
 const PC_BUTTONS := [Vector2(180, 50), Vector2(210, 50), Vector2(190, 50)]
@@ -39,6 +41,7 @@ var embers_label: Label
 var reroll_button: Button
 var leave_button: Button
 var sell_button: Button
+var dealer: DealerBackdrop
 
 
 func _ready() -> void:
@@ -62,12 +65,18 @@ func build(s: RunScreen) -> void:
 		c.queue_free()
 	items.clear()
 	shelves.clear()
+	dealer = null
 	pick_layout()
 	var vis := get_viewport().get_visible_rect().size
 	var spec: Dictionary = LAYOUTS[layout]
 	var h := vis.y / k  # Screen height in spec px.
 	var top: float = spec.top if spec.top >= 1.0 else spec.top * h
 	_add_header(vis, spec.title)
+	if not spec.dealer.is_empty():  # Before the counter, so it stands behind the rail.
+		dealer = DealerBackdrop.new()
+		add_child(dealer)
+		var d: Array = spec.dealer
+		dealer.setup(Rect2(d[0] * vis.x, d[2] * k, (d[1] - d[0]) * vis.x, (top - d[2]) * k), k)
 	_build_counter(Rect2(0, top * k, vis.x, (spec.bottom * h - top) * k), spec)
 	_add_buttons(vis, spec.buttons * vis.y)
 
