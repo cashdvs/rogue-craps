@@ -166,7 +166,8 @@ func _body(o: ShopOffer) -> Array:
 
 ## The counter token (mod icon / Seal combo mark) at 42 spec px.
 func _token(o: ShopOffer) -> Control:
-	var icon := ShopItem._stand_in(o, _px(42))  # PR A2 swaps in ShopIcon.
+	var icon := ShopIcon.new()
+	icon.setup(o, _px(42))
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	return icon
 
@@ -174,7 +175,7 @@ func _token(o: ShopOffer) -> Control:
 func _face_strip(d: SpecialDieData) -> Control:
 	var strip := HBoxContainer.new()
 	strip.name = "FaceStrip"
-	strip.add_theme_constant_override("separation", int(4 * shop.k))
+	strip.add_theme_constant_override("separation", int(6 * shop.k))  # 3 px+ on screen even at 1024x576.
 	var presets: Dictionary = d.preset_mods if d is DieShape else {}
 	for v: int in d.faces:
 		var face := Control.new()

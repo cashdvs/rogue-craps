@@ -169,14 +169,17 @@ func _test_lines_per_type() -> void:
 func _test_die_render_and_pips() -> void:
 	_show(Vector2i(1920, 1080))
 	var die := _item(ShopOffer.Kind.DIE, 1)
-	var r := die.icon as ShopDieRender
-	_check(r != null and r.view.find_children("*", "MeshInstance3D", true, false).size() > 0, "die item shows its 3D model")
-	_check(not (_item(ShopOffer.Kind.MOD, 0).icon is ShopDieRender), "mod item uses a stand-in, not a die render")
+	var r := (die.icon as ShopIcon).die_view
+	_check(r != null and r.find_children("*", "MeshInstance3D", true, false).size() > 0, "die item shows its 3D model")
+	_check((_item(ShopOffer.Kind.MOD, 0).icon as ShopIcon).die_view == null, "mod item is a token, not a die render")
 	ss.card.show_for(die)
 	_check(ss.card.find_children("*", "EmberPrice", true, false).size() == 1, "card price uses the shared EmberPrice coin")
 	var d: SpecialDieData = run.shop_dice[1]
 	var faces := ss.card.find_children("FaceStrip", "", true, false)[0].get_children()
 	_check(faces.size() == d.faces.size(), "strip has one face per die face %d vs %d" % [faces.size(), d.faces.size()])
+	var gap: int = ss.card.find_children("FaceStrip", "", true, false)[0].get_theme_constant("separation")
+	# 6 spec px = 3+ screen px even on the smallest PC window (1024x576).
+	_check(gap >= int(6 * ss.k) and gap * 576.0 / 1080.0 / ss.k >= 3.0, "PC face tiles 3 px+ apart on screen (got %d, k %.2f)" % [gap, ss.k])
 	var digits := 0
 	for f in faces:
 		for c in f.get_children():
