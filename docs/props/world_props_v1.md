@@ -240,7 +240,7 @@ Each family needs a lit variant and a cold variant (glow shader parameters on th
 | `ember_pip` | `glyph_ember_pip` (painted, no flame) | `ember_pip` "+2 mult when you pot it." |
 | `hellfire` | a flame-free heat mark (`glyph_hellfire_face`; no horns, no flame) | `hellfire` "x1.5 to the score when you pot it." |
 | `gilded` | brass inlay matching `glyph_gilded_payout` | `gilded` "+1 Ember when you pot it; you keep it if you bust." |
-| `twin` | AD's approved **two-dice glyph** (`glyph_twin_face`) | `twin` "Counts as two dice of its number, but never in runs." |
+| `twin` | AD's approved **two-dice glyph** (`glyph_twin_face`) | `twin` "Two dice of its number; never in runs." |
 | `step` | `glyph_step_face` | `step` "In a run, counts as one higher or one lower." |
 | `stair` | `glyph_stair_face` | `stair` "In a run: +10 base for each die in that run." |
 | `kindling` | `glyph_kindling_armed` | `kindling` "Pot it, and your next throw can't bust." |

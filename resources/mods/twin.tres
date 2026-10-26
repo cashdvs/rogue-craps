@@ -6,6 +6,6 @@
 script = ExtResource("1_wllr3")
 id = &"twin"
 display_name = "Twin Face"
-description = "Counts as two dice of its number, but never in runs."
+description = "Two dice of its number; never in runs."
 effect = 2
 price = 9
