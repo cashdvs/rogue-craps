@@ -42,6 +42,10 @@ var reroll_button: Button
 var leave_button: Button
 var sell_button: Button
 var dealer: DealerBackdrop
+## The one floating item card (PR B), rebuilt with the shop.
+var card: ShopCard
+## Phone layouts (landscape / portrait): taps select, only the card buys.
+var touch_mode := false
 
 
 func _ready() -> void:
@@ -67,6 +71,7 @@ func build(s: RunScreen) -> void:
 	shelves.clear()
 	dealer = null
 	pick_layout()
+	touch_mode = layout != Layout.PC
 	var vis := get_viewport().get_visible_rect().size
 	var spec: Dictionary = LAYOUTS[layout]
 	var h := vis.y / k  # Screen height in spec px.
@@ -79,6 +84,14 @@ func build(s: RunScreen) -> void:
 		dealer.setup(Rect2(d[0] * vis.x, d[2] * k, (d[1] - d[0]) * vis.x, (top - d[2]) * k), k)
 	_build_counter(Rect2(0, top * k, vis.x, (spec.bottom * h - top) * k), spec)
 	_add_buttons(vis, spec.buttons * vis.y)
+	card = ShopCard.new(self)
+	add_child(card)
+
+
+## A tap or click on empty counter closes the open card.
+func _gui_input(e: InputEvent) -> void:
+	if card != null and e is InputEventMouseButton and e.pressed:
+		card.close()
 
 
 func _rect(r: Rect2, c: Color) -> ColorRect:
@@ -148,8 +161,20 @@ func _fill_shelf(row: Array, area: Rect2, spec: Dictionary) -> void:
 		add_child(it)
 		it.size = it.get_combined_minimum_size()
 		it.position = Vector2(area.position.x + cell * (i + 0.5) - it.size.x / 2.0, area.end.y - it.size.y)
-		it.buy.connect(func(o: ShopOffer) -> void: o.buy(screen))
+		it.touch_mode = touch_mode
+		it.buy.connect(func(o: ShopOffer) -> void: card.close(); o.buy(screen))
+		it.focus_item.connect(_on_focus)
+		it.unfocus_item.connect(func(x: ShopItem) -> void: if not touch_mode: card.unhover(x))
 		items.append(it)
+
+
+## PC hover waits HOVER_DELAY; a phone tap opens the card at once.
+func _on_focus(it: ShopItem) -> void:
+	if touch_mode:
+		if card.item != it:
+			card.show_for(it)
+	else:
+		card.hover(it)
 
 
 func _add_buttons(vis: Vector2, y: float) -> void:
