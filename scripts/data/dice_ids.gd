@@ -157,6 +157,9 @@ const RARE_ART_BODIES: Dictionary = {
 
 ## Model body key for [param die_id]: its asset key, or the stand-in from
 ## RARE_ART_BODIES when that key's own .glb isn't in art/models/dice yet.
+## Data-only for now: nothing in game calls it until Godot Dev's follow-up PR
+## (after #174 and #175) switches poly_die/table_3d to body_key; meshes are
+## still picked by shape.
 static func body_key(die_id: StringName) -> StringName:
 	var k := asset_key(die_id)
 	if RARE_ART_BODIES.has(k) and not ResourceLoader.exists("res://art/models/dice/%s.glb" % k):

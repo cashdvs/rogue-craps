@@ -14,6 +14,7 @@ func _initialize() -> void:
 	_test_strings()
 	await _test_shop_tag()
 	_test_locked_tooltip()
+	_test_not_locked()
 	_test_art_keys()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -83,6 +84,28 @@ func _test_locked_tooltip() -> void:
 				_check(EconomyStrings.RARE_CARVED_LOCKED in tip and not DieCard.TAKEN in tip, "%s face %d locked tooltip" % [id, f])
 		_check(seen > 0, "%s has forge-carved faces" % id)
 		card.free()
+
+
+## Only a rare's forge-carved faces are locked: a face the player carves on a
+## rare, and a common die's preset (Powder Keg's twin), aren't flagged.
+func _test_not_locked() -> void:
+	var data := load("res://resources/map/bonfire_run.tres") as RunData
+	var p := RunProgress.new(data)
+	p.add_die(&"pyre")
+	var d := p.dice.size() - 1
+	_check(p.set_face(d, 0, &"wild"), "pyre face 1 carvable")
+	var info := DieCardInfo.from_run(p, d)
+	_check(info.faces[0]["mod"] == &"wild" and not info.faces[0].has("locked"), "carved face on a rare not locked")
+	var q := RunProgress.new(data)
+	_check(q.add_die(&"powder_keg"), "powder keg added")
+	var k := q.dice.size() - 1
+	var kinfo := DieCardInfo.from_run(q, k)
+	var preset := 0
+	var flagged := false
+	for f in kinfo.faces.size():
+		preset += 1 if kinfo.faces[f]["mod"] != &"" else 0
+		flagged = flagged or kinfo.faces[f].has("locked") or q.face_locked(k, f)
+	_check(preset > 0 and not flagged, "common die's preset face not locked")
 
 
 func _test_art_keys() -> void:
