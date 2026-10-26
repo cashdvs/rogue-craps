@@ -26,6 +26,7 @@ func _initialize() -> void:
 	scene.refresh()
 	_test_icons()
 	_test_lights()
+	_test_die_framing()
 	_test_dealer_layouts()
 	_test_still_is_lifted()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -75,6 +76,44 @@ func _test_lights() -> void:
 		_check(key.global_basis.z.dot(fill.global_basis.z) < 0.5, "fill comes from another side")
 	var envs: Array = view.get_children().filter(func(n: Node) -> bool: return n is WorldEnvironment)
 	_check(envs.size() == 1 and (envs[0] as WorldEnvironment).environment.ambient_light_energy < 1.0, "dim ambient")
+
+
+## Framing: the model is centred at the origin with its widest side 1 unit,
+## and the camera shows all of it, filling most of the square.
+func _test_die_framing() -> void:
+	var d := _die_item()
+	if d == null:
+		_check(false, "no die item")
+		return
+	var view: SubViewport = (d.icon as ShopIcon).die_view
+	var cam: Camera3D = view.get_camera_3d()
+	var model: Node3D = view.get_children().filter(func(n: Node) -> bool: return n is Node3D and not (n is Camera3D or n is Light3D))[0]
+	var b := ShopDieRender._bounds(model)
+	b = model.transform * b
+	_check(b.get_center().length() < 0.02, "model centred (off by %.3f)" % b.get_center().length())
+	var lo := Vector2.INF
+	var hi := -Vector2.INF
+	for i in 8:
+		var q := cam.unproject_position(b.get_endpoint(i))
+		lo = lo.min(q)
+		hi = hi.max(q)
+	var vs := Vector2(view.size)
+	var fill := maxf(hi.x - lo.x, hi.y - lo.y) / vs.x
+	_check(lo.x >= 0 and lo.y >= 0 and hi.x <= vs.x and hi.y <= vs.y, "whole die in view")
+	_check(fill > 0.6 and fill <= 1.0, "die fills the icon (%.2f)" % fill)
+	# Every die model, even one built off its origin, is centred and sized.
+	var worst := 0.0
+	for f: String in DirAccess.get_files_at("res://art/models/dice"):
+		if not f.ends_with(".glb"):
+			continue
+		var o := ShopOffer.new()
+		o.art_key = StringName(f.get_basename())
+		var r := ShopDieRender.make(o, 64)
+		var m: Node3D = r.view.get_child(0)
+		var mb := m.transform * ShopDieRender._bounds(m)
+		worst = maxf(worst, mb.get_center().length() + absf(mb.get_longest_axis_size() - 1.0))
+		r.free()
+	_check(worst < 0.02, "every die model centred at unit size (worst %.3f)" % worst)
 
 
 ## Smiles stands behind the rail on PC and portrait, filling the top band;

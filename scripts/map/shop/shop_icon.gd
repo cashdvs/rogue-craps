@@ -1,7 +1,5 @@
 ## The picture of one counter item (HANDOFF_SPEC §5).
-## - Dice: the real 3D model, looked at 3/4 from above in a small
-##   SubViewport. The model file is picked by the offer's art key, so a new
-##   die needs no code here, only its .glb.
+## - Dice: the real 3D model, from the shared rig in ShopDieRender.
 ## - Everything else is a token: a bone disc with a brass ring and a carved
 ##   glyph, chosen by art key from the GLYPHS table below.
 class_name ShopIcon
@@ -10,14 +8,6 @@ extends Control
 const BONE := Color("#E8DCC0")
 const BRASS := Color("#C9A24A")
 const INK := Color("#1E1712")
-## Icon rig lights (see _add_lights).
-const KEY_COLOR := Color("#FFEAD0")
-const KEY_ENERGY := 2.1
-const FILL_COLOR := Color("#E6E0D6")
-const FILL_ENERGY := 0.45
-const AMBIENT_COLOR := Color("#A89A88")
-const AMBIENT_ENERGY := 0.6
-
 ## Which glyph each art key carves. Keys not listed get their first letter.
 ## Seals ("seal_<combo>") draw an inner ring plus the combo's pips instead.
 const GLYPHS := {
@@ -44,79 +34,17 @@ func setup(o: ShopOffer, px: float) -> void:
 
 ## Path of the model for art key `key` ("" if the file doesn't exist).
 static func model_path(key: StringName) -> String:
-	var p := "res://art/models/dice/%s.glb" % key
-	return p if ResourceLoader.exists(p) else ""
+	return ShopDieRender.model_path(key)
 
 
+## Dice use the shared 3D rig in ShopDieRender.
 func _build_die(px: float) -> void:
-	var path := model_path(offer.art_key)
-	if path == "":
+	var r := ShopDieRender.make(offer, px)
+	if r == null:
 		return  # No model yet: _draw shows a plain bone die instead.
-	var box := SubViewportContainer.new()
-	box.stretch = true
-	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(box)
-	die_view = SubViewport.new()
-	die_view.transparent_bg = true
-	die_view.own_world_3d = true
-	die_view.size = Vector2i(int(px), int(px))
-	box.add_child(die_view)
-	var model: Node3D = (load(path) as PackedScene).instantiate()
-	die_view.add_child(model)
-	# Fit any model size: centre it and scale its widest side to 1 unit.
-	var aabb := _bounds(model)
-	var s := 1.0 / maxf(aabb.get_longest_axis_size(), 0.001)
-	model.scale = Vector3.ONE * s
-	model.position = -aabb.get_center() * s
-	var cam := Camera3D.new()
-	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 1.75
-	die_view.add_child(cam)
-	cam.look_at_from_position(Vector3(1.4, 1.6, 1.8), Vector3.ZERO)
-	_add_lights()
-
-
-## The icon rig (AD review): a warm key light from the camera's upper left so
-## bone reads cream, a soft neutral fill from the other side so shadow faces
-## keep their detail, and a dim warm ambient. Materials are untouched.
-func _add_lights() -> void:
-	for l: Array in [[KEY_COLOR, KEY_ENERGY, Vector3(0.6, 3.0, 2.4)], [FILL_COLOR, FILL_ENERGY, Vector3(2.6, 0.8, -0.6)]]:
-		var light := DirectionalLight3D.new()
-		light.light_color = l[0]
-		light.light_energy = l[1]
-		die_view.add_child(light)
-		light.look_at_from_position(l[2], Vector3.ZERO)
-	var env := WorldEnvironment.new()
-	env.environment = Environment.new()
-	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.environment.ambient_light_color = AMBIENT_COLOR
-	env.environment.ambient_light_energy = AMBIENT_ENERGY
-	die_view.add_child(env)
-
-
-## The combined box around every mesh under `n` (in n's own space).
-static func _bounds(n: Node3D) -> AABB:
-	var out := AABB()
-	var first := true
-	for m in n.find_children("*", "MeshInstance3D", true, false):
-		var mi := m as MeshInstance3D
-		var rel := _rel(n, mi)
-		var b := rel * mi.get_aabb()
-		out = b if first else out.merge(b)
-		first = false
-	return out
-
-
-## Transform of `child` relative to `root` (works before entering the tree).
-static func _rel(root: Node3D, child: Node3D) -> Transform3D:
-	var t := Transform3D.IDENTITY
-	var n: Node = child
-	while n != null and n != root:
-		if n is Node3D:
-			t = (n as Node3D).transform * t
-		n = n.get_parent()
-	return t
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(r)
+	die_view = r.view
 
 
 func _draw() -> void:
