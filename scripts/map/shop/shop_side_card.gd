@@ -89,8 +89,13 @@ func show_reroll(anchor: Control, pin: bool) -> void:
 		_line(ShopCardStrings.fill("shop_card_reroll_free", free), DIM)
 	var short := price - run.progress.embers
 	var ok := short <= 0
-	_button(ShopCardStrings.get_text("shop_card_buy") if ok else ShopCardStrings.fill("shop_card_cant_afford", short), ok, RED, reroll)
-	_open_at(anchor.get_global_rect())
+	_button(reroll_label(free > 0) if ok else ShopCardStrings.fill("shop_card_cant_afford", short), ok, RED, reroll)
+	# Portrait: sit on the YOUR DICE label like the sell card, never over the bag.
+	if shop.layout == ShopScreen.Layout.PORTRAIT and shop.bag_label != null:
+		var top := shop.bag_label.get_global_rect().position.y
+		_open_at(Rect2(Vector2(get_viewport().get_visible_rect().size.x / 2.0, top + 10 * shop.k), Vector2.ZERO))
+	else:
+		_open_at(anchor.get_global_rect())
 
 
 ## The reroll card's button (the only reroll on phones).
@@ -158,3 +163,9 @@ func _open_at(anchor: Rect2) -> void:
 	visible = true
 	reset_size()
 	_place(anchor)
+
+
+## The reroll card's button: "Reroll", or "Reroll free" when it costs nothing.
+static func reroll_label(free: bool) -> String:
+	var name := ShopCardStrings.get_text("shop_card_reroll_name")
+	return name + " " + ShopCardStrings.get_text("shop_card_free").to_lower() if free else name

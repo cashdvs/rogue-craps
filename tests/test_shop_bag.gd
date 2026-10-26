@@ -31,6 +31,9 @@ func _initialize() -> void:
 	_test_hover_and_pin()
 	_test_reroll_pc()
 	_test_reroll_phone()
+	_test_portrait_buttons()
+	_test_reroll_card_placement()
+	_test_reroll_button_text()
 	print("=== test_shop_bag: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -207,3 +210,48 @@ func _test_reroll_phone() -> void:
 	var a := ss.card.action
 	_check(a.disabled and a.text == ShopCardStrings.fill("shop_card_cant_afford", run.reroll_price()), "phone: can't afford greys the card's button")
 	run.progress.embers = 100
+
+
+## Portrait: Sell / Swap, Reroll, Leave span the width as three equal buttons, 8 px apart.
+func _test_portrait_buttons() -> void:
+	_show(PORTRAIT)
+	var row: Array[Button] = [ss.sell_button, ss.reroll_button, ss.leave_button]
+	var w := row[0].size.x
+	var same := absf(row[1].size.x - w) < 0.5 and absf(row[2].size.x - w) < 0.5
+	_check(same, "portrait: three equal widths")
+	var g1 := (row[1].position.x - row[0].position.x - w) / ss.k
+	var g2 := (row[2].position.x - row[1].position.x - w) / ss.k
+	_check(absf(g1 - 8) < 0.5 and absf(g2 - 8) < 0.5, "portrait: 8 px gaps")
+	var vis := ss.get_viewport().get_visible_rect().size
+	_check(absf(row[0].position.x / ss.k - 16) < 0.5 and absf((vis.x - row[2].position.x - w) / ss.k - 16) < 0.5, "portrait: row spans the width (16 px margins)")
+
+
+## Portrait reroll card sits on the YOUR DICE label and never covers the bag row.
+func _test_reroll_card_placement() -> void:
+	for free: int in [0, 2]:
+		run.progress.free_rerolls = free
+		run.progress.embers = 100
+		_show(PORTRAIT)
+		ss.reroll_button.pressed.emit()
+		var r := ss.card.get_global_rect()
+		var hit := false
+		for s in ss.bag:
+			hit = hit or r.intersects(s.get_global_rect())
+		_check(ss.card.visible and not hit, "portrait reroll card (free=%d) misses the bag row" % free)
+		var label_top := ss.bag_label.get_global_rect().position.y
+		_check(r.end.y <= label_top + 0.5 and r.end.y >= label_top - 12 * ss.k, "portrait reroll card bottom sits on the YOUR DICE label (free=%d)" % free)
+	run.progress.free_rerolls = 0
+
+
+## The reroll card's button says Reroll, or Reroll free when it costs nothing.
+func _test_reroll_button_text() -> void:
+	run.progress.embers = 100
+	run.progress.free_rerolls = 0
+	_show(PC)
+	ss.reroll_button.mouse_entered.emit()
+	_check(ss.card.action.text == "Reroll", "paid: the card's button says Reroll")
+	run.progress.free_rerolls = 1
+	_show(PORTRAIT)
+	ss.reroll_button.pressed.emit()
+	_check(ss.card.action.text == "Reroll free" and ss.reroll_button.text == "Reroll free", "free: the card's button and the bottom button say Reroll free")
+	run.progress.free_rerolls = 0

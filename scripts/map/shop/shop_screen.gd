@@ -198,7 +198,7 @@ func _add_buttons(vis: Vector2, y: float) -> void:
 	var run := screen.run
 	var pc := layout == Layout.PC
 	var px := int((26 if pc else 24) * k)
-	var reroll_text := "Reroll  %d" % run.reroll_price() if run.progress.free_rerolls == 0 else "Free reroll (%d)" % run.progress.free_rerolls
+	var reroll_text := "Reroll  %d" % run.reroll_price() if run.progress.free_rerolls == 0 else ShopSideCard.reroll_label(true)  # Same words as the card's button; the card shows how many are left.
 	sell_button = _button("Sell / Swap", px, func() -> void: selling = not selling; card.close(); build(screen))
 	reroll_button = _button(reroll_text, px, _on_reroll_pressed)
 	reroll_button.disabled = not touch_mode and run.progress.embers < run.reroll_price()
@@ -213,6 +213,15 @@ func _add_buttons(vis: Vector2, y: float) -> void:
 		sell_button.size = sell_button.get_combined_minimum_size()
 		var last := bag[BAG_SLOTS - 1]
 		sell_button.position = Vector2(last.position.x + last.size.x + 30 * k, last.position.y + (last.size.y - sell_button.size.y) / 2.0)
+	if layout == Layout.PORTRAIT:  # Three equal buttons across the width, 8 px gaps.
+		var gap := 8 * k
+		var w := (vis.x - 32 * k - 2 * gap) / 3.0
+		for i in row.size():
+			row[i].custom_minimum_size = Vector2(0, 44 * k)
+			row[i].clip_text = true
+			row[i].position = Vector2(16 * k + i * (w + gap), y)
+			row[i].size = Vector2(w, row[i].get_combined_minimum_size().y)
+		return
 	var x := vis.x - (40 if pc else 16) * k
 	for i in range(row.size() - 1, -1, -1):
 		var b := row[i]
