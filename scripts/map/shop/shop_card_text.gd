@@ -1,10 +1,5 @@
-## The shop card's words (design/strings_v1.md, "Shop card" rows), looked up
-## by their strings_v1 id, e.g. ShopCardText.say(&"shop_card_cant_afford", 4).
-##
-## DEPENDENCY: Systems Dev is landing these 22 shop_card_* rows (plus
-## shop_card_soul_name) in the repo strings. Until that PR merges, this file
-## holds the final text copied from strings_v1.md so the card can be built
-## against the ids. When it lands, point say() at that lookup and delete TEXT.
+## The 22 shop_card_* strings (design/strings_v1.md). DEPENDENCY: a stopgap until
+## Systems Dev's strings PR lands; then point say() there and delete TEXT.
 class_name ShopCardText
 extends RefCounted
 
@@ -35,14 +30,6 @@ const TEXT := {
 }
 
 
-## The text for `id`, with every {n} filled by `n` (strings use the same
-## number twice, e.g. "8 faces: rolls 1 to 8.").
+## The text for `id` with every {n} filled by `n` (e.g. "8 faces: rolls 1 to 8.").
 static func say(id: StringName, n: int = 0) -> String:
-	var t: String = TEXT.get(id, String(id))
-	var slots := t.count("%d")
-	if slots == 0:
-		return t
-	var args := []
-	args.resize(slots)
-	args.fill(n)
-	return t % args
+	return String(TEXT.get(id, String(id))).replace("%d", str(n))

@@ -1,8 +1,8 @@
 ## The visual Ember Shop (art/concept/shop_redesign/HANDOFF_SPEC.md): a wooden
 ## counter with shelves of goods, each with a brass price tag. Rules and prices
 ## stay in MapRunShop; this only lays the goods out and forwards clicks.
-## Later PRs slot in: A2 the dealer behind the rail and real icons, B (in) a ShopCard
-## on hover (PC) or the first tap (phones), C the bag row under the counter, D the rare chip.
+## Later PRs slot in: A2 the dealer behind the rail and real icons, B a ShopCard
+## on ShopItem.focus_item, C the bag row under the counter, D the rare chip.
 class_name ShopScreen
 extends Control
 

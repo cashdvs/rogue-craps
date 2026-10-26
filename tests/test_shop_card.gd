@@ -24,6 +24,7 @@ func _initialize() -> void:
 	_test_tap_swaps_and_empty_closes()
 	await _test_pc_hover()
 	_test_lines_per_type()
+	_test_die_render_and_pips()
 	_test_mod_buy_opens_picker()
 	_test_blocker_order()
 	print("=== test_shop_card: %d passed, %d failed ===" % [_passed, _failed])
@@ -159,6 +160,31 @@ func _test_lines_per_type() -> void:
 	ss.card.show_for(_item(ShopOffer.Kind.RARE_SEAL))
 	t = _texts(ss.card)
 	_check(t.has("RARE") and t.has(ShopCardText.say(&"shop_card_seal_rare")), "Rare Seal: chip + shop_card_seal_rare")
+	ss.card.close()
+
+
+## Dice keep the 3D render from #178 (a real model in a SubViewport); mods
+## don't. The card's face strip draws pips, not numerals, with a mod disc on
+## carved faces and a lock on pre-carved ones.
+func _test_die_render_and_pips() -> void:
+	_show(Vector2i(1920, 1080))
+	var die := _item(ShopOffer.Kind.DIE, 1)
+	var r := die.icon as ShopDieRender
+	_check(r != null and r.view.find_children("*", "MeshInstance3D", true, false).size() > 0, "die item shows its 3D model")
+	_check(not (_item(ShopOffer.Kind.MOD, 0).icon is ShopDieRender), "mod item uses a stand-in, not a die render")
+	ss.card.show_for(die)
+	var d: SpecialDieData = run.shop_dice[1]
+	var faces := ss.card.find_children("FaceStrip", "", true, false)[0].get_children()
+	_check(faces.size() == d.faces.size(), "strip has one face per die face %d vs %d" % [faces.size(), d.faces.size()])
+	var digits := 0
+	for f in faces:
+		for c in f.get_children():
+			digits += 1 if c is Label else 0
+	_check(digits == 0 and ss.card.find_children("Badge", "", true, false).is_empty(), "faces draw pips: no numeral labels, no letter badges")
+	_check(ShopCard.pips(1).size() == 1 and ShopCard.pips(6).size() == 6 and ShopCard.pips(8).size() == 8, "pip count matches the face value")
+	var carved := (d as DieShape).preset_mods.size() if d is DieShape else 0
+	_check(carved > 0 and ss.card.find_children("ModIcon", "", true, false).size() == carved, "each carved face gets its mod icon")
+	_check(ss.card.find_children("Lock", "", true, false).size() == carved, "each pre-carved face gets a lock")
 	ss.card.close()
 
 

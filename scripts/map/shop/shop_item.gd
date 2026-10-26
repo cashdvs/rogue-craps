@@ -1,7 +1,5 @@
 ## One item on a shelf (HANDOFF_SPEC §5): its icon above a price tag.
-## PC: clicking it buys (emits `buy`); hovering emits `focus_item` and
-## leaving emits `unfocus_item` (ShopCard opens after 150 ms).
-## Phone (`touch_mode`): a tap only emits `focus_item`; the card's Buy buys.
+## PC: click buys, hover / leave emit focus_item / unfocus_item. Phone: a tap only focuses.
 ## PR D adds the RARE chip and plinth here, reading `offer.rare`.
 class_name ShopItem
 extends VBoxContainer
@@ -18,14 +16,10 @@ var offer: ShopOffer
 ## ShopIcon (3D dice and glyph tokens) here.
 var icon: Control
 var tag: PriceTag
-## Phone layouts: taps select only, they never buy (shop_cards_v1 §4).
-## Set by ShopScreen. Phones also send a mouse click per tap, so this goes
-## by layout, not by event type.
+## Phone layout (set by ShopScreen; taps arrive as mouse clicks too).
 var touch_mode := false
-## True while lifted (its card is open).
 var lifted := false
 var _hairline: ReferenceRect
-## Design px per spec px (from setup).
 var _k := 1.0
 
 
@@ -39,7 +33,9 @@ func setup(o: ShopOffer, embers: int, art_px: float, num_px: int, k: float) -> v
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	tooltip_text = o.display_name
-	icon = _stand_in(o, art_px)
+	# Dice keep their 3D render (#178); everything else a stand-in disc.
+	var die := ShopDieRender.make(o, art_px) if o.kind == ShopOffer.Kind.DIE else null
+	icon = die if die != null else _stand_in(o, art_px)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_child(icon)
 	tag = PriceTag.new()
@@ -58,8 +54,7 @@ func setup(o: ShopOffer, embers: int, art_px: float, num_px: int, k: float) -> v
 	add_child(_hairline)
 
 
-## Lift the item 10 spec px with a cream hairline (its card is open), or
-## set it back down.
+## Lift the item 10 spec px with a cream hairline while its card is open.
 func lift(on: bool) -> void:
 	if on == lifted:
 		return
