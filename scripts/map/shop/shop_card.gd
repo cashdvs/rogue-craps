@@ -196,8 +196,7 @@ func _body(o: ShopOffer) -> Array:
 
 ## The counter token (mod icon / Seal combo mark) at 42 spec px.
 func _token(o: ShopOffer) -> Control:
-	var icon := ShopIcon.new()
-	icon.setup(o, _px(42))
+	var icon := ShopItem._stand_in(o, _px(42))  # PR A2 swaps in ShopIcon.
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	return icon
 

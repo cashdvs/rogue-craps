@@ -1,8 +1,6 @@
-## One thing for sale on the shop counter (shop redesign, HANDOFF_SPEC §5):
-## a die, a face mod, a Seal, the rare Seal or the Soul Draught. It is plain
-## data read from MapRun, so ShopItem (counter), and later ShopCard (PR B),
-## can draw it without knowing the shop rules. Prices always come from
-## MapRunShop, already including the floor markup.
+## One thing for sale on the shop counter (HANDOFF_SPEC §5): a die, face mod,
+## Seal, rare Seal or the Soul Draught, as plain data read from MapRun so the
+## counter (and PR B's card) can draw it without knowing the shop rules.
 class_name ShopOffer
 extends RefCounted
 
@@ -14,12 +12,10 @@ var index: int = 0
 ## The die / mod / combo id (the Draught uses &"soul").
 var id: StringName = &""
 var display_name: String = ""
-## Art key, picked from data only: a die's model body (DiceIds.body_key, so
-## pyre/gilt/lodestone/ossuary use their stand-in bodies until their own
-## .glb lands), else "mod_<id>", "seal_<id>" or "soul".
+## Art key, from data only: a die's model body (DiceIds.body_key, so rare dice
+## use stand-in bodies until their .glb lands), else mod_/seal_<id> or soul.
 var art_key: StringName = &""
-## True for rare dice (SpecialDieData.rarity) and the rare Seal. PR D draws
-## the RARE chip and plinth from this.
+## Rare dice (SpecialDieData.rarity) and the rare Seal; PR D draws the chip.
 var rare: bool = false
 ## Lowest and highest price. They differ only for mods (the price depends
 ## on which die you carve). -1 = can't be bought now (no free face).
@@ -40,15 +36,11 @@ func price_text() -> String:
 	return str(price_lo) if price_lo == price_hi else "%d-%d" % [price_lo, price_hi]
 
 
-static func _make(kind: Kind, index: int, id: StringName, name: String, art: StringName, lo: int, hi: int) -> ShopOffer:
+static func _make(kind: Kind, index: int, id: StringName, name: String, art: StringName, lo: int, hi: int = -2) -> ShopOffer:
 	var o := ShopOffer.new()
-	o.kind = kind
-	o.index = index
-	o.id = id
-	o.display_name = name
-	o.art_key = art
+	o.kind = kind; o.index = index; o.id = id; o.display_name = name; o.art_key = art
 	o.price_lo = lo
-	o.price_hi = hi
+	o.price_hi = lo if hi == -2 else hi  # One price unless a range is given.
 	return o
 
 
@@ -59,12 +51,12 @@ static func list(run: MapRun) -> Array[ShopOffer]:
 	for i in run.shop_dice.size():
 		var d := run.shop_dice[i]
 		if d != null:
-			var o := _make(Kind.DIE, i, d.id, d.display_name, DiceIds.body_key(d.id), run.die_price(i), run.die_price(i))
+			var o := _make(Kind.DIE, i, d.id, d.display_name, DiceIds.body_key(d.id), run.die_price(i))
 			o.rare = d.is_rare()
 			out.append(o)
 	if run.data.shop_soul_amount > 0:
 		out.append(_make(Kind.SOUL, 0, &"soul", EconomyStrings.shop_soul_button(run.data.shop_soul_amount, run.soul_price()),
-			&"soul", run.soul_price(), run.soul_price()))
+			&"soul", run.soul_price()))
 	for i in run.shop_mods.size():
 		var m := run.shop_mods[i]
 		if m != null:
@@ -73,12 +65,10 @@ static func list(run: MapRun) -> Array[ShopOffer]:
 	for i in run.shop_seals.size():
 		var s := run.shop_seals[i]
 		if s != &"":
-			var p := run.seal_price(s)
-			out.append(_make(Kind.SEAL, i, s, "%s Seal" % String(s).capitalize(), StringName("seal_%s" % s), p, p))
+			out.append(_make(Kind.SEAL, i, s, "%s Seal" % String(s).capitalize(), StringName("seal_%s" % s), run.seal_price(s)))
 	if run.shop_premium_seal != &"":
 		var s := run.shop_premium_seal
-		var o := _make(Kind.RARE_SEAL, 0, s, String(s).capitalize(), StringName("seal_%s" % s),
-			run.premium_seal_price(), run.premium_seal_price())
+		var o := _make(Kind.RARE_SEAL, 0, s, String(s).capitalize(), StringName("seal_%s" % s), run.premium_seal_price())
 		o.rare = true
 		out.append(o)
 	return out
