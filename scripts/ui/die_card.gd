@@ -13,6 +13,8 @@ const TAKEN := "This face already has a face mod."
 ## strings_v1 rare_carved_locked: a rare die's pre-carved face (rare_dice_v1 §3).
 const LOCKED := EconomyStrings.RARE_CARVED_LOCKED
 const FACE_SIZE := Vector2(92, 40)
+## Greys a refused-but-tappable face (a rare's locked face) like a disabled one.
+const REFUSED_TINT := Color(1, 1, 1, 0.5)
 
 var info: DieCardInfo
 
@@ -26,7 +28,8 @@ static func create(card_info: DieCardInfo, read_only: bool = true) -> DieCard:
 
 ## Show `card_info`. read_only: faces are disabled. Otherwise
 ## allowed (Callable(face_index) -> bool; invalid = every face) enables
-## faces, and a disabled face that carries a mod adds the TAKEN line.
+## faces, and a disabled face that carries a mod adds the TAKEN line. A
+## rare's locked face stays tappable (greyed): a tap shows LOCKED via refuse().
 func set_die(card_info: DieCardInfo, read_only: bool = true, allowed: Callable = Callable()) -> void:
 	info = card_info
 	for c in get_children():
@@ -48,8 +51,27 @@ func set_die(card_info: DieCardInfo, read_only: bool = true, allowed: Callable =
 			b.disabled = true
 		else:
 			b.disabled = allowed.is_valid() and not bool(allowed.call(f))
-			if b.disabled and mod != &"" and mod != RunDie.BLANK:
-				b.tooltip_text += "\n" + (LOCKED if bool(face.get("locked", false)) else TAKEN)
-			b.pressed.connect(func() -> void: face_picked.emit(f))
+			if b.disabled and bool(face.get("locked", false)):
+				# Tappable (no hover on phones): a tap refuses and says why.
+				b.disabled = false
+				b.modulate = REFUSED_TINT
+				b.tooltip_text += "\n" + LOCKED
+				b.pressed.connect(func() -> void: refuse(LOCKED))
+			else:
+				if b.disabled and mod != &"" and mod != RunDie.BLANK:
+					b.tooltip_text += "\n" + TAKEN
+				b.pressed.connect(func() -> void: face_picked.emit(f))
 		row.add_child(b)
 	add_child(row)
+
+
+## Show `text` on the card (one line, replaced on the next refusal): why a
+## tapped face can't be carved. No face_picked.
+func refuse(text: String) -> void:
+	var l := get_node_or_null("Refused") as Label
+	if l == null:
+		l = RunTheme.label(text, 16, RunTheme.GOLD)
+		l.name = "Refused"
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		add_child(l)
+	l.text = text

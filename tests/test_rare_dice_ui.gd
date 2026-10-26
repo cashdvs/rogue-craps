@@ -82,6 +82,15 @@ func _test_locked_tooltip() -> void:
 			if bool(face.get("locked", false)):
 				seen += 1
 				_check(EconomyStrings.RARE_CARVED_LOCKED in tip and not DieCard.TAKEN in tip, "%s face %d locked tooltip" % [id, f])
+				# A tap (Android: no hover) refuses the carve and shows the message.
+				var b := row.get_child(f) as Button
+				var picked := [false]
+				card.face_picked.connect(func(_i: int) -> void: picked[0] = true)
+				_check(not b.disabled, "%s face %d tappable" % [id, f])
+				b.pressed.emit()
+				var l := card.get_node_or_null("Refused") as Label
+				_check(l != null and l.text == EconomyStrings.RARE_CARVED_LOCKED and not picked[0],
+					"%s face %d tap refuses and shows the locked message" % [id, f])
 		_check(seen > 0, "%s has forge-carved faces" % id)
 		card.free()
 
