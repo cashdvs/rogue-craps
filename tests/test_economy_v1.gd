@@ -316,12 +316,16 @@ func _test_shop_ui() -> void:
 	_click_item(rare)
 	await process_frame
 	_check(run.progress.embers == 0 and _shop_item(scene, ShopOffer.Kind.RARE_SEAL) == null, "P4 UI: bought; the slot is gone")
+	_check(scene.shop_screen.floor_note == null and not _floor_note_shown(scene), "P5 UI: no price note on Floor 1")
 	run._start_floor(2)
 	_enter(run, NT.SHOP)
 	await process_frame
 	run.shop_dice[0] = load("res://resources/dice/special/mirror.tres")
 	run.progress.embers = 26
 	scene.refresh()
+	var note := scene.shop_screen.floor_note
+	_check(note != null and note.visible and note.is_inside_tree() and note.text.replace("\n", " ") == "Prices on this floor: 50% above Floor 1.",
+		"P5 UI: shop_floor_price_note on Floor 3 (under the shop title)")
 	var die := _shop_item(scene, ShopOffer.Kind.DIE)
 	scene.shop_screen.card.show_for(die)
 	_check(die != null and die.offer.price_text() == "27" and scene.shop_screen.card.blocker_id == &"shop_card_cant_afford",
@@ -330,3 +334,11 @@ func _test_shop_ui() -> void:
 		"P5 UI: Soul Draught (12 + 4) x 1.5 = 24; reroll stays 3")
 	scene.queue_free()
 	await process_frame
+
+
+## True if any visible label on the shop counter starts with the floor price note.
+func _floor_note_shown(scene: RunScreen) -> bool:
+	for l in scene.shop_screen.find_children("*", "Label", true, false):
+		if (l as Label).is_visible_in_tree() and (l as Label).text.begins_with("Prices on this floor"):
+			return true
+	return false
