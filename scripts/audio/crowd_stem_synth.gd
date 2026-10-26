@@ -1,6 +1,6 @@
-## Shared base for the Bonfire synth: the 3 looping crowd stems (crowd_low,
-## crowd_mid, crowd_high, played by CrowdLayers), their pot-driven gains, and
-## the buffer helpers every Bonfire recipe uses. Split out of BonfireSynth to
+## Shared base for the Bonfire synth: the crowd/roar recipes (one-shot roars
+## and gasps) and the buffer helpers every Bonfire recipe uses. There is no
+## looping crowd bed any more (removed by request). Split out of BonfireSynth to
 ## keep each file under 400 lines; BonfireSynth extends this, so its recipes
 ## call these helpers unqualified and share the one seeded _rng (bakes are
 ## byte-identical to before the split).
@@ -9,47 +9,10 @@ extends RefCounted
 
 const MIX_RATE: int = SfxSynth.MIX_RATE
 
-## Looping crowd stems, quietest first (played by CrowdLayers).
-const LOOPS: Array[StringName] = [&"crowd_low", &"crowd_mid", &"crowd_high"]
+## Syllable period of a crowd: syllable rates are whole cycles per this.
 const LOOP_SECONDS: float = 3.0
-const LOOP_LENGTHS: Dictionary[StringName, float] = {&"crowd_low": 7.0, &"crowd_mid": 5.3, &"crowd_high": 4.1}  # realign after ~4.2 h
 
 static var _rng := RandomNumberGenerator.new()
-
-## Volume (dB) for each crowd stem [low, mid, high] at an unbanked-pot
-## fraction (0 = empty pot, 1 = as big as it gets; game logic decides the
-## scale). Low murmurs all the time, mid joins from 0.2, the roar from 0.55.
-static func crowd_gains_db(pot_fraction: float) -> PackedFloat32Array:
-	var f := clampf(pot_fraction, 0.0, 1.0)
-	var lin: Array[float] = [0.35 + 0.65 * smoothstep(0.0, 0.3, f), smoothstep(0.2, 0.6, f), smoothstep(0.55, 1.0, f)]
-	var out := PackedFloat32Array()
-	for a in lin:
-		out.append(maxf(linear_to_db(a), -60.0))
-	return out
-
-
-## The crowd stems (rev 2: softer, warmer bed; see README).
-static func _stem(event: StringName) -> PackedFloat32Array:
-	var p: float = LOOP_LENGTHS[event]
-	match event:
-		&"crowd_low":  # rev 2: warm C-minor room drone + a few distant voices
-			return _loop(_hp(_mix([_drone(p + 0.3, p), _crowd(p + 0.3, 8, 220.0, 600.0, -1.0, p)], [1.0, 0.3])), p)
-		&"crowd_mid":  # rev 2: fewer voices, darker
-			return _loop(_hp(_crowd(p + 0.3, 12, 300.0, 1000.0, -1.0, p)), p)
-		_:  # crowd_high, rev 2: darker, less rumble noise under it
-			return _loop(_hp(_mix([_crowd(p + 0.3, 16, 400.0, 1200.0, -1.0, p), _roar(p + 0.3, -1.0, 0.0)], [1.0, 0.2])), p)
-
-
-## DC / sub-sonic blocker (one-pole high-pass, ~25 Hz).
-static func _hp(buf: PackedFloat32Array) -> PackedFloat32Array:
-	var x1 := 0.0
-	var y := 0.0
-	for i in buf.size():
-		y = exp(-TAU * 25.0 / MIX_RATE) * (y + buf[i] - x1)
-		x1 = buf[i]
-		buf[i] = y
-	return buf
-
 
 # --- Crowd recipes (also used by BonfireSynth one-shots) --------------------
 
@@ -71,33 +34,16 @@ static func _roar(seconds: float, peak_s: float, crackle: float) -> PackedFloat3
 	return _fade_tail(buf, 0.1) if peak_s >= 0.0 else buf
 
 
-## A warm room tone: C2 C3 G3 Eb4 sines (C minor, spread so no pair beats) that swell and ebb
-## slowly. Frequencies and LFOs are whole cycles per `period`: a click-free seam.
-static func _drone(seconds: float, period: float) -> PackedFloat32Array:
-	var buf := _buffer(seconds)
-	var hz: Array[float] = [65.41, 130.81, 196.0, 311.13]
-	var amps: Array[float] = [1.0, 0.45, 0.3, 0.15]
-	for i in buf.size():
-		var t := float(i) / MIX_RATE
-		var v := 0.0
-		for k in hz.size():
-			var f := roundf(hz[k] * period) / period
-			var lfo := 0.75 + 0.25 * sin(TAU * (k + 1) * t / period + k * 1.7)
-			v += sin(TAU * f * t) * amps[k] * lfo
-		buf[i] = v
-	return buf
-
-
 ## A crowd: `voices` band-limited noise voices (each a "person") whose
-## loudness rises and falls in syllables (whole cycles per `period`, so stems loop
-## cleanly). peak_s >= 0 makes it a one-shot roar that swells to peak_s; < 0 keeps it steady.
-static func _crowd(seconds: float, voices: int, lo_hz: float, hi_hz: float, peak_s: float, period: float = LOOP_SECONDS) -> PackedFloat32Array:
+## loudness rises and falls in syllables (whole cycles per LOOP_SECONDS).
+## peak_s >= 0 makes it a one-shot roar that swells to peak_s; < 0 keeps it steady.
+static func _crowd(seconds: float, voices: int, lo_hz: float, hi_hz: float, peak_s: float) -> PackedFloat32Array:
 	var buf := _buffer(seconds)
 	for v in voices:
 		var fc := _rng.randf_range(lo_hz, hi_hz)
 		var a := clampf(TAU * fc * 1.4 / MIX_RATE, 0.0, 1.0)
 		var b := clampf(TAU * fc * 0.6 / MIX_RATE, 0.0, 1.0)
-		var rate := roundf(_rng.randi_range(6, 18) / LOOP_SECONDS * period) / period
+		var rate := float(_rng.randi_range(6, 18)) / LOOP_SECONDS
 		var ph := _rng.randf_range(0.0, TAU)
 		var gain := _rng.randf_range(0.5, 1.0)
 		var lp := 0.0
@@ -151,18 +97,6 @@ static func _delay(buf: PackedFloat32Array, seconds: float) -> PackedFloat32Arra
 	pad.resize(int(seconds * MIX_RATE))
 	pad.append_array(buf)
 	return pad
-
-
-## Turns `period` + 0.3 s of sound into a seamless `period` loop by
-## crossfading the extra tail over the start.
-static func _loop(buf: PackedFloat32Array, period: float) -> PackedFloat32Array:
-	var n := roundi(period * MIX_RATE)
-	var x := mini(buf.size() - n, int(0.3 * MIX_RATE))
-	var out := buf.slice(0, n)
-	for i in x:
-		var k := float(i) / x
-		out[i] = buf[i] * k + buf[n + i] * (1.0 - k)
-	return out
 
 
 ## Linear fade over the last `seconds`, so a tail always ends in silence.

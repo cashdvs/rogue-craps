@@ -6,8 +6,8 @@ All are procedural (`BonfireSynth`), baked to `audio/sfx/<event>.wav` by
 (the mod trigger cues' `trigger_*.wav` included). Re-bake them all with
 `godot --headless --path . --script res://tools/bake_sfx.gd`. One-shots play
 through the table's `SfxManager`
-(`sfx.play(event, pitch, volume_db, pitch_jitter)`); the crowd plays through a
-`CrowdLayers` node.
+(`sfx.play(event, pitch, volume_db, pitch_jitter)`). There is no looping
+background ambience (see "Crowd" below).
 
 ## One-shots
 
@@ -34,31 +34,11 @@ through the table's `SfxManager`
 |---|---|---|
 | `nerve_nudge` **(new)** | every Nerve nudge and undo (VFX Dev's #140 plays it through `TableAudio`, falling back to `chip_place` if it's missing) | `sfx.play(&"nerve_nudge")`. A brass dial clicking one detent: 80–110 ms, a tiny click, a soft C6 brass ping and a low wooden tick, no noise. `SfxSynth` recipe `_dial_tick`, 3 takes (`nerve_nudge_01..03`, a few cents apart) rotated without repeats so rapid nudges don't sound robotic. Peaks at the SfxSynth level (0.85); play it at about -6 dB if it stacks with chip sounds. |
 
-## Crowd (unbanked pot)
+## Crowd (no ambience bed)
 
-```gdscript
-var crowd := CrowdLayers.new()
-add_child(crowd)
-crowd.start()                                  # when the hand starts
-crowd.set_pot_fraction(pot / big_pot)          # after every pot (0..1, you choose the scale)
-crowd.set_pot_fraction(0.0)                    # after Bank or Bust
-crowd.stop()                                   # leaving the table
-```
+**Removed (Oct 25, by request):** the looping crowd bed (`crowd_low`, `crowd_mid`, `crowd_high` stems that followed the unbanked pot, #156's rev 3 included) is gone: its WAVs, the stem synth code and `CrowdLayers`' players. Nothing loops at the table any more. The crowd's one-shots stay: `stinger_pillar`'s roar, the mod-trigger crowd gasps and the verdict layers (`CrowdStemSynth._crowd` / `_roar`).
 
-There are three looping stems (7.0, 5.3 and 4.1 s), `crowd_low`, `crowd_mid` and `crowd_high`, on their own players (never stolen by the SfxManager pool). `BonfireSynth.crowd_gains_db(f)` maps the pot fraction `f` to the stem gains:
-
-| f | low | mid | high |
-|---|---|---|---|
-| 0.0 | -9 dB (room tone + murmur) | off | off |
-| 0.3 | 0 dB | -9 dB | off |
-| 0.6 | 0 dB | 0 dB | -28 dB |
-| 1.0 | 0 dB | 0 dB | 0 dB (roar) |
-
-On top of that, `CrowdLayers.volume_db` (default -14 dB) sets the overall crowd level. Changes glide over 0.4 s.
-
-**Rev 2 (playtest, "too loud, not satisfying"):** the bed sits about 8.6 dB lower (empty-pot RMS -36.3 → -44.9 dBFS, measured against the same roll + score sequence; the dice, chips and scoring now sit 25–27 dB above it instead of 16–19). `crowd_low` is now a warm C-minor room drone (C2, G2, C3, E♭3 sines swelling slowly; rev 3 voicing below; every frequency is a whole number of cycles per loop, so the seam is continuous) with 8 distant voices under it, peak 0.2 (was 14 voices at 0.35). `crowd_mid` and `crowd_high` have fewer, darker voices (low-passed at 1.0/1.2 kHz) and less roar rumble. `tests/test_bonfire_sfx.gd` checks the bed's level, that it has no broadband hiss and that the seam is continuous.
-
-**Rev 3 (playtester: "strange background noise", Oct 22 build):** each stem has its own loop length (`CrowdStemSynth.LOOP_LENGTHS`: low 7.0 s, mid 5.3 s, high 4.1 s; were all 3.0 s and started together, so the whole bed repeated as one 3 s block, envelope correlation 0.99 at 3 s). Together they only realign after about 4.2 hours. The drone is re-voiced to C2, C3, G3, E♭4 (was C2, G2, C3, E♭3: the low fifth and minor third sat inside one critical band and beat at 25–33 Hz, a growl; roughness 0.137 → 0.036, 15–60 Hz envelope buzz 8.6 % → 0.3 %). Every stem goes through a 25 Hz DC/rumble blocker (`crowd_high` had DC 0.002 and 2.3 % sub-20 Hz energy from the roar). `CrowdLayers.start()` no longer restarts stems that are already playing (each new run called it, cutting the loops mid-wave).
+`CrowdLayers` keeps its API so callers need no change, but every call is a no-op and it owns no players: `start()`, `stop()`, `nudge()` do nothing, `set_pot_fraction(f)` only records `pot_fraction`, `current_db()` is empty. `tests/test_no_ambience.gd` checks that no looping or playing ambience player starts on the 3D table or a Bonfire table, and `tests/test_bonfire_sfx.gd` that the bake makes no `crowd_*` WAVs.
 
 ## Mod trigger cues
 
@@ -74,7 +54,7 @@ tick scale (C harmonic minor), so overlaps stay consonant. There's no fire on
 any of them, Hellfire included.
 
 ```gdscript
-sfx.crowd = crowd                     # once, if there is a crowd: signature hits nudge it
+sfx.crowd = crowd                     # optional; nudge() is a no-op now
 sfx.trigger_speed_mode = speed_mode   # 0 = 1x, 1 = 2x, 2 = Instant (JuicePlan)
 # At each trigger's FX start, once per trigger, in resolve order. No timers: the hook staggers.
 for trig in fired:
@@ -88,7 +68,7 @@ for trig in fired:
 - **hit_ms:** the hit frame from the FX start; −1 uses the row's. The hook schedules the file so its transient lands on the hit. If the hit comes sooner than the file's anticipation, the cue starts at once and skips in. Retune `ROWS` without re-baking.
 - **Several per pot:** triggers called at the same moment (one resolve step, e.g. several copy dice on LAND) are staggered 0.08 s apart in call order (`ModTriggerSynth.stagger(k)`, halved at 2x), and the return value includes the stagger, so the FX can use it for its own key hit. Triggers at different moments (each die's pip tick) aren't delayed. At most `MAX_VOICES` (4) cues sound at once, matching the spec's burst cap. The 5th and later play one shared `trigger_cluster` at their hit (the spec's shared pop); the rest are dropped while it's pending. Trigger cues have their own players, so count ticks never cut them off.
 - **Bellows:** `SfxManager.ONCE_ROWS` (`bellows_hot`) play once while one is still sounding, so extra Bellows in the same Hot Hand return −1 (spec §2b: the effect plays once, on the first Bellows).
-- **Crowd:** with `sfx.crowd` set, every SIGNATURE trigger (by its actual tier) nudges the crowd on its hit (`CrowdLayers.nudge()`: +3 dB, back over 0.3 s, only while the crowd plays). It's still public for other uses.
+- **Crowd:** with `sfx.crowd` set, every SIGNATURE trigger still calls `CrowdLayers.nudge()` on its hit, but that is a no-op now (no ambience bed).
 - **Fast-forward:** set `sfx.trigger_speed_mode` like JuicePlan: 0 = 1x; 1 = 2x (the hit comes at half the time, the cue plays 1.12x up and 2 dB down); 2 = Instant (one `trigger_cluster` per frame, no stagger). A tap-to-skip should stop calling the hook for triggers that haven't started.
 
 | Row (tier, hit) | Cue |
