@@ -34,8 +34,6 @@ var _panel_box: VBoxContainer
 var _table: Bonfire3D
 ## The visual shop counter (ShopScreen); shown only on the Shop screen.
 var shop_screen: ShopScreen
-## True while the old text shop list is open from Sell / Swap (until PR C).
-var shop_list := false
 ## Map screen: "Quit to title" (asks first; the run is lost).
 var quit_button: Button
 ## Map screen: "Your dice" (D) and "Key" (K) on the top bar.
@@ -157,7 +155,6 @@ func refresh() -> void:
 	event_view.visible = run.screen == S.EVENT
 	_panel_root.visible = not (map_view.visible or event_view.visible)
 	shop_screen.visible = false
-	shop_list = shop_list and run.screen == S.SHOP
 	_bar.visible = run.screen != S.SHOP
 	quit_button.visible = map_view.visible
 	bag_button.visible = map_view.visible
@@ -305,31 +302,11 @@ func _show_rest() -> void:
 	_panel("The Lounge", ["Rest a moment. Pick one."], buttons)
 
 
-## The shop counter, or the old text list (ShopView, kept for selling
-## until the bag row lands in shop redesign PR C) after Sell / Swap.
+## The shop counter (ShopScreen): goods, the bag row for selling, the reroll.
 func _show_shop() -> void:
-	if shop_list:
-		var buttons := ShopView.buttons(self)
-		buttons.append(["Back", func() -> void: shop_list = false; refresh()])
-		_panel("The Ember Shop", ShopView.lines(self), buttons)
-		return
 	_panel_root.visible = false
 	shop_screen.visible = true
 	shop_screen.build(self)
-
-
-## Shop label for mod offer i (ShopView.mod_offer_text).
-func mod_offer_text(i: int) -> String:
-	return ShopView.mod_offer_text(run, i)
-
-
-## The handful by name and shape, e.g. "Bone, Powder Keg (6 faces), Ferryman's Coin (2 faces), Mirror Die".
-func bag_text() -> String:
-	var names: Array[String] = []
-	for i in run.progress.dice.size():
-		var d := run.progress.dice[i]
-		names.append(run.progress.die_name(i) + ("" if d.shape == DiceIds.DIE_BONE else " (%d faces)" % d.faces.size()))
-	return ", ".join(names)
 
 
 func _pick(prompt: String, done: Callable, allowed: Callable = Callable(), price: Callable = Callable()) -> void:

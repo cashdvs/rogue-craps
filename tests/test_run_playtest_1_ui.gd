@@ -117,18 +117,21 @@ func _test_shop_prices(scene: RunScreen) -> void:
 	scene.run.progress.set_face(1, 0, &"wild")
 	scene.run.progress.set_face(1, 1, &"heavy")
 	scene.run.progress.embers = 200
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
+	scene.refresh()
 	var p0 := scene.run.progress.mod_price(twin, 2)
 	var p1 := scene.run.progress.mod_price(twin, 1)
-	var label := scene.mod_offer_text(0)
-	_check(label == "Twin Face - %d to %d Embers, by die" % [p0, p1] and p1 > p0, "shop: the mod label shows the real price range (%s)" % label)
-	var opened := false
-	for b in _buttons(scene._panel_box):
-		if b.text == label:
-			b.pressed.emit()
-			opened = true
-			break
+	var mod: ShopItem = null
+	for it in scene.shop_screen.items:
+		if it.offer.kind == ShopOffer.Kind.MOD and it.offer.index == 0:
+			mod = it
+	var label := mod.offer.price_text() if mod != null else ""
+	_check(label == "%d-%d" % [p0, p1] and p1 > p0, "shop: the mod tag shows the real price range (%s)" % label)
+	var opened := mod != null
+	if opened:  # A real PC click on the counter item opens the face picker.
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.pressed = true
+		mod._gui_input(e)
 	var t := _texts(scene._panel_box)
 	_check(opened and t.has(DicePanel.NEXT_MOD % p1) and t.has(DicePanel.NEXT_MOD % p0), "picker: each die shows what its next mod costs before you pay")
 	var taken := _buttons(scene._panel_box).any(func(b: Button) -> bool: return b.disabled and b.tooltip_text.ends_with(DicePanel.TAKEN))
