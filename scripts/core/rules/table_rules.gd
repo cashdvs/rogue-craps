@@ -14,6 +14,10 @@ const SCRIPTS := {
 	&"heavy_burn": preload("res://scripts/core/rules/rule_label.gd"),
 	&"madame_shuffle": preload("res://scripts/core/rules/rule_madame_shuffle.gd"),
 	&"pit_boss": preload("res://scripts/core/rules/rule_pit_boss.gd"),
+	# Madame Shuffle's stopgap (run_tuning_v1.md Addendum 3): the Pit Boss
+	# handler under her own id until her reroll rework is re-simmed; then her
+	# .tres switches to &"madame_shuffle".
+	&"madame_shuffle_stopgap": preload("res://scripts/core/rules/rule_pit_boss.gd"),
 	&"ashmouth": preload("res://scripts/core/rules/rule_no_hot_hand.gd"),
 	&"straight_man": preload("res://scripts/core/rules/rule_straight_man.gd"),
 	&"collector": preload("res://scripts/core/rules/rule_collector.gd"),
@@ -32,6 +36,7 @@ const DEFAULT_PARAMS := {
 	&"mister_wick": {"face": 6},
 	&"baron_vig": {"min_pot": 3},
 	&"odds_bodkin": {"throws": 1},
+	&"madame_shuffle_stopgap": {"faces": [2, 4]},
 }
 ## id -> [name, one line, kind] (Game Designer's text, design/strings_v1.md;
 ## a rule's own name / description override these). The Elite twists'
@@ -46,6 +51,7 @@ const INFO := {
 	&"cold_hands": ["Cold Hands", "No Hot Hand, but you get +1 hand.", TableRule.Kind.TWIST],
 	&"madame_shuffle": ["Madame Shuffle", "After each throw, she rerolls one random lit die.", TableRule.Kind.CHEAT],
 	&"pit_boss": ["The Pit Boss", "Each hand, one number from 2 to 6 never lights.", TableRule.Kind.CHEAT],
+	&"madame_shuffle_stopgap": ["Madame Shuffle", "Each hand, a 2 or a 4 never lights.", TableRule.Kind.CHEAT],
 	&"ashmouth": ["Ashmouth", "No Hot Hand, and you get one fewer hand.", TableRule.Kind.CHEAT],
 	&"straight_man": ["The Straight Man", "Runs of 3 don't count; runs of 4 or 5 still do.", TableRule.Kind.CHEAT],
 	&"collector": ["The Collector", "Face mods do nothing on each hand's first throw.", TableRule.Kind.CHEAT],

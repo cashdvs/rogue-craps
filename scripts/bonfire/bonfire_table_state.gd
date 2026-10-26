@@ -91,6 +91,8 @@ var juice: BonfireJuice
 var tutorial_override: int = -1
 ## Hints + tutorial seeds for this table (made in _ready).
 var onboarding: BonfireOnboarding
+## The dealer art at the far rail: Smiles, or the boss on a boss table.
+var dealer_art: BonfireDealerArt
 ## Dice of the pot being counted up, pip -> die index, its tier.
 var _juice_dice: Array[DieVisual] = []
 var _pip_die: Array[int] = []

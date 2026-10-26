@@ -24,7 +24,7 @@ Strings come from `design/strings_v1.md` (Tiny Anvil design repo, built by `sim/
 | Floor | Boss | Rule data | Handler |
 |---|---|---|---|
 | 1 | The Pit Boss | `rules/pit_boss.tres` (faces 2–6) | `rule_pit_boss.gd` |
-| 1 | Madame Shuffle | `rules/madame_shuffle.tres` (**stopgap**: id `pit_boss`, faces 2/4) | `rule_pit_boss.gd` (until `rule_madame_shuffle.gd` is wired) |
+| 1 | Madame Shuffle | `rules/madame_shuffle.tres` (**stopgap**: id `madame_shuffle_stopgap` (Pit Boss rule), faces 2/4) | `rule_pit_boss.gd` (until `rule_madame_shuffle.gd` is wired) |
 | 1 | Ashmouth | `rules/ashmouth.tres` (hands_delta −1) | `rule_no_hot_hand.gd` |
 | 2 | The Straight Man | `rules/straight_man.tres` (min_run 4) | `rule_straight_man.gd` |
 | 2 | The Collector | `rules/collector.tres` (throws 1) | `rule_collector.gd` |

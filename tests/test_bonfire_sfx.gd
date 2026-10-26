@@ -27,6 +27,7 @@ func _run() -> void:
 	print("=== Dice of the Damned: Bonfire SFX tests ===")
 	_test_files()
 	_test_helpers()
+	_test_bed()
 	await _test_players()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -47,7 +48,7 @@ func _test_files() -> void:
 	for event in BonfireSynth.LOOPS:
 		var wav := load("res://audio/sfx/%s.wav" % event) as AudioStreamWAV
 		_check(wav != null and wav.loop_mode == AudioStreamWAV.LOOP_FORWARD, "loop: %s is imported as a forward loop" % event)
-		_check(is_equal_approx(_len(event), BonfireSynth.LOOP_SECONDS), "loop: %s is %.1f s" % [event, BonfireSynth.LOOP_SECONDS])
+		_check(absf(_len(event) - BonfireSynth.LOOP_LENGTHS[event]) < 0.001, "loop: %s is %.1f s" % [event, BonfireSynth.LOOP_LENGTHS[event]])
 	# Normal sequence (<= 1.2 s): the stinger of tiers 0-2 must fit inside it.
 	for event: StringName in [&"score_tick", &"count_tick", &"mult_slam", &"combo_banner", &"bounty_claimed"]:
 		_check(_len(event) <= 0.5, "timing: %s is short (%.2f s)" % [event, _len(event)])
@@ -84,6 +85,81 @@ func _test_helpers() -> void:
 	_check(building, "crowd: no stem gets quieter as the pot grows")
 
 
+## The always-on bed (crowd_low at an empty pot) stays quiet, warm and
+## seamless (playtest: "too loud, not satisfying", main 7b978b9).
+func _test_bed() -> void:
+	var crowd := CrowdLayers.new()
+	_check(crowd.volume_db <= -12.0, "bed: CrowdLayers.volume_db <= -12 dB (%.1f)" % crowd.volume_db)
+	crowd.free()
+	var bed_db := BonfireSynth.crowd_gains_db(0.0)[0] + linear_to_db(BonfireSynth.LEVELS[&"crowd_low"])
+	_check(bed_db <= -22.0, "bed: empty-pot stem gain + peak level <= -22 dB (%.1f)" % bed_db)
+	for event in BonfireSynth.LOOPS:
+		_check(_pcm(event) == BonfireSynth.make(event).data, "bed: %s.wav == BonfireSynth.make (re-baked)" % event)
+	var pcm := _pcm(&"crowd_low")
+	var n := pcm.size() / 2
+	var x := _floats(pcm)
+	# High-frequency energy: first differences boost hiss; for a warm bed the
+	# difference RMS stays far below the signal RMS (white noise ~ 1.4x).
+	var e := 0.0
+	var d := 0.0
+	var max_step := 0.0
+	for i in range(1, n):
+		e += x[i] * x[i]
+		var step := absf(x[i] - x[i - 1])
+		d += step * step
+		max_step = maxf(max_step, step)
+	_check(sqrt(d / e) < 0.1, "bed: crowd_low has no broadband hiss (diff/rms %.3f)" % sqrt(d / e))
+	_check(absf(x[0] - x[n - 1]) <= max_step * 1.5, "bed: crowd_low loop seam is continuous (%.4f)" % absf(x[0] - x[n - 1]))
+	_check(BonfireSynth.LOOP_LENGTHS.values().all(func(l): return l >= 4.0 and BonfireSynth.LOOP_LENGTHS.values().count(l) == 1), "bed: stem loops are >= 4 s and unique")
+	for event in BonfireSynth.LOOPS:  # rev 3 high-pass: no DC, no sub-20 Hz rumble
+		var y := _floats(_pcm(event))
+		var dc := 0.0
+		for v in y: dc += v / y.size()
+		_check(absf(dc) < 0.0005, "bed: %s has no DC offset (%.5f)" % [event, dc])
+		var sub := _band_share(y, 0.0, 20.0)
+		_check(sub < 0.001, "bed: %s sub-20 Hz energy < 0.1 %% (%.2f %%)" % [event, sub * 100.0])
+	# Drone growl (rev 3): beating partials make crowd_low's loudness buzz at 15-60 Hz.
+	var env := _floats(pcm)
+	for i in env.size(): env[i] = absf(env[i])
+	var buzz := _band_share(env, 15.0, 60.0)
+	_check(buzz < 0.03, "bed: crowd_low envelope buzz 15-60 Hz < 3 %% (%.1f %%)" % (buzz * 100.0))
+
+
+## The raw PCM of a WAV on disk (the imported stream is compressed): its data chunk.
+func _pcm(event: StringName) -> PackedByteArray:
+	var b := FileAccess.get_file_as_bytes("res://audio/sfx/%s.wav" % event)
+	var at := 12
+	while at + 8 <= b.size():
+		var size := b.decode_u32(at + 4)
+		if b.slice(at, at + 4).get_string_from_ascii() == "data":
+			return b.slice(at + 8, at + 8 + size)
+		at += 8 + size + (size & 1)
+	return PackedByteArray()
+
+
+func _floats(pcm: PackedByteArray) -> PackedFloat32Array:
+	var x := PackedFloat32Array()
+	x.resize(pcm.size() / 2)
+	for i in x.size(): x[i] = pcm.decode_s16(i * 2) / 32768.0
+	return x
+
+
+## Share of x's AC energy between lo_hz and hi_hz (four-pole low-passes).
+func _band_share(x: PackedFloat32Array, lo_hz: float, hi_hz: float) -> float:
+	var mean: float = Array(x).reduce(func(m, v): return m + v / x.size(), 0.0)
+	var lp := PackedFloat64Array()
+	lp.resize(8)
+	var band := 0.0
+	var total := 0.0
+	for i in x.size():
+		for j in 2:
+			var a := 1.0 - exp(-TAU * [hi_hz, lo_hz][j] / 22050.0)
+			lp[j * 4] += a * (x[i] - mean - lp[j * 4])
+			for k in range(j * 4, j * 4 + 3): lp[k + 1] += a * (lp[k] - lp[k + 1])
+		band += (lp[3] - lp[7]) ** 2
+		total += (x[i] - mean) ** 2
+	return band / total
+
 func _test_players() -> void:
 	var sfx := SfxManager.new()
 	root.add_child(sfx)
@@ -94,6 +170,10 @@ func _test_players() -> void:
 	var crowd := CrowdLayers.new()
 	root.add_child(crowd)
 	crowd.start(0.01)
+	for p in crowd.get_children(): p.seek(2.0)
+	crowd.start(0.01)  # a new run: the bed carries on, no restart click
+	var kept := crowd.get_children().map(func(p): return p.get_playback_position())
+	_check(kept.all(func(t): return t >= 1.99), "crowd: start() again does not restart the stems %s" % [kept])
 	crowd.set_pot_fraction(1.0, 0.01)
 	await create_timer(0.1).timeout
 	var db := crowd.current_db()

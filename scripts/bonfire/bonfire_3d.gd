@@ -48,6 +48,12 @@ func _ready() -> void:
 	total_dice_per_throw = clampi(setup.dice.size(), 1, MAX_HANDFUL)
 	_apply_camera_tuning()
 	super()
+	# Smiles, or this boss's dealer in his place (BonfireDealerArt).
+	dealer_art = BonfireDealerArt.new()
+	dealer_art.name = "DealerArtSwap"
+	add_child(dealer_art)
+	dealer_art.setup(self, setup.rules)
+	taunted.connect(func(_e: StringName, _l: String) -> void: dealer_art.taunt())
 	# The status line sits between x 520 and 1400, clear of the bottom-left
 	# THROW / BANK column (ends at x 494) and the hand at the bottom right.
 	why_label.position = Vector2(520, 990)
@@ -164,7 +170,8 @@ func new_run(seed_value: int = -1) -> void:
 	_cleared_emitted = false
 	events.table_started.emit()
 	bhud.end_panel.visible = false
-	soul_meter.setup(run.soul, run.max_soul)
+	soul_meter.setup(run.soul, run.max_soul)  # hidden; kept as a data mirror
+	reliquary.sync(run, false)
 	_soul_shown = run.soul
 	_reset_hand_dice()
 	pause_menu.set_forfeit_enabled(true)
@@ -252,6 +259,8 @@ func _refresh_hud() -> void:
 	_update_portrait_hud()
 	if bhud != null:
 		bhud.leave_button.visible = can_leave_now()
+	if reliquary != null and run != null:
+		reliquary.sync(run)
 	if bhud != null and run != null:
 		bhud.rethrow_prompt = rethrow_prompt() if phase == Phase.BET else ""
 		bhud.refresh(run, phase == Phase.BET)

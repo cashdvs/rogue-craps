@@ -367,7 +367,7 @@ func _bust() -> void:
 	juice.bust(throw_dice, reduced_motion)
 	var lost_cards: Array = bhud.pending_cards()
 	bhud.crumble_pending(reduced_motion)
-	bhud.flask_crack(soul_meter.get_global_rect(), reduced_motion)
+	bhud.flask_crack(reliquary.bust(run, camera.cam), reduced_motion)
 	juice.crowd_pot(0)
 	bhud.countup.clear()
 	# HB5 replaces TH9 when the bust lost a pending bounty (TH9 stays unseen).
