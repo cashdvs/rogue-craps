@@ -10,8 +10,7 @@ signal focus_item(item: ShopItem)
 signal buy(offer: ShopOffer)
 
 var offer: ShopOffer
-## The picture. PR A: a bone disc with the first letter; PR A2 swaps in
-## ShopIcon (3D dice and glyph tokens) here.
+## The picture: a ShopIcon (3D die or glyph token).
 var icon: Control
 var tag: PriceTag
 
@@ -25,7 +24,8 @@ func setup(o: ShopOffer, embers: int, art_px: float, num_px: int, k: float) -> v
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	tooltip_text = o.display_name
-	icon = _stand_in(o, art_px)
+	icon = ShopIcon.new()
+	(icon as ShopIcon).setup(o, art_px)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_child(icon)
 	tag = PriceTag.new()
@@ -41,17 +41,3 @@ func _gui_input(e: InputEvent) -> void:
 		focus_item.emit(self)
 		buy.emit(offer)
 		accept_event()
-
-
-## A bone disc with the item's first letter on it.
-static func _stand_in(o: ShopOffer, px: float) -> Control:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#E8DCC0")
-	sb.set_corner_radius_all(int(px / 2))
-	var l := RunTheme.label(o.display_name.left(1).to_upper(), int(px * 0.5), Color("#1E1712"), true)
-	l.add_theme_stylebox_override("normal", sb)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.custom_minimum_size = Vector2(px, px)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
