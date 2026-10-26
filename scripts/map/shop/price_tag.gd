@@ -1,16 +1,15 @@
-## The brass price tag under a counter item (HANDOFF_SPEC §2-3): an ember coin
-## and the price in cream; red when you can't afford it, grey for a "-" tag.
+## The brass price tag under a counter item (HANDOFF_SPEC §2-3): an EmberPrice
+## (coin and number) in cream; red when you can't afford it, grey for a "-" tag.
 class_name PriceTag
 extends PanelContainer
 
 const CREAM := Color("#E8DCC0")
 const RED := Color("#FF2E3E")
 const GREY := Color("#8A8478")
-const COIN := Color("#C8783C")
 const BRASS := Color("#C9A24A")
 
 var label: Label
-var coin: Label
+var price: EmberPrice
 
 
 ## Build the tag. `num_px` is the numeral size; `scale_px` sizes the rest.
@@ -25,16 +24,10 @@ func setup(text: String, can_afford: bool, num_px: int, scale_px: float) -> void
 	add_theme_stylebox_override("panel", sb)
 	custom_minimum_size = Vector2(74, 34) * scale_px
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", int(6 * scale_px))
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(row)
-	coin = RunTheme.label("●", int(14 * scale_px), COIN)  # The ember coin.
-	row.add_child(coin)
-	label = RunTheme.label(text, num_px, GREY if text == "-" else (CREAM if can_afford else RED))
-	label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	row.add_child(label)
+	price = EmberPrice.new()
+	price.setup(text, num_px, GREY if text == "-" else (CREAM if can_afford else RED), scale_px)
+	add_child(price)
+	label = price.label
 
 
 ## True if the price shows red (can't afford).
