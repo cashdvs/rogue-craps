@@ -57,6 +57,9 @@ var bag_label: Label
 var sell_hint: Label
 ## Phone layouts (landscape / portrait): taps select, only the card buys.
 var touch_mode := false
+## Tests force touch on (1) or off (0); -1 asks the device. Any phone or
+## tablet with a touchscreen gets the lift-then-Buy card, whatever its aspect.
+var touch_override := -1
 
 
 func _ready() -> void:
@@ -83,7 +86,7 @@ func build(s: RunScreen) -> void:
 	bag.clear()
 	dealer = null
 	pick_layout()
-	touch_mode = layout != Layout.PC
+	touch_mode = touch_override == 1 if touch_override >= 0 else DisplayServer.is_touchscreen_available()
 	var vis := get_viewport().get_visible_rect().size
 	var spec: Dictionary = LAYOUTS[layout]
 	var h := vis.y / k  # Screen height in spec px.
@@ -175,6 +178,7 @@ func _fill_shelf(row: Array, area: Rect2, spec: Dictionary) -> void:
 		it.size = it.get_combined_minimum_size()
 		it.position = Vector2(area.position.x + cell * (i + 0.5) - it.size.x / 2.0, area.end.y - it.size.y)
 		it.touch_mode = touch_mode
+		it.tooltip_text = ""  # The hover card replaces the native tooltip.
 		it.buy.connect(func(o: ShopOffer) -> void: card.close(); o.buy(screen))
 		it.focus_item.connect(_on_focus)
 		it.unfocus_item.connect(func(x: ShopItem) -> void: if not touch_mode: card.unhover(x))
