@@ -117,6 +117,7 @@ func _test_shop_prices(scene: RunScreen) -> void:
 	scene.run.progress.set_face(1, 0, &"wild")
 	scene.run.progress.set_face(1, 1, &"heavy")
 	scene.run.progress.embers = 200
+	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
 	scene._show_shop()
 	var p0 := scene.run.progress.mod_price(twin, 2)
 	var p1 := scene.run.progress.mod_price(twin, 1)

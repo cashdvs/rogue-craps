@@ -32,6 +32,10 @@ var _bar: Label
 var _panel_root: CenterContainer
 var _panel_box: VBoxContainer
 var _table: Bonfire3D
+## The visual shop counter (ShopScreen); shown only on the Shop screen.
+var shop_screen: ShopScreen
+## True while the old text shop list is open from Sell / Swap (until PR C).
+var shop_list := false
 ## Map screen: "Quit to title" (asks first; the run is lost).
 var quit_button: Button
 ## Map screen: "Your dice" (D) and "Key" (K) on the top bar.
@@ -68,6 +72,9 @@ func _ready() -> void:
 	_panel_root = CenterContainer.new()
 	_panel_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui.add_child(_panel_root)
+	shop_screen = ShopScreen.new()
+	shop_screen.visible = false
+	_ui.add_child(shop_screen)
 	var p := RunTheme.panel()
 	p.custom_minimum_size = Vector2(900, 0)
 	_panel_root.add_child(p)
@@ -149,6 +156,9 @@ func refresh() -> void:
 	map_view.visible = run.screen == S.MAP
 	event_view.visible = run.screen == S.EVENT
 	_panel_root.visible = not (map_view.visible or event_view.visible)
+	shop_screen.visible = false
+	shop_list = shop_list and run.screen == S.SHOP
+	_bar.visible = run.screen != S.SHOP
 	quit_button.visible = map_view.visible
 	bag_button.visible = map_view.visible
 	key_button.visible = map_view.visible
@@ -181,6 +191,8 @@ func _refresh_bar() -> void:
 
 ## Fill the centre panel: a title, text lines, and [label, callable(, disabled)] buttons.
 func _panel(title: String, lines: Array, buttons: Array, extra: Control = null) -> void:
+	shop_screen.visible = false
+	_panel_root.visible = true
 	for c in _panel_box.get_children():
 		_panel_box.remove_child(c)
 		c.queue_free()
@@ -293,8 +305,17 @@ func _show_rest() -> void:
 	_panel("The Lounge", ["Rest a moment. Pick one."], buttons)
 
 
+## The shop counter, or the old text list (ShopView, kept for selling
+## until the bag row lands in shop redesign PR C) after Sell / Swap.
 func _show_shop() -> void:
-	_panel("The Ember Shop", ShopView.lines(self), ShopView.buttons(self))
+	if shop_list:
+		var buttons := ShopView.buttons(self)
+		buttons.append(["Back", func() -> void: shop_list = false; refresh()])
+		_panel("The Ember Shop", ShopView.lines(self), buttons)
+		return
+	_panel_root.visible = false
+	shop_screen.visible = true
+	shop_screen.build(self)
 
 
 ## Shop label for mod offer i (ShopView.mod_offer_text).
