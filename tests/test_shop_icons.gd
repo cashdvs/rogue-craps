@@ -130,13 +130,24 @@ func _test_dealer_layouts() -> void:
 		var h := ss.get_viewport().get_visible_rect().size.y
 		var top: float = spec_top * ss.k if spec_top >= 1.0 else spec_top * h  # Counter top.
 		var r := ss.dealer.get_rect()
-		_check(ss.dealer.still.texture != null and ss.dealer.still.size.is_equal_approx(r.size), "still fills the dealer box for %s" % c[0])
-		_check(ss.dealer.still.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED, "still keeps his shape")
+		var vw := ss.get_viewport().get_visible_rect().size.x
+		var st: TextureRect = ss.dealer.still
+		var fig := Rect2(st.global_position, st.size)
+		var src: Vector2 = (st.texture as AtlasTexture).region.size if st.texture is AtlasTexture else Vector2.ZERO
+		_check(src != Vector2.ZERO and absf(fig.size.aspect() - src.aspect()) < 0.01, "Smiles keeps his shape, uncut, for %s" % c[0])
+		_check(fig.position.x >= 0 and fig.end.x <= vw and fig.position.y >= r.position.y - 0.5, "all of Smiles (arm too) in view for %s" % c[0])
+		_check(absf(fig.get_center().x - vw / 2.0) < 1.0, "Smiles centred for %s" % c[0])
+		_check(fig.size.y > r.size.y * 0.8, "Smiles fills the band for %s" % c[0])
+		var lip := Rect2(ss.dealer.rail.global_position, ss.dealer.rail.size)
+		_check(lip.position.y > fig.position.y + fig.size.y * 0.75 and lip.end.y <= r.end.y + 0.5, "rail sits below his head and shoulders for %s" % c[0])
+		_check(is_equal_approx(lip.position.x, 0.0) and is_equal_approx(lip.size.x, vw) and ss.dealer.shadow.size.x == vw and ss.dealer.shadow.position.y >= ss.dealer.rail.get_rect().end.y - 0.5, "full-width rail with shadow line for %s" % c[0])
+		var plate := ss.embers_label.get_parent()
+		while plate != null and not (plate is PriceTag):
+			plate = plate.get_parent()
+		_check(plate != null and not r.intersects(Rect2((plate as Control).global_position, (plate as Control).size)), "backdrop clear of the Ember total for %s" % c[0])
 		_check(r.end.y <= top + 0.5 and r.size.y > 80 * ss.k, "dealer sits in the band above the counter for %s" % c[0])
-		_check(is_equal_approx(ss.dealer.rail.get_rect().end.y, r.size.y) and ss.dealer.rail.color == ShopScreen.BRASS, "brass rail along his bottom for %s" % c[0])
+		_check(is_equal_approx(ss.dealer.shadow.get_rect().end.y, r.size.y) and ss.dealer.rail.color == ShopScreen.BRASS, "brass rail along his bottom for %s" % c[0])
 		_check(ss.dealer.get_index() < ss.shelves[0].get_index(), "dealer is behind the counter")
-		var mid := r.get_center().x / ss.get_viewport().get_visible_rect().size.x
-		_check(absf(mid - 0.5) < 0.01, "dealer centred for %s" % c[0])
 	ss.window_override = Vector2i.ZERO
 	scene.refresh()
 
