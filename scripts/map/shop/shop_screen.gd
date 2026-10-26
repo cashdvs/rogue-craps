@@ -41,6 +41,8 @@ var k: float = 1.0
 var items: Array[ShopItem] = []
 var shelves: Array[Control] = []
 var embers_label: Label
+## "Prices on this floor: N% above Floor 1." under the title (Floors 2-3 only).
+var floor_note: Label
 var reroll_button: Button
 var leave_button: Button
 var sell_button: Button
@@ -131,6 +133,19 @@ func _add_header(vis: Vector2, title_px: int) -> void:
 	plate.position = Vector2(vis.x - 202 * k, 10 * k)
 	add_child(plate)
 	embers_label = plate.label
+	floor_note = null
+	var pct := screen.run.floor_price_percent()
+	if pct > 0:  # Floor 1 has no markup, so no note.
+		# Small line under the title, left of the Ember plate: clear of the
+		# dealer and the counter rail on PC, landscape and portrait.
+		var note := EconomyStrings.shop_floor_price_note(pct)
+		if layout == Layout.PORTRAIT:  # Narrow: break after "floor:" so it reads as two clean lines.
+			note = note.replace(": ", ":\n")
+		floor_note = RunTheme.label(note, int(maxf(12.0, title_px * 0.6) * k), CREAM)
+		floor_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		floor_note.position = Vector2(20, 18 + title_px * 1.25) * k
+		floor_note.size.x = plate.position.x - 28 * k
+		add_child(floor_note)
 
 
 ## The wood counter, its brass rail, and one felt-and-brass shelf per row.
