@@ -54,10 +54,10 @@ func show_sell(s: BagSlot, pin: bool) -> void:
 		_line(effect, CREAM)
 	var value := p.sell_value(s.die_i)
 	if value > 0:
-		_line(ShopCardText.say(&"shop_card_sell_value", value), DIM)
+		_line(ShopCardStrings.fill("shop_card_sell_value", value), DIM)
 		var floor_n := p.data.starting_dice
 		var can := p.dice.size() > floor_n
-		var text := ShopCardText.say(&"shop_card_sell", value) if can else ShopCardText.say(&"shop_card_cant_sell", floor_n)
+		var text := ShopCardStrings.fill("shop_card_sell", value) if can else ShopCardStrings.fill("shop_card_cant_sell", floor_n)
 		_button(text, can, GREY, sell)
 	_open_at(s.get_global_rect())
 
@@ -83,13 +83,13 @@ func show_reroll(anchor: Control, pin: bool) -> void:
 	var free := run.progress.free_rerolls
 	var price := run.reroll_price()
 	_frame()
-	_title(ShopCardText.say(&"shop_card_reroll_name"), ShopCardText.say(&"shop_card_free") if free > 0 else str(price))
-	_line(ShopCardText.say(&"shop_card_reroll"), CREAM)
+	_title(ShopCardStrings.get_text("shop_card_reroll_name"), ShopCardStrings.get_text("shop_card_free") if free > 0 else str(price))
+	_line(ShopCardStrings.get_text("shop_card_reroll"), CREAM)
 	if free > 0:
-		_line(ShopCardText.say(&"shop_card_reroll_free", free), DIM)
+		_line(ShopCardStrings.fill("shop_card_reroll_free", free), DIM)
 	var short := price - run.progress.embers
 	var ok := short <= 0
-	_button(ShopCardText.say(&"shop_card_buy") if ok else ShopCardText.say(&"shop_card_cant_afford", short), ok, RED, reroll)
+	_button(ShopCardStrings.get_text("shop_card_buy") if ok else ShopCardStrings.fill("shop_card_cant_afford", short), ok, RED, reroll)
 	_open_at(anchor.get_global_rect())
 
 

@@ -45,6 +45,7 @@ func _check(ok: bool, what: String) -> void:
 
 func _show(win: Vector2i) -> void:
 	ss.window_override = win
+	ss.touch_override = 0 if win == PC else 1  # Phone sizes stand in for a touchscreen.
 	scene.refresh()
 
 
@@ -99,7 +100,7 @@ func _test_sell_card() -> void:
 	var t := _texts(c)
 	_check(c.visible and c.slot == ss.bag[5] and c.pinned, "a click opens the pinned sell card")
 	_check(ss.bag[5].lifted and ss.bag[5].position.y < y, "the sold die's slot lifts")
-	_check(t.has("Mirror Die") and t.has(ShopCardText.say(&"shop_card_sell_value", 9)), "lines: name and sell value")
+	_check(t.has("Mirror Die") and t.has(ShopCardStrings.fill("shop_card_sell_value", 9)), "lines: name and sell value")
 	_check(t.has(run.progress.die_def(5).description), "line: the die's effect")
 	_check(c.find_children("FaceStrip", "", true, false).size() == 1, "line 2: the face strip")
 	_check(c.find_children("*", "PriceTag", true, false).is_empty(), "sell cards show no price on line 1")
@@ -117,7 +118,7 @@ func _test_sell_floor_and_bone() -> void:
 	_show(PC)
 	_tap(ss.bag[4])
 	var a := ss.card.action
-	_check(a != null and a.disabled and a.text == ShopCardText.say(&"shop_card_cant_sell", 5), "5 dice: greyed shop_card_cant_sell")
+	_check(a != null and a.disabled and a.text == ShopCardStrings.fill("shop_card_cant_sell", 5), "5 dice: greyed shop_card_cant_sell")
 	var n := run.progress.dice.size()
 	ss.card.sell()
 	_check(run.progress.dice.size() == n, "the greyed sell does nothing")
@@ -173,8 +174,8 @@ func _test_reroll_pc() -> void:
 	var c := ss.card
 	var t := _texts(c)
 	_check(c.visible and c.reroll_open, "PC hover opens the reroll card")
-	_check(t.has("Reroll") and t.has(str(run.reroll_price())) and t.has(ShopCardText.say(&"shop_card_reroll")), "reroll lines: name, price, what it does")
-	_check(not t.has(ShopCardText.say(&"shop_card_reroll_free", 0)), "no free-reroll line when none are banked")
+	_check(t.has("Reroll") and t.has(str(run.reroll_price())) and t.has(ShopCardStrings.get_text("shop_card_reroll")), "reroll lines: name, price, what it does")
+	_check(not t.has(ShopCardStrings.fill("shop_card_reroll_free", 0)), "no free-reroll line when none are banked")
 	var n := run.shop_rerolls
 	ss.reroll_button.pressed.emit()
 	_check(run.shop_rerolls == n + 1, "PC: the Reroll button rerolls")
@@ -182,7 +183,7 @@ func _test_reroll_pc() -> void:
 	_show(PC)
 	ss.reroll_button.mouse_entered.emit()
 	t = _texts(ss.card)
-	_check(t.has(ShopCardText.say(&"shop_card_free")) and t.has(ShopCardText.say(&"shop_card_reroll_free", 2)), "banked: Free and Free rerolls left: 2")
+	_check(t.has(ShopCardStrings.get_text("shop_card_free")) and t.has(ShopCardStrings.fill("shop_card_reroll_free", 2)), "banked: Free and Free rerolls left: 2")
 	ss.reroll_button.mouse_exited.emit()
 	_check(not ss.card.visible, "PC: leaving Reroll closes its card")
 	run.progress.free_rerolls = 0
@@ -204,5 +205,5 @@ func _test_reroll_phone() -> void:
 	_show(PORTRAIT)
 	ss.reroll_button.pressed.emit()
 	var a := ss.card.action
-	_check(a.disabled and a.text == ShopCardText.say(&"shop_card_cant_afford", run.reroll_price()), "phone: can't afford greys the card's button")
+	_check(a.disabled and a.text == ShopCardStrings.fill("shop_card_cant_afford", run.reroll_price()), "phone: can't afford greys the card's button")
 	run.progress.embers = 100
