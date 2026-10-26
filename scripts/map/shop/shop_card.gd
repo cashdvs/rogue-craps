@@ -117,7 +117,7 @@ func _title_row(o: ShopOffer) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", int(8 * shop.k))
 	lines.add_child(row)
-	var name_text := ShopCardText.say(&"shop_card_soul_name") if o.kind == ShopOffer.Kind.SOUL else o.display_name
+	var name_text := ShopCardStrings.get_text("shop_card_soul_name") if o.kind == ShopOffer.Kind.SOUL else o.display_name
 	var title := RunTheme.label(name_text, _px(32), CREAM, true)
 	title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	title.clip_text = true
@@ -142,26 +142,26 @@ func _body(o: ShopOffer) -> Array:
 			var d: SpecialDieData = run.shop_dice[o.index]
 			var n := d.faces.size()
 			if n > 8:  # d10+: a range line instead of a strip.
-				out.append([ShopCardText.say(&"shop_card_faces_range", n), CREAM])
-				out.append([ShopCardText.say(&"shop_card_shape_rule"), DIM])
+				out.append([ShopCardStrings.fill("shop_card_faces_range", n), CREAM])
+				out.append([ShopCardStrings.get_text("shop_card_shape_rule"), DIM])
 			else:
 				lines.add_child(_face_strip(d))
 				if n != 6:
-					out.append([ShopCardText.say(&"shop_card_shape", n), DIM])
+					out.append([ShopCardStrings.fill("shop_card_shape", n), DIM])
 			out.append([d.description, CREAM])
 			if d.is_rare():
 				out.append([EconomyStrings.SHOP_RARE_TAG, DIM])
 		ShopOffer.Kind.MOD:
 			lines.add_child(_token(o))
 			out.append([run.shop_mods[o.index].description, CREAM])
-			out.append([ShopCardText.say(&"shop_card_mod_pick"), DIM])
+			out.append([ShopCardStrings.get_text("shop_card_mod_pick"), DIM])
 		ShopOffer.Kind.SEAL, ShopOffer.Kind.RARE_SEAL:
 			if not o.rare:
 				lines.add_child(_token(o))
 			out.append([SealText.describe(o.id), CREAM])
-			out.append([ShopCardText.say(&"shop_card_seal_rare" if o.rare else &"shop_card_seal"), DIM])
+			out.append([ShopCardStrings.get_text("shop_card_seal_rare" if o.rare else "shop_card_seal"), DIM])
 		ShopOffer.Kind.SOUL:
-			out.append([ShopCardText.say(&"shop_card_soul", run.data.shop_soul_amount), CREAM])
+			out.append([ShopCardStrings.fill("shop_card_soul", run.data.shop_soul_amount), CREAM])
 	return out
 
 ## The counter token (mod icon / Seal combo mark) at 42 spec px.
@@ -221,7 +221,7 @@ func _draw_lock(m: Control, px: float) -> void:  # Padlock: shackle arc over a b
 func _action_row(o: ShopOffer) -> void:
 	blocker_id = blocker(o, shop.screen)
 	var short := o.price_lo - shop.screen.run.progress.embers
-	var text := ShopCardText.say(&"shop_card_buy") if blocker_id == &"" else ShopCardText.say(blocker_id, short)
+	var text := ShopCardStrings.get_text("shop_card_buy") if blocker_id == &"" else ShopCardStrings.fill(blocker_id, short)
 	action = RunTheme.button(text, _px(23))
 	action.custom_minimum_size.y = 40 * shop.k * TEXT_SCALE[shop.layout]
 	action.disabled = blocker_id != &""
