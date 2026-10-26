@@ -19,7 +19,7 @@ func _initialize() -> void:
 	ss = scene.shop_screen
 	_open_shop_with_rare()
 	_test_strings()
-	for win in [Vector2i(844, 390), Vector2i(390, 844)]:
+	for win in [Vector2i(844, 390), Vector2i(390, 844), Vector2i(1920, 1080), Vector2i(1280, 800)]:
 		_test_second_tap_does_not_buy(win)
 	_test_tap_swaps_and_empty_closes()
 	await _test_pc_hover()
@@ -27,6 +27,7 @@ func _initialize() -> void:
 	_test_die_render_and_pips()
 	_test_mod_buy_opens_picker()
 	_test_blocker_order()
+	_test_lift_hairline_flip()
 	print("=== test_shop_card: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -52,8 +53,9 @@ func _open_shop_with_rare() -> void:
 	_show(Vector2i.ZERO)
 
 
-func _show(win: Vector2i) -> void:
+func _show(win: Vector2i, touch: bool = false) -> void:
 	ss.window_override = win
+	ss.touch_override = 1 if touch else 0
 	scene.refresh()
 
 
@@ -90,7 +92,7 @@ func _test_strings() -> void:
 ## Phone: first tap lifts + opens the card, a second tap does nothing, and
 ## only the card's Buy buys.
 func _test_second_tap_does_not_buy(win: Vector2i) -> void:
-	_show(win)
+	_show(win, true)
 	_check(ss.touch_mode, "%s is touch mode" % win)
 	var it := _item(ShopOffer.Kind.DIE, 0)
 	var stock := run.shop_dice[0]
@@ -114,7 +116,7 @@ func _test_second_tap_does_not_buy(win: Vector2i) -> void:
 
 
 func _test_tap_swaps_and_empty_closes() -> void:
-	_show(Vector2i(390, 844))
+	_show(Vector2i(390, 844), true)
 	var a := _item(ShopOffer.Kind.DIE, 0)
 	var b := _item(ShopOffer.Kind.SOUL)
 	_tap(a)
@@ -193,7 +195,7 @@ func _test_die_render_and_pips() -> void:
 
 
 func _test_mod_buy_opens_picker() -> void:
-	_show(Vector2i(390, 844))
+	_show(Vector2i(390, 844), true)
 	_tap(_item(ShopOffer.Kind.MOD, 0))
 	ss.card.action.pressed.emit()
 	_check(scene._panel_root.visible and not ss.visible, "mod Buy opens the face picker")
@@ -211,7 +213,7 @@ func _test_blocker_order() -> void:
 	for d in run.progress.dice:
 		d.faces.fill(&"wild")
 	run.progress.embers = 0
-	_show(Vector2i(390, 844))
+	_show(Vector2i(390, 844), true)
 	_check(_blocker(_item(ShopOffer.Kind.DIE, 0)) == &"shop_card_bag_full", "die: bag full beats can't afford")
 	_check(_blocker(_item(ShopOffer.Kind.MOD, 0)) == &"shop_card_no_free_face", "mod: no free face beats can't afford")
 	_check(_blocker(_item(ShopOffer.Kind.RARE_SEAL)) == &"shop_card_cant_afford", "Seal: can't afford beats not usable")
@@ -219,7 +221,7 @@ func _test_blocker_order() -> void:
 	_check(red.disabled and red.text == ShopCardText.say(&"shop_card_cant_afford", run.premium_seal_price()), "can't afford: greyed 'Need n more Embers.'")
 	_check(red.get_theme_color("font_disabled_color") == ShopCard.RED, "can't afford is red")
 	run.progress.embers = 100
-	_show(Vector2i(390, 844))
+	_show(Vector2i(390, 844), true)
 	_check(_blocker(_item(ShopOffer.Kind.RARE_SEAL)) == &"shop_card_seal_unusable", "Seal: not usable when affordable")
 	_check(ss.card.action.get_theme_color("font_disabled_color") == ShopCard.GREY, "other blockers are grey")
 	var embers := run.progress.embers
@@ -228,7 +230,7 @@ func _test_blocker_order() -> void:
 	run.progress.dice.assign(saved)
 	for d in run.progress.dice:
 		d.faces.fill(&"")
-	_show(Vector2i(390, 844))
+	_show(Vector2i(390, 844), true)
 	_check(_blocker(_item(ShopOffer.Kind.DIE, 0)) == &"" and ss.card.action.text == "Buy", "no blocker: Buy")
 	_show(Vector2i.ZERO)
 
@@ -236,3 +238,21 @@ func _test_blocker_order() -> void:
 func _blocker(it: ShopItem) -> StringName:
 	_tap(it)
 	return ss.card.blocker_id
+
+
+## Lift raises the item 10 spec px with its hairline on; near the top edge
+## the card flips below the item. No native tooltip under the card.
+func _test_lift_hairline_flip() -> void:
+	_show(Vector2i(1920, 1080))
+	var it := _item(ShopOffer.Kind.DIE, 1)
+	_check(it.tooltip_text == "", "item with a card has no native tooltip")
+	var y0 := it.position.y
+	ss.card.show_for(it)
+	_check(is_equal_approx(it.position.y, y0 - 10.0 * ss.k), "lift moves the item up 10 spec px")
+	_check(it._hairline.visible and it._hairline.get_global_rect().is_equal_approx(it.icon.get_global_rect()), "hairline shows around the lifted icon")
+	ss.card.close()
+	_check(is_equal_approx(it.position.y, y0) and not it._hairline.visible, "closing drops the item and hides the hairline")
+	it.position.y = 2.0  # Shove the item to the very top of the screen.
+	ss.card.show_for(it)
+	_check(ss.card.get_global_rect().position.y >= it.get_global_rect().end.y - 1.0, "card flips below an item at the top edge")
+	ss.card.close()
