@@ -31,6 +31,7 @@ func _initialize() -> void:
 	_test_click_soul()
 	_test_click_mod_opens_picker()
 	_test_reroll_and_leave()
+	_test_qa_guards()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -223,6 +224,30 @@ func _test_reroll_and_leave() -> void:
 	_check(run.screen == MapRun.Screen.MAP and not scene.shop_screen.visible, "Leave returns to the map")
 
 
+
+
+## QA: the top bar hides in the shop, the Sell / Swap list flag resets on
+## leaving, and an unaffordable mod click doesn't open the face picker.
+func _test_qa_guards() -> void:
+	_open_shop_with_rare()
+	_check(not scene._bar.visible and scene.shop_screen.visible, "top bar hidden in the shop")
+	var m := _item(ShopOffer.Kind.MOD, 0)
+	if m == null:
+		_check(false, "no mod on the counter")
+	else:
+		run.progress.embers = m.offer.price_lo - 1
+		scene.refresh()
+		_click(_item(ShopOffer.Kind.MOD, 0))
+		_check(scene.shop_screen.visible and not scene._panel_root.visible, "unaffordable mod click opens no picker")
+		run.progress.embers = 100
+		scene.refresh()
+	scene.shop_screen.sell_button.pressed.emit()
+	_check(scene.shop_list, "Sell / Swap sets the list flag")
+	run.screen = MapRun.Screen.MAP
+	scene.refresh()
+	_check(not scene.shop_list and scene._bar.visible, "leaving the shop clears the list flag and shows the top bar")
+	_open_shop_with_rare()
+	_check(scene.shop_screen.visible, "the next shop opens on the counter")
 
 
 ## The ember coin (AD): a #C8783C disc ~0.8x cap height, centred on the

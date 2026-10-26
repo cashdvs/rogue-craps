@@ -48,7 +48,7 @@ studio_splash.tscn ──▶ title.tscn ──Play──▶ run.tscn (RunScreen)
 | **Non-d6 dice** (coin, d4-d20, talus, Powder Keg barrel) | Godot Dev | `scripts/table3d/coin_physics.gd` (Ferryman's Coin: 72-point procedural hull, edge rule, face read), `poly_die.gd` (`PolyDie`: hull colliders, face / vertex read, seeded remap for d4, d8, d10, d12, d20, talus, keg), `die_hull_data.gd` (generated hull points and face directions; don't edit by hand), `tools/gen_die_hulls.gd` (regenerates it from `art/models/dice/*_mobile.glb` and `batch3_faces.json`), `tools/capture_coin_flip.gd` (10-flip video and stills); tests `test_coin_flip.gd`, `test_odd_dice_settle.gd`, `test_die_hull_extent.gd`, `test_table_die_shape.gd` |
 | **Title, splash, settings, pause** | Godot Dev | `scenes/title.tscn`, `scripts/title/`, `scenes/studio_splash.tscn`, `scripts/splash/`, `scripts/settings/`, `scripts/ui/` |
 | **Run** (Soul, Embers, dice bag, Seals) | Systems Dev | `scripts/core/run/` (`run_progress.gd`, `run_die.gd`), `scripts/data/run_data.gd`, `resources/map/bonfire_run.tres` |
-| **Map, shop, events, rewards, rest** | Systems Dev | `scripts/core/map/` (`map_run.gd` with its bases `map_run_state.gd` and `map_run_shop.gd`, `map_generator.gd`, `run_map.gd`, `event_applier.gd`, `event_picker.gd` (which event a node shows: floors, skip, Rest fallback), `run_table_setup.gd`), `scripts/map/` (`run_screen.gd`, `shop_view.gd` (`ShopView`: the shop panel's lines and buttons), `map_view.gd`, `event_view.gd`, `face_picker.gd`), `scripts/data/economy_strings.gd` (`EconomyStrings`: economy UI strings from strings_v1), `scenes/run.tscn`, `scripts/data/{floor,map_gen,event*,bounty,table_goal,run_rule}_data.gd`, `resources/map/`, `resources/events/`. Event effect kinds now include `MAX_SOUL`, `GIVE_DIE`, `SELL_DIE`, `FREE_SHOP_REROLL` and `NEXT_TABLE_TWIST`; `EventData.floors` limits an event to the floors it lists (empty = any). Economy v1 fields on `RunData` (`resources/map/bonfire_run.tres`): `max_dice` (6), `shop_soul_amount` / `shop_soul_price` / `shop_soul_step` (Soul Draught), `shop_premium_rare_price` (the rare Seal slot, drawn last; 0 = off), `shop_floor_price_percent` (per-floor shop markup), `shop_seal_step`, `reroll_step`. |
+| **Map, shop, events, rewards, rest** | Systems Dev | `scripts/core/map/` (`map_run.gd` with its bases `map_run_state.gd` and `map_run_shop.gd`, `map_generator.gd`, `run_map.gd`, `event_applier.gd`, `event_picker.gd` (which event a node shows: floors, skip, Rest fallback), `run_table_setup.gd`), `scripts/map/` (`run_screen.gd`, `shop_view.gd` (`ShopView`: the shop panel's lines and buttons), `shop/` (the shop counter UI: `ShopScreen`, `ShopItem`, `ShopOffer`, `PriceTag`, `EmberPrice`), `map_view.gd`, `event_view.gd`, `face_picker.gd`), `scripts/data/economy_strings.gd` (`EconomyStrings`: economy UI strings from strings_v1), `scenes/run.tscn`, `scripts/data/{floor,map_gen,event*,bounty,table_goal,run_rule}_data.gd`, `resources/map/`, `resources/events/`. Event effect kinds now include `MAX_SOUL`, `GIVE_DIE`, `SELL_DIE`, `FREE_SHOP_REROLL` and `NEXT_TABLE_TWIST`; `EventData.floors` limits an event to the floors it lists (empty = any). Economy v1 fields on `RunData` (`resources/map/bonfire_run.tres`): `max_dice` (6), `shop_soul_amount` / `shop_soul_price` / `shop_soul_step` (Soul Draught), `shop_premium_rare_price` (the rare Seal slot, drawn last; 0 = off), `shop_floor_price_percent` (per-floor shop markup), `shop_seal_step`, `reroll_step`. |
 | **Dice, face mods, boss/Elite rule data** | Systems Dev | `scripts/data/dice_ids.gd` (canonical die and shape ids; table in [DICE_IDS.md](DICE_IDS.md)), `scripts/data/special_die_data.gd`, `face_mod_data.gd`, `resources/dice/`, `resources/mods/`, `resources/map/rules/` (the *data*; the table enforces it) |
 | **FX** (listeners on `table.events`) | VFX Dev | `scripts/fx/` (in flight), `scripts/table3d/fx_3d.gd`, `shaders/3d/fx_*` |
 | **Audio** | Sound Designer | `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` |
@@ -110,6 +110,26 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
   own seed) and on a hit the second dice slot becomes an unowned rare. Their pre-carved faces are
   locked (`RunProgress.face_locked`; `set_face` refuses; event remove-mod uses `removable_faces`/`has_removable_mod`, which skip them). **Rest**: heal, carve a free mod, or level a Seal. **Events**: `EventApplier`
   checks and applies each choice's effects.
+- **Shop counter UI** (`scripts/map/shop/`, shop redesign PR A, HANDOFF_SPEC in
+  `art/concept/shop_redesign/`). It is display only, and buying still goes through `MapRun`:
+  - `ShopOffer`: plain data for one counter item (die, mod, Seal, rare Seal or Soul Draught),
+    read from `MapRun`. It holds the price (or the `lo-hi` range for mods), the art key
+    (`DiceIds.body_key` for dice) and `rare`. `affordable(embers)` checks the price, and
+    `buy(screen)` calls the matching `MapRun` buy, or the face picker for mods and Seals. It
+    does nothing when the item is unaffordable.
+  - `ShopItem`: the icon above a `PriceTag`. A click emits `buy`, and hovering emits
+    `focus_item` for the shop card.
+  - `PriceTag`: a brass-bordered plate. Its numerals turn red #FF2E3E when the player can't
+    afford the item, and the `-` tag is grey #8A8478.
+  - `EmberPrice`: the reusable ember coin plus number (a #C8783C coin about 0.8x cap height,
+    centred on the digits, with a 4 spec px gap). It is used by tags and the Embers total.
+  - `ShopScreen`: the header, the Embers total, the wood counter with felt shelves, and
+    Reroll / Sell / Leave. `LAYOUTS` picks PC, landscape or portrait from the window shape,
+    and sizes are spec px times `k`.
+- **`RunScreen.shop_list`**: true after Sell / Swap, which shows the old `ShopView` text list
+  (for selling, until the bag row lands) in place of the counter. Back clears it, and
+  `refresh()` clears it whenever the screen is not the shop, so the next shop opens on the
+  counter. The top bar (`_bar`) is hidden on the shop screen.
 - **`RunScreen`** (`scenes/run.tscn`) only displays `MapRun` and forwards clicks. Its
   "Stub: clear / miss" buttons show only with `debug_table_stubs` on in a debug build.
 
