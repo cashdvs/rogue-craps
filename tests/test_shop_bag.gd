@@ -34,6 +34,8 @@ func _initialize() -> void:
 	_test_portrait_buttons()
 	_test_reroll_card_placement()
 	_test_reroll_button_text()
+	_test_floor_note()
+	_test_icon_mouse_filter()
 	print("=== test_shop_bag: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -255,3 +257,27 @@ func _test_reroll_button_text() -> void:
 	ss.reroll_button.pressed.emit()
 	_check(ss.card.action.text == "Reroll free" and ss.reroll_button.text == "Reroll free", "free: the card's button and the bottom button say Reroll free")
 	run.progress.free_rerolls = 0
+
+
+## Floor 2 marks prices up, so the note under the title says by how much;
+## Floor 1 has no markup and no note.
+func _test_floor_note() -> void:
+	var was := run.floor_index
+	for win: Vector2i in [PC, PORTRAIT]:
+		run.floor_index = 1
+		_show(win)
+		var pct := run.floor_price_percent()
+		_check(pct > 0, "Floor 2 has a markup (%d%%)" % pct)
+		_check(ss.floor_note != null and ss.floor_note.visible and ss.floor_note.text.replace("\n", " ") == EconomyStrings.shop_floor_price_note(pct), "Floor 2 shows the price note for %s" % win)
+		run.floor_index = 0
+		_show(win)
+		_check(ss.floor_note == null, "Floor 1 has no price note for %s" % win)
+	run.floor_index = was
+	_show(PC)
+
+
+## Icons never swallow clicks: the ShopItem underneath takes them.
+func _test_icon_mouse_filter() -> void:
+	_show(PC)
+	var icons := ss.items.map(func(it: ShopItem) -> Control: return it.icon)
+	_check(not icons.is_empty() and icons.all(func(c: Control) -> bool: return c.mouse_filter != Control.MOUSE_FILTER_STOP), "shop icons don't STOP the mouse")
