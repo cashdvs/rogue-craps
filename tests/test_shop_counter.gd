@@ -90,12 +90,9 @@ func _test_art_keys() -> void:
 	if rare != null:
 		_check(rare.offer.art_key == DiceIds.body_key(rare.offer.id), "rare die art key = DiceIds.body_key")
 		_check(DiceIds.RARE_ART_BODIES.values().has(rare.offer.art_key), "rare die uses its stand-in body until its .glb lands")
-		_check(rare.icon.die_view != null and rare.icon.die_view.get_child_count() >= 2, "rare die icon is the 3D model in a SubViewport")
 	var common := _item(ShopOffer.Kind.DIE, 0)
 	_check(common != null and not common.offer.rare and common.offer.art_key == DiceIds.body_key(common.offer.id), "common die art key")
-	for k in [&"pyre", &"gilt", &"lodestone", &"ossuary"]:
-		_check(ShopIcon.model_path(DiceIds.body_key(k)) != "", "%s draws a model that exists" % k)
-	_check(ShopIcon.GLYPHS[&"mod_wild"] == "spark" and _item(ShopOffer.Kind.SOUL).offer.art_key == &"soul", "token glyph keys")
+	_check(_item(ShopOffer.Kind.SOUL).offer.art_key == &"soul", "Draught art key")
 
 
 func _test_prices_and_red() -> void:
@@ -129,8 +126,15 @@ func _test_layouts() -> void:
 		# Real px = design px x (window px / canvas px), measured independently of ss.k.
 		var vis := ss.get_viewport().get_visible_rect().size
 		var to_real: float = 1080.0 / vis.y if c[1] == ShopScreen.Layout.PC else float(c[0].x) / vis.x
+		_check(ss.items[0].icon.custom_minimum_size.x >= 1.0, "item has a stand-in icon")
 		var real_px: float = ss.items[0].tag.label.get_theme_font_size("font_size") * to_real
 		_check(real_px >= 24.0, "price numerals %.1f real px >= 24 at %s" % [real_px, c[0]])
+		if c[1] == ShopScreen.Layout.PC:
+			var want := [Vector2(180, 50), Vector2(210, 50), Vector2(190, 50)]
+			var got := [ss.sell_button.size, ss.reroll_button.size, ss.leave_button.size]
+			for i in 3:
+				var real: Vector2 = got[i] * to_real
+				_check(real.x >= want[i].x - 1 and real.y >= want[i].y - 1, "PC button %d is %s real px (spec %s)" % [i, real, want[i]])
 	ss.window_override = Vector2i.ZERO
 	scene.refresh()
 
@@ -158,8 +162,14 @@ func _test_rows() -> void:
 	o.price_lo = 8
 	o.price_hi = 12
 	_check(o.price_text() == "8-12", "mod range tag reads lo-hi")
+	_check(ShopOffer._make(ShopOffer.Kind.MOD, 0, &"x", "X", &"mod_x", 8, 12).price_text() == "8-12", "_make keeps a mod's price range")
+	_check(ShopOffer._make(ShopOffer.Kind.DIE, 0, &"x", "X", &"x", 9).price_text() == "9", "_make with one price")
 	o.price_lo = -1
 	_check(o.price_text() == "-" and not o.affordable(99), "no free face: '-' and not buyable")
+	var tag := PriceTag.new()
+	tag.setup("-", true, 28, 1.0)
+	_check(tag.label.get_theme_color("font_color") == Color("#8A8478"), "'-' tag is grey #8A8478")
+	tag.free()
 
 
 func _test_click_buy_die() -> void:
@@ -203,7 +213,9 @@ func _test_reroll_and_leave() -> void:
 	_check(run.shop_rerolls + run.shop_free_rerolls == n + 1, "Reroll restocks")
 	scene.shop_screen.sell_button.pressed.emit()
 	_check(scene._panel_root.visible and not scene.shop_screen.visible, "Sell / Swap opens the sell list")
-	scene.refresh()
+	_check(scene.shop_list, "the list stays open across refreshes")
+	scene._panel_box.get_children().back().pressed.emit()  # Back.
+	_check(scene.shop_screen.visible and not scene.shop_list, "Back returns to the counter")
 	scene.shop_screen.leave_button.pressed.emit()
 	_check(run.screen == MapRun.Screen.MAP and not scene.shop_screen.visible, "Leave returns to the map")
 

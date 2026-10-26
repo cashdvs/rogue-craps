@@ -34,6 +34,8 @@ var _panel_box: VBoxContainer
 var _table: Bonfire3D
 ## The visual shop counter (ShopScreen); shown only on the Shop screen.
 var shop_screen: ShopScreen
+## True while the old text shop list is open from Sell / Swap (until PR C).
+var shop_list := false
 ## Map screen: "Quit to title" (asks first; the run is lost).
 var quit_button: Button
 ## Map screen: "Your dice" (D) and "Key" (K) on the top bar.
@@ -155,6 +157,7 @@ func refresh() -> void:
 	event_view.visible = run.screen == S.EVENT
 	_panel_root.visible = not (map_view.visible or event_view.visible)
 	shop_screen.visible = false
+	shop_list = shop_list and run.screen == S.SHOP
 	_bar.visible = run.screen != S.SHOP
 	quit_button.visible = map_view.visible
 	bag_button.visible = map_view.visible
@@ -302,18 +305,17 @@ func _show_rest() -> void:
 	_panel("The Lounge", ["Rest a moment. Pick one."], buttons)
 
 
+## The shop counter, or the old text list (ShopView, kept for selling
+## until the bag row lands in shop redesign PR C) after Sell / Swap.
 func _show_shop() -> void:
+	if shop_list:
+		var buttons := ShopView.buttons(self)
+		buttons.append(["Back", func() -> void: shop_list = false; refresh()])
+		_panel("The Ember Shop", ShopView.lines(self), buttons)
+		return
 	_panel_root.visible = false
 	shop_screen.visible = true
 	shop_screen.build(self)
-
-
-## The old text shop (ShopView), kept for selling until the bag row lands
-## (shop redesign PR C). "Back" returns to the counter.
-func _show_shop_list() -> void:
-	var buttons := ShopView.buttons(self)
-	buttons.append(["Back", refresh])
-	_panel("The Ember Shop", ShopView.lines(self), buttons)
 
 
 ## Shop label for mod offer i (ShopView.mod_offer_text).

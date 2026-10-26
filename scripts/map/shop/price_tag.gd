@@ -1,16 +1,16 @@
-## The brass price tag under a counter item (HANDOFF_SPEC §2, §3): a dark
-## plate with a brass border, an ember coin and the price in cream. The
-## numerals turn red (#FF2E3E) when you can't afford the item.
+## The brass price tag under a counter item (HANDOFF_SPEC §2-3): an ember coin
+## and the price in cream; red when you can't afford it, grey for a "-" tag.
 class_name PriceTag
 extends PanelContainer
 
 const CREAM := Color("#E8DCC0")
 const RED := Color("#FF2E3E")
+const GREY := Color("#8A8478")
 const COIN := Color("#C8783C")
 const BRASS := Color("#C9A24A")
 
 var label: Label
-var coin: Panel
+var coin: Label
 
 
 ## Build the tag. `num_px` is the numeral size; `scale_px` sizes the rest.
@@ -30,16 +30,9 @@ func setup(text: String, can_afford: bool, num_px: int, scale_px: float) -> void
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
-	coin = Panel.new()  # A round ember coin: a panel with full corner radius.
-	var cs := StyleBoxFlat.new()
-	cs.bg_color = COIN
-	cs.set_corner_radius_all(int(8 * scale_px))
-	coin.add_theme_stylebox_override("panel", cs)
-	coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	coin.custom_minimum_size = Vector2(12, 12) * scale_px
-	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	coin = RunTheme.label("●", int(14 * scale_px), COIN)  # The ember coin.
 	row.add_child(coin)
-	label = RunTheme.label(text, num_px, CREAM if can_afford else RED)
+	label = RunTheme.label(text, num_px, GREY if text == "-" else (CREAM if can_afford else RED))
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	row.add_child(label)
 
