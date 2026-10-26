@@ -20,6 +20,9 @@ func _initialize() -> void:
 	_test_counter_shows()
 	_test_art_keys()
 	_test_prices_and_red()
+	await process_frame  # Let the containers lay out.
+	await process_frame
+	_test_ember_coin()
 	_test_layouts()
 	_test_felt()
 	_test_rows()
@@ -220,3 +223,24 @@ func _test_reroll_and_leave() -> void:
 	_check(run.screen == MapRun.Screen.MAP and not scene.shop_screen.visible, "Leave returns to the map")
 
 
+
+
+## The ember coin (AD): a #C8783C disc ~0.8x cap height, centred on the
+## digits (the font's baseline minus half the cap), 4 spec px before the
+## number, on every price tag and on the Embers total.
+func _test_ember_coin() -> void:
+	var ss := scene.shop_screen
+	var prices: Array = ss.items.map(func(it: ShopItem) -> EmberPrice: return it.tag.price)
+	var total := ss.embers_label.get_parent() as EmberPrice
+	_check(total != null, "the Embers total is an EmberPrice")
+	prices.append(total)
+	for p: EmberPrice in prices:
+		var c := p.coin.get_global_rect()
+		var l := p.label.get_global_rect()
+		var px := p.label.get_theme_font_size("font_size")
+		var font := p.label.get_theme_font("font")
+		var digits_mid := l.position.y + font.get_ascent(px) - px * 0.71 / 2
+		_check(absf(c.size.x - px * 0.71 * 0.8) <= 1.0 and c.size.x == c.size.y, "coin %s is ~0.8x cap of %d px" % [c.size, px])
+		_check(absf(c.get_center().y + p.drop - digits_mid) <= 1.0, "coin centred on the digits (%s vs %s)" % [c.get_center().y + p.drop, digits_mid])
+		_check(absf(l.position.x - c.end.x - 4 * ss.k) <= 1.0, "4 px gap before the number")
+	_check(EmberPrice.COIN == Color("#C8783C"), "coin colour")
