@@ -301,11 +301,11 @@ func _test_shop_ui() -> void:
 	_enter(run, NT.SHOP)
 	await process_frame
 	run.progress.embers = 11
-	scene._show_shop()
+	scene._show_shop_list()
 	var soul := _ui_button(scene, "Soul Draught")
 	_check(soul != null and soul.text == "Soul Draught: +4 max Soul, heals 4. 12 Embers" and soul.disabled, "P3 UI: shop_soul_button, greyed when short")
 	run.progress.embers = 40
-	scene._show_shop()
+	scene._show_shop_list()
 	soul = _ui_button(scene, "Soul Draught")
 	soul.pressed.emit()
 	await process_frame
@@ -314,7 +314,7 @@ func _test_shop_ui() -> void:
 	run.shop_premium_seal = &"black"
 	run.progress.record_banks([&"pair"])
 	run.progress.embers = 12
-	scene._show_shop()
+	scene._show_shop_list()
 	var rare := _ui_button(scene, "Rare Seal")
 	_check(rare != null and rare.text == "Rare Seal: 12 Embers (Black)" and not rare.disabled, "P4 UI: shop_premium_seal_button names the Seal")
 	rare.pressed.emit()
@@ -327,7 +327,7 @@ func _test_shop_ui() -> void:
 	await process_frame
 	run.shop_dice[0] = load("res://resources/dice/special/mirror.tres")
 	run.progress.embers = 26
-	scene._show_shop()
+	scene._show_shop_list()
 	lines = _ui_labels(scene._panel_box)
 	_check(lines.has("Prices on this floor: 50% above Floor 1."), "P5 UI: shop_floor_price_note on Floor 3")
 	var die := _ui_button(scene, "Mirror Die - ")

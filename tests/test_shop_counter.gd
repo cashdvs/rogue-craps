@@ -126,7 +126,10 @@ func _test_layouts() -> void:
 		ss.build(scene)
 		_check(ss.layout == c[1], "layout for %s" % c[0])
 		_check(ss.shelves.size() == c[2], "%d shelves for %s (got %d)" % [c[2], c[0], ss.shelves.size()])
-		var real_px := ss.items[0].tag.label.get_theme_font_size("font_size") / ss.k
+		# Real px = design px x (window px / canvas px), measured independently of ss.k.
+		var vis := ss.get_viewport().get_visible_rect().size
+		var to_real: float = 1080.0 / vis.y if c[1] == ShopScreen.Layout.PC else float(c[0].x) / vis.x
+		var real_px: float = ss.items[0].tag.label.get_theme_font_size("font_size") * to_real
 		_check(real_px >= 24.0, "price numerals %.1f real px >= 24 at %s" % [real_px, c[0]])
 	ss.window_override = Vector2i.ZERO
 	scene.refresh()
@@ -148,6 +151,15 @@ func _test_rows() -> void:
 	var rows := ShopScreen._rows(offers, [3, 3, 3])
 	_check(rows.size() == 3 and rows[0].size() == 3 and rows[2].size() == 1, "rows split 3/3/1")
 	_check(ShopScreen._rows(offers, [3, 5])[1].size() == 4, "last row takes the rest")
+	for i in 3:
+		offers.append(ShopOffer.new())
+	_check(ShopScreen._rows(offers, [3, 5])[1].size() == 7, "last row takes extras past its count")
+	var o := ShopOffer.new()
+	o.price_lo = 8
+	o.price_hi = 12
+	_check(o.price_text() == "8-12", "mod range tag reads lo-hi")
+	o.price_lo = -1
+	_check(o.price_text() == "-" and not o.affordable(99), "no free face: '-' and not buyable")
 
 
 func _test_click_buy_die() -> void:

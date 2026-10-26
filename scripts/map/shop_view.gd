@@ -1,4 +1,5 @@
-## The Ember Shop's lines and buttons for RunScreen (spec 1, economy_balance_v1
+## The old text shop list for RunScreen (shown from the counter's Sell / Swap
+## until the bag row lands, shop redesign PR C) (spec 1, economy_balance_v1
 ## P3-P5). Rules and prices live in MapRunShop; this only builds the labels
 ## (always the final price) and forwards clicks. Buttons are RunScreen._panel
 ## rows: [text, Callable, disabled?].
@@ -28,7 +29,7 @@ static func buttons(screen: RunScreen) -> Array:
 			if d.is_rare():
 				text += " [%s]" % EconomyStrings.SHOP_RARE_TAG
 			out.append([text,
-				func() -> void: run.buy_die(i); screen._show_shop(), e < run.die_price(i) or not run.progress.can_add_die()])
+				func() -> void: run.buy_die(i); screen._show_shop_list(), e < run.die_price(i) or not run.progress.can_add_die()])
 	for i in run.shop_mods.size():
 		if run.shop_mods[i] != null:
 			var m := run.shop_mods[i]
@@ -36,7 +37,7 @@ static func buttons(screen: RunScreen) -> Array:
 			out.append([mod_offer_text(run, i), func() -> void:
 				screen._pick("Pick a face for the %s" % m.display_name, func(at: Vector2i) -> void:
 					run.buy_mod(i, at)
-					screen._show_shop(), func(at: Vector2i) -> bool: return run.can_buy_mod_at(i, at),
+					screen._show_shop_list(), func(at: Vector2i) -> bool: return run.can_buy_mod_at(i, at),
 					func(d: int) -> int: return run.shop_mod_price(m, d)), low < 0 or e < low])
 	for i in run.shop_seals.size():
 		if run.shop_seals[i] != &"":
@@ -44,25 +45,25 @@ static func buttons(screen: RunScreen) -> Array:
 			out.append(["%s Seal - %d Embers" % [String(id).capitalize(), run.seal_price(id)],
 				func() -> void: screen._seal_with_params(id, func(params: Dictionary) -> bool:
 					var ok := run.buy_seal(i, params)
-					screen._show_shop()
+					screen._show_shop_list()
 					return ok), e < run.seal_price(id) or not screen._seal_possible(id)])
 	if run.shop_premium_seal != &"":
 		var id := run.shop_premium_seal
 		out.append([EconomyStrings.shop_premium_seal_button(run.premium_seal_price(), String(id).capitalize()),
 			func() -> void: screen._seal_with_params(id, func(params: Dictionary) -> bool:
 				var ok := run.buy_premium_seal(params)
-				screen._show_shop()
+				screen._show_shop_list()
 				return ok), e < run.premium_seal_price() or not screen._seal_possible(id)])
 	if run.data.shop_soul_amount > 0:
 		out.append([EconomyStrings.shop_soul_button(run.data.shop_soul_amount, run.soul_price()),
-			func() -> void: run.buy_soul(); screen._show_shop(), e < run.soul_price()])
+			func() -> void: run.buy_soul(); screen._show_shop_list(), e < run.soul_price()])
 	for d_i in run.progress.dice.size():
 		var sd := run.progress.die_def(d_i)
 		if sd != null and run.progress.sell_value(d_i) > 0:
 			out.append(["Sell your %s (+%d Embers)" % [sd.display_name, run.progress.sell_value(d_i)],
-				func() -> void: run.sell_die(d_i); screen._show_shop()])
+				func() -> void: run.sell_die(d_i); screen._show_shop_list()])
 	out.append(["Free reroll (%d left)" % run.progress.free_rerolls if run.progress.free_rerolls > 0 else "Reroll - %d Embers" % run.reroll_price(),
-		func() -> void: run.shop_reroll(); screen._show_shop(), e < run.reroll_price()])
+		func() -> void: run.shop_reroll(); screen._show_shop_list(), e < run.reroll_price()])
 	out.append(["Leave", func() -> void: run.leave()])
 	return out
 
