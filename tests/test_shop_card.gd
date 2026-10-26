@@ -83,10 +83,10 @@ func _texts(card: ShopCard) -> Array[String]:
 
 
 func _test_strings() -> void:
-	_check(ShopCardText.TEXT.size() == 22, "22 shop_card_* ids (incl. shop_card_soul_name)")
-	_check(ShopCardText.say(&"shop_card_cant_afford", 4) == "Need 4 more Embers.", "cant_afford fills {n}")
-	_check(ShopCardText.say(&"shop_card_shape", 8) == "8 faces: rolls 1 to 8.", "shape fills both {n}")
-	_check(ShopCardText.say(&"shop_card_soul_name") == "Soul Draught", "soul name (strings_v1 line 466)")
+	_check(ShopCardStrings.TEXT.size() == 22, "22 shop_card_* ids (incl. shop_card_soul_name)")
+	_check(ShopCardStrings.fill("shop_card_cant_afford", 4) == "Need 4 more Embers.", "cant_afford fills {n}")
+	_check(ShopCardStrings.fill("shop_card_shape", 8) == "8 faces: rolls 1 to 8.", "shape fills both {n}")
+	_check(ShopCardStrings.get_text("shop_card_soul_name") == "Soul Draught", "soul name (strings_v1 line 466)")
 
 
 ## Phone: first tap lifts + opens the card, a second tap does nothing, and
@@ -150,18 +150,18 @@ func _test_lines_per_type() -> void:
 	_check(ss.card.find_children("Lock", "", true, false).size() > 0, "rare die strip marks its forge-carved faces")
 	ss.card.show_for(_item(ShopOffer.Kind.SOUL))
 	t = _texts(ss.card)
-	_check(t.has("Soul Draught") and t.has(ShopCardText.say(&"shop_card_soul", run.data.shop_soul_amount)), "Draught: soul name + shop_card_soul")
+	_check(t.has("Soul Draught") and t.has(ShopCardStrings.fill("shop_card_soul", run.data.shop_soul_amount)), "Draught: soul name + shop_card_soul")
 	var mod := _item(ShopOffer.Kind.MOD, 0)
 	ss.card.show_for(mod)
 	t = _texts(ss.card)
 	var r := run.mod_price_range(0)
-	_check(t.has(ShopCardText.say(&"shop_card_mod_pick")) and t.has(mod.offer.price_text()), "mod: pick line and mod_price_range price")
+	_check(t.has(ShopCardStrings.get_text("shop_card_mod_pick")) and t.has(mod.offer.price_text()), "mod: pick line and mod_price_range price")
 	_check(mod.offer.price_lo == r.x and mod.offer.price_hi == r.y, "mod price is mod_price_range")
 	ss.card.show_for(_item(ShopOffer.Kind.SEAL, 0))
-	_check(_texts(ss.card).has(ShopCardText.say(&"shop_card_seal")), "Seal: shop_card_seal")
+	_check(_texts(ss.card).has(ShopCardStrings.get_text("shop_card_seal")), "Seal: shop_card_seal")
 	ss.card.show_for(_item(ShopOffer.Kind.RARE_SEAL))
 	t = _texts(ss.card)
-	_check(t.has("RARE") and t.has(ShopCardText.say(&"shop_card_seal_rare")), "Rare Seal: chip + shop_card_seal_rare")
+	_check(t.has("RARE") and t.has(ShopCardStrings.get_text("shop_card_seal_rare")), "Rare Seal: chip + shop_card_seal_rare")
 	ss.card.close()
 
 
@@ -218,7 +218,7 @@ func _test_blocker_order() -> void:
 	_check(_blocker(_item(ShopOffer.Kind.MOD, 0)) == &"shop_card_no_free_face", "mod: no free face beats can't afford")
 	_check(_blocker(_item(ShopOffer.Kind.RARE_SEAL)) == &"shop_card_cant_afford", "Seal: can't afford beats not usable")
 	var red := ss.card.action
-	_check(red.disabled and red.text == ShopCardText.say(&"shop_card_cant_afford", run.premium_seal_price()), "can't afford: greyed 'Need n more Embers.'")
+	_check(red.disabled and red.text == ShopCardStrings.fill("shop_card_cant_afford", run.premium_seal_price()), "can't afford: greyed 'Need n more Embers.'")
 	_check(red.get_theme_color("font_disabled_color") == ShopCard.RED, "can't afford is red")
 	run.progress.embers = 100
 	_show(Vector2i(390, 844), true)
