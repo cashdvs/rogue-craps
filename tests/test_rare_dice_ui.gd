@@ -50,15 +50,17 @@ func _test_shop_tag() -> void:
 			break
 	_check(hit, "some reroll seed puts a rare in slot 2")
 	scene.refresh()
-	var texts: Array[String] = []
-	for b in ShopView.buttons(scene):
-		texts.append(str(b[0]))
-	var rare: SpecialDieData = run.shop_dice[1]
-	var common: SpecialDieData = run.shop_dice[0]
-	var rare_line := texts.filter(func(t: String) -> bool: return t.begins_with(rare.display_name + " - "))
-	var common_line := texts.filter(func(t: String) -> bool: return t.begins_with(common.display_name + " - "))
-	_check(rare_line.size() == 1 and EconomyStrings.SHOP_RARE_TAG in rare_line[0], "rare card shows the Rare tag")
-	_check(common_line.size() == 1 and not EconomyStrings.SHOP_RARE_TAG in common_line[0], "common card has no Rare tag")
+	# The counter (PR C removed the old text list): each die item's offer.
+	var rare_it: ShopItem = null
+	var common_it: ShopItem = null
+	for it in scene.shop_screen.items:
+		if it.offer.kind == ShopOffer.Kind.DIE:
+			if it.offer.index == 1:
+				rare_it = it
+			elif it.offer.index == 0:
+				common_it = it
+	_check(rare_it != null and rare_it.offer.rare and rare_it.offer.id == run.shop_dice[1].id, "rare card shows the Rare tag")
+	_check(common_it != null and not common_it.offer.rare, "common card has no Rare tag")
 	scene.queue_free()
 	await process_frame
 

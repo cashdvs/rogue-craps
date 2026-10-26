@@ -1,8 +1,8 @@
 ## The visual Ember Shop (art/concept/shop_redesign/HANDOFF_SPEC.md): a wooden
 ## counter with shelves of goods, each with a brass price tag. Rules and prices
 ## stay in MapRunShop; this only lays the goods out and forwards clicks.
-## Smiles (DealerBackdrop) stands behind the rail. Later PRs slot in: B a ShopCard
-## on ShopItem.focus_item, C the bag row under the counter, D the rare chip.
+## Smiles (DealerBackdrop) stands behind the rail. The one card (ShopSideCard)
+## shows items (PR B), bag dice to sell and the reroll (PR C); PR D adds the rare chip.
 class_name ShopScreen
 extends Control
 
@@ -17,16 +17,19 @@ const CREAM := Color("#E8DCC0")
 ## Per layout, in spec px (§2): counter top (px, or a fraction of the height
 ## when < 1) and bottom, art size, items per shelf, buttons row y, title size,
 ## and the dealer box: left and right edge (fractions of the width) and its
-## top in spec px; [] = no dealer (landscape has no room).
+## top in spec px; [] = no dealer (landscape has no room); and the bag row:
+## its top (a fraction of the height) and slot size in spec px.
 const LAYOUTS := {
-	Layout.PC: {"top": 0.34, "bottom": 0.78, "art": 120.0, "per_shelf": [3, 5], "buttons": 0.85, "title": 32, "dealer": [0.38, 0.62, 70.0]},
-	Layout.LANDSCAPE: {"top": 62.0, "bottom": 0.74, "art": 46.0, "per_shelf": [8], "buttons": 0.85, "title": 22, "dealer": []},
-	Layout.PORTRAIT: {"top": 170.0, "bottom": 0.775, "art": 58.0, "per_shelf": [3, 3, 3], "buttons": 0.9, "title": 16, "dealer": [0.25, 0.75, 64.0]},
+	Layout.PC: {"top": 0.34, "bottom": 0.78, "art": 120.0, "per_shelf": [3, 5], "buttons": 0.85, "title": 32, "dealer": [0.38, 0.62, 70.0], "bag": [0.83, 110.0]},
+	Layout.LANDSCAPE: {"top": 62.0, "bottom": 0.74, "art": 46.0, "per_shelf": [8], "buttons": 0.85, "title": 22, "dealer": [], "bag": [0.81, 40.0]},
+	Layout.PORTRAIT: {"top": 170.0, "bottom": 0.775, "art": 58.0, "per_shelf": [3, 3, 3], "buttons": 0.9, "title": 16, "dealer": [0.25, 0.75, 64.0], "bag": [0.80, 50.0]},
 }
 ## PC Sell / Swap, Reroll, Leave sizes (spec px); phones fit their text.
 const PC_BUTTONS := [Vector2(180, 50), Vector2(210, 50), Vector2(190, 50)]
 ## Price numerals (spec px): 28 everywhere, so >= 24 real px on phones.
 const NUM_PX := 28
+## Slots in the bag row (RunData.max_dice is 6).
+const BAG_SLOTS := 6
 ## Tests: pretend the window is this many real pixels (0 = the real window).
 var window_override := Vector2i.ZERO
 
@@ -42,8 +45,16 @@ var reroll_button: Button
 var leave_button: Button
 var sell_button: Button
 var dealer: DealerBackdrop
-## The one floating item card (PR B), rebuilt with the shop.
-var card: ShopCard
+## The one floating card (items, sell, reroll), rebuilt with the shop.
+var card: ShopSideCard
+## The bag row's slots, one per die plus empty ones.
+var bag: Array[BagSlot] = []
+## Sell mode (after Sell / Swap): the bag lifts and the hint shows. It lasts
+## until you leave, so it survives the rebuild after each sale.
+var selling := false
+var bag_label: Label
+## "Pick a die to sell." in sell mode (hidden otherwise).
+var sell_hint: Label
 ## Phone layouts (landscape / portrait): taps select, only the card buys.
 var touch_mode := false
 
@@ -69,6 +80,7 @@ func build(s: RunScreen) -> void:
 		c.queue_free()
 	items.clear()
 	shelves.clear()
+	bag.clear()
 	dealer = null
 	pick_layout()
 	touch_mode = layout != Layout.PC
@@ -83,8 +95,9 @@ func build(s: RunScreen) -> void:
 		var d: Array = spec.dealer
 		dealer.setup(Rect2(d[0] * vis.x, d[2] * k, (d[1] - d[0]) * vis.x, (top - d[2]) * k), k)
 	_build_counter(Rect2(0, top * k, vis.x, (spec.bottom * h - top) * k), spec)
+	card = ShopSideCard.new(self)  # Before the bag and buttons: they connect to it.
+	_add_bag(spec.bag[0] * vis.y, spec.bag[1] * k)
 	_add_buttons(vis, spec.buttons * vis.y)
-	card = ShopCard.new(self)
 	add_child(card)
 
 
@@ -182,15 +195,24 @@ func _add_buttons(vis: Vector2, y: float) -> void:
 	var pc := layout == Layout.PC
 	var px := int((26 if pc else 24) * k)
 	var reroll_text := "Reroll  %d" % run.reroll_price() if run.progress.free_rerolls == 0 else "Free reroll (%d)" % run.progress.free_rerolls
-	sell_button = _button("Sell / Swap", px, func() -> void: screen.shop_list = true; screen.refresh())
-	reroll_button = _button(reroll_text, px, func() -> void: run.shop_reroll(); screen.refresh())
-	reroll_button.disabled = run.progress.embers < run.reroll_price()
-	leave_button = _button("Leave", px, func() -> void: run.leave())
+	sell_button = _button("Sell / Swap", px, func() -> void: selling = not selling; card.close(); build(screen))
+	reroll_button = _button(reroll_text, px, _on_reroll_pressed)
+	reroll_button.disabled = not touch_mode and run.progress.embers < run.reroll_price()
+	reroll_button.mouse_entered.connect(func() -> void: if not touch_mode: card.show_reroll(reroll_button, false))
+	reroll_button.mouse_exited.connect(card.leave)
+	leave_button = _button("Leave", px, func() -> void: selling = false; run.leave())
+	# PC: Sell / Swap sits right of the bag row; phones put all three in one row.
 	var row: Array[Button] = [sell_button, reroll_button, leave_button]
+	if pc:
+		row.pop_front()
+		sell_button.custom_minimum_size = PC_BUTTONS[0] * k
+		sell_button.size = sell_button.get_combined_minimum_size()
+		var last := bag[BAG_SLOTS - 1]
+		sell_button.position = Vector2(last.position.x + last.size.x + 30 * k, last.position.y + (last.size.y - sell_button.size.y) / 2.0)
 	var x := vis.x - (40 if pc else 16) * k
 	for i in range(row.size() - 1, -1, -1):
 		var b := row[i]
-		b.custom_minimum_size = PC_BUTTONS[i] * k if pc else Vector2(0, 44 * k)
+		b.custom_minimum_size = PC_BUTTONS[i + 1] * k if pc else Vector2(0, 44 * k)  # +1: Sell / Swap is PC_BUTTONS[0].
 		b.size = b.get_combined_minimum_size()
 		x -= b.size.x
 		b.position = Vector2(x, y)
@@ -202,3 +224,43 @@ func _button(text: String, px: int, on: Callable) -> Button:
 	b.pressed.connect(on)
 	add_child(b)
 	return b
+
+
+## PC: Reroll rerolls (its card opened on hover). Phone: the first tap opens
+## the card, and only the card's button rerolls.
+func _on_reroll_pressed() -> void:
+	if touch_mode:
+		if not card.reroll_open:
+			card.show_reroll(reroll_button, true)
+		return
+	card.close()
+	if screen.run.shop_reroll():
+		screen.refresh()
+
+
+## The bag row: "YOUR DICE n/6", the sell-mode hint, and six slots of
+## `px` design px from top `y`. Sell mode lifts the row 10 spec px.
+func _add_bag(y: float, px: float) -> void:
+	var p := screen.run.progress
+	if selling:
+		y -= 10 * k
+	var x := (40 if layout == Layout.PC else 16) * k
+	var gap := (10 if layout == Layout.PC else 8) * k
+	var label_px := int((20 if layout == Layout.PC else 14) * k)
+	bag_label = RunTheme.label("YOUR DICE  %d/%d" % [p.dice.size(), p.data.max_dice], label_px, CREAM)
+	bag_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	bag_label.position = Vector2(x, y - label_px * 1.5)
+	add_child(bag_label)
+	sell_hint = RunTheme.label("Pick a die to sell.", label_px, BRASS)
+	sell_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
+	sell_hint.position = Vector2(x + bag_label.get_combined_minimum_size().x + 16 * k, bag_label.position.y)
+	sell_hint.visible = selling
+	add_child(sell_hint)
+	for i in BAG_SLOTS:
+		var s := BagSlot.new()
+		s.setup(screen.run, i, px, k)
+		s.position = Vector2(x + i * (px + gap), y)
+		s.opened.connect(func(slot: BagSlot, pin: bool) -> void: card.show_sell(slot, pin or touch_mode))
+		s.left.connect(func(_slot: BagSlot) -> void: card.leave())
+		add_child(s)
+		bag.append(s)

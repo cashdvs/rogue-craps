@@ -58,6 +58,22 @@ func _press(node: Node, prefix: String) -> bool:
 	return false
 
 
+## A real left click on a counter item or bag slot.
+func _click(c: Control) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = true
+	c._gui_input(e)
+
+
+## The first counter item of `kind`, or null.
+func _shop_item(scene: RunScreen, kind: ShopOffer.Kind) -> ShopItem:
+	for it in scene.shop_screen.items:
+		if it.offer.kind == kind:
+			return it
+	return null
+
+
 func _enter(scene: RunScreen, type: int) -> void:
 	for n: MapNode in scene.run.map.nodes.values():
 		if n.type == type:
@@ -124,20 +140,19 @@ func _test_panels(scene: RunScreen) -> void:
 	_enter(scene, NT.SHOP)
 	await process_frame
 	scene.run.progress.embers = 50
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	_check(_press(scene, "Reroll - 3") and scene.run.progress.embers == 47, "shop: reroll button")
+	scene.refresh()  # The shop counter (PR C removed the old text list).
+	_check(_press(scene, "Reroll  3") and scene.run.progress.embers == 47, "shop: reroll button")
 	await process_frame
 	scene.run.progress.add_die(&"mirror")
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	_check(_press(scene, "Sell your Mirror") and scene.run.progress.dice.size() == 5 and scene.run.progress.embers == 56, "shop: sell button (half of 18)")
+	scene.refresh()
+	_click(scene.shop_screen.bag[5])  # The Mirror's bag slot opens its sell card.
+	_check(_press(scene, "Sell for 9 Embers") and scene.run.progress.dice.size() == 5 and scene.run.progress.embers == 56, "shop: sell button (half of 18)")
 	await process_frame
 	scene.run.progress.add_seal_levels(&"pair", 1)
 	scene.run.shop_seals[0] = &"ashen"
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	_check(_press(scene, "Ashen Seal") and _press(scene, "Pair") and _press(scene, "Trips")
+	scene.refresh()
+	_click(_shop_item(scene, ShopOffer.Kind.SEAL))
+	_check(_press(scene, "Pair") and _press(scene, "Trips")
 		and scene.run.progress.seal_level(&"trips") == 1 and scene.run.progress.seal_level(&"pair") == 0, "shop: Ashen Seal asks from / to")
 	await process_frame
 	scene.run.rules = [load("res://resources/map/rules/short_table.tres")] as Array[RunRuleData]
@@ -147,24 +162,19 @@ func _test_panels(scene: RunScreen) -> void:
 		shown = shown or (l is Label and (l as Label).text.begins_with("Twist: Short Table"))
 	_check(shown, "table: the node's twist is listed at table entry")
 	scene.run.rules.clear()
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
 	var hell: FaceModData = load("res://resources/mods/hellfire.tres")
 	scene.run.shop_mods[0] = hell
 	for d in scene.run.progress.dice.size():
 		scene.run.progress.set_face(d, 5, &"twin")
 	scene.run.progress.embers = hell.price
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	var greyed := false
-	for b in _buttons(scene):
-		if b.text.begins_with("Hellfire Face - %d" % scene.run.cheapest_mod_price(0)):
-			greyed = b.disabled
-	_check(greyed and scene.run.cheapest_mod_price(0) > hell.price, "shop: mod button greys out on the escalated price, and shows it")
+	scene.refresh()
+	var mod := _shop_item(scene, ShopOffer.Kind.MOD)
+	scene.shop_screen.card.show_for(mod)
+	var low := scene.run.cheapest_mod_price(0)
+	_check(mod.offer.price_lo == low and scene.shop_screen.card.action.disabled and low > hell.price, "shop: the mod card blocks on the escalated price, and shows it")
 	for d in scene.run.progress.dice.size():
 		scene.run.progress.set_face(d, 5, &"")
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
+	scene.refresh()
 	_check(_press(scene, "Leave") and scene.run.screen == S.MAP, "shop: leave")
 	await process_frame
 	_check(scene.quit_button.visible, "map: Quit to title shown on the map")

@@ -269,29 +269,24 @@ func _test_floor_prices() -> void:
 
 # --- Shop UI: final prices on the buttons ---
 
-func _ui_buttons(node: Node, out: Array[Button] = []) -> Array[Button]:
-	for c in node.get_children():
-		if c is Button:
-			out.append(c)
-		_ui_buttons(c, out)
-	return out
-
-
-func _ui_labels(node: Node, out: Array[String] = []) -> Array[String]:
-	for c in node.get_children():
-		if c is Label:
-			out.append((c as Label).text)
-		_ui_labels(c, out)
-	return out
-
-
-func _ui_button(scene: RunScreen, prefix: String) -> Button:
-	for b in _ui_buttons(scene._panel_box):
-		if b.text.begins_with(prefix):
-			return b
+## The counter item for offer `kind` (first match), or null.
+func _shop_item(scene: RunScreen, kind: ShopOffer.Kind) -> ShopItem:
+	for it in scene.shop_screen.items:
+		if it.offer.kind == kind:
+			return it
 	return null
 
 
+## A real left click on a counter item (PC: buys).
+func _click_item(it: ShopItem) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = true
+	it._gui_input(e)
+
+
+## The shop counter (PR C removed the old text list): the Draught, rare Seal
+## and floor prices read off the counter items and their cards.
 func _test_shop_ui() -> void:
 	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
 	scene.run_seed = 21
@@ -301,42 +296,37 @@ func _test_shop_ui() -> void:
 	_enter(run, NT.SHOP)
 	await process_frame
 	run.progress.embers = 11
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	var soul := _ui_button(scene, "Soul Draught")
-	_check(soul != null and soul.text == "Soul Draught: +4 max Soul, heals 4. 12 Embers" and soul.disabled, "P3 UI: shop_soul_button, greyed when short")
+	scene.refresh()
+	var soul := _shop_item(scene, ShopOffer.Kind.SOUL)
+	scene.shop_screen.card.show_for(soul)
+	_check(soul != null and soul.offer.display_name == "Soul Draught: +4 max Soul, heals 4. 12 Embers"
+		and scene.shop_screen.card.blocker_id == &"shop_card_cant_afford", "P3 UI: shop_soul_button, can't afford when short")
 	run.progress.embers = 40
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	soul = _ui_button(scene, "Soul Draught")
-	soul.pressed.emit()
+	scene.refresh()
+	_click_item(_shop_item(scene, ShopOffer.Kind.SOUL))
 	await process_frame
-	soul = _ui_button(scene, "Soul Draught")
-	_check(run.progress.max_soul == 39 and soul != null and soul.text.ends_with("16 Embers"), "P3 UI: buying shows the next price (16)")
+	soul = _shop_item(scene, ShopOffer.Kind.SOUL)
+	_check(run.progress.max_soul == 39 and soul != null and soul.offer.price_lo == 16, "P3 UI: buying shows the next price (16)")
 	run.shop_premium_seal = &"black"
 	run.progress.record_banks([&"pair"])
 	run.progress.embers = 12
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	var rare := _ui_button(scene, "Rare Seal")
-	_check(rare != null and rare.text == "Rare Seal: 12 Embers (Black)" and not rare.disabled, "P4 UI: shop_premium_seal_button names the Seal")
-	rare.pressed.emit()
+	scene.refresh()
+	var rare := _shop_item(scene, ShopOffer.Kind.RARE_SEAL)
+	_check(rare != null and rare.offer.price_text() == "12" and rare.offer.display_name == "Black", "P4 UI: the rare Seal shows 12 and names the Seal")
+	_click_item(rare)
 	await process_frame
-	_check(run.progress.embers == 0 and _ui_button(scene, "Rare Seal") == null, "P4 UI: bought; the slot is gone")
-	var lines := _ui_labels(scene._panel_box)
-	_check(not lines.any(func(t: String) -> bool: return t.begins_with("Prices on this floor")), "P5 UI: no price note on Floor 1")
+	_check(run.progress.embers == 0 and _shop_item(scene, ShopOffer.Kind.RARE_SEAL) == null, "P4 UI: bought; the slot is gone")
 	run._start_floor(2)
 	_enter(run, NT.SHOP)
 	await process_frame
 	run.shop_dice[0] = load("res://resources/dice/special/mirror.tres")
 	run.progress.embers = 26
-	scene.shop_list = true  # The old text list (Sell / Swap) until shop PR C.
-	scene._show_shop()
-	lines = _ui_labels(scene._panel_box)
-	_check(lines.has("Prices on this floor: 50% above Floor 1."), "P5 UI: shop_floor_price_note on Floor 3")
-	var die := _ui_button(scene, "Mirror Die - ")
-	_check(die != null and die.text.begins_with("Mirror Die - 27 Embers") and die.disabled, "P5 UI: the die button shows the final price (27) and greys on it")
-	_check(_ui_button(scene, "Soul Draught").text.ends_with("24 Embers") and _ui_button(scene, "Reroll - 3") != null,
+	scene.refresh()
+	var die := _shop_item(scene, ShopOffer.Kind.DIE)
+	scene.shop_screen.card.show_for(die)
+	_check(die != null and die.offer.price_text() == "27" and scene.shop_screen.card.blocker_id == &"shop_card_cant_afford",
+		"P5 UI: the die shows the final price (27) and blocks on it")
+	_check(_shop_item(scene, ShopOffer.Kind.SOUL).offer.price_lo == 24 and scene.shop_screen.reroll_button.text == "Reroll  3",
 		"P5 UI: Soul Draught (12 + 4) x 1.5 = 24; reroll stays 3")
 	scene.queue_free()
 	await process_frame

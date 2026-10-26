@@ -216,17 +216,16 @@ func _test_reroll_and_leave() -> void:
 	scene.shop_screen.reroll_button.pressed.emit()
 	_check(run.shop_rerolls + run.shop_free_rerolls == n + 1, "Reroll restocks")
 	scene.shop_screen.sell_button.pressed.emit()
-	_check(scene._panel_root.visible and not scene.shop_screen.visible, "Sell / Swap opens the sell list")
-	_check(scene.shop_list, "the list stays open across refreshes")
-	scene._panel_box.get_children().back().pressed.emit()  # Back.
-	_check(scene.shop_screen.visible and not scene.shop_list, "Back returns to the counter")
+	_check(scene.shop_screen.visible and scene.shop_screen.selling, "Sell / Swap puts the bag in sell mode on the counter")
+	scene.shop_screen.sell_button.pressed.emit()
+	_check(not scene.shop_screen.selling, "Sell / Swap again ends sell mode")
 	scene.shop_screen.leave_button.pressed.emit()
 	_check(run.screen == MapRun.Screen.MAP and not scene.shop_screen.visible, "Leave returns to the map")
 
 
 
 
-## QA: the top bar hides in the shop, the Sell / Swap list flag resets on
+## QA: the top bar hides in the shop, Sell / Swap mode resets on
 ## leaving, and an unaffordable mod click doesn't open the face picker.
 func _test_qa_guards() -> void:
 	_open_shop_with_rare()
@@ -242,10 +241,9 @@ func _test_qa_guards() -> void:
 		run.progress.embers = 100
 		scene.refresh()
 	scene.shop_screen.sell_button.pressed.emit()
-	_check(scene.shop_list, "Sell / Swap sets the list flag")
-	run.screen = MapRun.Screen.MAP
-	scene.refresh()
-	_check(not scene.shop_list and scene._bar.visible, "leaving the shop clears the list flag and shows the top bar")
+	_check(scene.shop_screen.selling, "Sell / Swap sets sell mode")
+	scene.shop_screen.leave_button.pressed.emit()
+	_check(not scene.shop_screen.selling and scene._bar.visible, "leaving the shop ends sell mode and shows the top bar")
 	_open_shop_with_rare()
 	_check(scene.shop_screen.visible, "the next shop opens on the counter")
 
