@@ -13,6 +13,7 @@ var ability: String = ""
 ## The physical shape the die rolls as (DiceIds.SHAPE_*: &"d6", &"coin", ...).
 var shape: StringName = DiceIds.SHAPE_D6
 ## One per face: {value: int, mod: StringName (&"" = plain), mod_name: String}.
+## A rare's forge-carved face also has locked: true (shows DieCard.LOCKED).
 var faces: Array[Dictionary] = []
 ## Pick mode: the next face mod's price on this die; -1 = don't show it.
 var next_mod_price: int = -1
@@ -30,7 +31,10 @@ static func from_run(progress: RunProgress, die_index: int) -> DieCardInfo:
 	for f in die.faces.size():
 		var mod: StringName = die.faces[f]
 		var value: int = def.faces[f] if def != null and f < def.faces.size() else f + 1
-		info.faces.append({"value": value, "mod": mod, "mod_name": mod_name(progress, mod)})
+		var face := {"value": value, "mod": mod, "mod_name": mod_name(progress, mod)}
+		if progress.face_locked(die_index, f):
+			face["locked"] = true  # a rare's forge-carved face (DieCard.LOCKED)
+		info.faces.append(face)
 	return info
 
 

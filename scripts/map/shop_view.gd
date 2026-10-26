@@ -24,7 +24,10 @@ static func buttons(screen: RunScreen) -> Array:
 	for i in run.shop_dice.size():
 		var d := run.shop_dice[i]
 		if d != null:
-			out.append(["%s - %d Embers (%s)" % [d.display_name, run.die_price(i), d.description],
+			var text := "%s - %d Embers (%s)" % [d.display_name, run.die_price(i), d.description]
+			if d.is_rare():
+				text += " [%s]" % EconomyStrings.SHOP_RARE_TAG
+			out.append([text,
 				func() -> void: run.buy_die(i); screen._show_shop(), e < run.die_price(i) or not run.progress.can_add_die()])
 	for i in run.shop_mods.size():
 		if run.shop_mods[i] != null:

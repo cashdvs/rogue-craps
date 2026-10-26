@@ -17,6 +17,12 @@ static func table_points_embers(t: BonfireTuning) -> String:
 	return TABLE_POINTS_EMBERS % [t.points_per_ember, t.points_embers_cap]
 
 
+## strings_v1 shop_rare_tag (rare_dice_v1 §4): the shop card's tag on a rare die.
+const SHOP_RARE_TAG := "Rare: its carved faces come with the die."
+## strings_v1 rare_carved_locked (rare_dice_v1 §3): a rare's pre-carved face refuses a carve.
+const RARE_CARVED_LOCKED := "Carved at the forge; this face cannot be recarved."
+
+
 ## strings_v1 shop_soul_button (P3): "Soul Draught: +4 max Soul, heals 4. 12 Embers".
 static func shop_soul_button(amount: int, price: int) -> String:
 	return "Soul Draught: +%d max Soul, heals %d. %d Embers" % [amount, amount, price]
