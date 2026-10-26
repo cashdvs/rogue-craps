@@ -169,8 +169,8 @@ func _test_lines_per_type() -> void:
 func _test_die_render_and_pips() -> void:
 	_show(Vector2i(1920, 1080))
 	var die := _item(ShopOffer.Kind.DIE, 1)
-	var r := die.icon as ShopDieRender
-	_check(r != null and r.view.find_children("*", "MeshInstance3D", true, false).size() > 0, "die item shows its 3D model")
+	var v: SubViewport = (die.icon as ShopIcon).die_view
+	_check(v != null and v.find_children("*", "MeshInstance3D", true, false).size() > 0, "die item shows its 3D model")
 	_check(not (_item(ShopOffer.Kind.MOD, 0).icon is ShopDieRender), "mod item uses a stand-in, not a die render")
 	ss.card.show_for(die)
 	_check(ss.card.find_children("*", "EmberPrice", true, false).size() == 1, "card price uses the shared EmberPrice coin")
