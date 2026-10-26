@@ -40,6 +40,5 @@ don't change); the old version is in git history.
 | `no_score.wav` | new: a non-scoring die's soft bounce | `BonfireSynth._no_score` |
 | `trigger_<row>.wav` | new (mod trigger cues): one cue per trigger FX spec row, plus `trigger_generic`, `trigger_cluster` and the `trigger_flavor_<flavour>` layers; baked by `tools/bake_sfx.gd` like the rest (`ModTriggerSynth.bake_all()`) | `ModTriggerSynth.make` (recipes: `ModTriggerRecipes.build`) |
 | `nerve_nudge.wav`, `nerve_nudge_01..03.wav` | new (Nerve nudge): a brass dial detent click + soft C6 ping + wooden tick, 3 takes | `SfxSynth._dial_tick` |
-| `crowd_low.wav` | rev 2 (ambience softer): warm C-minor room drone + 8 distant voices, peak 0.2; was 14 noise voices at 0.35 | `BonfireSynth._drone`, `BonfireSynth._crowd` |
-| `crowd_mid.wav`, `crowd_high.wav` | rev 2: fewer, darker voices; less roar rumble under `crowd_high` | `BonfireSynth._crowd` |
-| `crowd_low.wav`, `crowd_mid.wav`, `crowd_high.wav` | rev 3 (Oct 22 background noise): own loop lengths 7.0 / 5.3 / 4.1 s (were all 3.0 s); drone re-voiced C2 C3 G3 E♭4 (less beating); 25 Hz DC/rumble high-pass | `CrowdStemSynth._stem`, `_drone`, `_crowd`, `_hp` |
+
+**Removed (Oct 25):** `crowd_low.wav`, `crowd_mid.wav`, `crowd_high.wav` (the looping ambience bed) were deleted by request; nothing loops any more. The crowd one-shot recipes (`CrowdStemSynth._crowd`, `_roar`) still feed `stinger_pillar` and the mod-trigger gasps.

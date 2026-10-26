@@ -1,11 +1,11 @@
 ## Procedural sounds for Bonfire scoring (design: bonfire_map_events_juice.md
 ## section 3): pip ticks, the mult slam, 4 score-tier stingers, Hot Hand,
-## bank, bounty stamp, bust and the Soul flask crack. The 3 looping crowd stems
-## and the shared buffer helpers live in CrowdStemSynth (the base class).
+## bank, bounty stamp, bust and the Soul flask crack. The crowd/roar recipes and
+## the shared buffer helpers live in CrowdStemSynth (the base class).
 ## Same recipe style as SfxSynth (sines, noise, decays; 22,050 Hz mono 16-bit).
 ##
-## The one-shots go through SfxManager like every other event. The crowd
-## stems are loops, so they get their own players: see CrowdLayers. Hook names
+## Every sound is a one-shot through SfxManager; there is no looping crowd
+## bed (removed by request, see README). Hook names
 ## and parameters are listed in scripts/audio/README.md.
 ##
 ## Core-loop cues (rev 2, PM Oct 19): hot_hand, bust, bank and bounty_claimed
@@ -47,13 +47,12 @@ const TIER_STINGERS: Array[StringName] = [
 ## harmonic minor, a little devilish. Tick index 0 is the first die.
 const TICK_SCALE: Array[int] = [0, 2, 3, 5, 7, 8, 11, 12, 14, 15, 17, 19]
 
-## Peak level per sound (0..1): stingers lead, ticks and crowd sit under.
+## Peak level per sound (0..1): stingers lead, ticks sit under.
 const LEVELS: Dictionary[StringName, float] = {
 	&"score_tick": 0.6, &"count_tick": 0.35, &"mult_slam": 0.9, &"combo_banner": 0.45,
 	&"stinger_ember": 0.6, &"stinger_flames": 0.72, &"stinger_inferno": 0.85, &"stinger_pillar": 0.9,
 	&"hot_hand": 0.8, &"bank": 0.8, &"bounty_claimed": 0.8, &"bust": 0.85, &"soul_flask_crack": 0.75,
 	&"table_cleared": 0.9, &"no_score": 0.45,
-	&"crowd_low": 0.2, &"crowd_mid": 0.45, &"crowd_high": 0.55,
 }
 
 
@@ -104,22 +103,17 @@ static func make(event: StringName) -> AudioStreamWAV:
 			s = _no_score(0.3)
 		&"soul_flask_crack":
 			s = _flask(0.85)
-		&"crowd_low", &"crowd_mid", &"crowd_high":
-			s = _stem(event)
 		_:
 			push_error("BonfireSynth: unknown event %s" % event)
 			s = PackedFloat32Array([0.0])
 	var wav := to_wav(s, LEVELS.get(event, 0.85))
-	if LOOPS.has(event):
-		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		wav.loop_end = s.size()
 	return wav
 
 
 ## Every file tools/bake_sfx.gd writes for this synth: {file name: sound}.
 static func bake_all() -> Dictionary[String, AudioStreamWAV]:
 	var out: Dictionary[String, AudioStreamWAV] = {}
-	for event in EVENTS + LOOPS:
+	for event in EVENTS:
 		out[String(event) + ".wav"] = make(event)
 	return out
 

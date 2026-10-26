@@ -1,9 +1,9 @@
-## Headless test: SfxManager.play_mod_trigger and CrowdLayers.nudge. Cues land
+## Headless test: SfxManager.play_mod_trigger (CrowdLayers.nudge is a no-op now). Cues land
 ## their transient on the row's hit (scheduled, or skipped into when late), ids
 ## map to rows (generic fallback, silent rows, Blank -> no_score), tiers and
 ## intensity set the volume, at most MAX_VOICES cues at once (then one shared
 ## cluster), count ticks can't cut them, same-moment triggers stagger 0.08 s,
-## extra Bellows play once, signature hits nudge the crowd, 2x plays sooner and
+## extra Bellows play once, signature hits call the (silent) crowd nudge, 2x plays sooner and
 ## up, Instant plays one cluster per frame. Hooks: scripts/audio/README.md.
 ##
 ## Run:
@@ -116,28 +116,18 @@ func _test_hook() -> void:
 
 
 func _test_nudge() -> void:
+	# The ambience bed is gone (Oct 25): the hook still schedules the nudge on a
+	# signature hit, but CrowdLayers.nudge() is a no-op and nothing plays.
 	var crowd := CrowdLayers.new()
 	root.add_child(crowd)
-	crowd.nudge()
-	_check(crowd.current_db()[0] <= CrowdLayers.SILENT_DB, "nudge: does nothing while the crowd is stopped")
 	crowd.start(0.01)
 	crowd.set_pot_fraction(1.0, 0.01)
-	await create_timer(0.1).timeout
-	# The hook nudges by itself: SIGNATURE rows only, on their hit.
 	var sfx := SfxManager.new()
 	root.add_child(sfx)
 	sfx.crowd = crowd
-	var top := crowd.volume_db
-	sfx.play_mod_trigger(&"mirror")
-	sfx._process(0.3)
-	_check(absf(crowd.current_db()[2] - top) < 0.3, "nudge: a major trigger doesn't nudge the crowd")
 	_check(is_equal_approx(sfx.play_mod_trigger(&"last_breath"), 0.333), "nudge: last_breath (signature) hits at 0.333 s")
-	sfx._process(0.3)
-	_check(absf(crowd.current_db()[2] - top) < 0.3, "nudge: not before the hit")
-	sfx._process(0.04)
-	_check(absf(crowd.current_db()[2] - (top + 3.0)) < 0.3, "nudge: the stems swell 3 dB on the hit (%.1f)" % crowd.current_db()[2])
-	await create_timer(0.45).timeout
-	_check(absf(crowd.current_db()[2] - top) < 0.3, "nudge: then glide back to the pot level (%.1f)" % crowd.current_db()[2])
+	sfx._process(0.34)
+	_check(crowd.get_child_count() == 0 and crowd.current_db().is_empty(), "nudge: the hit nudges a silent crowd (no players)")
 	for p in sfx._trigger_players:
 		p.stop()
 	crowd.stop(0.01)
