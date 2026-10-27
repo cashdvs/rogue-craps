@@ -1,6 +1,7 @@
 ## One item on a shelf (HANDOFF_SPEC §5): its icon above a price tag.
 ## PC: click buys, hover / leave emit focus_item / unfocus_item. Phone: a tap only focuses.
-## PR D adds the RARE chip and plinth here, reading `offer.rare`.
+## Rare items (offer.rare) get a RARE chip above the icon; rare dice also
+## stand on a plinth (RareMarks).
 class_name ShopItem
 extends VBoxContainer
 
@@ -35,6 +36,10 @@ func setup(o: ShopOffer, embers: int, art_px: float, num_px: int, k: float) -> v
 	icon = ShopIcon.new()
 	(icon as ShopIcon).setup(o, art_px)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	if o.rare:  # Chip sits above the icon; alignment END keeps icons level.
+		add_child(RareMarks.chip(maxi(8, int(16 * k)), k))
+		if o.kind == ShopOffer.Kind.DIE:
+			RareMarks.plinth(icon, art_px)
 	add_child(icon)
 	tag = PriceTag.new()
 	tag.setup(o.price_text(), o.affordable(embers) or o.price_lo < 0, num_px, k)

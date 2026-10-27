@@ -124,11 +124,7 @@ func _title_row(o: ShopOffer) -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(title)
 	if o.rare:
-		var chip := RunTheme.label("RARE", _px(16), DARK)
-		chip.add_theme_stylebox_override("normal", _box(BRASS, 4, 6))
-		chip.autowrap_mode = TextServer.AUTOWRAP_OFF
-		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(chip)
+		row.add_child(RareMarks.chip(_px(16), shop.k * TEXT_SCALE[shop.layout]))
 	var tag := PriceTag.new()
 	tag.setup(o.price_text(), o.affordable(shop.screen.run.progress.embers), _px(32), shop.k * TEXT_SCALE[shop.layout])
 	row.add_child(tag)
@@ -183,9 +179,10 @@ func _face_strip(d: SpecialDieData) -> Control:
 		face.draw.connect(_draw_face.bind(face, v))
 		var mod: String = String(presets.get(v, ""))
 		if mod != "":
-			_corner(face, "ModIcon", 0.0, mod)
+			_corner(face, "ModIcon", 0.0, mod)  # Mod badge top-left.
 			if d.is_rare():
-				_corner(face, "Lock", 1.0, mod)
+				_corner(face, "Lock", 1.0, mod)  # Pre-carved: brass lock bottom-right.
+				face.set_meta("locked", true)  # _draw_face adds the brass border.
 		strip.add_child(face)
 	return strip
 
@@ -196,15 +193,17 @@ static func pips(v: int) -> Array:  # Pip spots: DiceIcons' 1-6, plus 7 and 8.
 func _draw_face(f: Control, v: int) -> void:
 	var s := f.size.x
 	f.draw_rect(Rect2(Vector2.ZERO, f.size), CREAM)
+	if f.get_meta("locked", false):  # Pre-carved face: brass border (spec §4).
+		f.draw_rect(Rect2(Vector2.ZERO, f.size), BRASS, false, maxf(1.0, _px(3)))
 	for p: Vector2 in pips(v):
 		f.draw_circle(Vector2.ONE * s / 2.0 + p * s * 0.27, s * 0.085, DARK)
 
-## A small named marker in the face's top-right (y=0) or bottom-right (y=1).
+## A small named marker: the mod badge top-left (y=0), the lock bottom-right (y=1).
 func _corner(face: Control, id: String, y: float, mod: String) -> void:
 	var m := Control.new()
 	m.name = id
 	var px := _px(16)
-	m.position = Vector2(_px(42) - px, y * (_px(42) - px))
+	m.position = Vector2(y * (_px(42) - px), y * (_px(42) - px))
 	m.draw.connect(_draw_lock.bind(m, px) if id == "Lock" else _draw_mod_disc.bind(m, px, mod))
 	face.add_child(m)
 
