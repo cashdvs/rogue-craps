@@ -4,6 +4,8 @@
 class_name ShopCardStrings
 extends RefCounted
 
+## Holds the strings_v1 "Shop card" block: shop_card_* ids plus the sell-mode
+## hint shop_hint_pick_sell (shop_card_reroll's {n} is RunData.reroll_step).
 ## strings_v1 id -> text (copied verbatim; check_strings.py owns the source).
 const TEXT: Dictionary[String, String] = {
 	"shop_card_buy": "Buy",
@@ -22,7 +24,8 @@ const TEXT: Dictionary[String, String] = {
 	"shop_card_soul_name": "Soul Draught",
 	"shop_card_soul": "+{n} max Soul, and heals {n}.",
 	"shop_card_reroll_name": "Reroll",
-	"shop_card_reroll": "Restock the shop; each reroll costs 1 more.",
+	"shop_card_reroll": "Restock the shop; each reroll costs {n} more.",
+	"shop_hint_pick_sell": "Pick a die to sell.",
 	"shop_card_reroll_free": "Free rerolls left: {n}",
 	"shop_card_free": "Free",
 	"shop_card_sell": "Sell for {n} Embers",
