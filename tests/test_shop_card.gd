@@ -83,7 +83,7 @@ func _texts(card: ShopCard) -> Array[String]:
 
 
 func _test_strings() -> void:
-	_check(ShopCardStrings.TEXT.size() == 22, "22 shop_card_* ids (incl. shop_card_soul_name)")
+	_check(ShopCardStrings.TEXT.size() == 23, "23 Shop card ids (shop_card_* + shop_hint_pick_sell)")
 	_check(ShopCardStrings.fill("shop_card_cant_afford", 4) == "Need 4 more Embers.", "cant_afford fills {n}")
 	_check(ShopCardStrings.fill("shop_card_shape", 8) == "8 faces: rolls 1 to 8.", "shape fills both {n}")
 	_check(ShopCardStrings.get_text("shop_card_soul_name") == "Soul Draught", "soul name (strings_v1 line 466)")
