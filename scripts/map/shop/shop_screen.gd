@@ -19,10 +19,13 @@ const CREAM := Color("#E8DCC0")
 ## and the dealer box: left and right edge (fractions of the width) and its
 ## top in spec px; [] = no dealer (landscape has no room); and the bag row:
 ## its top (a fraction of the height) and slot size in spec px.
+## Portrait (PR E): the counter starts at 214, not 170, so Smiles' band grows
+## from 106 to 150 px tall (its top stays at 64, under the Ember total). The
+## shelves give up their spare gap to pay for it; the bag and buttons stay put.
 const LAYOUTS := {
 	Layout.PC: {"top": 0.34, "bottom": 0.78, "art": 120.0, "per_shelf": [3, 5], "buttons": 0.85, "title": 32, "dealer": [0.38, 0.62, 70.0], "bag": [0.83, 110.0]},
 	Layout.LANDSCAPE: {"top": 62.0, "bottom": 0.74, "art": 46.0, "per_shelf": [8], "buttons": 0.85, "title": 22, "dealer": [], "bag": [0.81, 40.0]},
-	Layout.PORTRAIT: {"top": 170.0, "bottom": 0.775, "art": 58.0, "per_shelf": [3, 3, 3], "buttons": 0.9, "title": 16, "dealer": [0.25, 0.75, 64.0], "bag": [0.80, 50.0]},
+	Layout.PORTRAIT: {"top": 214.0, "bottom": 0.775, "art": 58.0, "per_shelf": [3, 3, 3], "buttons": 0.9, "title": 16, "dealer": [0.25, 0.75, 64.0], "bag": [0.80, 50.0]},
 }
 ## PC Sell / Swap, Reroll, Leave sizes (spec px); phones fit their text.
 const PC_BUTTONS := [Vector2(180, 50), Vector2(210, 50), Vector2(190, 50)]
