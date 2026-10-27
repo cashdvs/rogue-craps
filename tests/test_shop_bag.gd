@@ -30,6 +30,8 @@ func _initialize() -> void:
 	_test_sell_mode()
 	_test_hover_and_pin()
 	_test_reroll_pc()
+	_test_reroll_uses_reroll_step()
+	_test_sell_hint_from_strings()
 	_test_reroll_phone()
 	_test_portrait_buttons()
 	_test_reroll_card_placement()
@@ -192,6 +194,32 @@ func _test_reroll_pc() -> void:
 	ss.reroll_button.mouse_exited.emit()
 	_check(not ss.card.visible, "PC: leaving Reroll closes its card")
 	run.progress.free_rerolls = 0
+
+
+## Wrong-field guard: shop_seal_step != reroll_step, then the card body must
+## still use fill(..., reroll_step). Catches wiring shop_seal_step by mistake
+## (both default to 2 in bonfire_run.tres).
+func _test_reroll_uses_reroll_step() -> void:
+	run.data.shop_seal_step = 9
+	_check(run.data.shop_seal_step != run.data.reroll_step, "shop_seal_step (9) != reroll_step")
+	run.progress.free_rerolls = 0
+	_show(PC)
+	ss.reroll_button.mouse_entered.emit()
+	var want := ShopCardStrings.fill("shop_card_reroll", run.data.reroll_step)
+	var wrong := ShopCardStrings.fill("shop_card_reroll", run.data.shop_seal_step)
+	var t := _texts(ss.card)
+	_check(t.has(want), "reroll body == fill(..., reroll_step): " + want)
+	_check(not t.has(wrong), "reroll body must not use shop_seal_step: " + wrong)
+	run.data.shop_seal_step = 2
+
+
+## Sell-mode hint text comes from ShopCardStrings, not a hardcoded literal.
+func _test_sell_hint_from_strings() -> void:
+	_show(PC)
+	ss.sell_button.pressed.emit()
+	_check(ss.sell_hint.visible, "sell hint visible in sell mode")
+	_check(ss.sell_hint.text == ShopCardStrings.get_text("shop_hint_pick_sell"), "sell hint from ShopCardStrings")
+	ss.sell_button.pressed.emit()
 
 
 ## Phone: the first tap opens the card; only the card's button rerolls.
