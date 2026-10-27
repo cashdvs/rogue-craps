@@ -279,7 +279,7 @@ func _add_bag(y: float, px: float) -> void:
 	bag_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	bag_label.position = Vector2(x, y - label_px * 1.5)
 	add_child(bag_label)
-	sell_hint = RunTheme.label("Pick a die to sell.", label_px, BRASS)
+	sell_hint = RunTheme.label(ShopCardStrings.get_text("shop_hint_pick_sell"), label_px, BRASS)
 	sell_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
 	sell_hint.position = Vector2(x + bag_label.get_combined_minimum_size().x + 16 * k, bag_label.position.y)
 	sell_hint.visible = selling

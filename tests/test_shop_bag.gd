@@ -179,7 +179,7 @@ func _test_reroll_pc() -> void:
 	var c := ss.card
 	var t := _texts(c)
 	_check(c.visible and c.reroll_open, "PC hover opens the reroll card")
-	_check(t.has("Reroll") and t.has(str(run.reroll_price())) and t.has(ShopCardStrings.get_text("shop_card_reroll")), "reroll lines: name, price, what it does")
+	_check(t.has("Reroll") and t.has(str(run.reroll_price())) and t.has(ShopCardStrings.fill("shop_card_reroll", run.data.reroll_step)), "reroll lines: name, price, what it does")
 	_check(not t.has(ShopCardStrings.fill("shop_card_reroll_free", 0)), "no free-reroll line when none are banked")
 	var n := run.shop_rerolls
 	ss.reroll_button.pressed.emit()

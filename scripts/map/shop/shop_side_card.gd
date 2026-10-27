@@ -84,7 +84,7 @@ func show_reroll(anchor: Control, pin: bool) -> void:
 	var price := run.reroll_price()
 	_frame()
 	_title(ShopCardStrings.get_text("shop_card_reroll_name"), ShopCardStrings.get_text("shop_card_free") if free > 0 else str(price))
-	_line(ShopCardStrings.get_text("shop_card_reroll"), CREAM)
+	_line(ShopCardStrings.fill("shop_card_reroll", run.data.reroll_step), CREAM)
 	if free > 0:
 		_line(ShopCardStrings.fill("shop_card_reroll_free", free), DIM)
 	var short := price - run.progress.embers
