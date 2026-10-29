@@ -148,6 +148,12 @@ func _test_lines_per_type() -> void:
 	var t := _texts(ss.card)
 	_check(t.has("RARE") and t.has(EconomyStrings.SHOP_RARE_TAG) and t.has(run.shop_dice[1].description), "rare die: chip, effect, shop_rare_tag")
 	_check(ss.card.find_children("Lock", "", true, false).size() > 0, "rare die strip marks its forge-carved faces")
+	var keep: SpecialDieData = run.shop_dice[1]
+	for id in [&"fortune", &"usurer", &"barrel", &"gilt"]:
+		run.shop_dice[1] = run.data.shapes.filter(func(x: DieShape) -> bool: return x.id == id)[0]
+		ss.card.show_for(rare)
+		_check(_texts(ss.card).has(EconomyStrings.RARE_V2_RISK_TAG) == (id != &"gilt"), "risk tag on %s: only risky rares" % id)
+	run.shop_dice[1] = keep
 	ss.card.show_for(_item(ShopOffer.Kind.SOUL))
 	t = _texts(ss.card)
 	_check(t.has("Soul Draught") and t.has(ShopCardStrings.fill("shop_card_soul", run.data.shop_soul_amount)), "Draught: soul name + shop_card_soul")
