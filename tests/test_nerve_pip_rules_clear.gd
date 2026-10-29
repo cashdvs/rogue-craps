@@ -5,7 +5,6 @@
 extends SceneTree
 
 const PHONE := Vector2(390, 844)
-const SCALE := 0.5
 
 var _passed: int = 0
 var _failed: int = 0
@@ -70,8 +69,7 @@ func _check_layout(s: Bonfire3D, label: String) -> void:
 	var a := pip.get_global_rect()
 	var b := h.rules_panel.get_global_rect()
 	var view := Rect2(Vector2.ZERO, s.get_viewport().get_visible_rect().size)
-	# Portrait's pip is wider than the screen on main already (separate issue): top edge only there.
-	check(view.encloses(a) if label != "phone portrait" else a.position.y >= 0.0 and a.end.y <= view.end.y, "%s: Nerve pip %s on screen %s" % [label, str(a), str(view)])
+	check(view.encloses(a), "%s: Nerve pip %s on screen %s" % [label, str(a), str(view)])
 	check(not a.intersects(b), "%s: Nerve pip %s clear of the rules plaque %s" % [label, str(a), str(b)])
 
 
@@ -85,7 +83,8 @@ func _run() -> void:
 	await _check_layout(made[1], "phone landscape")
 	(made[0] as Node).queue_free()
 	await process_frame
-	made = await _make(Vector2i(int(round(PHONE.x / SCALE)), int(round(PHONE.y / SCALE))))
+	# What canvas_items + expand stretch gives a 390 x 844 phone: 1920 wide.
+	made = await _make(Vector2i(1920, int(round(1920.0 * PHONE.y / PHONE.x))))
 	var s: Bonfire3D = made[1]
 	s.camera.cam.current = true
 	s.fit_phone(PHONE)

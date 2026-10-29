@@ -121,6 +121,10 @@ func flash(text: String, col: Color) -> void:
 	tw.tween_property(result_label, "modulate:a", 0.0, 0.4)
 
 
+## Space (design px) between the hands line and the rules panel in portrait.
+const RULES_GAP := 14.0
+
+
 ## Phone portrait (the screen is taller than wide): the goal readout at the
 ## top replaces the bounty cards, so there is one list; the bank / bust
 ## banner moves down under the readout so both stay readable. PC and phone
@@ -132,6 +136,14 @@ func set_portrait(on: bool) -> void:
 	checklist_panel.visible = not on
 	_place_rules()
 	_place_result()
+
+
+## Rules panel: BonfireHudGoal's spot, but in portrait (no cards) it also
+## clears the Embers / points / hands lines above it.
+func _place_rules() -> void:
+	super()
+	if portrait_goal != null and portrait_goal.visible:
+		rules_panel.position.y = maxf(rules_panel.position.y, hands_label.position.y + hands_label.size.y + RULES_GAP)  # QA: don't crowd the Embers lines
 
 
 ## The bank / bust banner: under the readout in portrait (its height can
