@@ -16,6 +16,8 @@ extends SpecialDieData
 ## TableDie.special for dice whose rule is table logic (&"ferryman",
 ## &"caltrop", &"knucklebone"); &"" = plain numbers + face mods.
 @export var table_special: StringName = &""
+## A rare with a real downside (shop tag EconomyStrings.RARE_V2_RISK_TAG).
+@export var risky: bool = false
 
 
 ## Face i is pre-carved and still carries its preset mod (not counted by

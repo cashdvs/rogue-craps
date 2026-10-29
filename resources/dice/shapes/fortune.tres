@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
+[resource]
+script = ExtResource("1_rare")
+enabled = true
+preset_mods = {
+1: &"hex",
+6: &"jackpot"
+}
+id = &"fortune"
+display_name = "Fortune Die"
+description = "Its 6 doubles the pot, +1 Ember; its 1 is a Hex."
+rarity = &"rare"
+risky = true
+price = 24
+table_special = &"fortune"
+faces = Array[int]([1, 2, 3, 4, 5, 6])

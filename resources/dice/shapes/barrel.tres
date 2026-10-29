@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
+[resource]
+script = ExtResource("1_rare")
+enabled = false
+preset_mods = {
+6: &"fuse"
+}
+id = &"barrel"
+display_name = "Powder Barrel"
+description = "Its 6 is a Fuse: it lands, then the barrel blows."
+rarity = &"rare"
+risky = true
+price = 30
+table_special = &"barrel"
+faces = Array[int]([1, 2, 3, 4, 5, 6])

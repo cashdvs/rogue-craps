@@ -19,6 +19,8 @@ static func table_points_embers(t: BonfireTuning) -> String:
 
 ## strings_v1 shop_rare_tag (rare_dice_v1 §4): the shop card's tag on a rare die.
 const SHOP_RARE_TAG := "Rare: its carved faces come with the die."
+## strings_v1 rare_v2_risk_tag: the tag on a risky rare (DieShape.risky).
+const RARE_V2_RISK_TAG := "Risk"
 ## strings_v1 rare_carved_locked (rare_dice_v1 §3): a rare's pre-carved face refuses a carve.
 const RARE_CARVED_LOCKED := "Carved at the forge; this face cannot be recarved."
 

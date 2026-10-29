@@ -55,6 +55,12 @@
 [ext_resource type="Resource" path="res://resources/dice/shapes/ossuary.tres" id="rare_ossuary"]
 [ext_resource type="Resource" path="res://resources/dice/shapes/gallows.tres" id="rare_gallows"]
 [ext_resource type="Resource" path="res://resources/dice/shapes/beacon.tres" id="rare_beacon"]
+[ext_resource type="Resource" path="res://resources/dice/shapes/barrel.tres" id="rare_barrel"]
+[ext_resource type="Resource" path="res://resources/dice/shapes/fortune.tres" id="rare_fortune"]
+[ext_resource type="Resource" path="res://resources/dice/shapes/usurer.tres" id="rare_usurer"]
+[ext_resource type="Resource" path="res://resources/mods/fuse.tres" id="rare_mod_fuse"]
+[ext_resource type="Resource" path="res://resources/mods/jackpot.tres" id="rare_mod_jackpot"]
+[ext_resource type="Resource" path="res://resources/mods/hex.tres" id="rare_mod_hex"]
 
 [resource]
 script = ExtResource("15_w0480")
@@ -62,8 +68,9 @@ nerve_uses = 1
 floors = Array[ExtResource("13_o6wbp")]([ExtResource("14_w0480"), ExtResource("15_267f4"), ExtResource("16_74278")])
 events = Array[ExtResource("1_qfvd1")]([ExtResource("2_bkp6x"), ExtResource("3_0yela"), ExtResource("4_cxvay"), ExtResource("5_dvrif"), ExtResource("6_0oyw3"), ExtResource("ev_toll_keeper"), ExtResource("ev_gravedigger"), ExtResource("ev_fence"), ExtResource("ev_shill"), ExtResource("ev_tout"), ExtResource("ev_bone_setter"), ExtResource("ev_back_room")])
 special_dice = Array[ExtResource("13_w0480")]([ExtResource("14_267f4"), ExtResource("15_74278"), ExtResource("16_bkp6x"), ExtResource("17_0yela"), ExtResource("18_cxvay"), ExtResource("19_dvrif"), ExtResource("20_0oyw3"), ExtResource("21_8vtvu"), ExtResource("22_frdgj")])
-shapes = Array[ExtResource("23_84bl2")]([ExtResource("24_6p377"), ExtResource("25_6p377"), ExtResource("26_y772n"), ExtResource("27_lhefe"), ExtResource("28_lou2q"), ExtResource("29_eg7w8"), ExtResource("30_fhwbh"), ExtResource("31_k3ad0"), ExtResource("32_0ssle"), ExtResource("rare_pyre"), ExtResource("rare_gilt"), ExtResource("rare_lodestone"), ExtResource("rare_ossuary"), ExtResource("rare_gallows"), ExtResource("rare_beacon")])
+shapes = Array[ExtResource("23_84bl2")]([ExtResource("24_6p377"), ExtResource("25_6p377"), ExtResource("26_y772n"), ExtResource("27_lhefe"), ExtResource("28_lou2q"), ExtResource("29_eg7w8"), ExtResource("30_fhwbh"), ExtResource("31_k3ad0"), ExtResource("32_0ssle"), ExtResource("rare_pyre"), ExtResource("rare_gilt"), ExtResource("rare_lodestone"), ExtResource("rare_ossuary"), ExtResource("rare_gallows"), ExtResource("rare_beacon"), ExtResource("rare_barrel"), ExtResource("rare_fortune"), ExtResource("rare_usurer")])
 face_mods = Array[ExtResource("7_xs4v5")]([ExtResource("2_riil2"), ExtResource("3_vphwc"), ExtResource("4_txop1"), ExtResource("5_ln2yo"), ExtResource("6_eldjo"), ExtResource("7_qfvd1"), ExtResource("9_vphwc"), ExtResource("10_txop1"), ExtResource("10_o6wbp"), ExtResource("8_riil2")])
+rare_face_mods = Array[ExtResource("7_xs4v5")]([ExtResource("rare_mod_fuse"), ExtResource("rare_mod_jackpot"), ExtResource("rare_mod_hex")])
 max_dice = 6
 shop_seal_step = 2
 reroll_step = 2

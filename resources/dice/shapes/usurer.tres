@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
+[resource]
+script = ExtResource("1_rare")
+enabled = true
+preset_mods = {1: &"ember_pip", 2: &"ember_pip", 3: &"ember_pip", 4: &"ember_pip", 5: &"ember_pip", 6: &"ember_pip"}
+id = &"usurer"
+display_name = "Usurer's Die"
+description = "Every face is Ember Pip, but busts cost 1 more Soul."
+rarity = &"rare"
+risky = true
+price = 26
+table_special = &"usurer"
+faces = Array[int]([1, 2, 3, 4, 5, 6])

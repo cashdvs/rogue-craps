@@ -278,6 +278,7 @@ func shaped_table_die(die_i: int) -> TableDie:
 
 func _table_lib() -> Array:
 	var lib: Array = data.face_mods.duplicate()
+	lib.append_array(data.rare_face_mods)
 	var blank: FaceModData = load("res://resources/mods/blank.tres")
 	if not lib.has(blank):
 		lib.append(blank)

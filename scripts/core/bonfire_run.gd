@@ -48,6 +48,7 @@ func land_throw(th: TableThrow) -> bool:
 	last_throw = th
 	potted.clear()
 	table_event.emit(&"throw_landed", {"throw": th, "changes": th.changes})
+	RareDiceRules.on_land(self, th)  # Land-effect faces (Fuse, Hex) on the final faces; rare_dice_v2 PR 2.
 	var saved := kindling_armed
 	kindling_armed = false
 	kindling_saved = false
