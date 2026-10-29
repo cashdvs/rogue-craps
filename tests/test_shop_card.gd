@@ -153,6 +153,9 @@ func _test_lines_per_type() -> void:
 		run.shop_dice[1] = run.data.shapes.filter(func(x: DieShape) -> bool: return x.id == id)[0]
 		ss.card.show_for(rare)
 		_check(_texts(ss.card).has(EconomyStrings.RARE_V2_RISK_TAG) == (id != &"gilt"), "risk tag on %s: only risky rares" % id)
+		for n in ss.card.find_children("*", "Label", true, false):
+			if (n as Label).text == EconomyStrings.RARE_V2_RISK_TAG:
+				_check((n as Label).get_theme_color("font_color") == ShopCard.RED, "risk tag on %s is ShopCard.RED" % id)
 	run.shop_dice[1] = keep
 	ss.card.show_for(_item(ShopOffer.Kind.SOUL))
 	t = _texts(ss.card)
