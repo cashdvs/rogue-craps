@@ -28,7 +28,14 @@ func _go() -> void:
 	_check(RareDiceRules.lights_alone(&"fuse") and not RareDiceRules.lights_alone(&"jackpot") and not RareDiceRules.lights_alone(&""), "lights_alone is data: Fuse only")
 	var run := BonfireRun.new(t, null, 10, 1)
 	run.set_rules(TableRules.build([], [&"barrel"]), 3)
-	_check(run.land_throw(TableThrow.make([6] as Array[int], [fuse])), "real run: a lone Fuse 6 throw doesn't bust")
+	var busts := [0]
+	run.table_event.connect(func(e: StringName, _d: Dictionary) -> void: busts[0] += int(e == &"bust"))
+	_check(run.land_throw(TableThrow.make([6] as Array[int], [fuse])) and busts[0] == 0 and run.lit() == [0], "real run: a lone Fuse 6 lands lit, no bust")
+	var plain := BonfireRun.new(t, null, 10, 1)
+	plain.set_rules(TableRules.build([], [&"barrel"]), 3)
+	var pb := [0]
+	plain.table_event.connect(func(e: StringName, _d: Dictionary) -> void: pb[0] += int(e == &"bust"))
+	_check(not plain.land_throw(TableThrow.make([6] as Array[int], [null])) and pb[0] == 1, "real run: a plain lone 6 busts via land_throw")
 	var data := load("res://resources/map/bonfire_run.tres") as RunData
 	var barrel: DieShape = data.shapes.filter(func(s: DieShape) -> bool: return s.id == &"barrel")[0]
 	_check(barrel.enabled and barrel.is_rare(), "the Barrel is an enabled rare")
