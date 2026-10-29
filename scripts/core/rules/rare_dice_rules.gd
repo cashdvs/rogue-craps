@@ -9,6 +9,8 @@ const BOOM_CHANCE := 2.0 / 3.0
 const LIGHTS_ALONE: Array[StringName] = [&"fuse"]
 
 var pot_factor: float = 1.0
+## The table's NerveState (attach_nerve): a Boom grants +1 use, a new hand clears it.
+var nerve: NerveState
 
 
 ## A Soul cost (Bloodletter doubles) that never takes the last Soul; returns it.
@@ -20,6 +22,10 @@ static func soft_soul_loss(run: BonfireRun, amount: int, kind: StringName) -> in
 
 static func lights_alone(face_id: StringName) -> bool:
 	return LIGHTS_ALONE.has(face_id)
+
+
+static func attach_nerve(run: BonfireRun, state: NerveState) -> void:
+	if barrel_rule(run) != null: barrel_rule(run).nerve = state
 
 
 static func barrel_rule(run: BonfireRun) -> RareDiceRules:
@@ -47,6 +53,7 @@ static func on_land(run: BonfireRun, th: TableThrow) -> void:
 				barrel.pot_factor *= f
 			if boom:
 				run.embers += 1
+				if barrel != null and barrel.nerve != null: barrel.nerve.grant_use(1)
 				run.table_event.emit(&"barrel_boom", {"index": i, "factor": f, "embers": 1, "nerve": 1})
 			else:
 				run.table_event.emit(&"barrel_misfire", {"index": i, "factor": f, "soul_lost": soft_soul_loss(run, 1, &"misfire")})
@@ -54,6 +61,7 @@ static func on_land(run: BonfireRun, th: TableThrow) -> void:
 
 func on_hand_start(_run: BonfireRun) -> void:
 	pot_factor = 1.0
+	if nerve != null: nerve.clear_granted()
 
 
 func on_bank(run: BonfireRun, result: Dictionary) -> void:
