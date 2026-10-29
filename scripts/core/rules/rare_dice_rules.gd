@@ -9,7 +9,6 @@ const BOOM_CHANCE := 2.0 / 3.0
 const LIGHTS_ALONE: Array[StringName] = [&"fuse"]
 
 var pot_factor: float = 1.0
-## The table's NerveState (attach_nerve): a Boom grants +1 use, a new hand clears it.
 var nerve: NerveState
 
 
@@ -20,10 +19,12 @@ static func soft_soul_loss(run: BonfireRun, amount: int, kind: StringName) -> in
 	return taken
 
 
+## True if a lone die showing this face mod id lights as a Single (LIGHTS_ALONE; Fuse).
 static func lights_alone(face_id: StringName) -> bool:
 	return LIGHTS_ALONE.has(face_id)
 
 
+## Hands the table's NerveState to the Barrel rule (no-op without one): a Boom grants +1 use, a new hand clears it.
 static func attach_nerve(run: BonfireRun, state: NerveState) -> void:
 	if barrel_rule(run) != null: barrel_rule(run).nerve = state
 
