@@ -28,6 +28,7 @@ func _initialize() -> void:
 	_test_mod_buy_opens_picker()
 	_test_blocker_order()
 	_test_lift_hairline_flip()
+	await _test_titles_fit()
 	print("=== test_shop_card: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -265,3 +266,34 @@ func _test_lift_hairline_flip() -> void:
 	ss.card.show_for(it)
 	_check(ss.card.get_global_rect().position.y >= it.get_global_rect().end.y - 1.0, "card flips below an item at the top edge")
 	ss.card.close()
+
+
+## Every die (rare and normal shapes, specials): the whole title fits beside the
+## chip and price on PC and phone portrait (no clipping; the title row fits the card).
+func _test_titles_fit() -> void:
+	var dice: Array[SpecialDieData] = []
+	dice.append_array(run.data.shapes)
+	dice.append_array(run.data.special_dice)
+	var keep: SpecialDieData = run.shop_dice[1]
+	for win in [Vector2i(1920, 1080), Vector2i(390, 844)]:
+		var bad: Array[String] = []
+		var rares := 0
+		for d in dice:
+			run.shop_dice[1] = d
+			_show(win)
+			var it := _item(ShopOffer.Kind.DIE, 1)
+			ss.card.show_for(it)
+			await process_frame
+			var row := ss.card.lines.get_child(0) as HBoxContainer
+			var title := row.get_child(0) as Label
+			var font: Font = title.get_theme_font("font")
+			var need := font.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size("font_size")).x
+			var room := ss.card.title_room(row)
+			rares += 1 if d.is_rare() else 0
+			if title.clip_text or title.text != d.display_name or need > room + 0.5 or title.get_minimum_size().x > room + 0.5 \
+					or row.get_combined_minimum_size().x > (ShopCard.WIDTH[ss.layout] - 32.0) * ss.k + 1.0:
+				bad.append("%s need %.0f room %.0f" % [d.display_name, need, room])
+			ss.card.close()
+		_check(bad.is_empty() and rares > 0, "%s: every shop card title fits (%d dice, %d rare) %s" % [win, dice.size(), rares, bad])
+	run.shop_dice[1] = keep
+	_show(Vector2i.ZERO)
