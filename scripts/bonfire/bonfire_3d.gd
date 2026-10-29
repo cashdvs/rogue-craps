@@ -158,6 +158,7 @@ func new_run(seed_value: int = -1) -> void:
 		specials.append(td.special)
 	run.set_rules(TableRules.build(setup.rules, specials), seed_value)
 	run.table_event.connect(_on_table_event)
+	run.table_event.connect(func(e: StringName, _d: Dictionary) -> void: if e == &"barrel_boom": nerve.state.grant_use(1))  # Boom: +1 Nerve (rare_dice_v2 PR 2b)
 	if bhud.countup.is_playing():
 		bhud.countup.fast_forward()
 	bhud.countup.clear(0.0)

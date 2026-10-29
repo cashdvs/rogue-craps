@@ -7,7 +7,7 @@ extends SceneTree
 
 const S := MapRun.Screen
 const NEW := [&"gallows", &"beacon"]
-const ALL_RARES := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon", &"fortune", &"usurer"]
+const ALL_RARES := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon", &"fortune", &"usurer", &"barrel"]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -67,7 +67,6 @@ func _test_data() -> void:
 			rares.append(s.id)
 	rares.sort()
 	var want := ALL_RARES.duplicate()
-	want.append(&"barrel")  # PR 2a: rare, but disabled until PR 2b
 	want.sort()
 	_check(rares == want, "data: the rare shapes are exactly these (%s)" % [rares])
 	var lan := _shape(&"lantern")

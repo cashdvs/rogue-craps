@@ -229,6 +229,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 		else:
 			soul_cost = cost
 	var gap_ok := specials.has(&"wanderer")
+	# A lone face whose mod lights alone (Fuse) scores as a Single.
+	var alone := dice.size() == 1 and not no_mods and RareDiceRules.lights_alone(RareDiceRules.mod_id(_die(dice[0]).get("mod")))
 	var best := bad
 	var best_rank := -1
 	# Wild / Step reach (§5): values 1-6, higher only up to the highest face
@@ -244,6 +246,8 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 				all.append(int(st[k]))
 				stepped = stepped or int(st[k]) != steps[k]
 			var c := match_combo(all, t, excluded, gap_ok)
+			if c == null and alone:
+				c = _single(t, excluded)
 			if c == null or (stepped and c.kind != BonfireCombo.Kind.RUN):
 				continue
 			var sum := 0
@@ -287,6 +291,13 @@ static func score_selection(dice: Array, t: BonfireTuning, mult_bonus: int = 0, 
 					"gapped": gv > 0, "bounty_values": _close_gap(all, gv), "blood_refused": blood_refused}
 				best_rank = rank
 	return best
+
+
+static func _single(t: BonfireTuning, excluded: Array) -> BonfireCombo:
+	for c in t.combos:
+		if c.kind == BonfireCombo.Kind.SINGLE and not excluded.has(c.id):
+			return c
+	return null
 
 
 ## A gapped run's values with the gap closed (values above it moved down 1),

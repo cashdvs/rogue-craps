@@ -5,6 +5,8 @@ class_name RareDiceRules
 extends TableRule
 
 const BOOM_CHANCE := 2.0 / 3.0
+## Mod ids whose face lights alone as a Single (BonfireScoring asks lights_alone).
+const LIGHTS_ALONE: Array[StringName] = [&"fuse"]
 
 var pot_factor: float = 1.0
 
@@ -14,6 +16,10 @@ static func soft_soul_loss(run: BonfireRun, amount: int, kind: StringName) -> in
 	var taken := clampi(run.soul_cost(amount, kind), 0, maxi(run.soul - 1, 0))
 	run.soul -= taken
 	return taken
+
+
+static func lights_alone(face_id: StringName) -> bool:
+	return LIGHTS_ALONE.has(face_id)
 
 
 static func barrel_rule(run: BonfireRun) -> RareDiceRules:

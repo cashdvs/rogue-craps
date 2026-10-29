@@ -2,7 +2,7 @@
 [ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
 [resource]
 script = ExtResource("1_rare")
-enabled = false
+enabled = true
 preset_mods = {
 6: &"fuse"
 }
