@@ -12,9 +12,7 @@ func _initialize() -> void:
 	_t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	_data = load("res://resources/map/bonfire_run.tres") as RunData
 	_test_data()
-	_test_fuse()
-	_test_hex_usurer()
-	_test_jackpot_nerve()
+	_test_effects()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_t = null
 	_data = null
@@ -52,8 +50,7 @@ func _land(r: BonfireRun, faces: Array, mods: Array = [], boom: Variant = null) 
 
 
 func _pot(r: BonfireRun, idx: Array) -> void:
-	for i in idx:
-		r.toggle(i)
+	for i in idx: r.toggle(i)
 
 
 func _test_data() -> void:
@@ -65,7 +62,6 @@ func _test_data() -> void:
 				and DiceIds.asset_key(s.id) == StringName("%s_d6" % s.id), "data: %s" % s.id)
 			var rules := TableRules.build([], [s.id])
 			_check(rules.size() == 1 and rules[0] is RareDiceRules and rules[0].id == s.id, "install: %s's RareDiceRules" % s.id)
-			# A plain hand scores the same with the rule (scoring doesn't filter on specials).
 			var a := _run([s.id])
 			var b := _run([])
 			for r in [a, b]:
@@ -78,7 +74,7 @@ func _test_data() -> void:
 	_check(EconomyStrings.RARE_V2_RISK_TAG == "Risk", "strings: rare_v2_risk_tag")
 
 
-func _test_fuse() -> void:
+func _test_effects() -> void:
 	var fuse := _mod(&"fuse")
 	var r := _run([&"barrel"], 10, [], 99)
 	for i in 30000:
@@ -118,12 +114,9 @@ func _test_fuse() -> void:
 	_land(r, [6, 1], [fuse, null], true)
 	_land(r, [2, 3, 6])
 	_check(r.last_result["kind"] == &"bust" and r.embers == 1, "fuse: Boom's Ember survives a bust")
-
-
-func _test_hex_usurer() -> void:
 	var hex := _mod(&"hex")
 	for c: Array in [[5, [], 4], [1, [], 1], [5, [&"bloodletter"], 3], [2, [&"bloodletter"], 1]]:
-		var r := _run([&"fortune"], c[0], c[1])
+		r = _run([&"fortune"], c[0], c[1])
 		_land(r, [1], [hex])
 		var ev := _events(&"hex")
 		_check(r.soul == c[2] and ev.size() == 1 and ev[0]["soul_lost"] == c[0] - c[2], "hex: Soul %d %s -> %d" % c)
@@ -131,19 +124,16 @@ func _test_hex_usurer() -> void:
 	_check(not _land(d, [1, 2], [hex, null]) and d.soul < 5, "hex: fires before the lit check; a dead throw keeps it")
 	for c: Array in [[[&"usurer"], 10, [], 8], [[&"usurer"], 2, [], 1], [[&"usurer"], 1, [], 0],
 			[[&"usurer"], 10, [&"bloodletter"], 6], [[&"usurer", &"usurer"], 10, [], 8], [[], 10, [], 9]]:
-		var r := _run(c[0], c[1], c[2])
+		r = _run(c[0], c[1], c[2])
 		_land(r, [2, 3, 6])
 		_check(r.soul == c[3] and r.last_result["soul_lost"] == c[1] - c[3] and _events(&"usurer_toll").size() == (1 if c[0].size() > 0 and c[1] > 1 else 0),
 			"usurer: %s bust at Soul %d %s -> %d" % c)
 	var o := _run([&"usurer"], 1)
 	_land(o, [2, 3, 6])
 	_check(o.state == BonfireRun.State.RUN_OVER, "usurer: Soul 1 bust still ends the run")
-
-
-func _test_jackpot_nerve() -> void:
 	var jack := _mod(&"jackpot")
 	for n in [1, 2]:
-		var r := _run([&"fortune"])
+		r = _run([&"fortune"])
 		var p := _run([])
 		_land(r, [6, 6, 6], [jack, jack if n == 2 else null, null])
 		_land(p, [6, 6, 6])
@@ -156,7 +146,7 @@ func _test_jackpot_nerve() -> void:
 	_land(c, [6, 6, 6], [jack, null, null])
 	_pot(c, [0, 1, 2])
 	_check(int(c.selection()["embers"]) == 0, "jackpot: off under The Collector")
-	var r := _run([&"barrel"], 5)
+	r = _run([&"barrel"], 5)
 	_land(r, [3, 1])
 	r.relight(TableThrow.make([1, 1] as Array[int], [_mod(&"hex"), null]))
 	r.relight(TableThrow.make([6, 1] as Array[int], [_mod(&"fuse"), null]))
@@ -170,9 +160,11 @@ func _test_jackpot_nerve() -> void:
 	r.relight(TableThrow.make([6, 6, 6] as Array[int], [jack, null, null]))
 	_pot(r, [0, 1, 2])
 	_check(int(r.selection()["embers"]) == 1, "nerve: nudging onto a Jackpot scores it")
+	r = _run([&"barrel"])
 	var ns := NerveState.new()
-	ns.setup([] as Array[TableDie], 1)
-	ns.grant_use(1)
+	RareDiceRules.attach_nerve(r, ns)
+	_land(r, [6, 1], [_mod(&"fuse"), null], true)
 	var two := ns.uses_left() == 2
-	ns.clear_granted()
-	_check(two and ns.uses_left() == 1, "nerve: grant_use(1) is +1 this hand only")
+	_pot(r, [1])
+	r.bank()
+	_check(two and ns.uses_left() == 1, "nerve: a Boom (land_throw) is +1 Nerve, cleared next hand")
