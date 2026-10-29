@@ -51,7 +51,7 @@ func _pot(r: BonfireRun, idx: Array) -> void:
 
 
 func _test_data() -> void:
-	var want := {&"barrel": [false, {6: &"fuse"}], &"fortune": [true, {6: &"jackpot", 1: &"hex"}],
+	var want := {&"barrel": [true, {6: &"fuse"}], &"fortune": [true, {6: &"jackpot", 1: &"hex"}],
 		&"usurer": [true, {1: &"ember_pip", 2: &"ember_pip", 3: &"ember_pip", 4: &"ember_pip", 5: &"ember_pip", 6: &"ember_pip"}]}
 	for s: DieShape in _data.shapes:
 		if want.has(s.id):

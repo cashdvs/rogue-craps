@@ -157,6 +157,7 @@ func new_run(seed_value: int = -1) -> void:
 	for td in setup.dice:
 		specials.append(td.special)
 	run.set_rules(TableRules.build(setup.rules, specials), seed_value)
+	RareDiceRules.attach_nerve(run, nerve.state)  # Barrel Boom: +1 Nerve this hand (rare_dice_v2 PR 2b)
 	run.table_event.connect(_on_table_event)
 	if bhud.countup.is_playing():
 		bhud.countup.fast_forward()

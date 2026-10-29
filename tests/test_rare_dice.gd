@@ -7,7 +7,7 @@ extends SceneTree
 const S := MapRun.Screen
 const RARES := [&"pyre", &"gilt", &"lodestone", &"ossuary"]
 ## The whole rare pool since rare_dice_v2 PR 1 (Gallows, Beacon).
-const POOL := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon", &"fortune", &"usurer"]
+const POOL := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon", &"fortune", &"usurer", &"barrel"]
 
 var _passed: int = 0
 var _failed: int = 0
