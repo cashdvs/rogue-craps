@@ -147,6 +147,8 @@ func _body(o: ShopOffer) -> Array:
 			out.append([d.description, CREAM])
 			if d.is_rare():
 				out.append([EconomyStrings.SHOP_RARE_TAG, DIM])
+			if d is DieShape and (d as DieShape).risky:  # rare_dice_v2: a rare with a real downside
+				out.append([EconomyStrings.RARE_V2_RISK_TAG, RED])
 		ShopOffer.Kind.MOD:
 			lines.add_child(_token(o))
 			out.append([run.shop_mods[o.index].description, CREAM])
