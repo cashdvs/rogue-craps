@@ -28,6 +28,8 @@ extends Resource
 @export var shape_offer_chance: float = 0.25
 ## Face mods the Shop and Rest offer (FaceModData resources).
 @export var face_mods: Array[FaceModData] = []
+## Mods only rare dice carry (fuse, jackpot, hex): never offered in Shop/Rest.
+@export var rare_face_mods: Array[FaceModData] = []
 ## Each face mod costs this % more per mod already on that die (GD: +50%).
 @export var mod_price_step_percent: int = 50
 ## A special die sells for floor(price * this / 100) (GD: half).

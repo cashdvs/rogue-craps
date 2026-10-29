@@ -69,6 +69,9 @@ const DIE_SCRIPTS := {
 	&"bellows": preload("res://scripts/core/rules/die_bellows.gd"),
 	# Scored in BonfireScoring (run gap); the handler only shows it.
 	&"wanderer": preload("res://scripts/core/rules/rule_label.gd"),
+	&"barrel": preload("res://scripts/core/rules/rare_dice_rules.gd"),
+	&"fortune": preload("res://scripts/core/rules/rare_dice_rules.gd"),
+	&"usurer": preload("res://scripts/core/rules/rare_dice_rules.gd"),
 }
 ## Special die id -> [name, one line] for the HUD.
 const DIE_INFO := {
@@ -77,6 +80,9 @@ const DIE_INFO := {
 	&"cracked": ["Cracked Die", "x2 mult on its pot; 1 in 6 it shatters for good."],
 	&"bellows": ["Bellows Die", "Each Hot Hand gives +2 mult instead of +1."],
 	&"wanderer": ["Wanderer Die", "A run with it may skip one value (1-2-4-5)."],
+	&"barrel": ["Powder Barrel", "Its 6 is a Fuse: it lands, then the barrel blows."],
+	&"fortune": ["Fortune Die", "Its 6 doubles the pot, +1 Ember; its 1 is a Hex."],
+	&"usurer": ["Usurer's Die", "Every face is Ember Pip, but busts cost 1 more Soul."],
 }
 
 

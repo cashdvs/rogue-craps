@@ -7,7 +7,7 @@ extends SceneTree
 
 const S := MapRun.Screen
 const NEW := [&"gallows", &"beacon"]
-const ALL_RARES := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon"]
+const ALL_RARES := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon", &"fortune", &"usurer"]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -67,8 +67,9 @@ func _test_data() -> void:
 			rares.append(s.id)
 	rares.sort()
 	var want := ALL_RARES.duplicate()
+	want.append(&"barrel")  # PR 2a: rare, but disabled until PR 2b
 	want.sort()
-	_check(rares == want, "data: the rare pool is exactly the six rares (%s)" % [rares])
+	_check(rares == want, "data: the rare shapes are exactly these (%s)" % [rares])
 	var lan := _shape(&"lantern")
 	var cal := _shape(&"caltrop")
 	_check(not lan.enabled and not lan.is_rare() and not cal.enabled and not cal.is_rare() and cal.table_special == &"caltrop",
@@ -88,7 +89,7 @@ func _test_ids() -> void:
 
 
 func _test_prices_and_sell() -> void:
-	var want := {&"gallows": [20, 25, 30], &"beacon": [24, 30, 36]}
+	var want := {&"gallows": [20, 25, 30], &"beacon": [24, 30, 36], &"fortune": [24, 30, 36], &"usurer": [26, 33, 39], &"barrel": [30, 38, 45]}
 	for id: StringName in want:
 		for f in 3:
 			var run := MapRun.new(_run, 1)
@@ -114,10 +115,10 @@ func _test_pool() -> void:
 		if run.shop_dice[1].is_rare():
 			hits += 1
 			by[run.shop_dice[1].id] = int(by.get(run.shop_dice[1].id, 0)) + 1
-	var even := by.size() == 6
+	var even := by.size() == ALL_RARES.size()
 	for id in by:
-		even = even and absf(float(by[id]) / hits - 1.0 / 6.0) < 0.04
-	_check(even, "pool: six rares equally weighted on a hit %s" % [by])
+		even = even and absf(float(by[id]) / hits - 1.0 / ALL_RARES.size()) < 0.04
+	_check(even, "pool: the rares equally weighted on a hit %s" % [by])
 	_check(absf(float(hits) / n - 0.30) < 0.025, "pool: floor 3 odds unchanged (%.3f)" % [float(hits) / n])
 	for id: StringName in NEW:
 		var dup := false
@@ -130,16 +131,18 @@ func _test_pool() -> void:
 			dup = dup or run.shop_dice[1].id == id
 		_check(not dup, "pool: an owned %s isn't offered again" % id)
 	var all_ok := true
+	var six: RunData = _run.duplicate()  # the bag holds 6: a pool of the first six
+	six.shapes = six.shapes.filter(func(s: DieShape) -> bool: return not s.is_rare() or ALL_RARES.slice(0, 6).has(s.id))
 	for s in 300:
-		var run := MapRun.new(_run, s)
+		var run := MapRun.new(six, s)
 		run.floor_index = 2
 		run.progress.dice.clear()
-		for id in ALL_RARES:
+		for id in ALL_RARES.slice(0, 6):
 			run.progress.add_die(id)
 		run.screen = S.SHOP
 		run._roll_shop()
 		all_ok = all_ok and run.progress.dice.size() == 6 and run.shop_dice[1] != null and not run.shop_dice[1].is_rare()
-	_check(all_ok, "pool: owning all six rares, slot 2 keeps a normal offer")
+	_check(all_ok, "pool: owning every rare in the pool (6, the bag cap), slot 2 keeps a normal offer")
 	var leak := false
 	for s in 500:
 		var run := MapRun.new(_run, s)
@@ -265,3 +268,4 @@ func _test_handoff_checklist() -> void:
 			leak = leak or ALL_RARES.any(func(id): return var_to_str(c).contains('"%s"' % id))
 	_check(not leak, "handoff: no event gives a rare")
 	_check(EconomyStrings.RARE_CARVED_LOCKED != "", "handoff: the rare_carved_locked refusal exists")
+

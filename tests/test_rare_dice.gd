@@ -7,7 +7,7 @@ extends SceneTree
 const S := MapRun.Screen
 const RARES := [&"pyre", &"gilt", &"lodestone", &"ossuary"]
 ## The whole rare pool since rare_dice_v2 PR 1 (Gallows, Beacon).
-const POOL := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon"]
+const POOL := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon", &"fortune", &"usurer"]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -110,15 +110,17 @@ func _test_odds() -> void:
 	_check(not dup, "odds: an owned rare isn't offered again")
 	# GD ruling on #174: every rare owned -> the roll misses, slot 2 keeps its normal offer.
 	var all_ok := true
+	var six: RunData = _run.duplicate()  # the bag holds 6: a pool of the first six
+	six.shapes = six.shapes.filter(func(s: DieShape) -> bool: return not s.is_rare() or POOL.slice(0, 6).has(s.id))
 	for s in 400:
-		var run := MapRun.new(_run, s)
+		var run := MapRun.new(six, s)
 		run.floor_index = 2
 		run.progress.dice.clear()
-		for id in POOL:
+		for id in POOL.slice(0, 6):
 			run.progress.add_die(id)
 		run.screen = S.SHOP
 		run._roll_shop()
-		all_ok = all_ok and run.progress.dice.size() == POOL.size() and run.shop_dice.size() == 2 and run.shop_dice[1] != null and not run.shop_dice[1].is_rare()
+		all_ok = all_ok and run.progress.dice.size() == 6 and run.shop_dice.size() == 2 and run.shop_dice[1] != null and not run.shop_dice[1].is_rare()
 	_check(all_ok, "odds: owning every rare, slot 2 keeps a normal (non-empty) offer")
 
 

@@ -34,6 +34,7 @@ var slots: Array[int] = []
 var potted: Array[bool] = []
 
 var _used: int = 0
+var _granted: int = 0
 var _nudged_die: int = -1
 var _from_slot: int = 0
 var _picking: int = -1
@@ -52,6 +53,7 @@ func setup(table_dice: Array[TableDie], uses: int = 1) -> void:
 ## Clears any throw and pending nudge.
 func reset_table() -> void:
 	_used = 0
+	_granted = 0
 	_nudged_die = -1
 	_from_slot = 0
 	_picking = -1
@@ -100,7 +102,18 @@ func mark_potted(die_index: int) -> void:
 
 ## Nerve uses left this table (a pending, undoable nudge counts as used).
 func uses_left() -> int:
-	return maxi(uses_per_table - _used - (1 if _nudged_die >= 0 else 0), 0)
+	return maxi(uses_per_table + _granted - _used - (1 if _nudged_die >= 0 else 0), 0)
+
+
+## +n Nerve uses for this hand only (rare_dice_v2 Boom).
+func grant_use(n: int) -> void:
+	_granted += maxi(n, 0)
+
+
+## Hand over: granted uses are gone (spent ones were the grant's).
+func clear_granted() -> void:
+	_used -= mini(maxi(_used - uses_per_table, 0), _granted)
+	_granted = 0
 
 
 ## The pip's UI state.
