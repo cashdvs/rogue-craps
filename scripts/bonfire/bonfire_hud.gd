@@ -12,6 +12,10 @@ extends BonfireHudGoal
 # This file keeps the prompts, flash text, banners, portrait layout and end panel.
 
 
+## Space (design px) between the hands line and the rules panel in portrait.
+const RULES_GAP := 14.0
+
+
 ## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
 ## the button into "Leave? Tap again"; a second one within LEAVE_CONFIRM_S
 ## leaves (emits leave_pressed). Otherwise the text goes back.
@@ -119,10 +123,6 @@ func flash(text: String, col: Color) -> void:
 	var tw := create_tween()
 	tw.tween_interval(1.0)
 	tw.tween_property(result_label, "modulate:a", 0.0, 0.4)
-
-
-## Space (design px) between the hands line and the rules panel in portrait.
-const RULES_GAP := 14.0
 
 
 ## Phone portrait (the screen is taller than wide): the goal readout at the
