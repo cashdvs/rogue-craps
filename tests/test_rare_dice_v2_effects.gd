@@ -9,13 +9,11 @@ var _ev: Array = []
 
 
 func _initialize() -> void:
-	_t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	_data = load("res://resources/map/bonfire_run.tres") as RunData
+	_t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning; _data = load("res://resources/map/bonfire_run.tres") as RunData
 	_test_data()
 	_test_effects()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
-	_t = null
-	_data = null
+	_t = null; _data = null
 	quit(1 if _failed > 0 else 0)
 
 
@@ -37,8 +35,7 @@ func _run(specials: Array, soul: int = 10, entries: Array = [], seed_value: int 
 	return r
 
 
-func _events(id: StringName) -> Array:
-	return _ev.filter(func(e: Array) -> bool: return e[0] == id).map(func(e: Array) -> Variant: return e[1])
+func _events(id: StringName) -> Array: return _ev.filter(func(e: Array) -> bool: return e[0] == id).map(func(e: Array) -> Variant: return e[1])
 
 
 func _land(r: BonfireRun, faces: Array, mods: Array = [], boom: Variant = null) -> bool:
@@ -62,8 +59,7 @@ func _test_data() -> void:
 				and DiceIds.asset_key(s.id) == StringName("%s_d6" % s.id), "data: %s" % s.id)
 			var rules := TableRules.build([], [s.id])
 			_check(rules.size() == 1 and rules[0] is RareDiceRules and rules[0].id == s.id, "install: %s's RareDiceRules" % s.id)
-			var a := _run([s.id])
-			var b := _run([])
+			var a := _run([s.id]); var b := _run([])
 			for r in [a, b]:
 				_land(r, [5, 5, 5, 2])
 				_pot(r, [0, 1, 2])
@@ -165,6 +161,8 @@ func _test_effects() -> void:
 	RareDiceRules.attach_nerve(r, ns)
 	_land(r, [6, 1], [_mod(&"fuse"), null], true)
 	var two := ns.uses_left() == 2
-	_pot(r, [1])
-	r.bank()
+	_pot(r, [1]); r.bank()
 	_check(two and ns.uses_left() == 1, "nerve: a Boom (land_throw) is +1 Nerve, cleared next hand")
+	ns.grant_use(1); ns._used = 2; ns.clear_granted(); ns.grant_use(1)
+	_check(ns.uses_left() == 1, "nerve: a spent grant, then a new Boom, is exactly +1")
+	ns.reset_table(); _check(ns.uses_left() == 1, "nerve: reset_table drops grants")

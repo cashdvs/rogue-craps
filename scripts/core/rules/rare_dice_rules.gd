@@ -7,7 +7,6 @@ extends TableRule
 const BOOM_CHANCE := 2.0 / 3.0
 
 var pot_factor: float = 1.0
-## The table's NerveState (attach_nerve): a Boom grants +1 use, a new hand clears it.
 var nerve: NerveState
 
 
@@ -18,6 +17,7 @@ static func soft_soul_loss(run: BonfireRun, amount: int, kind: StringName) -> in
 	return taken
 
 
+## Hands the table's NerveState to the Barrel rule (no-op without one): a Boom grants +1 use, a new hand clears it.
 static func attach_nerve(run: BonfireRun, state: NerveState) -> void:
 	if barrel_rule(run) != null: barrel_rule(run).nerve = state
 
