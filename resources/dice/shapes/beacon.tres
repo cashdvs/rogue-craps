@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
+
+[resource]
+script = ExtResource("1_rare")
+enabled = true
+preset_mods = {
+7: &"step",
+8: &"wild"
+}
+id = &"beacon"
+display_name = "Beacon Die"
+description = "Eight faces; 8 is Wild and 7 is Step."
+rarity = &"rare"
+price = 24
+faces = Array[int]([1, 2, 3, 4, 5, 6, 7, 8])

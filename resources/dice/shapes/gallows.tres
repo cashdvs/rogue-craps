@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DieShape" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/die_shape.gd" id="1_rare"]
+
+[resource]
+script = ExtResource("1_rare")
+enabled = true
+preset_mods = {
+4: &"twin"
+}
+id = &"gallows"
+display_name = "Gallows Die"
+description = "Four faces; its 4 counts as two 4s."
+rarity = &"rare"
+price = 20
+faces = Array[int]([1, 2, 3, 4])

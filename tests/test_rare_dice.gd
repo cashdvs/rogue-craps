@@ -6,6 +6,8 @@ extends SceneTree
 
 const S := MapRun.Screen
 const RARES := [&"pyre", &"gilt", &"lodestone", &"ossuary"]
+## The whole rare pool since rare_dice_v2 PR 1 (Gallows, Beacon).
+const POOL := [&"pyre", &"gilt", &"lodestone", &"ossuary", &"gallows", &"beacon"]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -85,10 +87,10 @@ func _test_odds() -> void:
 		var rate := float(hits) / n
 		_check(absf(rate - want[f]) < 0.025, "odds: floor %d rare rate %.3f ~ %.2f" % [f + 1, rate, want[f]])
 		_check(not slot0_rare, "odds: floor %d never puts a rare in slot 1" % [f + 1])
-		var even := by.size() == 4
+		var even := by.size() == POOL.size()
 		for id in by:
-			even = even and absf(float(by[id]) / hits - 0.25) < 0.06
-		_check(even, "odds: floor %d four rares equally weighted %s" % [f + 1, by])
+			even = even and absf(float(by[id]) / hits - 1.0 / POOL.size()) < 0.06
+		_check(even, "odds: floor %d all rares equally weighted %s" % [f + 1, by])
 	# Elite rewards / common pools never offer a rare.
 	var leak := false
 	for s in 500:
@@ -106,18 +108,18 @@ func _test_odds() -> void:
 		run._roll_shop()
 		dup = dup or run.shop_dice[1].id == &"pyre"
 	_check(not dup, "odds: an owned rare isn't offered again")
-	# GD ruling on #174: all four owned -> the roll misses, slot 2 keeps its normal offer.
+	# GD ruling on #174: every rare owned -> the roll misses, slot 2 keeps its normal offer.
 	var all_ok := true
 	for s in 400:
 		var run := MapRun.new(_run, s)
 		run.floor_index = 2
-		run.progress.dice.resize(2)
-		for id in RARES:
+		run.progress.dice.clear()
+		for id in POOL:
 			run.progress.add_die(id)
 		run.screen = S.SHOP
 		run._roll_shop()
-		all_ok = all_ok and run.shop_dice.size() == 2 and run.shop_dice[1] != null and not run.shop_dice[1].is_rare()
-	_check(all_ok, "odds: owning all four rares, slot 2 keeps a normal (non-empty) offer")
+		all_ok = all_ok and run.progress.dice.size() == POOL.size() and run.shop_dice.size() == 2 and run.shop_dice[1] != null and not run.shop_dice[1].is_rare()
+	_check(all_ok, "odds: owning every rare, slot 2 keeps a normal (non-empty) offer")
 
 
 func _test_prices_and_sell() -> void:

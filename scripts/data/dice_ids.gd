@@ -94,6 +94,12 @@ const DIE_LODESTONE: StringName = &"lodestone"
 ## Die: Ossuary Die, d6; 3 and 6 Twin (resources/dice/shapes/ossuary.tres).
 const DIE_OSSUARY: StringName = &"ossuary"
 
+# --- Die ids: rare dice v2, PR 1 (design/rare_dice_v2.md; built shapes + preset_mods) ---
+## Die: Gallows Die, d4 1-4; 4 Twin (resources/dice/shapes/gallows.tres). Caltrop body, no run rule.
+const DIE_GALLOWS: StringName = &"gallows"
+## Die: Beacon Die, d8 1-8; 8 Wild, 7 Step (resources/dice/shapes/beacon.tres). Lantern body.
+const DIE_BEACON: StringName = &"beacon"
+
 ## die id -> {"shape": shape id, "name": display name}.
 const ALL: Dictionary = {
 	DIE_BONE: {"shape": SHAPE_D6, "name": "Bone Die"},
@@ -119,6 +125,8 @@ const ALL: Dictionary = {
 	DIE_GILT: {"shape": SHAPE_D6, "name": "Gilt Die"},
 	DIE_LODESTONE: {"shape": SHAPE_D6, "name": "Lodestone Die"},
 	DIE_OSSUARY: {"shape": SHAPE_D6, "name": "Ossuary Die"},
+	DIE_GALLOWS: {"shape": SHAPE_D4, "name": "Gallows Die"},
+	DIE_BEACON: {"shape": SHAPE_D8, "name": "Beacon Die"},
 }
 
 ## Old spelling -> canonical die id. Lookups accept these during the rename window only.
@@ -152,6 +160,8 @@ const ASSET_ONLY_KEYS: Dictionary = {
 const RARE_ART_BODIES: Dictionary = {
 	&"pyre_d6": &"hellfire_d6", &"gilt_d6": &"gilded_d6",
 	&"lodestone_d6": &"mirror_d6", &"ossuary_d6": &"bone_d6",
+	# rare_dice_v2 PR 1: the built shaped bodies (Caltrop d4, Lantern d8).
+	&"gallows_d4": &"caltrop_d4", &"beacon_d8": &"lantern_d8",
 }
 
 
