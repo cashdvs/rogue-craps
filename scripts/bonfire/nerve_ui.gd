@@ -183,6 +183,8 @@ func _place_panels() -> void:
 		b.custom_minimum_size = Vector2(150, 52) * k
 	var gap := GAP * k
 	var above := _cards_rect(hud)
+	if hud.rules_panel != null and hud.rules_panel.is_visible_in_tree():
+		above = above.merge(hud.rules_panel.get_global_rect())  # QA: go under the rules plaque (Powder Barrel), not over it
 	for c: Control in [pip_box, rescue_panel]:
 		c.reset_size()
 		var sz := c.get_combined_minimum_size()
