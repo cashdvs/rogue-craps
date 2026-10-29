@@ -12,6 +12,10 @@ extends BonfireHudGoal
 # This file keeps the prompts, flash text, banners, portrait layout and end panel.
 
 
+## Space (design px) between the hands line and the rules panel in portrait.
+const RULES_GAP := 14.0
+
+
 ## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
 ## the button into "Leave? Tap again"; a second one within LEAVE_CONFIRM_S
 ## leaves (emits leave_pressed). Otherwise the text goes back.
@@ -132,6 +136,14 @@ func set_portrait(on: bool) -> void:
 	checklist_panel.visible = not on
 	_place_rules()
 	_place_result()
+
+
+## Rules panel: BonfireHudGoal's spot, but in portrait (no cards) it also
+## clears the Embers / points / hands lines above it.
+func _place_rules() -> void:
+	super()
+	if portrait_goal != null and portrait_goal.visible:
+		rules_panel.position.y = maxf(rules_panel.position.y, hands_label.position.y + hands_label.size.y + RULES_GAP)  # QA: don't crowd the Embers lines
 
 
 ## The bank / bust banner: under the readout in portrait (its height can
