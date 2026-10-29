@@ -9,6 +9,7 @@ const BOOM_CHANCE := 2.0 / 3.0
 const LIGHTS_ALONE: Array[StringName] = [&"fuse"]
 
 var pot_factor: float = 1.0
+## The table's NerveState (attach_nerve): a Boom grants +1 use, a new hand clears it.
 var nerve: NerveState
 
 
