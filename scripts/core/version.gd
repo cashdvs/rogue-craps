@@ -36,9 +36,16 @@ static func number() -> String:
 	return "%s.%d" % [_val("major_minor", "0.1"), int(_val("patch", 0))]
 
 
-## Android version/code: the patch number.
+## Android version/code, monotonic across releases:
+## major*10000 + minor*100 + patch (0.1.2 -> 102, 0.2.0 -> 200).
 static func code() -> int:
-	return int(_val("patch", 0))
+	return code_for(number())
+
+
+## version/code for a "major.minor.patch" string (see code()).
+static func code_for(ver: String) -> int:
+	var p := ver.split(".")
+	return int(p[0]) * 10000 + int(p[1]) * 100 + int(p[2])
 
 
 ## Short git sha stamped at export, or "dev".
@@ -47,19 +54,24 @@ static func sha() -> String:
 	return s if not s.is_empty() else DEV_SHA
 
 
+## Shown in the title/pause corner: "v0.1.2 (abc1234)", or "v0.1.2 (dev)".
 static func display() -> String:
 	return "v%s (%s)" % [number(), sha()]
 
 
+## Release tag for git and the store beta track: "beta-0.1.2".
 static func tag() -> String:
 	return "beta-" + number()
 
 
+## Export file name stem, before "-Windows.zip" / "-Android.apk":
+## "DiceOfTheDamned-0.1.2".
 static func file_stem() -> String:
 	return "%s-%s" % [GAME, number()]
 
 
-## Subject line for the (later) bug-report mailto.
+## Subject line for the (later) bug-report mailto:
+## "Bug report - v0.1.2 (abc1234)".
 static func bug_subject() -> String:
 	return "Bug report - " + display()
 

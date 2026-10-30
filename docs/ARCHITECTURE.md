@@ -54,6 +54,7 @@ studio_splash.tscn ──▶ title.tscn ──Play──▶ run.tscn (RunScreen)
 | **Audio** | Sound Designer | `scripts/audio/`, `audio/sfx/`, `tools/bake_sfx.gd` |
 | **Art pipeline** | Art Director (look, sign-off), 3D Artist (meshes) | `art/models/`, `*.import` for art, `fonts/`, `assets/branding/` |
 | **Soul Reliquary** (3D Soul meter on the Hearth rail) | 3D Artist (meshes, look), Art Director (sign-off) | `art/models/props/soul_reliquary/` (`scripts/soul_reliquary.gd`: `SoulReliquary.set_soul(cur, max)` clamps to 0..max, liquid, frost, lethal crack, cage growth, `plate_layout` row/stacked; generator `src/make_soul_reliquary.gd` + `reliquary_stacked.gd`, `reliquary_mb.gd`), anchors `SoulReliquary` / `SoulReliquaryPhone` in `art/models/boards/hearth/`, candle progress in `art/models/boards/hearth/scripts/hearth_fx.gd` (`candles_lit_for`); `tests/test_soul_reliquary.gd` |
+| **Build version** | PM (Tools / CI) | `version.cfg` (the one source: `major_minor`, `patch`, `sha`), `scripts/core/version.gd` (`Version`: `display()`, `tag()`, `file_stem()`, `bug_subject()`, `code()`, corner `make_label()` on the title and pause screens), `tools/stamp_version.sh` (export-time stamp); `tests/test_version.gd`. See [Build version](#build-version). |
 | **Review and QA tests** | QA Tester | `tests/qa_/`, PR review and merges |
 | **CI, contributor docs** | PM | `.github/`, `run_tests.sh`, `project.godot`, `*.md` at the root, `docs/` |
 | **Tools** | shared (Godot Dev / Systems Dev; per-tool owners in the sections below, e.g. `tools/bake_sfx.gd` is Sound Designer's) | `tools/` |
@@ -151,7 +152,16 @@ Numbers in these files come from the Game Designer. Changing an existing one is 
 (right-click the folder → New Resource → pick the class) so `.tres` and `.uid` stay valid.
 
 **Shipping and Steam:** builds come from `export_presets.cfg` and `.github/workflows/export.yml`;
-status and open items are in [STEAM_READINESS.md](STEAM_READINESS.md). Anything players see or hear
+status and open items are in [STEAM_READINESS.md](STEAM_READINESS.md).
+
+<a id="build-version"></a>**Build version:** `version.cfg` holds the version (`0.1.<patch>`) and is
+the only place to bump it. `Version` (`scripts/core/version.gd`) reads it: `display()` gives
+`v0.1.2 (abc1234)` (`(dev)` when not stamped), `tag()` gives `beta-0.1.2`, `file_stem()` gives
+`DiceOfTheDamned-0.1.2` and `bug_subject()` gives `Bug report - v0.1.2 (abc1234)`. The Android
+versionCode is `major*10000 + minor*100 + patch` (0.1.2 = 102), so it always grows.
+`tools/stamp_version.sh` runs before an export. It writes the short sha into `version.cfg` (`--no-sha`
+keeps `dev`), copies the version into the Android/Windows presets and `project.godot`, and prints
+the export names (`DiceOfTheDamned-0.1.2-Windows.zip`, `-Android.apk`). **Stamping edits 3 tracked files** (`version.cfg`, `export_presets.cfg`, `project.godot`); never commit them stamped. Export from a fresh worktree, or run `git checkout -- version.cfg export_presets.cfg project.godot` afterwards. Anything players see or hear
 that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
 
 ## Recipes
