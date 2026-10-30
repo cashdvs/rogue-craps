@@ -2,7 +2,10 @@
 ## rescue prompt never cover a landed die. QA's phone shot had the Gallows
 ## d4 hidden under the pip. Here the d4 is parked right under the pip's
 ## centre after a real throw, and the pip must move off it and stay on
-## screen. Real Bonfire HUD on PC 16:9 and phone landscape (844x390).
+## screen. QA #198: it also never covers other text, e.g. the felt combo
+## strip's "Five of a Kind" (3D labels) or HUD labels, right after the
+## throw and with the d4 parked. Real Bonfire HUD on PC 16:9 and phone
+## landscape (844x390).
 ##   godot --headless --path . --script res://tests/test_nerve_die_clear.gd
 extends SceneTree
 
@@ -54,6 +57,40 @@ func _d4_rect(cam: Camera3D, d: DieVisual) -> Rect2:
 	return r
 
 
+## Every piece of text on screen, worked out here: visible non-empty 2D
+## labels / buttons (not the Nerve UI's own, not the bounty cards it hangs
+## under) and the felt's 3D labels (combo strip, seal row).
+func _text_rects(s: Bonfire3D) -> Array:
+	var out := []
+	var cam := s.camera.cam
+	for n in s.get_viewport().find_children("*", "Control", true, false):
+		var c := n as Control
+		if not (c is Label or c is Button) or str(c.get("text")).strip_edges() == "" or not c.is_visible_in_tree():
+			continue
+		var mine := s.nerve_ui.is_ancestor_of(c)
+		for card: Control in s.bhud.bounty_cards.values():
+			mine = mine or card == c or card.is_ancestor_of(c)
+		if not mine and c.modulate.a > 0.05:
+			out.append([c.get_global_rect(), str(c.get("text"))])
+	for n in s.get_viewport().find_children("*", "Label3D", true, false):
+		var l := n as Label3D
+		if l.is_visible_in_tree() and l.text.strip_edges() != "" and not l is D4ValueTag:
+			var ab := l.get_aabb()
+			var r := Rect2(cam.unproject_position(l.global_transform * ab.get_endpoint(0)), Vector2.ZERO)
+			for i in 8:
+				r = r.expand(cam.unproject_position(l.global_transform * ab.get_endpoint(i)))
+			out.append([r, l.text])
+	return out
+
+
+func _check_text_clear(s: Bonfire3D, a: Rect2, label: String) -> void:
+	var hits := []
+	for t in _text_rects(s):
+		if (t[0] as Rect2).intersects(a):
+			hits.append(t[1])
+	check(hits.is_empty(), "%s: pip %s covers no text %s" % [label, str(a), str(hits)])
+
+
 func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	for k in 600:
 		if s.phase == Table3D.Phase.BET and s.run.state == BonfireRun.State.AIM and not s.hand_moving():
@@ -66,6 +103,9 @@ func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	await process_frame
 	var pip := s.nerve_ui.pip_box
 	check(s.nerve_ui.visible and pip.is_visible_in_tree(), "%s: Nerve pip showing" % label)
+	for k in 3:
+		await process_frame
+	_check_text_clear(s, pip.get_global_rect(), label + " after throw")
 	var d: DieVisual
 	for x: DieVisual in s.throw_dice:
 		if x.shape == &"d4":
@@ -86,6 +126,7 @@ func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	var view := Rect2(Vector2.ZERO, s.get_viewport().get_visible_rect().size)
 	check(not a.intersects(_d4_rect(cam, d)), "%s: pip %s clear of the d4 %s" % [label, str(a), str(_d4_rect(cam, d))])
 	check(view.encloses(a), "%s: pip %s on screen" % [label, str(a)])
+	_check_text_clear(s, a, label + " d4 parked")
 	# The game's own die rect must reach the d4's full size (its 0.065 m cap).
 	var game := RulesPlaqueDodge.die_rect(cam, d)
 	check(game.encloses(_d4_rect(cam, d)), "%s: die_rect %s covers the whole d4 %s" % [label, str(game), str(_d4_rect(cam, d))])

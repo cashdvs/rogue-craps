@@ -61,12 +61,12 @@ var hull_outline: MeshInstance3D
 ## 0 or 1: which of the pair this is.
 var die_id: int = 0
 
-var base_emission: float = 0.0  ## always-on body glow (PolyBody: the d4); highlight adds to it
-var highlight: float = 0.0:  ## extra reduced-motion brightness (0..1), on top of base_emission
+## Extra brightness for reduced-motion readability (0..1).
+var highlight: float = 0.0:
 	set(v):
 		highlight = v
 		if body_material != null:
-			body_material.set_shader_parameter("emission_energy", base_emission + 0.12 * v)
+			body_material.set_shader_parameter("emission_energy", 0.12 * v)
 
 func _init(edge_m: float = 0.08) -> void:
 	edge = edge_m
@@ -237,8 +237,8 @@ func _apply_glow(lit: float, cold: float) -> void:
 	glow_cold = cold
 	body_material.set_shader_parameter("state_rim_energy", rim_energy_for(material) + 0.13 * glow_boost)
 	body_material.set_shader_parameter("lit_albedo_mix_max", 0.0 if material in NO_LIT_TINT_FAMILIES else LIT_ALBEDO_MIX_MAX)
-	body_material.set_shader_parameter("die_lit", lit)
-	body_material.set_shader_parameter("die_cold", cold)
+	for m in [body_material, body_material.next_pass]:  # next_pass: the d4 flat pass (PolyBody) follows too
+		if m is ShaderMaterial: m.set_shader_parameter("die_lit", lit); m.set_shader_parameter("die_cold", cold)
 	if pip_material == null:
 		return
 	# Cold pips are pulled 55% toward the (cold) body colour; lit pips keep their ink.

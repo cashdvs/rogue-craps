@@ -192,8 +192,9 @@ func _place_panels() -> void:
 		c.global_position = Vector2(above.end.x - sz.x, above.end.y + gap)
 		var view := get_viewport_rect().size
 		c.global_position.x = clampf(c.global_position.x, gap, maxf(gap, view.x - gap - sz.x))
-		# PM #198: never sit on a landed die (the phone d4 hid under "Nerve ready").
-		c.global_position = RulesPlaqueDodge.place(Rect2(c.global_position, sz), _dice_rects(), get_viewport_rect())
+		# PM / QA #198: never sit on a landed die (the phone d4 hid under
+		# "Nerve ready") or on other text (the combo strip's "Five of a Kind").
+		c.global_position = RulesPlaqueDodge.place(Rect2(c.global_position, sz), _blockers(hud), get_viewport_rect())
 
 
 ## QA #201: moves the rules plaque off any thrown die it covers (phone
@@ -208,6 +209,18 @@ func _dodge_rules(hud: BonfireHud) -> void:
 	var home: Vector2 = p.get_meta("home")
 	p.global_position = RulesPlaqueDodge.place(Rect2(home, p.get_global_rect().size), _dice_rects(), get_viewport_rect())
 	p.set_meta("dodged", p.global_position)
+
+
+## What the pip / rescue panels must not cover: the landed dice and every
+## other text on screen (HudTextRects), except the Nerve UI's own labels and
+## the bounty cards they hang under (their home spot is just below those).
+func _blockers(hud: BonfireHud) -> Array[Rect2]:
+	var skip: Array[Node] = [self]
+	for c: Control in hud.bounty_cards.values():
+		skip.append(c)
+	var out := _dice_rects()
+	out.append_array(HudTextRects.collect(get_viewport(), nerve.table.camera.cam, skip))
+	return out
 
 
 ## Screen rects of the thrown dice in view (what the panels must not cover).
