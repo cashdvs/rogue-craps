@@ -3,8 +3,8 @@
 ##   TARGET 300                 [chip] [chip]
 ##   120 ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ (4 px fill bar)
 ##   180 to go · 3 hands left    (or "PASSED · 2 hands left  +10")
-## Reads a TableGoalState, redraws on `changed`; works out to_go / passed. Icon-only chips (max 2):
-## a 150 ms hover or a tap opens a name card. SEALS ("SEALS · 4"): a borderless button outside the plate.
+## Reads a TableGoalState (redraws on `changed`). Icon chips (max 2) open a name card on
+## 150 ms hover or tap. SEALS ("SEALS · 4"): a borderless button outside the plate.
 class_name TargetPlate
 extends PanelContainer
 
@@ -17,12 +17,10 @@ const HOVER_S: float = 0.15
 
 ## Design px per spec px (the HUD sets it: PC 1.2, phone = ui_pt_px).
 var unit: float = 1.2
-## Plate width in spec px (PC 540, phone 510).
+## Plate width and inner padding in spec px (TargetPlace sets them per screen).
 var width_spec: float = 540.0
-## Inner padding in spec px (PC 16, phone 12).
 var pad_spec: float = 16.0
-## Text, bar and gap scale on top of `unit` (AD: PC plate x1.4). Padding
-## and chips keep their spec size.
+## Text/bar/gap scale on top of `unit` (AD: PC x1.4); padding and chips stay.
 var text_scale: float = 1.0
 var goal: TableGoalState
 
@@ -155,8 +153,7 @@ func restyle() -> void:
 	refresh()
 
 
-## Miss end state (Systems Dev's flow calls the HUD): "Missed:" red, then
-## "-5 Soul" in Soul cyan. soul < 0 clears it.
+## Miss state: "Missed:" red, "-5 Soul" Soul cyan; soul < 0 clears it.
 func show_miss(soul: int) -> void:
 	_miss_soul = soul
 	refresh()
