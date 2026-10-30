@@ -1,7 +1,7 @@
 ## Target HUD v2.1 goal plate (art/concept/hud_target_oct30/v2/HANDOFF_SPEC.md,
 ## handoff/table_goals_v1_pr1.md §4), on its own (the HUD wiring is the next PR):
 ##   - number format (12,400 in full, 123,456 -> 123.5k) and the line 3 text;
-##   - TableGoalState (stub) follows the real run on hand_finished / table_event;
+##   - TableGoalState (stub) follows the real run on table_event;
 ##   - TARGET + number, bar + banked, to go / PASSED +n / Missed;
 ##     bar #F0CC72 at 100 %; no empty chips, at most 2; SEALS hides at 0;
 ##   - a 150 ms hover or a tap opens the chip's name card.
@@ -89,7 +89,7 @@ func _check_pc() -> void:
 	# The stub follows the run: a real throw and bank change banked / hands.
 	var seen := {"changed": 0, "banked": 0}
 	g.changed.connect(func() -> void: seen["changed"] += 1)
-	g.banked_changed.connect(func() -> void: seen["banked"] += 1)
+	g.banked_changed.connect(func(_v: int) -> void: seen["banked"] += 1)
 	for i in 600:
 		if s.run.state == BonfireRun.State.AIM and not s.hand_moving():
 			break
@@ -104,9 +104,9 @@ func _check_pc() -> void:
 	check(seen["banked"] >= 1 and seen["changed"] >= 1, "banked_changed and changed fired")
 	check(p.banked_value.text == TargetPlate.fmt(s.run.points), "plate banked number redraws on changed")
 	# Stub values: chips (max 2), SEALS, bar, passed, boss, miss.
-	g.stub_set({"target": 270, "banked": 120, "hands_left": 3, "seals": 4, "bounties": [
-		{"icon_id": &"clean_hands", "text": "Clean Hands"}, {"icon_id": &"usurers_ledger", "text": "Usurer's Ledger"},
-		{"icon_id": &"pair_up", "text": "Pair Up"}]})
+	g._bounties = [{"icon_id": &"clean_hands", "text": "Clean Hands"}, {"icon_id": &"usurers_ledger", "text": "Usurer's Ledger"},
+		{"icon_id": &"pair_up", "text": "Pair Up"}]
+	g.set_for_test(270, 120, 3, null, 4)
 	await _frames(2)
 	var chips := p.chip_row.get_children().filter(func(c: Node) -> bool: return c is GoalIcon)
 	check(chips.size() == 2, "at most 2 chips (%d)" % chips.size())
@@ -117,11 +117,11 @@ func _check_pc() -> void:
 	p.seals_pressed.connect(func() -> void: pressed[0] += 1)
 	p.seals_chip.pressed.emit()
 	check(pressed[0] == 1, "SEALS opens the Seals list (seals_pressed)")
-	g.stub_set({"banked": 310, "hands_left": 2})
+	g.set_for_test(270, 310, 2, null, 4)
 	await _frames(1)
 	check(p.line3.text == "PASSED · 2 hands left" and p.line3_extra.visible and p.line3_extra.text == "+40", "passed: PASSED + over (%s %s)" % [p.line3.text, p.line3_extra.text])
 	check(p.bar_color() == Color("#F0CC72"), "bar is #F0CC72 at 100%")
-	g.stub_set({"target": 123456, "banked": 12400})
+	g.set_for_test(123456, 12400, 2, null, 4)
 	await _frames(1)
 	check(p.target_value.text == "123.5k" and p.banked_value.text == "12,400", "plate abbreviates above 99,999")
 	p.show_miss(5)
@@ -130,11 +130,11 @@ func _check_pc() -> void:
 	p.show_miss(-1)
 	# Boss: a small brass BOSS tag left of TARGET (no red); hidden otherwise.
 	check(not p.boss_tag.visible, "no BOSS tag on a normal table")
-	g.stub_set({"is_boss": true})
+	g.set_for_test(123456, 12400, 2, null, 4, true)
 	await _frames(1)
 	check(p.boss_tag.visible and p.boss_tag.text == "BOSS" and p.boss_tag.label_settings.font_color == Palette.BRASS_HI, "boss: brass BOSS tag")
 	check(p.boss_tag.get_index() < p.target_label.get_index() and p.boss_tag.get_parent() == p.target_label.get_parent(), "BOSS sits left of TARGET")
-	g.stub_set({"is_boss": false})
+	g.set_for_test(123456, 12400, 2, null, 4)
 	# text_scale grows text (not padding or chips): AD PC x1.4.
 	p.text_scale = 1.4
 	p.restyle()
