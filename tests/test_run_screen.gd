@@ -203,15 +203,14 @@ func _test_table(scene: RunScreen) -> void:
 	_check(t.is_run_mode() and t.all_dice.size() == scene.run.progress.dice.size() and t.soul_meter.soul_max == scene.run.progress.max_soul,
 		"table: run mode with the run's dice and max Soul")
 	_check(t.pause_menu.forfeit_button.visible and not t.pause_menu.quit_button.visible, "table: run-mode pause menu offers Forfeit, not Quit to title")
-	var unticked := br.unticked_required()
 	var soul0: int = scene.run.progress.soul
 	var embers0: int = scene.run.progress.embers
 	_check(t.forfeit(), "table: forfeit")
 	t.bhud.continue_pressed.emit()
 	await process_frame
 	_check(scene._table == null and not is_instance_valid(t) or t.is_queued_for_deletion(), "table: freed after finished")
-	_check(scene.run.screen == S.MAP and scene.map_view.visible and scene.run.progress.soul == soul0 - unticked * scene.run.goal.timeout_soul_per_bounty
-		and scene.run.progress.embers >= embers0, "table: forfeit outcome applied (timeout Soul), back to the map")
+	_check(scene.run.screen == S.MAP and scene.map_view.visible and scene.run.progress.soul == soul0 - scene.run.goal.miss_soul
+		and scene.run.progress.embers >= embers0, "table: forfeit outcome applied (miss Soul), back to the map")
 	await process_frame
 
 

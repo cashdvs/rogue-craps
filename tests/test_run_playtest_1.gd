@@ -239,8 +239,8 @@ func _test_m5_fallback() -> void:
 	var none_ok := true
 	for s in 12:
 		var g := _rigged_goal([run4] as Array[BountyData], only_run4_bonus, s)
-		fb_ok = fb_ok and g.required.size() == 1 and g.required[0] == run4 and g.bonus.size() == 1 and g.bonus[0] == b_fh
+		fb_ok = fb_ok and g.required.is_empty() and g.bonus.is_empty()
 		var g2 := _rigged_goal([run4, fh_req] as Array[BountyData], only_run4_bonus, s)
-		none_ok = none_ok and g2.required.size() == 2 and g2.bonus.is_empty()
-	_check(fb_ok, "M5: rigged table, bonus repeats required Run of 4 -> Full House bonus")
-	_check(none_ok, "M5: rigged table, Run of 4 and Full House required -> no bonus")
+		none_ok = none_ok and g2.required.is_empty() and g2.bonus.is_empty()
+	_check(fb_ok, "M5 (table_goals_v1): make_goal rolls no bounties even with rigged pools (pick_bonus is checked above)")
+	_check(none_ok, "M5 (table_goals_v1): Run of 4 + Full House pools -> still no bounties")
