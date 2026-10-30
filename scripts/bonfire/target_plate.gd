@@ -150,6 +150,7 @@ func show_miss(soul: int) -> void:
 	refresh()
 
 
+## Redraws every row from `goal` (and the miss state); safe before ready.
 func refresh() -> void:
 	if not is_node_ready():
 		return
