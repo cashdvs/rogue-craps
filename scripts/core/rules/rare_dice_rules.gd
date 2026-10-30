@@ -9,6 +9,8 @@ const BOOM_CHANCE := 2.0 / 3.0
 const LIGHTS_ALONE: Array[StringName] = [&"fuse"]
 
 var pot_factor: float = 1.0
+## Barrel: this hand's pots before pot_factor (selection() shows them scaled).
+var raw_pot: int = 0
 ## The table's NerveState (attach_nerve): a Boom grants +1 use, a new hand clears it.
 var nerve: NerveState
 
@@ -42,6 +44,8 @@ static func mod_id(m: Variant) -> StringName:
 
 
 static func on_land(run: BonfireRun, th: TableThrow) -> void:
+	if run.rule_ctx().get("no_mods", false):
+		return  # The Collector: face mods do nothing on this throw.
 	for i in th.size():
 		var id := mod_id(th.mods[i] if i < th.mods.size() else null)
 		if id == &"hex":
@@ -63,12 +67,15 @@ static func on_land(run: BonfireRun, th: TableThrow) -> void:
 
 func on_hand_start(_run: BonfireRun) -> void:
 	pot_factor = 1.0
+	raw_pot = 0
 	if nerve != null: nerve.clear_granted()
 
 
 func on_bank(run: BonfireRun, result: Dictionary) -> void:
-	if id == &"barrel" and pot_factor != 1.0:
-		var extra := int(floor(run.pot * pot_factor)) - run.pot
+	if id == &"barrel":
+		# The pots were shown scaled by the factor at their time; the bank
+		# pays the whole hand at the final factor.
+		var extra := int(floor(raw_pot * pot_factor + 0.000001)) - run.pot
 		run.points += extra
 		result["gain"] = int(result["gain"]) + extra
 
@@ -88,11 +95,18 @@ static func jackpots(run: BonfireRun, faces: Array) -> int:
 
 
 func modify_score(run: BonfireRun, result: Dictionary) -> void:
+	if id == &"barrel" and not is_equal_approx(pot_factor, 1.0):
+		# Boom x2 / Misfire x0.5 in the preview and count-up, as banked.
+		result["raw_points"] = int(result["points"])
+		result["points"] = int(floor(int(result["points"]) * pot_factor + 0.000001))
+		result["factor"] = float(result["factor"]) * pot_factor
 	if id == &"fortune":
 		result["embers"] = int(result["embers"]) + jackpots(run, run.selection_faces())
 
 
 func on_pot(run: BonfireRun, info: Dictionary) -> void:
+	if id == &"barrel":
+		raw_pot += int(info["result"].get("raw_points", info["result"]["points"]))
 	var n := jackpots(run, run.selection_faces(info["indices"])) if id == &"fortune" else 0
 	if n > 0:
 		run.table_event.emit(&"jackpot", {"combo": StringName(info["result"]["combo"]), "embers": n})
