@@ -68,6 +68,8 @@ func _test_rare(id: StringName) -> void:
 		await process_frame
 	var on_table := b.dice.size() == bag.size() and at >= 0 and at < b.dice.size() and b._td(at).id == id
 	_check(on_table, "%s: it is one of the %d dice in hand at the table" % [id, b.dice.size()])
+	if on_table:
+		_check_look(b, at, id, sh)
 	var top: int = sh.faces.max()
 	var rig: Array[int] = []
 	for i in b.dice.size():
@@ -81,3 +83,32 @@ func _test_rare(id: StringName) -> void:
 		"%s: it lands in the throw showing its %d (got %s)" % [id, top, b.run.last_throw.values if b.run.last_throw != null else []])
 	b.queue_free()
 	await process_frame
+
+
+## The rare reads apart from Bone at the table: tinted body and its marks.
+func _check_look(b: Bonfire3D, at: int, id: StringName, sh: DieShape) -> void:
+	var d := b.dice[at]
+	var body: Color = d.body_material.get_shader_parameter("albedo")
+	_check(body.is_equal_approx(RareDieLook.body_color()), "%s: body is the rare tint (%s)" % [id, body.to_html(false)])
+	var bone := b.dice[0 if at != 0 else 1]
+	var bone_body: Color = bone.body_material.get_shader_parameter("albedo")
+	var dist := Vector3(body.r - bone_body.r, body.g - bone_body.g, body.b - bone_body.b).length()
+	_check(dist > 0.05, "%s: visibly distinct from the Bone die beside it (%.3f)" % [id, dist])
+	var fm := d.faces.get_node_or_null("FaceMods")
+	var want := 0
+	var have := 0
+	for v in sh.preset_mods:
+		var slot: int = sh.faces.find(v) + 1
+		if RareDieLook.MARKS.has(StringName(sh.preset_mods[v])) and slot >= 1 and slot <= 6:
+			want += 1
+			if fm != null and fm.get_node_or_null("RareMark_%s" % sh.preset_mods[v]) != null:
+				have += 1
+	_check(have == want, "%s: shows its %d rare marks (%d)" % [id, want, have])
+	if fm != null:
+		for m in fm.get_children():
+			if m.has_meta("ink"):
+				var ink := m.get_meta("ink") as StandardMaterial3D
+				b._set_lit(d, true)
+				var lit := ink.emission_energy_multiplier
+				b._set_lit(d, false)
+				_check(lit > 0.0 and lit <= 0.3 + 1e-6 and ink.emission_energy_multiplier == 0.0, "%s: %s mark glows only while lit" % [id, m.name])
