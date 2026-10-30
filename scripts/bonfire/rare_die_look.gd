@@ -24,7 +24,9 @@ const FACE_NORMALS: Dictionary = {
 		Vector3(-_A, _A, _A), Vector3(_A, _A, _A), Vector3(_A, _A, -_A), Vector3(-_A, _A, -_A)],
 }
 ## d4 / d8 bevels sit ~18 deg off their faces (cos 0.951), so their flat
-## cut is 14 deg (0.97): faces bare, the bevel band brass.
+## cut is 14 deg (0.97): faces bare, the bevel band brass. Their meshes
+## smooth the face rims' vertex normals 38-58 deg (d4), so d4 / d8 test the
+## triangle's own (geometric) normal; a d6 keeps its vertex normals.
 const SHAPE_FLAT: Dictionary = {&"d6": TRIM_FLAT, &"d4": 0.97, &"d8": 0.97}
 ## The trim sits this far (edge units) out along the normal, over the body.
 const TRIM_LIFT := 0.002
@@ -183,17 +185,44 @@ static func fit_trim(d: DieVisual) -> void:
 	var mi := body.get_node_or_null("RareTrim") as MeshInstance3D if body != null else null
 	if mi == null:
 		return
-	mi.mesh = body.mesh
 	var shape: StringName = d.shape if FACE_NORMALS.has(d.shape) else &"d6"
+	mi.mesh = body.mesh if shape == &"d6" else bevel_mesh(body.mesh, shape)
 	var ns := PackedVector3Array(face_normals(shape))
 	ns.resize(8)
 	var m := mi.material_override as ShaderMaterial
 	for mat: ShaderMaterial in [m, m.next_pass as ShaderMaterial]:
 		mat.set_shader_parameter("face_n", ns)
-		mat.set_shader_parameter("face_count", face_normals(shape).size())
+		mat.set_shader_parameter("face_count", face_normals(shape).size() if shape == &"d6" else 0)
 		mat.set_shader_parameter("flat_limit", flat_for(shape))
 		mat.set_shader_parameter("edge", body.mesh.get_aabb().size.x)
 		mat.set_shader_parameter("frame_half", FRAME_HALF if shape == &"d6" else -1.0)
+
+
+## Bevel-only copy of a poly mesh: drops every triangle whose geometric normal
+## sits within flat_for(shape) of a face normal, so only the bevel band is left.
+## The poly glbs wind the other way from Godot's front face, so each kept
+## triangle is flipped; otherwise cull_back shows the far-side bevels
+## through the die (the brass-filled face on the d4).
+static func bevel_mesh(src: Mesh, shape: StringName) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	var lim := flat_for(shape)
+	var fns := face_normals(shape)
+	for s in src.get_surface_count():
+		var a := src.surface_get_arrays(s)
+		var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+		if idx.is_empty():
+			idx = PackedInt32Array(range(v.size()))
+		var keep := PackedInt32Array()
+		for t in range(0, idx.size(), 3):
+			var g := (v[idx[t + 1]] - v[idx[t]]).cross(v[idx[t + 2]] - v[idx[t]]).normalized()
+			if not fns.any(func(f: Vector3) -> bool: return absf(g.dot(f)) >= lim):
+				keep.append_array([idx[t], idx[t + 2], idx[t + 1]])
+		if keep.is_empty():
+			continue
+		a[Mesh.ARRAY_INDEX] = keep
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+	return out
 
 
 ## Adds (on) or removes (off) the brass bevel trim: a copy of the body mesh

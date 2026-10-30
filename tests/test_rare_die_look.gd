@@ -13,6 +13,7 @@ func _initialize() -> void:
 	_test_rarity()
 	_test_mark_size()
 	_test_trim()
+	_test_shape_mask()
 	print("=== rare die look: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -190,4 +191,60 @@ func _test_trim() -> void:
 	_check(not RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(34))) and RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(40))), "trim starts ~37 deg off a face (0.80)")
 	RareDieLook.set_trim(d, false)
 	_check(body.get_node_or_null("RareTrim") == null, "set_trim off removes the trim")
+	d.free()
+
+
+## Per-shape mask (#198 follow-up): d6 keeps its 6 axes at 0.80; d4/d8 use
+## their own face normals at 0.97 (bevels sit about 18 deg off each face),
+## get a CPU bevel-only mesh with flipped winding, and no frame line.
+func _test_shape_mask() -> void:
+	var axes := [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN, Vector3.BACK, Vector3.FORWARD]
+	var d6 := RareDieLook.face_normals(&"d6")
+	_check(d6.size() == 6 and axes.all(func(a: Vector3) -> bool: return d6.has(a)), "d6 mask keeps its 6 axes")
+	_check(is_equal_approx(RareDieLook.flat_for(&"d6"), RareDieLook.TRIM_FLAT) and is_equal_approx(RareDieLook.flat_for(&"d6"), 0.80), "d6 threshold unchanged at 0.80")
+	_check(RareDieLook.face_normals(&"d20") == d6, "unknown shapes fall back to the d6 mask")
+	for sh: StringName in [&"d4", &"d8"]:
+		var ns := RareDieLook.face_normals(sh)
+		_check(ns.size() == (4 if sh == &"d4" else 8) and ns.all(func(n: Vector3) -> bool: return is_equal_approx(n.length(), 1.0)), "%s: unit face normals" % sh)
+		_check(is_equal_approx(RareDieLook.flat_for(sh), 0.97), "%s: threshold 0.97 (14 deg)" % sh)
+	var tilt := func(n: Vector3, deg: float) -> Vector3:
+		return n.rotated(n.cross(Vector3(0.3, 0.1, 0.9)).normalized(), deg_to_rad(deg))
+	for sh: StringName in [&"d4", &"d8"]:
+		var f0: Vector3 = RareDieLook.face_normals(sh)[0]
+		_check(not RareDieLook.is_trim_normal(f0, sh) and not RareDieLook.is_trim_normal(tilt.call(f0, 8.0), sh), "%s: face (0 / 8 deg) is bare" % sh)
+		_check(RareDieLook.is_trim_normal(tilt.call(f0, 18.0), sh), "%s: bevel at 18 deg gets brass" % sh)
+	# d6 angles unchanged: 34 deg off an axis bare, 40 deg trimmed.
+	_check(not RareDieLook.is_trim_normal(tilt.call(Vector3.UP, 34.0)) and RareDieLook.is_trim_normal(tilt.call(Vector3.UP, 40.0)), "d6: 34 deg bare, 40 deg trimmed")
+	# bevel_mesh: one face triangle and one 18 deg bevel triangle in.
+	var f: Vector3 = RareDieLook.face_normals(&"d4")[0]
+	var bev: Vector3 = tilt.call(f, 18.0)
+	var tri := func(n: Vector3, at: Vector3) -> Array:
+		var u := n.cross(Vector3(0.3, 0.1, 0.9)).normalized()
+		var w := n.cross(u)
+		return [at, at + w, at + u]
+	var vs := PackedVector3Array(tri.call(f, Vector3.ZERO) + tri.call(bev, Vector3.ONE))
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = vs
+	arr[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 1, 2, 3, 4, 5])
+	var src := ArrayMesh.new()
+	src.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	var out := RareDieLook.bevel_mesh(src, &"d4")
+	var oi: PackedInt32Array = out.surface_get_arrays(0)[Mesh.ARRAY_INDEX] if out.get_surface_count() == 1 else PackedInt32Array()
+	_check(oi == PackedInt32Array([3, 5, 4]), "bevel_mesh keeps only the bevel triangle, winding flipped (%s)" % oi)
+	# fit_trim after a mesh swap (PolyBody.dress order): trim follows the
+	# new mesh, no frame line, CPU mask instead of the shader face list.
+	var d := DieVisual.new()
+	root.add_child(d)
+	RareDieLook.set_trim(d, true)
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	var t := body.get_node("RareTrim") as MeshInstance3D
+	var m := t.material_override as ShaderMaterial
+	_check(t.mesh == body.mesh and is_equal_approx(m.get_shader_parameter("frame_half"), RareDieLook.FRAME_HALF) and m.get_shader_parameter("face_count") == 6, "d6: trim is the body mesh, frame kept, 6 faces")
+	d.shape = &"d4"
+	body.mesh = src
+	RareDieLook.fit_trim(d)
+	for mat: ShaderMaterial in [m, m.next_pass as ShaderMaterial]:
+		_check(mat.get_shader_parameter("frame_half") < 0.0 and mat.get_shader_parameter("face_count") == 0 and is_equal_approx(mat.get_shader_parameter("flat_limit"), 0.97), "d4: frame skipped, CPU mask, 0.97")
+	_check(t.mesh != src and t.mesh.get_surface_count() == 1 and (t.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() == 3, "d4: trim re-fit to the swapped mesh, bevels only")
 	d.free()
