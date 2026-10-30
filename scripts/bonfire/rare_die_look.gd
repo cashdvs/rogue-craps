@@ -15,6 +15,12 @@ const TRIM := Color("#E6C46A")
 const TRIM_FLAT := 0.80
 ## The trim sits this far (edge units) out along the normal, over the body.
 const TRIM_LIFT := 0.002
+## AD fallback for a face-up rare: an inset brass frame line on each flat
+## face, FRAME_AT of the edge out from the centre (~1 px at 48 px wide). The
+## AD asked for ~6% in from the face edge; the flat face ends at 0.34 (bevel
+## 0.16) and corner pips reach 0.32, so the line sits in that clear gap.
+const FRAME_AT := 0.33
+const FRAME_HALF := 0.0105
 ## Light resistance: share of the trim drawn flat (unshaded albedo, not
 ## emission) over its lit result, so bonfire light cannot swallow it. Capped
 ## at TRIM_UNSHADED_MAX.
@@ -27,14 +33,23 @@ uniform vec4 trim : source_color;
 uniform float flat_limit;
 uniform float lift;
 uniform float mix_amount;
+uniform float edge;
+uniform float frame_at;
+uniform float frame_half;
 varying vec3 obj_n;
+varying vec3 obj_p;
 void vertex() {
 	obj_n = NORMAL;
+	obj_p = VERTEX;
 	VERTEX += NORMAL * lift * 1.5;
 }
 void fragment() {
 	vec3 a = abs(normalize(obj_n));
-	if (max(a.x, max(a.y, a.z)) >= flat_limit) { discard; }
+	if (max(a.x, max(a.y, a.z)) >= flat_limit) {
+		vec3 q = abs(obj_p) / edge;
+		float m = a.x > a.y && a.x > a.z ? max(q.y, q.z) : (a.y > a.z ? max(q.x, q.z) : max(q.x, q.y));
+		if (abs(m - frame_at) > frame_half) { discard; }
+	}
 	ALBEDO = trim.rgb;
 	ALPHA = mix_amount;
 }
@@ -44,14 +59,23 @@ render_mode diffuse_toon, specular_disabled;
 uniform vec4 trim : source_color;
 uniform float flat_limit;
 uniform float lift;
+uniform float edge;
+uniform float frame_at;
+uniform float frame_half;
 varying vec3 obj_n;
+varying vec3 obj_p;
 void vertex() {
 	obj_n = NORMAL;
+	obj_p = VERTEX;
 	VERTEX += NORMAL * lift;
 }
 void fragment() {
 	vec3 a = abs(normalize(obj_n));
-	if (max(a.x, max(a.y, a.z)) >= flat_limit) { discard; }
+	if (max(a.x, max(a.y, a.z)) >= flat_limit) {
+		vec3 q = abs(obj_p) / edge;
+		float m = a.x > a.y && a.x > a.z ? max(q.y, q.z) : (a.y > a.z ? max(q.x, q.z) : max(q.x, q.y));
+		if (abs(m - frame_at) > frame_half) { discard; }
+	}
 	ALBEDO = trim.rgb;
 	ROUGHNESS = 0.55;
 }
@@ -91,6 +115,15 @@ static func body_color() -> Color:
 	return Palette.BONE.lerp(Palette.BONE * BODY_TINT, BODY_TINT_AMOUNT)
 
 
+## True when a flat-face point [param p] (object space, edge [param e])
+## lies on the inset frame line.
+static func is_frame_point(p: Vector3, n: Vector3, e: float) -> bool:
+	var a := n.abs()
+	var q := p.abs() / e
+	var m := maxf(q.y, q.z) if a.x > a.y and a.x > a.z else (maxf(q.x, q.z) if a.y > a.z else maxf(q.x, q.y))
+	return absf(m - FRAME_AT) <= FRAME_HALF
+
+
 ## True when a body normal [param n] (object space) is bevel, so takes the trim.
 static func is_trim_normal(n: Vector3) -> bool:
 	var a := n.normalized().abs()
@@ -123,6 +156,10 @@ static func set_trim(d: DieVisual, on: bool) -> void:
 	f.set_shader_parameter("flat_limit", TRIM_FLAT)
 	f.set_shader_parameter("lift", TRIM_LIFT * d.edge)
 	f.set_shader_parameter("mix_amount", minf(TRIM_UNSHADED, TRIM_UNSHADED_MAX))
+	for mat: ShaderMaterial in [m, f]:
+		mat.set_shader_parameter("edge", body.mesh.get_aabb().size.x)
+		mat.set_shader_parameter("frame_at", FRAME_AT)
+		mat.set_shader_parameter("frame_half", FRAME_HALF)
 	m.next_pass = f
 	var mi := MeshInstance3D.new()
 	mi.name = "RareTrim"

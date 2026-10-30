@@ -147,6 +147,12 @@ func _test_trim() -> void:
 	_check(RareDieLook.TRIM == Color("#E6C46A"), "trim is brass #E6C46A")
 	_check(not RareDieLook.TRIM_SHADER.contains("EMISSION") and not RareDieLook.TRIM_FLAT_SHADER.contains("EMISSION"), "trim has no emission")
 	_check(is_equal_approx(RareDieLook.TRIM_FLAT, 0.80), "trim mask threshold 0.80")
+	var up := Vector3.UP
+	_check(RareDieLook.is_frame_point(Vector3(0.33, 0.5, 0.0), up, 1.0), "frame line at 0.33 edge")
+	_check(not RareDieLook.is_frame_point(Vector3(0.30, 0.5, 0.1), up, 1.0) and not RareDieLook.is_frame_point(Vector3(0.36, 0.5, 0.0), up, 1.0), "no frame at 0.30 (pips) or 0.36 (bevel)")
+	_check(RareDieLook.FRAME_HALF > 0.0 and RareDieLook.FRAME_HALF < 0.02, "frame about 1 px at 48 px")
+	for sh in [RareDieLook.TRIM_SHADER, RareDieLook.TRIM_FLAT_SHADER]:
+		_check(sh.contains("abs(m - frame_at) > frame_half"), "both trim passes draw the frame")
 	_check(is_equal_approx(RareDieLook.TRIM_UNSHADED, 0.7) and RareDieLook.TRIM_UNSHADED <= RareDieLook.TRIM_UNSHADED_MAX, "trim mixes 70% toward flat albedo, within its cap")
 	var d := DieVisual.new()
 	root.add_child(d)
