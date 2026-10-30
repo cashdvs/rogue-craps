@@ -5,7 +5,7 @@
 ## screen. QA #198: it also never covers other text, e.g. the felt combo
 ## strip's "Five of a Kind" (3D labels) or HUD labels, right after the
 ## throw and with the d4 parked. Real Bonfire HUD on PC 16:9 and phone
-## landscape (844x390).
+## landscape (844x390). Nor any bounty card (the pip and the rescue panel).
 ##   godot --headless --path . --script res://tests/test_nerve_die_clear.gd
 extends SceneTree
 
@@ -91,6 +91,22 @@ func _check_text_clear(s: Bonfire3D, a: Rect2, label: String) -> void:
 	check(hits.is_empty(), "%s: pip %s covers no text %s" % [label, str(a), str(hits)])
 
 
+## QA #198: neither the pip nor the rescue panel overlaps any bounty card
+## showing (the phone pip sat on the FULL HOUSE +5 card).
+func _check_cards(s: Bonfire3D, label: String) -> void:
+	var cards := []
+	for c: Control in s.bhud.bounty_cards.values():
+		if c.is_visible_in_tree():
+			cards.append(c)
+	check(not cards.is_empty(), "%s: bounty cards showing" % label)
+	for p: Control in [s.nerve_ui.pip_box, s.nerve_ui.rescue_panel]:
+		var hits := []
+		for c: Control in cards:
+			if p.get_global_rect().intersects(c.get_global_rect()):
+				hits.append(c.name)
+		check(hits.is_empty(), "%s: %s %s overlaps no bounty card %s" % [label, p.name, str(p.get_global_rect()), str(hits)])
+
+
 func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	for k in 600:
 		if s.phase == Table3D.Phase.BET and s.run.state == BonfireRun.State.AIM and not s.hand_moving():
@@ -106,6 +122,7 @@ func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	for k in 3:
 		await process_frame
 	_check_text_clear(s, pip.get_global_rect(), label + " after throw")
+	_check_cards(s, label + " after throw")
 	var d: DieVisual
 	for x: DieVisual in s.throw_dice:
 		if x.shape == &"d4":
@@ -127,6 +144,7 @@ func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	check(not a.intersects(_d4_rect(cam, d)), "%s: pip %s clear of the d4 %s" % [label, str(a), str(_d4_rect(cam, d))])
 	check(view.encloses(a), "%s: pip %s on screen" % [label, str(a)])
 	_check_text_clear(s, a, label + " d4 parked")
+	_check_cards(s, label + " d4 parked")
 	# The game's own die rect must reach the d4's full size (its 0.065 m cap).
 	var game := RulesPlaqueDodge.die_rect(cam, d)
 	check(game.encloses(_d4_rect(cam, d)), "%s: die_rect %s covers the whole d4 %s" % [label, str(game), str(_d4_rect(cam, d))])

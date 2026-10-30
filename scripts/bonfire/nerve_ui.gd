@@ -211,14 +211,19 @@ func _dodge_rules(hud: BonfireHud) -> void:
 	p.set_meta("dodged", p.global_position)
 
 
-## What the pip / rescue panels must not cover: the landed dice and every
-## other text on screen (HudTextRects), except the Nerve UI's own labels and
-## the bounty cards they hang under (their home spot is just below those).
+## What the pip / rescue panels must not cover: the landed dice, every
+## other text on screen (HudTextRects, minus the Nerve UI's own labels), and
+## the HUD's panels as whole boxes: each bounty card (QA #198: the phone pip
+## sat on the FULL HOUSE card) and the rules plaque.
 func _blockers(hud: BonfireHud) -> Array[Rect2]:
 	var skip: Array[Node] = [self]
-	for c: Control in hud.bounty_cards.values():
-		skip.append(c)
 	var out := _dice_rects()
+	var panels: Array = hud.bounty_cards.values()
+	panels.append(hud.rules_panel)
+	for c in panels:
+		if c is Control and is_instance_valid(c) and (c as Control).is_visible_in_tree():
+			skip.append(c)  # the whole card blocks, so its own labels need no rects
+			out.append((c as Control).get_global_rect())
 	out.append_array(HudTextRects.collect(get_viewport(), nerve.table.camera.cam, skip))
 	return out
 
