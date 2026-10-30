@@ -69,14 +69,14 @@ func _test(id: StringName, shape: StringName, glb: String) -> void:
 	var art := body.mesh.surface_get_material(0) as ShaderMaterial
 	_check(d.body_material.get_shader_parameter("use_overlay") == true and d.body_material.get_shader_parameter("overlay_tex") == art.get_shader_parameter("overlay_tex"), "%s: shows the art's printed numbers" % id)
 	_check(d.faces.get_node_or_null("FaceMods") != null, "%s: keeps its FaceMods marks node" % id)
-	# QA #198 round 2: the d4 can't grow past the 0.050 m cap, so its sloped
-	# faces get extra toon light (PolyBody.SHAPE_SHADE) to read on the felt.
+	# QA #198: the d4 grows to its own 0.065 m cap and its sloped faces get
+	# extra toon light (PolyBody.SHAPE_SHADE) to read on the felt.
 	if shape == &"d4":
 		var wrap: float = _param(d, "wrap", 0.0)
 		var gain: float = _param(d, "light_gain", 1.0)
 		var mid: float = _param(d, "mid_tint", 0.0)
 		_check(wrap >= 1.0 and gain >= 1.6 and mid >= 1.0, "%s: brightened d4 shading (wrap %.2f, gain %.2f, mid %.2f)" % [id, wrap, gain, mid])
-		_check(PolyDie.half_extent(shape) >= PolyDie.MAX_HALF_EXTENT - 0.001, "%s: the d4 already fills the size cap (%.4f)" % [id, PolyDie.half_extent(shape)])
+		_check(absf(PolyDie.half_extent(shape) - 0.065) < 0.0002, "%s: the d4 is grown to its 0.065 m cap (%.5f)" % [id, PolyDie.half_extent(shape)])
 	else:
 		_check(is_equal_approx(float(d.body_material.get_shader_parameter("wrap")), 0.35), "%s: d8 keeps the standard die shading" % id)
 	var top: int = sh.faces.max()
@@ -98,7 +98,7 @@ func _test(id: StringName, shape: StringName, glb: String) -> void:
 
 func _check_visible(d: DieVisual, body: MeshInstance3D, id: StringName, when: String) -> void:
 	var low := INF
-	var xf := body.global_transform
+	var xf := d.faces.global_transform  # hull points are in faces space (already scaled)
 	for p in PolyBody.pc_hull(d.shape):
 		low = minf(low, (xf * p).y)
 	_check(body.is_visible_in_tree() and d.shape != &"d6" and body.mesh == PolyBody.mesh_for(d.shape) and low > -0.005, "%s: shaped and visible on the felt %s (low point %.3f)" % [id, when, low])

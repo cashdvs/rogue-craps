@@ -13,7 +13,8 @@ var running: bool = false
 
 var _rec: ThrowRecording
 var _t: float = 0.0
-var _rest_t: float = 0.0
+## Physics frames in a row with every die still (DiceSim.rest_frames()).
+var _rest_frames: int = 0
 # Previous tick's velocities (pre-impact) for relative contact speed.
 var _prev_lin: Array[Vector3] = []
 var _prev_ang: Array[Vector3] = []

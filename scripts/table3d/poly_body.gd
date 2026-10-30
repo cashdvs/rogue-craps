@@ -29,8 +29,8 @@ static func table_shape(td: TableDie) -> StringName:
 ## face pointing up: its three visible faces lean 70 degrees off the felt,
 ## so the overhead light hits them nearly edge-on and the toon shader puts
 ## them in its darkest band (the cube's top face catches full light). More
-## wrap lifts those sloped faces into the mid/lit bands. It can't grow
-## instead: its tips already reach the 0.050 m cap (PolyDie.MAX_HALF_EXTENT).
+## wrap lifts those sloped faces into the mid/lit bands (it is also scaled
+## up to its own 0.065 m cap, see body_scale).
 const SHAPE_SHADE: Dictionary = {&"d4": {"wrap": 1.0, "mid_tint": 1.0, "light_gain": 1.6}}
 
 
@@ -65,6 +65,20 @@ static func mesh_for(shape: StringName) -> Mesh:
 	return found
 
 
+## How much the art mesh is scaled on the table: 1.0 except for shapes
+## with their own cap (PolyDie.SHAPE_HALF_EXTENT), which are grown so their
+## farthest point reaches that cap (the d4: 0.065 / 0.050 = about 1.3x).
+static func body_scale(shape: StringName) -> float:
+	if not PolyDie.SHAPE_HALF_EXTENT.has(shape):
+		return 1.0
+	var mesh := mesh_for(shape)
+	if mesh == null:
+		return 1.0
+	var ab := mesh.get_aabb()
+	var half := maxf(maxf(maxf(-ab.position.x, ab.end.x), maxf(-ab.position.y, ab.end.y)), maxf(-ab.position.z, ab.end.z))
+	return PolyDie.cap_for(shape) / half if half > 0.0 else 1.0
+
+
 ## Convex-hull collider points for a table shape, taken from the PC mesh
 ## the player sees (not the mobile LOD), so the die rests on exactly the
 ## faces it shows. Empty for shapes this file does not dress.
@@ -76,6 +90,10 @@ static func pc_hull(shape: StringName) -> PackedVector3Array:
 		var pts := PackedVector3Array()
 		if mesh != null:
 			pts = (mesh.create_convex_shape(true, false) as ConvexPolygonShape3D).points
+			# Same scale as the drawn body (body_scale), so it rests on what shows.
+			var k := body_scale(shape)
+			for i in pts.size():
+				pts[i] *= k
 		_hulls[shape] = pts
 	return _hulls[shape]
 
@@ -92,7 +110,9 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	d.shape = s
 	var body := d.faces.get_node("Body") as MeshInstance3D
 	body.mesh = mesh
-	body.scale = Vector3.ONE  # the art is already in metres, capped at 0.05
+	# The art is in metres; a shape with its own cap (the d4) is grown to it.
+	var grow := body_scale(s)
+	body.scale = Vector3.ONE * grow
 	# Keep the die's own toon material (the rare tint and the lit glow live
 	# on it) and borrow the art's printed numbers (its overlay texture).
 	body.material_override = d.body_material
@@ -107,7 +127,7 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	d.clear_pips()
 	if d.hull_outline != null:
 		d.hull_outline.mesh = mesh
-		d.hull_outline.scale = Vector3.ONE
+		d.hull_outline.scale = Vector3.ONE * grow
 	# shown_value() reads labels by slot: one label per face (not padded to 6).
 	d.labels.assign(td.faces)
 	return true

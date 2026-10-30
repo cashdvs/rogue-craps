@@ -33,7 +33,7 @@ func simulate(starts: Array[Transform3D], lin: Array[Vector3], ang: Array[Vector
 	_rec.dt = 1.0 / float(tuning.physics_hz)
 	_rng.seed = nudge_seed
 	_t = 0.0
-	_rest_t = 0.0
+	_rest_frames = 0
 	_watch_t = -1.0
 	for i in active:
 		var b := bodies[i]
@@ -147,10 +147,12 @@ func _physics_process(_delta: float) -> void:
 		elif _spun_up[i] and _rec.tumble_end_t[i] < 0.0:
 			_rec.tumble_end_t[i] = _t
 			_rec.tumble_end_speed[i] = w
-	_rest_t = _rest_t + dt if at_rest else 0.0
-	if _rest_t >= tuning.sim_rest_time:
+	# Settled = every die under the rest speeds for rest_frames() physics
+	# frames in a row (a frame count, not a clock: any moving frame resets).
+	_rest_frames = _rest_frames + 1 if at_rest else 0
+	if _rest_frames >= rest_frames():
 		if _nudge_cocked():
-			_rest_t = 0.0
+			_rest_frames = 0
 		else:
 			_rec.settled = true
 			if post_rest_watch > 0.0:
@@ -163,6 +165,12 @@ func _physics_process(_delta: float) -> void:
 			return
 	if _t >= tuning.sim_max_time:
 		_finish()
+
+
+## Consecutive still physics frames that count as settled (sim_rest_time
+## worth of ticks, at least 3).
+func rest_frames() -> int:
+	return maxi(ceili(tuning.sim_rest_time * float(tuning.physics_hz) - 0.001), 3)
 
 
 ## Simulation time (from the dice leaving the hand) when the assist starts.

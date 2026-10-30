@@ -100,6 +100,8 @@ var _fx_rng := RandomNumberGenerator.new()
 var _felt_chips: Array[Chip3D] = []
 var _bank_chips: Array[Chip3D] = []
 var _play_t: float = -1.0
+## The wind-up squash tweens (killed when playback starts).
+var _windup_tweens: Array[Tween] = []
 var _contact_i: int = 0
 var _remap_from: Array[Quaternion] = [Quaternion.IDENTITY, Quaternion.IDENTITY]
 var _remap_to: Array[Quaternion] = [Quaternion.IDENTITY, Quaternion.IDENTITY]
@@ -1345,6 +1347,7 @@ func _throw_dice(values: Array[int], velocity: Vector2, release_pos: Vector2) ->
 	var waited := (Time.get_ticks_msec() - real_start) / 1000.0
 	if waited < tuning.windup_time:
 		await _timer(tuning.windup_time - waited, true, false, true).timeout
+	_end_windup()
 	_play_t = 0.0
 	_contact_i = 0
 	_last_impact.fill(-1.0)
@@ -1426,11 +1429,25 @@ func _arc_die(p: float, d: DieVisual, from: Vector3, to: Vector3) -> void:
 ## The 0.12 s wind-up: dice dip in the hand (real time, so the physics warp
 ## doesn't speed it up).
 func _windup() -> void:
+	_windup_tweens.clear()
 	for d in dice:
 		var tw := d.create_tween()
+		_windup_tweens.append(tw)
 		tw.set_ignore_time_scale(true)
 		tw.tween_property(d, "scale", Vector3(1.08, 0.86, 1.08), tuning.windup_time * 0.5)
 		tw.tween_property(d, "scale", Vector3.ONE, tuning.windup_time * 0.5)
+
+
+## Stops the wind-up squash before playback. Its tween runs on real time
+## and can lag the timer by a frame (more under load); a die still squashed
+## (non-uniform scale) has a skewed basis, so its face would read tilted.
+func _end_windup() -> void:
+	for tw in _windup_tweens:
+		if tw.is_valid():
+			tw.kill()
+	_windup_tweens.clear()
+	for d in dice:
+		d.scale = Vector3.ONE
 
 
 ## Moves the visible dice along the recording. Contacts play their sounds.

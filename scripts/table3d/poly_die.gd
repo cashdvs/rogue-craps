@@ -17,6 +17,15 @@ extends RefCounted
 ## Visual / collider half-extent cap (PM ruling): no non-d6 die may reach
 ## further than this from its centre along any axis.
 const MAX_HALF_EXTENT: float = 0.050
+## Per-shape caps that differ from MAX_HALF_EXTENT (PM ruling, #198): the
+## d4 is a spiky pyramid with ~45% of a d6's footprint, so it may reach
+## 0.065 m to read at a glance. Every other shape keeps MAX_HALF_EXTENT.
+const SHAPE_HALF_EXTENT: Dictionary = {&"d4": 0.065}
+
+
+## The half-extent cap for one shape (see SHAPE_HALF_EXTENT).
+static func cap_for(shape: StringName) -> float:
+	return float(SHAPE_HALF_EXTENT.get(shape, MAX_HALF_EXTENT))
 ## Felt rolling resistance (1/s, DiceSim._poly_on_felt) on a hull die that is
 ## low on the felt and spinning slower than ROLL_DAMP_MAX_SPIN (rad/s).
 const FELT_ROLL_DAMP: float = 6.0

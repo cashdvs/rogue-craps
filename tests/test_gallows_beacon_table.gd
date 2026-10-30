@@ -75,7 +75,11 @@ func _check_bodies(s: Bonfire3D, g: DieVisual, b: DieVisual) -> void:
 		check(body.material_override == d.body_material and d.body_material.get_shader_parameter("use_overlay") == true, "%s: own toon material with the art's numbers" % pair[2])
 		check(d.faces.get_node_or_null("Pips") == null, "%s: no cube pips" % pair[2])
 		var ext := body.mesh.get_aabb().size * body.scale
-		check(maxf(ext.x, maxf(ext.y, ext.z)) <= PolyDie.MAX_HALF_EXTENT * 2.0 + 1e-6 and PolyDie.half_extent(pair[1]) <= PolyDie.MAX_HALF_EXTENT + 1e-6, "%s: mesh and hull within the 0.050 m cap" % pair[2])
+		# The d4 is grown to exactly 0.065 m; the d8 stays at the 0.050 m cap.
+		var want_half := 0.065 if pair[1] == &"d4" else 0.050
+		var drawn_half := PolyDie.half_extent(pair[1])
+		check(absf(drawn_half - want_half) < 0.0002 and maxf(ext.x, maxf(ext.y, ext.z)) <= want_half * 2.0 + 1e-6,
+			"%s: hull reaches %.3f m (got %.5f), drawn mesh within it" % [pair[2], want_half, drawn_half])
 	var bone: DieVisual = s.all_dice[2]
 	check(bone.shape == &"d6" and bone.faces.get_node_or_null("Pips") != null, "Bone die stays a pipped cube")
 	check(PolyBody.table_shape(TableDie.new()) == &"", "a d6 TableDie gets no shaped body")
@@ -115,17 +119,27 @@ func _check_throws(s: Bonfire3D) -> void:
 		s._set_active(all)
 		s._to_hand()
 		await _settle_hand(s)
+		if k == 0:
+			_check_hand_gaps(s)
 		var want: Array[int] = [k % 4 + 1, k + 1, 1, 2, 3]
 		s.rig_slots(want)
+		var got := {}
+		for i in 2:
+			s.all_dice[i].settled.connect(_on_settled.bind(s.all_dice[i], got), CONNECT_ONE_SHOT)
 		if not s.quick_throw():
 			check(false, "quick throw %d" % k)
 			break
 		await s.throw_resolved
 		for i in 2:
 			var d: DieVisual = s.all_dice[i]
+			# Read when the die's own settled signal fired (value, tilt, scale).
+			var at: Array = got.get(i, [0, 99.0, false])
+			if at[0] != want[i] or at[1] > 1.0 or not at[2]:
+				bad[i] += 1
+				print("  throw %d die %d settled %s" % [k, i, str(at)])
 			if d.shown_value() != want[i] or s.run.last_throw.slots[i] != want[i] or PolyDie.tilt_deg(d.shape, d.global_transform.basis * d.faces.basis) > 1.0:
 				bad[i] += 1
-				print("  throw %d die %d want %d shown %d" % [k, i, want[i], d.shown_value()])
+				print("  throw %d die %d want %d shown %d slot %d tilt %.2f" % [k, i, want[i], d.shown_value(), s.run.last_throw.slots[i], PolyDie.tilt_deg(d.shape, d.global_transform.basis * d.faces.basis)])
 		seen_beacon.append(s.all_dice[1].shown_value())
 		check(s.sim.bodies[0].get_node("Shape").shape is ConvexPolygonShape3D and s.sim.bodies[1].get_node("Shape").shape is ConvexPolygonShape3D, "throw %d: Gallows and Beacon roll on hull colliders" % k)
 		await s.sequence_finished
@@ -134,8 +148,42 @@ func _check_throws(s: Bonfire3D) -> void:
 	check(seen_beacon.has(7) and seen_beacon.has(8), "Beacon shows 7 and 8 (%s)" % str(seen_beacon))
 
 
+## The grown d4 (0.065 m) still fits the hand ring: no two dice's top-down
+## footprints (their hull points as posed, on the felt plane) overlap.
+func _check_hand_gaps(s: Bonfire3D) -> void:
+	var feet: Array[PackedVector2Array] = []
+	for d: DieVisual in s.dice:
+		var pts := PolyDie.hull(d.shape) if PolyDie.has_shape(d.shape) else _cube_pts()
+		var flat := PackedVector2Array()
+		for p in pts:
+			var w := d.faces.global_transform * p
+			flat.append(Vector2(w.x, w.z))
+		feet.append(Geometry2D.convex_hull(flat))
+	var hits: Array[String] = []
+	for a in feet.size():
+		for b in range(a + 1, feet.size()):
+			if not Geometry2D.intersect_polygons(feet[a], feet[b]).is_empty():
+				hits.append("%d-%d" % [a, b])
+	check(feet.size() == 5 and hits.is_empty(), "hand of %d with the 0.065 m d4: no footprints overlap %s" % [feet.size(), str(hits)])
+
+
+func _cube_pts() -> PackedVector3Array:
+	var out := PackedVector3Array()
+	for x in [-1, 1]:
+		for y in [-1, 1]:
+			for z in [-1, 1]:
+				out.append(Vector3(x, y, z) * 0.04)
+	return out
+
+
+## A die's settled signal: what it reads right then (slot, tilt, unsquashed).
+func _on_settled(i: int, value: int, d: DieVisual, got: Dictionary) -> void:
+	var tilt := PolyDie.tilt_deg(d.shape, d.global_transform.basis * d.faces.basis)
+	got[i] = [value, tilt, d.scale.is_equal_approx(Vector3.ONE)]
+
+
 func _settle_hand(s: Bonfire3D) -> void:
-	for i in 30:
-		await process_frame
-		if s.phase == Table3D.Phase.BET and s.can_throw() == "":
-			return
+	# Wait on the real gather tweens (their finished signal), not a frame count.
+	for tw in s._hand_tweens:
+		if tw.is_valid() and tw.is_running():
+			await tw.finished
