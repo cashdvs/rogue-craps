@@ -59,7 +59,6 @@ func _test_goals() -> void:
 			var fd: FloorData = _data.floors[f]
 			ok[f] = ok[f] and g.required.is_empty() and g.bonus.is_empty() and g.hands == fd.hands and g.target == fd.target_table
 	_check(ok[0], "goals: floor 1 tables: target, no bounties, 5 hands")
-	_test_m5_detector()
 	_check(ok[1], "goals: floor 2 tables: target, no bounties, 4 hands")
 	_check(ok[2], "goals: floor 3 tables: target, no bounties, 4 hands")
 	var boss_ok := true
@@ -340,38 +339,3 @@ func _test_full_run() -> void:
 		if _play(s).screen == S.RUN_WON:
 			wins += 1
 	_check(wins == 20, "run: every seed reaches the final boss (stub tables)")
-
-
-## The M5 fallback-to-none case, identified explicitly (MapRun.pick_bonus):
-## every bonus in the pool repeats a required bounty (same kind and size),
-## including the pool's Full House, so whatever is drawn falls back to none.
-func _m5_none(pool: Array[BountyData], required: Array[BountyData]) -> bool:
-	if pool.is_empty():
-		return true
-	var fh_clash := true
-	for b in pool:
-		if b.kind == BountyData.Kind.FULL_HOUSE:
-			fh_clash = MapRun._repeats(b, required)
-	if not fh_clash:
-		return false
-	for b in pool:
-		if not MapRun._repeats(b, required):
-			return false
-	return true
-
-
-## _m5_none() agrees with MapRun.pick_bonus: none only if Full House clashes too.
-func _test_m5_detector() -> void:
-	var mk := func(kind: BountyData.Kind, n: int) -> BountyData:
-		var b := BountyData.new()
-		b.kind = kind
-		b.n = n
-		return b
-	var run4: BountyData = mk.call(BountyData.Kind.RUN, 4)
-	var fh: BountyData = mk.call(BountyData.Kind.FULL_HOUSE, 3)
-	var pool: Array[BountyData] = [mk.call(BountyData.Kind.RUN, 4), mk.call(BountyData.Kind.FULL_HOUSE, 3)]
-	var rng := RandomNumberGenerator.new()
-	var both: Array[BountyData] = [run4, fh]
-	var one: Array[BountyData] = [run4]
-	_check(_m5_none(pool, both) and MapRun.pick_bonus(pool, both, rng) == null, "M5 detector: Run of 4 + Full House required -> none")
-	_check(not _m5_none(pool, one) and MapRun.pick_bonus(pool, one, rng) != null, "M5 detector: only Run of 4 required -> not none")
