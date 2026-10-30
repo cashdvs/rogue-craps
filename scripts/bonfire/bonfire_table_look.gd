@@ -24,6 +24,7 @@ func table_die(d: DieVisual) -> TableDie:
 func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	if td == null:
 		return
+	apply_art_body(d, td.id)
 	if td.shape == &"coin":
 		d.make_coin()
 	elif td.faces != [1, 2, 3, 4, 5, 6]:
