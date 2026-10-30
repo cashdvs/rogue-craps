@@ -94,6 +94,7 @@ func _check_look(b: Bonfire3D, at: int, id: StringName, sh: DieShape) -> void:
 	var bone_body: Color = bone.body_material.get_shader_parameter("albedo")
 	var dist := Vector3(body.r - bone_body.r, body.g - bone_body.g, body.b - bone_body.b).length()
 	_check(dist > 0.05, "%s: visibly distinct from the Bone die beside it (%.3f)" % [id, dist])
+	_check(d.faces.get_node("Body").has_node("RareTrim") and not bone.faces.get_node("Body").has_node("RareTrim"), "%s: brass bevel trim on the rare only" % id)
 	var fm := d.faces.get_node_or_null("FaceMods")
 	var want := 0
 	var have := 0
