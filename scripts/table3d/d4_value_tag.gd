@@ -4,7 +4,8 @@
 ## is reading (DieVisual.shown_value) straight on. Glow-only wording: just
 ## the warm number with a dark outline, no panel behind it.
 ## AD #198: it must never cover HUD text (the seal row "Lv1 120x12" etc.):
-## each frame it tries below, right of, left of and above the die and takes
+## each frame it tries below, right of, left of and above the die (then
+## slid and corner spots, see candidates()) and takes
 ## the first spot whose screen rect is clear of every HUD text rect
 ## (HudTextRects: 2D labels and the felt's 3D labels); with none it hides.
 class_name D4ValueTag
@@ -129,24 +130,41 @@ func other_dice_rects(cam: Camera3D) -> Array[Rect2]:
 
 
 ## Moves the tag next to the die where it covers no HUD text and no other
-## die (try order: below, right, left, above), or hides it.
+## die, or hides it. Try order (first clear spot wins): below, right, left,
+## above; then (QA #198, a crowded phone table) the same sides slid along
+## the die edge, then the 4 diagonal corners. See candidates().
 func place(cam: Camera3D) -> void:
 	var dr := RulesPlaqueDodge.die_rect(cam, die)
 	var view := get_viewport().get_visible_rect()
-	var half := rect_at(cam, Vector2.ZERO).size * 0.5
-	var c := dr.get_center()
 	var hud := hud_rects().duplicate()
 	hud.append_array(other_dice_rects(cam))  # never on another die either
-	var spots: Array[Vector2] = [
-		Vector2(c.x, dr.end.y + GAP + half.y), Vector2(dr.end.x + GAP + half.x, c.y),
-		Vector2(dr.position.x - GAP - half.x, c.y), Vector2(c.x, dr.position.y - GAP - half.y)]
-	for p in spots:
+	for p in candidates(dr, rect_at(cam, Vector2.ZERO).size * 0.5):
 		var r := rect_at(cam, p)
 		if view.encloses(r) and not hud.any(func(q: Rect2) -> bool: return q.intersects(r)):
 			_put(cam, p)
 			visible = true
 			return
 	visible = false
+
+
+## Tag centres to try around die rect [param dr], best first. [param half]
+## is half the tag size. The 4 plain sides come first, then each side slid
+## by SLIDES (shares of the tag's height for left/right, of its width for
+## below/above), then the corners: always hugging the die.
+const SLIDES: Array[float] = [0.5, -0.5, 1.0, -1.0]
+static func candidates(dr: Rect2, half: Vector2) -> Array[Vector2]:
+	var c := dr.get_center()
+	var below := dr.end.y + GAP + half.y
+	var above := dr.position.y - GAP - half.y
+	var right := dr.end.x + GAP + half.x
+	var left := dr.position.x - GAP - half.x
+	var out: Array[Vector2] = [Vector2(c.x, below), Vector2(right, c.y), Vector2(left, c.y), Vector2(c.x, above)]
+	for k in SLIDES:
+		var dy := k * half.y * 2.0
+		var dx := k * half.x * 2.0
+		out.append_array([Vector2(c.x + dx, below), Vector2(right, c.y + dy), Vector2(left, c.y + dy), Vector2(c.x + dx, above)])
+	out.append_array([Vector2(right, below), Vector2(left, below), Vector2(right, above), Vector2(left, above)])
+	return out
 
 
 ## Puts the tag's centre on screen point [param p], at the die's depth.
