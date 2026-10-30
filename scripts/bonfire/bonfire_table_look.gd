@@ -37,6 +37,12 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 		RareDieLook.set_trim(d, false)
 		# DieVisual.safe_labels pads / trims a mismatched face list to 6.
 		d.set_look(Palette.BONE, Palette.PIT_BLACK, td.faces)
+	place_face_mods(d, td)
+
+
+## (Re)builds the FaceMods decals for a die. Called again after
+## PolyBody.dress, so a d4 gets its marks on its real triangle faces.
+func place_face_mods(d: DieVisual, td: TableDie) -> void:
 	var old := d.faces.get_node_or_null("FaceMods")
 	if old != null:
 		old.free()
@@ -44,7 +50,7 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	root.name = "FaceMods"
 	d.faces.add_child(root)
 	# One decal per modded slot the mesh has (a coin: heads, tails).
-	for slot in range(1, mini(td.mods.size(), 2 if d.shape == &"coin" else 6) + 1):
+	for slot in range(1, mini(td.mods.size(), {&"coin": 2, &"d4": 4}.get(d.shape, 6)) + 1):
 		var m := td.mod_at(slot)
 		if m != null:
 			_add_mod_decal(root, d, d.mesh_face(slot), m)
@@ -53,13 +59,20 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> void:
 	var e := d.edge
 	var n := DieVisual.FACE_AXES[slot] as Vector3
-	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
-	u = (u - n * u.dot(n)).normalized()
-	var v := n.cross(u)
 	# Everything sits just above the pip tops (h + 0.01 e) so the die's ink
 	# outline pass can't swallow it; fills would hide the pips, so the
 	# coloured mods are a rim + tinted pips.
 	var lift := d.face_half(slot) + 0.014 * e
+	if d.shape == &"d4":
+		# A d4 face is a tilted triangle: use its real normal, sit flush on
+		# it (a hair above), and shrink the mark to fit inside the triangle.
+		var f := PolyBody.d4_face(d, slot)
+		n = f.normal
+		lift = f.dist + 0.002 * e
+		e = f.width
+	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
+	u = (u - n * u.dot(n)).normalized()
+	var v := n.cross(u)
 	# Rare mods (Fuse, Jackpot, Hex, Gilded, Step) get their own glyph mark.
 	if RareDieLook.add_mark(root, d, n, u, v, lift, m.id):
 		return

@@ -131,3 +131,27 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	# shown_value() reads labels by slot: one label per face (not padded to 6).
 	d.labels.assign(td.faces)
 	return true
+
+
+## The d4's four face normals (object space), in face-slot order 1..4.
+const D4_FACE_NORMALS: Array[Vector3] = [
+	Vector3(0, 1, 0), Vector3(0, -0.3333, 0.9428),
+	Vector3(-0.8165, -0.3333, -0.4714), Vector3(0.8165, -0.3333, -0.4714)]
+
+
+## Where a d4 face is, for placing a decal on it: {normal, dist, width}.
+## dist = how far the flat face sits from the centre (the body mesh's
+## farthest vertex along the normal, times its scale), so a decal there is
+## flush. width = a square that fits inside the triangle: a regular
+## tetrahedron's face incircle has radius sqrt(2) * dist, so a square of
+## side 2 * dist fits; 0.9 leaves room for the bevels.
+static func d4_face(d: DieVisual, slot: int) -> Dictionary:
+	var n: Vector3 = D4_FACE_NORMALS[clampi(slot, 1, 4) - 1].normalized()
+	var dist := d.edge * 0.5
+	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
+	if body != null and body.mesh != null:
+		var far := -INF
+		for p: Vector3 in body.mesh.get_faces():
+			far = maxf(far, (body.scale * p).dot(n))
+		dist = far
+	return {"normal": n, "dist": dist, "width": 2.0 * dist * 0.9}
