@@ -130,7 +130,26 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 		d.hull_outline.scale = Vector3.ONE * grow
 	# shown_value() reads labels by slot: one label per face (not padded to 6).
 	d.labels.assign(td.faces)
+	if s == &"d4":
+		# PM #198: the lamp's shadow leaves the sloped faces near black, so the
+		# d4 glows a little on its own, and a camera-facing tag shows its value.
+		d.base_emission = D4_GLOW
+		# Glow in a lighter shade of its own body colour, so the faces lift
+		# (a dark Gallows body glowing its own dark brown would barely show).
+		var col: Color = d.body_material.get_shader_parameter("albedo")
+		var tag := d.get_node_or_null("D4ValueTag") as D4ValueTag
+		if tag == null:
+			tag = D4ValueTag.attach(d)
+		tag.glow_color = col.lightened(D4_GLOW_LIGHTEN)
+		d.body_material.set_shader_parameter("emission_color", tag.glow_color)
+		d.highlight = d.highlight  # re-applies emission_energy with the glow
 	return true
+
+
+## d4 body self-glow (emission_energy): lifts its faces to the d6's brightness.
+const D4_GLOW := 0.5
+## How much lighter than the body colour the d4 glow is (0..1).
+const D4_GLOW_LIGHTEN := 0.45
 
 
 ## The d4's four face normals (object space), in face-slot order 1..4.

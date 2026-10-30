@@ -192,6 +192,8 @@ func _place_panels() -> void:
 		c.global_position = Vector2(above.end.x - sz.x, above.end.y + gap)
 		var view := get_viewport_rect().size
 		c.global_position.x = clampf(c.global_position.x, gap, maxf(gap, view.x - gap - sz.x))
+		# PM #198: never sit on a landed die (the phone d4 hid under "Nerve ready").
+		c.global_position = RulesPlaqueDodge.place(Rect2(c.global_position, sz), _dice_rects(), get_viewport_rect())
 
 
 ## QA #201: moves the rules plaque off any thrown die it covers (phone
@@ -204,13 +206,20 @@ func _dodge_rules(hud: BonfireHud) -> void:
 	if not p.has_meta("dodged") or p.global_position != p.get_meta("dodged"):
 		p.set_meta("home", p.global_position)
 	var home: Vector2 = p.get_meta("home")
-	var cam: Camera3D = nerve.table.camera.cam
+	p.global_position = RulesPlaqueDodge.place(Rect2(home, p.get_global_rect().size), _dice_rects(), get_viewport_rect())
+	p.set_meta("dodged", p.global_position)
+
+
+## Screen rects of the thrown dice in view (what the panels must not cover).
+func _dice_rects() -> Array[Rect2]:
 	var dice: Array[Rect2] = []
+	if nerve == null or nerve.table == null or nerve.table.camera == null:
+		return dice
+	var cam: Camera3D = nerve.table.camera.cam
 	for d: DieVisual in nerve.table.throw_dice:
 		if is_instance_valid(d) and d.is_visible_in_tree() and not cam.is_position_behind(d.global_position):
 			dice.append(RulesPlaqueDodge.die_rect(cam, d))
-	p.global_position = RulesPlaqueDodge.place(Rect2(home, p.get_global_rect().size), dice, get_viewport_rect())
-	p.set_meta("dodged", p.global_position)
+	return dice
 
 
 ## The screen rect the Nerve controls go under: the bounty cards (PC,

@@ -61,12 +61,12 @@ var hull_outline: MeshInstance3D
 ## 0 or 1: which of the pair this is.
 var die_id: int = 0
 
-## Extra brightness for reduced-motion readability (0..1).
-var highlight: float = 0.0:
+var base_emission: float = 0.0  ## always-on body glow (PolyBody: the d4); highlight adds to it
+var highlight: float = 0.0:  ## extra reduced-motion brightness (0..1), on top of base_emission
 	set(v):
 		highlight = v
 		if body_material != null:
-			body_material.set_shader_parameter("emission_energy", 0.12 * v)
+			body_material.set_shader_parameter("emission_energy", base_emission + 0.12 * v)
 
 func _init(edge_m: float = 0.08) -> void:
 	edge = edge_m
