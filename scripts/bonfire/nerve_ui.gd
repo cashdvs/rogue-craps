@@ -182,6 +182,7 @@ func _place_panels() -> void:
 	for b: Button in [rescue_nerve, rescue_bust]:
 		b.custom_minimum_size = Vector2(150, 52) * k
 	var gap := GAP * k
+	_dodge_rules(hud)
 	var above := _cards_rect(hud)
 	if hud.rules_panel != null and hud.rules_panel.is_visible_in_tree():
 		above = above.merge(hud.rules_panel.get_global_rect())  # QA: go under the rules plaque (Powder Barrel), not over it
@@ -191,6 +192,25 @@ func _place_panels() -> void:
 		c.global_position = Vector2(above.end.x - sz.x, above.end.y + gap)
 		var view := get_viewport_rect().size
 		c.global_position.x = clampf(c.global_position.x, gap, maxf(gap, view.x - gap - sz.x))
+
+
+## QA #201: moves the rules plaque off any thrown die it covers (phone
+## landscape, die near the right edge). Starts from the HUD's own spot each
+## frame: if the HUD moved the plaque since, that is the new home.
+func _dodge_rules(hud: BonfireHud) -> void:
+	var p := hud.rules_panel
+	if p == null or not p.is_visible_in_tree():
+		return
+	if not p.has_meta("dodged") or p.global_position != p.get_meta("dodged"):
+		p.set_meta("home", p.global_position)
+	var home: Vector2 = p.get_meta("home")
+	var cam: Camera3D = nerve.table.camera.cam
+	var dice: Array[Rect2] = []
+	for d: DieVisual in nerve.table.throw_dice:
+		if is_instance_valid(d) and d.is_visible_in_tree() and not cam.is_position_behind(d.global_position):
+			dice.append(RulesPlaqueDodge.die_rect(cam, d))
+	p.global_position = RulesPlaqueDodge.place(Rect2(home, p.get_global_rect().size), dice, get_viewport_rect())
+	p.set_meta("dodged", p.global_position)
 
 
 ## The screen rect the Nerve controls go under: the bounty cards (PC,

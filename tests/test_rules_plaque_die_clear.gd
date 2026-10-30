@@ -1,0 +1,126 @@
+## QA #201: the table-rules plaque (Powder Barrel row) never covers a thrown
+## die: with the Barrel die right under it (phone landscape, near the right
+## edge), the plaque moves off it and stays on screen. Real Bonfire HUD on
+## PC 16:9, phone landscape and phone portrait.
+##   godot --headless --path . --script res://tests/test_rules_plaque_die_clear.gd
+extends SceneTree
+
+const PHONE := Vector2(390, 844)
+
+var _passed: int = 0
+var _failed: int = 0
+
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+
+func check(cond: bool, what: String) -> void:
+	if cond:
+		_passed += 1
+	else:
+		_failed += 1
+		print("FAIL  ", what)
+
+
+func _make(canvas: Vector2i) -> Array:
+	var sv := SubViewport.new()
+	sv.size = canvas
+	sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	root.add_child(sv)
+	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var st := TableSetup.sandbox(t, 5)
+	st.nerve_uses = 1
+	var td := TableDie.new()
+	td.special = &"barrel"
+	st.dice[0] = td
+	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+	s.setup = st
+	s.tutorial_override = 0
+	s.bonfire_seed = 5
+	s.test_speed = 10.0
+	sv.add_child(s)
+	await process_frame
+	await process_frame
+	return [sv, s]
+
+
+## Screen rect of a die: bounds of its 8 corners, independent of the code's.
+func _die_rect(cam: Camera3D, d: DieVisual) -> Rect2:
+	var r := Rect2(cam.unproject_position(d.global_position), Vector2.ZERO)
+	for c in 8:
+		var o := Vector3(1 if c & 1 else -1, 1 if c & 2 else -1, 1 if c & 4 else -1) * d.edge * 0.6
+		r = r.expand(cam.unproject_position(d.global_position + o))
+	return r
+
+
+func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
+	for k in 600:
+		if s.phase == Table3D.Phase.BET and s.run.state == BonfireRun.State.AIM and not s.hand_moving():
+			break
+		await process_frame
+	s.rig_faces([1, 1, 5, 2, 3] as Array[int])
+	s.quick_throw()
+	await s.sequence_finished
+	s._refresh_hud()
+	s.nerve_ui.refresh()
+	await process_frame
+	var h := s.bhud
+	check(h.rules_panel.is_visible_in_tree(), "%s: rules plaque shown" % label)
+	# Park the Barrel die (dice[0]) under the plaque's centre, on its own plane.
+	var cam := s.camera.cam
+	var d: DieVisual = s.throw_dice[0]
+	var plane := Plane(Vector3.UP, d.global_position.y)
+	var c := h.rules_panel.get_global_rect().get_center()
+	var hit = plane.intersects_ray(cam.project_ray_origin(c), cam.project_ray_normal(c))
+	check(hit != null, "%s: plaque centre is over the table" % label)
+	if hit != null:
+		d.global_position = hit
+	for k in 3:
+		await process_frame
+	var a := h.rules_panel.get_global_rect()
+	var b := _die_rect(cam, d)
+	var view := Rect2(Vector2.ZERO, s.get_viewport().get_visible_rect().size)
+	check(not a.intersects(b), "%s: plaque %s clear of its die %s" % [label, str(a), str(b)])
+	check(view.encloses(a), "%s: plaque %s on screen %s" % [label, str(a), str(view)])
+	var pip := s.nerve_ui.pip_box
+	check(not pip.is_visible_in_tree() or not pip.get_global_rect().intersects(a), "%s: Nerve pip still clear of the plaque" % label)
+	if shot != "" and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		s.get_viewport().get_texture().get_image().save_png(shot % label.replace(" ", "_"))
+
+
+## place() alone: no room left of a wide die row, so it goes below it,
+## never off screen.
+func _check_place() -> void:
+	var view := Rect2(0, 0, 844, 390)
+	var r := Rect2(700, 100, 140, 50)
+	var die := Rect2(10, 90, 820, 80)
+	var at := RulesPlaqueDodge.place(r, [die] as Array[Rect2], view)
+	var q := Rect2(at, r.size)
+	check(view.encloses(q) and not q.intersects(die), "place: %s on screen, clear of %s" % [str(q), str(die)])
+	check(RulesPlaqueDodge.place(r, [] as Array[Rect2], view) == r.position, "place: no die under it, stays put")
+
+
+func _run() -> void:
+	_check_place()
+	var shot := OS.get_environment("PLAQUE_SHOT")
+	var made: Array = await _make(Vector2i(1920, 1080))
+	await _check_layout(made[1], "PC 16:9", shot)
+	(made[0] as Node).queue_free()
+	await process_frame
+	made = await _make(Vector2i(2337, 1080))
+	(made[1] as Bonfire3D).fit_phone(Vector2(844, 390))
+	await _check_layout(made[1], "phone landscape", shot)
+	(made[0] as Node).queue_free()
+	await process_frame
+	made = await _make(Vector2i(1920, int(round(1920.0 * PHONE.y / PHONE.x))))
+	var s: Bonfire3D = made[1]
+	s.camera.cam.current = true
+	s.fit_phone(PHONE)
+	s.camera.snap_home()
+	await _check_layout(s, "phone portrait", shot)
+	(made[0] as Node).queue_free()
+	await process_frame
+	print("test_rules_plaque_die_clear: %d passed, %d failed" % [_passed, _failed])
+	quit(1 if _failed > 0 else 0)
