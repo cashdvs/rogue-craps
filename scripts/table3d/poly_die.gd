@@ -66,6 +66,41 @@ static func body_shape_for(td: TableDie) -> StringName:
 	return td.shape
 
 
+## A rare die's own art body (DiceIds.body_key: a rare's model, or its stand-in
+## until 3D Artist ships it), as res://art/models/dice/<key>.glb. Only d6
+## bodies for now: they keep the cube collider and face read, so the shaped
+## (d4 / d8 ...) meshes stay with the hull path above. "" = keep the cube.
+static func art_body_path(die_id: StringName) -> String:
+	if not DiceIds.is_die(die_id) or DiceIds.shape_of(die_id) != &"d6":
+		return ""
+	if not DiceIds.RARE_ART_BODIES.has(DiceIds.asset_key(die_id)):
+		return ""  # Rares only; the other dice keep the procedural cube.
+	var key := DiceIds.body_key(die_id)
+	if not String(key).ends_with("_d6"):
+		return ""
+	var p := "res://art/models/dice/%s.glb" % key
+	return p if ResourceLoader.exists(p) else ""
+
+
+## The first mesh in the art body's .glb (null if none).
+static func art_body_mesh(die_id: StringName) -> Mesh:
+	var p := art_body_path(die_id)
+	if p == "":
+		return null
+	var scene := load(p) as PackedScene
+	if scene == null:
+		return null
+	var inst := scene.instantiate()
+	var found: Mesh = null
+	for n in inst.find_children("*", "MeshInstance3D", true, false):
+		found = (n as MeshInstance3D).mesh
+		break
+	if found == null and inst is MeshInstance3D:
+		found = (inst as MeshInstance3D).mesh
+	inst.free()
+	return found
+
+
 static func hull(shape: StringName) -> PackedVector3Array:
 	return DieHullData.SHAPES[shape]["hull"]
 
