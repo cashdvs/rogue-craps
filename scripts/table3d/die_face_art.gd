@@ -90,16 +90,21 @@ var labels: Array[int] = [1, 2, 3, 4, 5, 6]
 
 var _pips_root: Node3D
 
+## Removes the cube's pips (a coin or a shaped d4 / d8 prints its own marks).
+func clear_pips() -> void:
+	if _pips_root != null:
+		_pips_root.free()
+		_pips_root = null
+		_pip_cores.clear()  # their pip cores went with them
+
+
 ## Turns this die into Ferryman's Coin (procedural stand-in until the 3D
 ## Artist's ferryman_d2.glb lands on main): a 0.10 m x 0.024 m 18-sided
 ## disc, centred, with a brass HEADS face (+Y, a ring and a raised boss)
 ## and an oxblood TAILS face (-Y, a ring and a bar).
 func make_coin() -> void:
 	shape = &"coin"
-	if _pips_root != null:
-		_pips_root.free()
-		_pips_root = null
-		_pip_cores.clear()  # their pip cores went with them
+	clear_pips()
 	var body := faces.get_node("Body") as MeshInstance3D
 	var cyl := CylinderMesh.new()
 	cyl.top_radius = CoinPhysics.RADIUS

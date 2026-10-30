@@ -71,6 +71,7 @@ func _ready() -> void:
 		_die_of[all_dice[i]] = td
 		all_dice[i].set_meta(&"handful_id", i)
 		apply_die_look(all_dice[i], td)
+		PolyBody.dress(all_dice[i], td)  # Gallows / Beacon: d4 / d8 body + hull
 	bhud = BonfireHud.new()
 	hud.add_child(bhud)
 	# Top-left help: the text only on the first table, plus the "?" button

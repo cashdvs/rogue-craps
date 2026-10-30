@@ -323,8 +323,10 @@ func set_look(body: Color, pip: Color, slot_labels: Array[int]) -> void:
 func shown_value() -> int:
 	if shape == &"coin":
 		return up_slot()
-	var i := up_value() - 1
-	return labels[i] if i >= 0 and i < labels.size() else up_value()
+	# A hull die reads its slot (d4 top point, d8 top face: 1..8).
+	var top := up_slot() if PolyDie.has_shape(shape) else up_value()
+	var i := top - 1
+	return labels[i] if i >= 0 and i < labels.size() else top
 
 
 ## The face SLOT on top: a d6 face 1..6 (FACE_AXES), a coin 1 (heads, +Y

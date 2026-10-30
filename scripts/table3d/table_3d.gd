@@ -1331,7 +1331,12 @@ func _throw_dice(values: Array[int], velocity: Vector2, release_pos: Vector2) ->
 	# the physical top face ended up; blend into it during the first
 	# tumble frames so nothing pops (the dice spin 15-35 rad/s there).
 	for i in dice.size():
-		var want := DieVisual.remap_basis(rec.up_values[i], dice[i].mesh_face(values[i]), _fx_rng.randf_range(0.0, TAU))
+		var spin := _fx_rng.randf_range(0.0, TAU)
+		var want: Basis
+		if PolyDie.has_shape(dice[i].shape):  # d4 / d8 ...: its up_values are slots
+			want = poly_remap(dice[i].shape, rec.final_transform(i).basis, values[i])
+		else:
+			want = DieVisual.remap_basis(rec.up_values[i], dice[i].mesh_face(values[i]), spin)
 		var visual_now := dice[i].faces.global_transform.basis.orthonormalized()
 		var start_body := starts[i].basis.orthonormalized()
 		_remap_from[i] = (start_body.inverse() * visual_now).get_rotation_quaternion()
@@ -1352,7 +1357,15 @@ func _throw_dice(values: Array[int], velocity: Vector2, release_pos: Vector2) ->
 		await get_tree().process_frame
 	await _settle_wobble()
 	for i in dice.size():
-		dice[i].settled.emit(i, dice[i].up_value())
+		dice[i].settled.emit(i, dice[i].up_slot() if PolyDie.has_shape(dice[i].shape) else dice[i].up_value())
+
+
+## Inner `faces` rotation for a hull die (d4 / d8 ...) that physically
+## landed with body basis [param landed]: it shows slot [param slot] on top
+## (PolyDie.remap_basis, a symmetry of the solid, so it looks the same).
+static func poly_remap(shape: StringName, landed: Basis, slot: int) -> Basis:
+	var b := landed.orthonormalized()
+	return (b.inverse() * PolyDie.remap_basis(shape, b, slot)).orthonormalized()
 
 
 ## RUNNING_TOTAL mode: throw, add each die to the total, count the HUD up,
