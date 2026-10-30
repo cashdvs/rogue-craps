@@ -160,7 +160,10 @@ func _refresh_checklist(run: BonfireRun) -> void:
 			bounty_rows[b.id] = l
 		_layout_cards()
 	# "CLAIM ALL 3 · 5 hands" (section 4).
-	card_header.text = "Claim all %d bounties · %d hand%s left" % [run.goal.required.size(), run.hands_left, "" if run.hands_left == 1 else "s"]
+	# Target tables (table_goals_v1 PR1) have no bounties: target wording.
+	if run.goal.required.is_empty():
+		card_header.text = TableGoalStrings.line(run)
+	else: card_header.text = "Claim all %d bounties · %d hand%s left" % [run.goal.required.size(), run.hands_left, "" if run.hands_left == 1 else "s"]
 	for b: BountyData in bounties:
 		var l: Label = bounty_rows[b.id]
 		var bonus := run.goal.bonus.has(b)
