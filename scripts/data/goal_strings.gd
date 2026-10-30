@@ -29,6 +29,7 @@ const TEXT: Dictionary[String, String] = {
 	"goal_over": "+{n}",
 	"goal_miss": "Missed: -{s} Soul",
 	"hud_seals_chip": "SEALS · {n}",
+	"hud_boss_tag": "BOSS",
 	"hud_nerve": "Nerve {n}",
 	"goal_hint": "Bank points to reach the target.",
 }
