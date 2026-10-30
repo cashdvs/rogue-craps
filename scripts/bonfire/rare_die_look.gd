@@ -12,14 +12,14 @@ const BODY_TINT_AMOUNT := 0.55
 const TRIM := Color("#E6C46A")
 ## A body normal is flat face (no trim) when its largest object-space axis
 ## component is at least TRIM_FLAT; anything rounder is bevel / edge.
-const TRIM_FLAT := 0.88
+const TRIM_FLAT := 0.80
 ## The trim sits this far (edge units) out along the normal, over the body.
 const TRIM_LIFT := 0.002
 ## Light resistance: share of the trim drawn flat (unshaded albedo, not
 ## emission) over its lit result, so bonfire light cannot swallow it. Capped
 ## at TRIM_UNSHADED_MAX.
-const TRIM_UNSHADED := 0.5
-const TRIM_UNSHADED_MAX := 0.5
+const TRIM_UNSHADED := 0.7
+const TRIM_UNSHADED_MAX := 0.7
 ## Second pass: the flat albedo blended at TRIM_UNSHADED over the lit pass.
 const TRIM_FLAT_SHADER := """shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_back, shadows_disabled;
