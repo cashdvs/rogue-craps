@@ -59,10 +59,13 @@ status, its team owner and whether it's open to outside contributors.
 | **Art import** | `module:art-import` | `*.import` settings for art | `art/` (textures, models, import presets) | In progress (3D greybox) | Art Director | Issues only |
 | **Soul Reliquary** | `module:soul-reliquary` | `art/models/props/soul_reliquary/` (meshes, materials, scenes, `scripts/soul_reliquary.gd`, `shaders/soul_vessel.gdshader`, generator `src/make_soul_reliquary.gd` + `reliquary_stacked.gd`, `reliquary_mb.gd`); Hearth anchors `SoulReliquary`/`SoulReliquaryPhone`; `tests/test_soul_reliquary.gd` | HUD hookup (replaces `scripts/table/soul_meter.gd` bar) | In progress (branch `art/soul-reliquary`) | Art Director | Issues only |
 | **QA tests** | `module:qa` | `tests/qa_/` | | Built | QA Tester | Add checks only (see below) |
+| **Build version** | `module:tools-ci` | `version.cfg`, `scripts/core/version.gd` (`Version`), `tools/stamp_version.sh`, `tests/test_version.gd` (details: [ARCHITECTURE.md, Build version](ARCHITECTURE.md#build-version)) | | Built | PM | Issues only |
 | **Tools / CI** | `module:tools-ci` | `tools/`, `run_tests.sh`, `.github/` | | Built | PM | Issues only |
 
 `scripts/table/table_scene.gd` is the 2D table's director. Feel, UI and Betting all touch it, so
 keep changes there small and say which part you changed in the PR.
+
+**Build version:** bump only `patch` (or `major_minor`) in `version.cfg`. **Stamping edits 3 tracked files** (`version.cfg`, `export_presets.cfg`, `project.godot`); never commit them stamped. Export from a fresh worktree, or run `git checkout -- version.cfg export_presets.cfg project.godot` afterwards.
 
 **`tests/qa_/`:** contributors may **add** checks there, but must never weaken or remove existing
 ones.
