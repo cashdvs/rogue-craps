@@ -6,8 +6,32 @@ class_name RareDieLook
 extends RefCounted
 
 ## Body tint, multiplied into Bone at BODY_TINT_AMOUNT.
-const BODY_TINT := Color("#D9C08A")
-const BODY_TINT_AMOUNT := 0.35
+const BODY_TINT := Color("#C8A878")
+const BODY_TINT_AMOUNT := 0.55
+## Brass edge trim (AD rare-vs-bone): the main rare cue, on the bevels only.
+const TRIM := Color("#C9A24A")
+## A body normal is flat face (no trim) when its largest object-space axis
+## component is at least TRIM_FLAT; anything rounder is bevel / edge.
+const TRIM_FLAT := 0.995
+## The trim sits this far (edge units) out along the normal, over the body.
+const TRIM_LIFT := 0.002
+const TRIM_SHADER := """shader_type spatial;
+render_mode diffuse_toon, specular_disabled;
+uniform vec4 trim : source_color;
+uniform float flat_limit;
+uniform float lift;
+varying vec3 obj_n;
+void vertex() {
+	obj_n = NORMAL;
+	VERTEX += NORMAL * lift;
+}
+void fragment() {
+	vec3 a = abs(normalize(obj_n));
+	if (max(a.x, max(a.y, a.z)) >= flat_limit) { discard; }
+	ALBEDO = trim.rgb;
+	ROUGHNESS = 0.55;
+}
+"""
 const FUSE_MARK := Color("#FFA13A")
 const JACKPOT_MARK := Color("#FFF1B8")
 const HEX_MARK := Color("#8FA8D8")
@@ -41,6 +65,38 @@ const FACE_MARGIN := 0.40
 ## The rare body colour: Bone multiplied by BODY_TINT at BODY_TINT_AMOUNT.
 static func body_color() -> Color:
 	return Palette.BONE.lerp(Palette.BONE * BODY_TINT, BODY_TINT_AMOUNT)
+
+
+## True when a body normal [param n] (object space) is bevel, so takes the trim.
+static func is_trim_normal(n: Vector3) -> bool:
+	var a := n.normalized().abs()
+	return maxf(a.x, maxf(a.y, a.z)) < TRIM_FLAT
+
+
+## Adds (on) or removes (off) the brass bevel trim: a copy of the body mesh
+## that keeps only bevel fragments. Separate from the #162 hull outline.
+static func set_trim(d: DieVisual, on: bool) -> void:
+	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
+	if body == null:
+		return
+	var old := body.get_node_or_null("RareTrim")
+	if old != null:
+		old.free()
+	if not on:
+		return
+	var sh := Shader.new()
+	sh.code = TRIM_SHADER
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	m.set_shader_parameter("trim", TRIM)
+	m.set_shader_parameter("flat_limit", TRIM_FLAT)
+	m.set_shader_parameter("lift", TRIM_LIFT * d.edge)
+	var mi := MeshInstance3D.new()
+	mi.name = "RareTrim"
+	mi.mesh = body.mesh
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(mi)
 
 
 ## True when [param die_id] is a rare die (its shape data's rarity).
