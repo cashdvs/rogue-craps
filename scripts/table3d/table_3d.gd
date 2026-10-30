@@ -518,6 +518,28 @@ func _set_dice_count(n: int) -> void:
 		sim.ensure_bodies(n)
 
 
+## Gives die [param d] the art body of [param die_id] (PolyDie.art_body_mesh,
+## from DiceIds.body_key), scaled to the die's edge; keeps its toon material,
+## collider and face read. Any other die (or no .glb) gets the cube back.
+func apply_art_body(d: DieVisual, die_id: StringName) -> void:
+	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
+	if body == null or d.shape == &"coin":
+		return
+	if not d.has_meta(&"cube_mesh"):
+		d.set_meta(&"cube_mesh", body.mesh)
+	var m := PolyDie.art_body_mesh(die_id)
+	var key := DiceIds.body_key(die_id) if m != null else &""
+	if d.get_meta(&"art_body", &"") == key:
+		return
+	var size := m.get_aabb().size if m != null else Vector3.ZERO
+	body.mesh = m if m != null else d.get_meta(&"cube_mesh") as Mesh
+	body.scale = Vector3.ONE * (d.edge / maxf(size.x, 0.0001)) if m != null else Vector3.ONE
+	if d.hull_outline != null:
+		d.hull_outline.mesh = body.mesh
+		d.hull_outline.scale = body.scale
+	d.set_meta(&"art_body", key)
+
+
 ## The DieData thrown as die i on the next throw (craps: the starting pair;
 ## running total: the next dice in the loadout, in order, wrapping around).
 func _die_data_for(i: int) -> DieData:
