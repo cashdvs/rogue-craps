@@ -265,7 +265,9 @@ func _blocked(r: Rect2, rects: Array, view: Rect2) -> bool:
 ## [param scan]: walks the felt for the first d4 spot (the d6 0.12 m to its
 ## left) where all 4 plain tag spots are blocked, and parks both there.
 ## Not [param scan]: just re-checks the spot they are on now.
-func _park_crowded(s: Bonfire3D, d4: DieVisual, nb: DieVisual, size: Vector2, scan: bool) -> bool:
+## Target HUD v2.1: the bounty-card titles are gone, so a 2nd d6 [param up]
+## parked above the d4 can stand in for the text that blocked the top spot.
+func _park_crowded(s: Bonfire3D, d4: DieVisual, nb: DieVisual, up: DieVisual, size: Vector2, scan: bool) -> bool:
 	var cam := s.camera.cam
 	var view := s.get_viewport().get_visible_rect()
 	var texts: Array = _text_rects(s).map(func(t: Array) -> Rect2: return t[0])
@@ -278,13 +280,14 @@ func _park_crowded(s: Bonfire3D, d4: DieVisual, nb: DieVisual, size: Vector2, sc
 		while x <= 0.8:
 			d4.global_position = Vector3(x, y, z)
 			nb.global_position = Vector3(x - 0.12, y, z)
+			up.global_position = Vector3(x, y, z - 0.12)
 			var dr := RulesPlaqueDodge.die_rect(cam, d4)  # the die box the tag hugs
 			var c := dr.get_center()
 			if not texts.any(func(q: Rect2) -> bool: return q.intersects(dr.grow(4))) \
 					and _blocked(spot.call(Vector2(c.x, dr.end.y + 4 + h.y)), texts, view) \
 					and _blocked(spot.call(Vector2(dr.end.x + 4 + h.x, c.y)), texts, view) \
 					and _blocked(spot.call(Vector2(dr.position.x - 4 - h.x, c.y)), [RulesPlaqueDodge.die_rect(cam, nb)], view) \
-					and _blocked(spot.call(Vector2(c.x, dr.position.y - 4 - h.y)), texts, view):
+					and _blocked(spot.call(Vector2(c.x, dr.position.y - 4 - h.y)), texts + [RulesPlaqueDodge.die_rect(cam, up)], view):
 				return true
 			if not scan:
 				return false
@@ -313,19 +316,22 @@ func _check_crowded(s: Bonfire3D) -> void:
 	var view := s.get_viewport().get_visible_rect()
 	check(s.nerve_ui.pip_box.is_visible_in_tree(), "crowded: Nerve showing mid-hand")
 	var nb: DieVisual = null
+	var up: DieVisual = null
 	for d: DieVisual in s.all_dice:
 		if d != d4 and nb == null:
 			nb = d
+		elif d != d4 and d != nb and up == null:
+			up = d
 	var far := Vector3(0.0, d4.global_position.y, -5.0)
 	for d: DieVisual in s.all_dice:  # clear the felt but for the d4 + its neighbour
-		if d != d4 and d != nb:
+		if d != d4 and d != nb and d != up:
 			d.global_position = far
 	var found := false
 	for tries in 6:  # the Nerve UI moves off dice, so rescan until it settles
-		found = _park_crowded(s, d4, nb, _tag_rect(s, tag).size, true)
+		found = _park_crowded(s, d4, nb, up, _tag_rect(s, tag).size, true)
 		for k in 20:  # the tag re-reads the HUD every 15 frames
 			await process_frame
-		if found and _park_crowded(s, d4, nb, _tag_rect(s, tag).size, false):
+		if found and _park_crowded(s, d4, nb, up, _tag_rect(s, tag).size, false):
 			break
 		found = false
 	check(found, "crowded: QA's layout (all 4 plain spots blocked) found on the phone felt")
@@ -343,6 +349,8 @@ func _check_crowded(s: Bonfire3D) -> void:
 	check(hits.is_empty(), "crowded: tag %s covers no HUD text %s" % [str(r), str(hits)])
 	var nr := RulesPlaqueDodge.die_rect(cam, nb)
 	check(not nr.grow(4).intersects(r), "crowded: tag %s >= 4 px clear of the d6 %s" % [str(r), str(nr)])
+	var ur := RulesPlaqueDodge.die_rect(cam, up)
+	check(not ur.grow(4).intersects(r), "crowded: tag %s >= 4 px clear of the d6 above %s" % [str(r), str(ur)])
 	check(view.encloses(r), "crowded: tag on screen")
 
 
