@@ -25,6 +25,15 @@ static func table_shape(td: TableDie) -> StringName:
 	return &""
 
 
+## Extra toon "wrap" light per shape (DieVisual's own is 0.35). A d4 has no
+## face pointing up: its three visible faces lean 70 degrees off the felt,
+## so the overhead light hits them nearly edge-on and the toon shader puts
+## them in its darkest band (the cube's top face catches full light). More
+## wrap lifts those sloped faces into the mid/lit bands. It can't grow
+## instead: its tips already reach the 0.050 m cap (PolyDie.MAX_HALF_EXTENT).
+const SHAPE_SHADE: Dictionary = {&"d4": {"wrap": 1.0, "mid_tint": 1.0, "light_gain": 1.6}}
+
+
 ## Collider points per shape, built once from the PC mesh (see pc_hull).
 static var _hulls: Dictionary = {}
 
@@ -91,6 +100,8 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	if art != null and art.get_shader_parameter("overlay_tex") != null:
 		for k in ["use_overlay", "overlay_tex", "overlay_tint"]:
 			d.body_material.set_shader_parameter(k, art.get_shader_parameter(k))
+	for k in SHAPE_SHADE.get(s, {}):
+		d.body_material.set_shader_parameter(k, SHAPE_SHADE[s][k])
 	# The cube's pips go (the art prints the numbers). FaceMods marks and a
 	# RareTrim child are other systems' nodes: left alone on purpose.
 	d.clear_pips()
