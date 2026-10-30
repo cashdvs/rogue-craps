@@ -128,6 +128,23 @@ func _check_pc() -> void:
 	check(p.line3.text == "Missed:" and p.line3.label_settings.font_color == Palette.DANGER, "miss: 'Missed:' in red")
 	check(p.line3_extra.text == "-5 Soul" and p.line3_extra.label_settings.font_color == Palette.SOUL_FLAME and p.line3_extra.visible, "miss: Soul in cyan")
 	p.show_miss(-1)
+	# Boss: a small brass BOSS tag left of TARGET (no red); hidden otherwise.
+	check(not p.boss_tag.visible, "no BOSS tag on a normal table")
+	g.stub_set({"is_boss": true})
+	await _frames(1)
+	check(p.boss_tag.visible and p.boss_tag.text == "BOSS" and p.boss_tag.label_settings.font_color == Palette.BRASS_HI, "boss: brass BOSS tag")
+	check(p.boss_tag.get_index() < p.target_label.get_index() and p.boss_tag.get_parent() == p.target_label.get_parent(), "BOSS sits left of TARGET")
+	g.stub_set({"is_boss": false})
+	# text_scale grows text (not padding or chips): AD PC x1.4.
+	p.text_scale = 1.4
+	p.restyle()
+	await _frames(1)
+	check(is_equal_approx(p.target_label.label_settings.font_size, roundi(12 * 1.2 * 1.4)), "text_scale 1.4: TARGET label %d" % p.target_label.label_settings.font_size)
+	check(is_equal_approx((p.get_theme_stylebox("panel") as StyleBoxFlat).content_margin_left, 16 * 1.2), "text_scale keeps the padding")
+	check(is_equal_approx(p.chip_row.get_child(0).custom_minimum_size.x, 24 * 1.2), "text_scale keeps chips at 24 px")
+	check(p.chip_row.get_theme_constant("separation") == roundi(12 * 1.2), "text_scale keeps the 12 px chip gaps")
+	p.text_scale = 1.0
+	p.restyle()
 	# Hover 150 ms (not sooner) or tap opens the name card.
 	var chip: GoalIcon = p.chip_row.get_child(0)
 	chip.mouse_entered.emit()

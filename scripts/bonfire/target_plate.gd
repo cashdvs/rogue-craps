@@ -21,8 +21,13 @@ var unit: float = 1.2
 var width_spec: float = 540.0
 ## Inner padding in spec px (PC 16, phone 12).
 var pad_spec: float = 16.0
+## Text, bar and gap scale on top of `unit` (AD: PC plate x1.4). Padding
+## and chips keep their spec size.
+var text_scale: float = 1.0
 var goal: TableGoalState
 
+## Small brass 'BOSS' tag left of TARGET, shown on a boss table.
+var boss_tag := Label.new()
 var target_label := Label.new()
 var target_value := Label.new()
 var chip_row := HBoxContainer.new()
@@ -67,6 +72,10 @@ func _ready() -> void:
 	var row1 := HBoxContainer.new()
 	row1.alignment = BoxContainer.ALIGNMENT_BEGIN
 	v.add_child(row1)
+	boss_tag.text = GoalStrings.get_text("hud_boss_tag")
+	boss_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	boss_tag.visible = false
+	row1.add_child(boss_tag)
 	target_label.text = GoalStrings.get_text("goal_target_label")
 	target_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row1.add_child(target_label)
@@ -124,6 +133,9 @@ func restyle() -> void:
 	sb.set_content_margin_all(pad_spec * u)
 	add_theme_stylebox_override("panel", sb)
 	custom_minimum_size.x = width_spec * u
+	var pu := u
+	u = unit * text_scale  # text, bar and gaps
+	boss_tag.label_settings = _ls(12 * u, Palette.BRASS_HI)
 	target_label.label_settings = _ls(12 * u, Color(CREAM, 0.5))
 	target_value.label_settings = _ls(26 * u, CREAM)
 	target_value.label_settings.font = Palette.display_font()  # the one big element
@@ -136,7 +148,7 @@ func restyle() -> void:
 	card_label.label_settings = _ls(14 * u, CREAM)
 	card.add_theme_stylebox_override("panel", sb)
 	bar.custom_minimum_size = Vector2(0, 4 * u)
-	chip_row.add_theme_constant_override("separation", roundi(12 * u))
+	chip_row.add_theme_constant_override("separation", roundi(12 * pu))
 	get_node("Rows").add_theme_constant_override("separation", roundi(2 * u))
 	for row in [target_label.get_parent(), banked_value.get_parent(), line3.get_parent()]:
 		(row as HBoxContainer).add_theme_constant_override("separation", roundi(8 * u))
@@ -161,6 +173,7 @@ func refresh() -> void:
 	target_value.text = fmt(target)
 	banked_value.text = fmt(banked)
 	line3_extra.visible = false
+	boss_tag.visible = g != null and g.is_boss
 	line3.label_settings.font_color = Color(CREAM, 0.6)
 	if _miss_soul >= 0:
 		var parts := GoalStrings.get_text("goal_miss").format({"s": _miss_soul}).split(": ", true, 1)
@@ -227,7 +240,7 @@ func _build_chips(list: Array) -> void:
 		if badge != "":
 			var l := Label.new()
 			l.text = badge
-			l.label_settings = _ls(13 * unit, Palette.BRASS_HI)
+			l.label_settings = _ls(13 * unit * text_scale, Palette.BRASS_HI)
 			chip_row.add_child(l)
 
 
