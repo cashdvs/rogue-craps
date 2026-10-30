@@ -91,7 +91,7 @@ func _check_phone(canvas: Vector2i, screen: Vector2, tag: String) -> void:
 		var pt := h.ui_pt_px
 		var bar := h.bottom_bar.get_global_rect()
 		check(absf(bar.size.y - PhoneBottomBar.HEIGHT_PT * pt) < 1 and absf(bar.end.y - canvas.y) < 1 and absf(bar.size.x - canvas.x) < 1, "bar: full width, 44 pt, on the bottom edge %s" % bar)
-		check(h.bottom_bar.get_index() == 0, "bar drawn behind the other HUD nodes")
+		check(h.bottom_bar.get_index() == 0 and h.bottom_bar.z_index < 0, "bar drawn behind the other HUD nodes (why_label too)")
 		h.goal_state.set_for_test(300, 0, h.goal_state.hands_left, null, 2)
 		await _frames(2)
 		var sc := h.target_plate.seals_chip.get_global_rect()

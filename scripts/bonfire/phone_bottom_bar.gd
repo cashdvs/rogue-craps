@@ -13,6 +13,7 @@ const SEALS_RIGHT_PT := 12.0
 func _init() -> void:
 	name = "PhoneBottomBar"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	z_index = -1  # under the whole HUD layer, why_label included
 	visible = false
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(Palette.PIT_BLACK, 0.82)
