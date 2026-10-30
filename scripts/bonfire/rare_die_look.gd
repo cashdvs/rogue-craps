@@ -1,0 +1,169 @@
+## The rare dice look on the Bonfire table (Art Director, playtest e1cd912
+## bug 1): a warm-tinted body and one mark per rare face mod, each its own
+## glyph on a dark plate. Material only: no flame, and the marks glow (at
+## most MARK_EMISSION_MAX) only while the die is lit.
+class_name RareDieLook
+extends RefCounted
+
+## Body tint, multiplied into Bone at BODY_TINT_AMOUNT.
+const BODY_TINT := Color("#D9C08A")
+const BODY_TINT_AMOUNT := 0.35
+const FUSE_MARK := Color("#FFA13A")
+const JACKPOT_MARK := Color("#FFF1B8")
+const HEX_MARK := Color("#8FA8D8")
+const GILDED_MARK := Color("#E8B84A")
+const STEP_MARK := Color("#F5EBD8")
+## The plate each mark sits on (its "face" for the contrast check).
+const PLATE := Color("#1E1712")
+const MARK_EMISSION_MAX := 0.3
+const MIN_CONTRAST := 3.0
+## mod id -> mark colour. Glyphs: fuse spark, coin, cracked x, bitten coin, up arrow.
+const MARKS: Dictionary = {
+	&"fuse": FUSE_MARK, &"jackpot": JACKPOT_MARK, &"hex": HEX_MARK,
+	&"gilded": GILDED_MARK, &"step": STEP_MARK,
+}
+## Plate diameter / glyph size as a fraction of the die edge.
+const PLATE_SIZE := 0.26
+const GLYPH := 0.17
+
+
+## The rare body colour: Bone multiplied by BODY_TINT at BODY_TINT_AMOUNT.
+static func body_color() -> Color:
+	return Palette.BONE.lerp(Palette.BONE * BODY_TINT, BODY_TINT_AMOUNT)
+
+
+## True when [param die_id] is a rare die (its shape data's rarity).
+static func is_rare(die_id: StringName) -> bool:
+	var p := "res://resources/dice/shapes/%s.tres" % die_id
+	if die_id == &"" or not ResourceLoader.exists(p):
+		return false
+	var sh := load(p) as SpecialDieData
+	return sh != null and sh.is_rare()
+
+
+## WCAG contrast ratio between two colours (1..21).
+static func contrast(a: Color, b: Color) -> float:
+	var la := _rel_lum(a)
+	var lb := _rel_lum(b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+
+static func _rel_lum(c: Color) -> float:
+	var l := c.srgb_to_linear()
+	return 0.2126 * l.r + 0.7152 * l.g + 0.0722 * l.b
+
+
+## Adds the mark for mod [param mod_id] to the face with normal [param n]
+## (in-plane axes u, v), on a free spot between the pips. Returns false when
+## the mod has no mark.
+static func add_mark(root: Node3D, d: DieVisual, n: Vector3, u: Vector3, v: Vector3, lift: float, mod_id: StringName) -> bool:
+	if not MARKS.has(mod_id):
+		return false
+	var e := d.edge
+	var col: Color = MARKS[mod_id]
+	var mark := Node3D.new()
+	mark.name = "RareMark_%s" % mod_id
+	mark.set_meta("mod", mod_id)
+	var c := _free_spot(d, n, u, v) * e
+	mark.transform = Transform3D(Basis(u, v, n), n * lift + u * c.x + v * c.y)
+	root.add_child(mark)
+	var plate := _material(PLATE)
+	var ink := _material(col)
+	ink.emission_enabled = true
+	ink.emission = col
+	ink.emission_energy_multiplier = 0.0
+	mark.set_meta("ink", ink)
+	_disc(mark, Vector2.ZERO, e * PLATE_SIZE * 0.5, 0.0, plate)
+	var g := e * GLYPH
+	match mod_id:
+		&"fuse":
+			# A spark: a short fuse tail and a four-point star.
+			_bar(mark, Vector2(-0.30, -0.30) * g, g * 0.45, g * 0.12, PI * 0.25, ink)
+			for k in 4:
+				_bar(mark, Vector2(0.10, 0.10) * g, g * (0.70 if k % 2 == 0 else 0.45), g * 0.13, PI * 0.25 * k, ink)
+		&"jackpot":
+			# A coin: a disc with a dark centre hole.
+			_disc(mark, Vector2.ZERO, g * 0.45, 0.0004, ink)
+			_disc(mark, Vector2.ZERO, g * 0.14, 0.0008, plate)
+		&"hex":
+			# A cracked x: two crossing bars, one broken with a jog.
+			_bar(mark, Vector2.ZERO, g * 0.95, g * 0.14, PI * 0.25, ink)
+			_bar(mark, Vector2(-0.30, 0.18) * g, g * 0.36, g * 0.14, -PI * 0.25, ink)
+			_bar(mark, Vector2(0.18, -0.30) * g, g * 0.36, g * 0.14, -PI * 0.25, ink)
+		&"gilded":
+			# A coin with a bite out of its rim.
+			_disc(mark, Vector2.ZERO, g * 0.45, 0.0004, ink)
+			_disc(mark, Vector2(0.36, 0.30) * g, g * 0.22, 0.0008, plate)
+		&"step":
+			# An up arrow.
+			_bar(mark, Vector2(0, -0.10) * g, g * 0.70, g * 0.15, PI * 0.5, ink)
+			_bar(mark, Vector2(-0.14, 0.20) * g, g * 0.42, g * 0.15, PI * 0.25, ink)
+			_bar(mark, Vector2(0.14, 0.20) * g, g * 0.42, g * 0.15, PI * 0.75, ink)
+	return true
+
+
+## Lights (or dims) every mark on [param d]: emission MARK_EMISSION_MAX only while lit.
+static func set_marks_lit(d: DieVisual, on: bool) -> void:
+	var root := d.faces.get_node_or_null("FaceMods")
+	if root == null:
+		return
+	for m in root.get_children():
+		if m.has_meta("ink"):
+			(m.get_meta("ink") as StandardMaterial3D).emission_energy_multiplier = MARK_EMISSION_MAX if on else 0.0
+
+
+## A spot on the face (in edge units, u/v plane) clear of the pips.
+static func _free_spot(d: DieVisual, n: Vector3, u: Vector3, v: Vector3) -> Vector2:
+	var taken: Array[Vector2] = []
+	var pips := d.faces.get_node_or_null("Pips")
+	if pips != null:
+		for p in pips.get_children():
+			if p is Node3D and (p as Node3D).position.dot(n) > d.edge * 0.3:
+				var q := (p as Node3D).position / d.edge
+				taken.append(Vector2(q.dot(u), q.dot(v)))
+	var spots: Array[Vector2] = [Vector2.ZERO, Vector2(0.25, 0.25), Vector2(-0.25, -0.25),
+		Vector2(0, 0.27), Vector2(0.27, 0), Vector2(0, -0.27), Vector2(-0.27, 0)]
+	var best := spots[0]
+	var best_gap := -1.0
+	for s in spots:
+		var gap := 9.0
+		for t in taken:
+			gap = minf(gap, s.distance_to(t))
+		if gap > best_gap + 0.0001:
+			best_gap = gap
+			best = s
+	return best
+
+
+static func _material(col: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.8
+	return m
+
+
+static func _disc(parent: Node3D, at: Vector2, r: float, up: float, mat: Material) -> void:
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = r
+	cyl.bottom_radius = r
+	cyl.height = 0.0001
+	cyl.radial_segments = 20
+	cyl.rings = 1
+	var mi := MeshInstance3D.new()
+	mi.mesh = cyl
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Cylinder axis is +Y; lay it along the face normal (+Z here).
+	mi.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(at.x, at.y, up))
+	parent.add_child(mi)
+
+
+static func _bar(parent: Node3D, at: Vector2, length: float, thick: float, angle: float, mat: Material) -> void:
+	var q := QuadMesh.new()
+	q.size = Vector2(length, thick)
+	var mi := MeshInstance3D.new()
+	mi.mesh = q
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.transform = Transform3D(Basis(Vector3.BACK, angle), Vector3(at.x, at.y, 0.0006))
+	parent.add_child(mi)
