@@ -27,7 +27,12 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	apply_art_body(d, td.id)
 	if td.shape == &"coin":
 		d.make_coin()
-	elif td.faces != [1, 2, 3, 4, 5, 6]:
+	elif RareDieLook.is_rare(td.id):
+		# Rares: the Art Director's warm body tint (RareDieLook) over Bone.
+		d.set_look(RareDieLook.body_color(), Palette.PIT_BLACK, td.faces)
+		d.set_meta("rare_look", true)
+	elif td.faces != [1, 2, 3, 4, 5, 6] or d.has_meta("rare_look"):
+		d.remove_meta("rare_look")
 		# DieVisual.safe_labels pads / trims a mismatched face list to 6.
 		d.set_look(Palette.BONE, Palette.PIT_BLACK, td.faces)
 	var old := d.faces.get_node_or_null("FaceMods")
@@ -53,6 +58,9 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 	# outline pass can't swallow it; fills would hide the pips, so the
 	# coloured mods are a rim + tinted pips.
 	var lift := d.face_half(slot) + 0.014 * e
+	# Rare mods (Fuse, Jackpot, Hex, Gilded, Step) get their own glyph mark.
+	if RareDieLook.add_mark(root, d, n, u, v, lift, m.id):
+		return
 	match m.effect:
 		FaceModData.Effect.MULT_FACTOR:
 			var c: Array[Color] = [HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR]
@@ -188,6 +196,7 @@ func _set_lit(d: DieVisual, on: bool) -> void:
 	else:
 		_lights.erase(d)
 	d.set_glow_state(on, false)
+	RareDieLook.set_marks_lit(d, on)
 	if was != on and events != null:
 		events.die_lit_changed.emit(event_id(d), on)
 
@@ -198,6 +207,7 @@ func _set_cold(d: DieVisual) -> void:
 		events.die_lit_changed.emit(event_id(d), false)
 	_lights.erase(d)
 	d.set_glow_state(false, true)
+	RareDieLook.set_marks_lit(d, false)
 
 
 func _refuse(why: String) -> void:
