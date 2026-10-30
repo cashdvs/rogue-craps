@@ -12,6 +12,7 @@ func _initialize() -> void:
 	_test_marks()
 	_test_rarity()
 	_test_mark_size()
+	_test_trim()
 	print("=== rare die look: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -24,7 +25,11 @@ func _check(c: bool, what: String) -> void:
 
 func _test_colours() -> void:
 	var body := RareDieLook.body_color()
-	_check(RareDieLook.BODY_TINT == Color("#D9C08A") and is_equal_approx(RareDieLook.BODY_TINT_AMOUNT, 0.35), "body tint is #D9C08A at 35%")
+	_check(RareDieLook.BODY_TINT == Color("#C8A878") and is_equal_approx(RareDieLook.BODY_TINT_AMOUNT, 0.55), "body tint is #C8A878 at 55%")
+	var want := Palette.BONE.lerp(Palette.BONE * Color("#C8A878"), 0.55)
+	_check(body.is_equal_approx(want), "body is Bone x #C8A878 multiplied at 55%% (%s)" % body)
+	var pk := RareDieLook.contrast(body, Palette.PIT_BLACK)
+	_check(pk >= 3.0, "pips keep >= 3:1 on the rare body (%.2f)" % pk)
 	var dist := Vector3(body.r - Palette.BONE.r, body.g - Palette.BONE.g, body.b - Palette.BONE.b).length()
 	_check(dist > 0.05, "rare body is visibly off Bone (%.3f)" % dist)
 	_check(RareDieLook.MARK_EMISSION_MAX <= 0.3, "mark emission at most 0.3")
@@ -134,3 +139,55 @@ func _test_mark_size() -> void:
 				reach = maxf(reach, Vector2(mi.position.x, mi.position.y).length() + maxf(sz.x, maxf(sz.y, sz.z)) * 0.5)
 			_check(reach >= outer.top_radius * 0.55, "%s on a %d: glyph fills the plate (%.4f of %.4f)" % [id, pips, reach, outer.top_radius])
 			d.free()
+
+
+## Brass bevel trim: #E6C46A, no emission, bevel normals only, its own node
+## (not the #162 hull outline), and gone again when the die stops being rare.
+func _test_trim() -> void:
+	_check(RareDieLook.TRIM == Color("#E6C46A"), "trim is brass #E6C46A")
+	_check(not RareDieLook.TRIM_SHADER.contains("EMISSION") and not RareDieLook.TRIM_FLAT_SHADER.contains("EMISSION"), "trim has no emission")
+	_check(is_equal_approx(RareDieLook.TRIM_FLAT, 0.80), "trim mask threshold 0.80")
+	var up := Vector3.UP
+	_check(RareDieLook.is_frame_point(Vector3(0.33, 0.5, 0.0), up, 1.0), "frame line at 0.33 edge")
+	_check(not RareDieLook.is_frame_point(Vector3(0.30, 0.5, 0.1), up, 1.0) and not RareDieLook.is_frame_point(Vector3(0.36, 0.5, 0.0), up, 1.0), "no frame at 0.30 (pips) or 0.36 (bevel)")
+	_check(RareDieLook.FRAME_HALF > 0.0 and RareDieLook.FRAME_HALF < 0.02, "frame about 1 px at 48 px")
+	for sh in [RareDieLook.TRIM_SHADER, RareDieLook.TRIM_FLAT_SHADER]:
+		_check(sh.contains("abs(m - frame_at) > frame_half"), "both trim passes draw the frame")
+	_check(is_equal_approx(RareDieLook.TRIM_UNSHADED, 0.7) and RareDieLook.TRIM_UNSHADED <= RareDieLook.TRIM_UNSHADED_MAX, "trim mixes 70% toward flat albedo, within its cap")
+	var d := DieVisual.new()
+	root.add_child(d)
+	RareDieLook.set_trim(d, true)
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	var t := body.get_node_or_null("RareTrim") as MeshInstance3D
+	_check(t != null and t != d.hull_outline and t.mesh == body.mesh, "trim is its own copy of the body mesh")
+	var m := t.material_override as ShaderMaterial if t != null else null
+	_check(m != null and (m.get_shader_parameter("trim") as Color).is_equal_approx(RareDieLook.TRIM), "trim shader draws brass at full strength")
+	var f := m.next_pass as ShaderMaterial if m != null else null
+	_check(f != null and f.shader.code.contains("unshaded") and f.shader.code.contains("discard") and is_equal_approx(f.get_shader_parameter("mix_amount"), 0.7) \
+			and (f.get_shader_parameter("trim") as Color).is_equal_approx(RareDieLook.TRIM) and is_equal_approx(f.get_shader_parameter("flat_limit"), RareDieLook.TRIM_FLAT), "flat pass: unshaded brass at 70%, same bevel mask")
+	_check(m != null and m.shader.code.contains("discard") and is_equal_approx(m.get_shader_parameter("flat_limit"), RareDieLook.TRIM_FLAT), "trim shader masks flat faces")
+	# Every body vertex: flat-face ones get no trim, bevel ones do, and the
+	# trim covers some but well under half the surface (never all-gold).
+	var arr := body.mesh.surface_get_arrays(0)
+	var norms: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+	var flat := 0
+	var trim := 0
+	var wrong := 0
+	for n in norms:
+		var a := n.abs()
+		var is_flat := maxf(a.x, maxf(a.y, a.z)) > 0.9999
+		var tr := RareDieLook.is_trim_normal(n)
+		flat += int(is_flat)
+		trim += int(tr)
+		wrong += int(is_flat and tr)
+	_check(wrong == 0, "no trim on a flat-face normal (%d wrong of %d)" % [wrong, norms.size()])
+	_check(trim > 0 and flat > 0, "trim on the bevel, flat faces bare (%d trim, %d flat of %d)" % [trim, flat, norms.size()])
+	for n in [Vector3.UP, Vector3.LEFT, Vector3.BACK]:
+		_check(not RareDieLook.is_trim_normal(n), "flat face %s has no trim" % n)
+	_check(RareDieLook.is_trim_normal(Vector3(1, 1, 0)) and RareDieLook.is_trim_normal(Vector3(1, 1, 1)), "edge and corner normals take the trim")
+	# A thin edge band, not the whole round: 15 deg off a face stays bare.
+	_check(not RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(15))), "trim is a thin edge band (15 deg off face is bare)")
+	_check(not RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(34))) and RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(40))), "trim starts ~37 deg off a face (0.80)")
+	RareDieLook.set_trim(d, false)
+	_check(body.get_node_or_null("RareTrim") == null, "set_trim off removes the trim")
+	d.free()

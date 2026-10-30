@@ -31,8 +31,10 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 		# Rares: the Art Director's warm body tint (RareDieLook) over Bone.
 		d.set_look(RareDieLook.body_color(), Palette.PIT_BLACK, td.faces)
 		d.set_meta("rare_look", true)
+		RareDieLook.set_trim(d, true)
 	elif td.faces != [1, 2, 3, 4, 5, 6] or d.has_meta("rare_look"):
 		d.remove_meta("rare_look")
+		RareDieLook.set_trim(d, false)
 		# DieVisual.safe_labels pads / trims a mismatched face list to 6.
 		d.set_look(Palette.BONE, Palette.PIT_BLACK, td.faces)
 	var old := d.faces.get_node_or_null("FaceMods")
