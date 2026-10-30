@@ -219,8 +219,8 @@ func _check_phone() -> void:
 	var u := 1080.0 / 390.0
 	check(h.is_phone_land and is_equal_approx(p.unit, h.ui_pt_px), "phone landscape: 1 spec pt = ui_pt_px")
 	var r := p.get_global_rect()
-	check(absf(r.size.x - 390 * u) < 1.5 and absf(r.end.x - (2337 - 16 * u)) < 1.5 and absf(r.position.y - 40 * u) < 1.5, "phone plate w390 (46%%), right x-16, y40 (%s)" % (r.position / u))
-	check(r.size.x / 2337.0 <= 0.47, "phone plate <= ~46% of the width")
+	check(absf(r.size.x - 388 * u) < 1.5 and absf(r.end.x - (2337 - 16 * u)) < 1.5 and absf(r.position.y - 40 * u) < 1.5, "phone plate w388 (46%%), right x-16, y40 (%s)" % (r.position / u))
+	check(r.size.x / 2337.0 <= 0.46, "phone plate <= 46% of the width (%.3f)" % (r.size.x / 2337.0))
 	_check_sizes(p, u, "phone", 12, 12, 28, 12)
 	check(p.target_value.label_settings.font_size >= 24 * u - 0.5, "phone TARGET number >= 24 pt")
 	var dr := _dealer_rect(s)

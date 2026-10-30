@@ -2,7 +2,7 @@
 ## (HANDOFF_SPEC.md "Placement"; spec px are 1600x900 on PC and pt on phone):
 ##   PC 1600x900:     AD Oct 30: plate x1.4 (w756, text x1.4, pad 16, chips
 ##                    24), top-centre at y24; SEALS just under its left end.
-##   Phone 844x390:   plate w390 (~46%), right-aligned (16) at y40, clear of the dealer
+##   Phone 844x390:   plate w388 (46%), right-aligned (16) at y40, clear of the dealer
 ##                    and the dice rest zone (y >= 138); SEALS in the bottom bar.
 ##   Portrait 390:    plate at (12, 36) pt, scale 0.8, SEALS under it (AD OK:
 ##                    left-aligned, stops short of the pot row on the right).
@@ -15,7 +15,7 @@ const PC_Y: float = 24.0
 const PC_W: float = 756.0
 const PC_TEXT_SCALE: float = 1.4
 const PHONE_Y: float = 40.0
-const PHONE_W: float = 390.0
+const PHONE_W: float = 388.0
 ## Right-aligned under Embers, so the dealer (top-left) stays clear.
 const PHONE_RIGHT: float = 16.0
 const PORTRAIT_Y: float = 36.0
