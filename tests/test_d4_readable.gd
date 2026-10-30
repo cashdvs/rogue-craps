@@ -234,6 +234,7 @@ func _check_neighbours(s: Bonfire3D, d4: DieVisual, tag: Label3D, label: String)
 			if d != d4 and d.is_visible_in_tree() and _body_rect(s.camera.cam, d).intersects(r):
 				hits.append(d.name)
 		check(hits.is_empty(), "%s d6 %s: tag %s on no other die %s" % [label, name, str(r), str(hits)])
+	check(shown >= 2, "%s: tag still shows beside parked d6s (%d of 4)" % [label, shown])
 
 
 ## Rendered check (skipped headless): cold d4 ~ d6 at ~0.45, lit keeps its hue.
@@ -279,4 +280,3 @@ func _measure(s: Bonfire3D, sv: SubViewport, d: DieVisual) -> Array:
 				col += c
 				cnt += 1
 	return [sum / maxf(cnt, 1), col / maxf(cnt, 1)]
-	check(shown >= 2, "%s: tag still shows beside parked d6s (%d of 4)" % [label, shown])
