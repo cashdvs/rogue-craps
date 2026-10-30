@@ -74,12 +74,13 @@ func _check_bodies(s: Bonfire3D, g: DieVisual, b: DieVisual) -> void:
 		check(body.mesh.resource_path.begins_with("res://art/models/dice/%s.glb" % pair[2]), "%s: the full-detail mesh, not the mobile LOD (%s)" % [pair[2], body.mesh.resource_path])
 		check(body.material_override == d.body_material and d.body_material.get_shader_parameter("use_overlay") == true, "%s: own toon material with the art's numbers" % pair[2])
 		check(d.faces.get_node_or_null("Pips") == null, "%s: no cube pips" % pair[2])
-		var ext := body.mesh.get_aabb().size * body.scale
 		# The d4 is grown to exactly 0.065 m; the d8 stays at the 0.050 m cap.
 		var want_half := 0.065 if pair[1] == &"d4" else 0.050
-		var drawn_half := PolyDie.half_extent(pair[1])
-		check(absf(drawn_half - want_half) < 0.0002 and maxf(ext.x, maxf(ext.y, ext.z)) <= want_half * 2.0 + 1e-6,
-			"%s: hull reaches %.3f m (got %.5f), drawn mesh within it" % [pair[2], want_half, drawn_half])
+		var hull_half := PolyDie.half_extent(pair[1])
+		var ab := body.mesh.get_aabb()
+		var mesh_half := maxf(maxf(maxf(-ab.position.x, ab.end.x), maxf(-ab.position.y, ab.end.y)), maxf(-ab.position.z, ab.end.z)) * body.scale.x
+		check(absf(hull_half - want_half) < 0.0002 and absf(mesh_half - want_half) < 0.0002 and d.hull_outline.scale.is_equal_approx(body.scale),
+			"%s: hull %.5f and drawn mesh %.5f reach %.3f m" % [pair[2], hull_half, mesh_half, want_half])
 	var bone: DieVisual = s.all_dice[2]
 	check(bone.shape == &"d6" and bone.faces.get_node_or_null("Pips") != null, "Bone die stays a pipped cube")
 	check(PolyBody.table_shape(TableDie.new()) == &"", "a d6 TableDie gets no shaped body")
