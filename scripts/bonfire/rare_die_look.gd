@@ -10,9 +10,22 @@ const BODY_TINT := Color("#C8A878")
 const BODY_TINT_AMOUNT := 0.55
 ## Brass edge trim (AD rare-vs-bone): the main rare cue, on the bevels only.
 const TRIM := Color("#E6C46A")
-## A body normal is flat face (no trim) when its largest object-space axis
-## component is at least TRIM_FLAT; anything rounder is bevel / edge.
+## A body normal is flat face (no trim) when it is within the shape's
+## threshold of one of its flat-face normals (dot >= SHAPE_FLAT); anything
+## rounder is bevel / edge. A d6 uses the 6 axes at TRIM_FLAT (37 deg).
 const TRIM_FLAT := 0.80
+## Flat-face normals (object space) per shape. d4 / d8 from Godot Dev's
+## caltrop_d4 / lantern_d8 meshes (#198), slot order.
+const _A := 0.57735
+const FACE_NORMALS: Dictionary = {
+	&"d6": [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN, Vector3.BACK, Vector3.FORWARD],
+	&"d4": [Vector3(0, 1, 0), Vector3(0, -0.3333, 0.9428), Vector3(-0.8165, -0.3333, -0.4714), Vector3(0.8165, -0.3333, -0.4714)],
+	&"d8": [Vector3(_A, -_A, _A), Vector3(-_A, -_A, _A), Vector3(-_A, -_A, -_A), Vector3(_A, -_A, -_A),
+		Vector3(-_A, _A, _A), Vector3(_A, _A, _A), Vector3(_A, _A, -_A), Vector3(-_A, _A, -_A)],
+}
+## d4 / d8 bevels sit ~18 deg off their faces (cos 0.951), so their flat
+## cut is 14 deg (0.97): faces bare, the bevel band brass.
+const SHAPE_FLAT: Dictionary = {&"d6": TRIM_FLAT, &"d4": 0.97, &"d8": 0.97}
 ## The trim sits this far (edge units) out along the normal, over the body.
 const TRIM_LIFT := 0.002
 ## AD fallback for a face-up rare: an inset brass frame line on each flat
@@ -36,6 +49,8 @@ uniform float mix_amount;
 uniform float edge;
 uniform float frame_at;
 uniform float frame_half;
+uniform vec3 face_n[8];
+uniform int face_count;
 varying vec3 obj_n;
 varying vec3 obj_p;
 void vertex() {
@@ -44,8 +59,13 @@ void vertex() {
 	VERTEX += NORMAL * lift * 1.5;
 }
 void fragment() {
-	vec3 a = abs(normalize(obj_n));
-	if (max(a.x, max(a.y, a.z)) >= flat_limit) {
+	vec3 n = normalize(obj_n);
+	vec3 a = abs(n);
+	bool flat_face = false;
+	for (int i = 0; i < 8; i++) {
+		if (i < face_count && dot(n, face_n[i]) >= flat_limit) { flat_face = true; }
+	}
+	if (flat_face) {
 		vec3 q = abs(obj_p) / edge;
 		float m = a.x > a.y && a.x > a.z ? max(q.y, q.z) : (a.y > a.z ? max(q.x, q.z) : max(q.x, q.y));
 		if (abs(m - frame_at) > frame_half) { discard; }
@@ -62,6 +82,8 @@ uniform float lift;
 uniform float edge;
 uniform float frame_at;
 uniform float frame_half;
+uniform vec3 face_n[8];
+uniform int face_count;
 varying vec3 obj_n;
 varying vec3 obj_p;
 void vertex() {
@@ -70,8 +92,13 @@ void vertex() {
 	VERTEX += NORMAL * lift;
 }
 void fragment() {
-	vec3 a = abs(normalize(obj_n));
-	if (max(a.x, max(a.y, a.z)) >= flat_limit) {
+	vec3 n = normalize(obj_n);
+	vec3 a = abs(n);
+	bool flat_face = false;
+	for (int i = 0; i < 8; i++) {
+		if (i < face_count && dot(n, face_n[i]) >= flat_limit) { flat_face = true; }
+	}
+	if (flat_face) {
 		vec3 q = abs(obj_p) / edge;
 		float m = a.x > a.y && a.x > a.z ? max(q.y, q.z) : (a.y > a.z ? max(q.x, q.z) : max(q.x, q.y));
 		if (abs(m - frame_at) > frame_half) { discard; }
@@ -125,9 +152,48 @@ static func is_frame_point(p: Vector3, n: Vector3, e: float) -> bool:
 
 
 ## True when a body normal [param n] (object space) is bevel, so takes the trim.
-static func is_trim_normal(n: Vector3) -> bool:
-	var a := n.normalized().abs()
-	return maxf(a.x, maxf(a.y, a.z)) < TRIM_FLAT
+static func is_trim_normal(n: Vector3, shape: StringName = &"d6") -> bool:
+	var u := n.normalized()
+	for f: Vector3 in face_normals(shape):
+		if u.dot(f.normalized()) >= flat_for(shape):
+			return false
+	return true
+
+
+## A shape's flat-face normals (unit); unknown shapes use the d6's.
+static func face_normals(shape: StringName) -> Array:
+	var out: Array = []
+	for f: Vector3 in FACE_NORMALS.get(shape, FACE_NORMALS[&"d6"]):
+		out.append(f.normalized())
+	return out
+
+
+static func flat_for(shape: StringName) -> float:
+	return float(SHAPE_FLAT.get(shape, TRIM_FLAT))
+
+
+## Fits RareTrim to the body as it is now: its mesh, its shape's face
+## normals and cut, and the square frame line only on a d6 (d4 / d8 faces
+## are triangles: bevel brass only). set_trim calls this right away and once
+## more deferred, after PolyBody.dress has swapped in a d4 / d8 mesh.
+static func fit_trim(d: DieVisual) -> void:
+	if not is_instance_valid(d):
+		return
+	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
+	var mi := body.get_node_or_null("RareTrim") as MeshInstance3D if body != null else null
+	if mi == null:
+		return
+	mi.mesh = body.mesh
+	var shape: StringName = d.shape if FACE_NORMALS.has(d.shape) else &"d6"
+	var ns := PackedVector3Array(face_normals(shape))
+	ns.resize(8)
+	var m := mi.material_override as ShaderMaterial
+	for mat: ShaderMaterial in [m, m.next_pass as ShaderMaterial]:
+		mat.set_shader_parameter("face_n", ns)
+		mat.set_shader_parameter("face_count", face_normals(shape).size())
+		mat.set_shader_parameter("flat_limit", flat_for(shape))
+		mat.set_shader_parameter("edge", body.mesh.get_aabb().size.x)
+		mat.set_shader_parameter("frame_half", FRAME_HALF if shape == &"d6" else -1.0)
 
 
 ## Adds (on) or removes (off) the brass bevel trim: a copy of the body mesh
@@ -157,9 +223,7 @@ static func set_trim(d: DieVisual, on: bool) -> void:
 	f.set_shader_parameter("lift", TRIM_LIFT * d.edge)
 	f.set_shader_parameter("mix_amount", minf(TRIM_UNSHADED, TRIM_UNSHADED_MAX))
 	for mat: ShaderMaterial in [m, f]:
-		mat.set_shader_parameter("edge", body.mesh.get_aabb().size.x)
 		mat.set_shader_parameter("frame_at", FRAME_AT)
-		mat.set_shader_parameter("frame_half", FRAME_HALF)
 	m.next_pass = f
 	var mi := MeshInstance3D.new()
 	mi.name = "RareTrim"
@@ -167,6 +231,14 @@ static func set_trim(d: DieVisual, on: bool) -> void:
 	mi.material_override = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	body.add_child(mi)
+	fit_trim(d)
+	_fit_later.call_deferred(d)
+
+
+## Deferred fit_trim: the die may be gone by then.
+static func _fit_later(d: Variant) -> void:
+	if is_instance_valid(d) and d is DieVisual:
+		fit_trim(d)
 
 
 ## True when [param die_id] is a rare die (its shape data's rarity).
