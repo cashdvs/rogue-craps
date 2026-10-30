@@ -223,7 +223,7 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   | `scripts/bonfire/bonfire_hud_goal.gd` | `BonfireHudGoal` (`BonfireHud` extends it) | goal / bounty readout, meters, stamps, UI scale |
   | `scripts/bonfire/target_plate.gd` | `TargetPlate` (extends `PanelContainer`) | Target HUD v2.1 plate: target, banked bar, hands/passed line, bounty chips; redraws on `TableGoalState.changed` |
   | `scripts/bonfire/target_place.gd` | `TargetPlace` (static) | where the plate and SEALS chip sit on PC, phone landscape and portrait; `goal_rect(hud)` for blockers |
-  | `scripts/bonfire/phone_frame.gd` | `PhoneFrame` (static) | #204 phone landscape (844x390) camera: the closer zoom, the pivot slid so the dice rest zone sits in the clear band between the goal plate and the bottom bar; `band()` and `rest_span()` for tests |
+  | `scripts/bonfire/phone_frame.gd` | `PhoneFrame` (static) | #204 phone landscape (844x390) camera: the closer zoom, the pivot slid so the dice rest zone sits in the clear band between the goal plate and the bottom bar; `clamp_rest()` nudges settled dice into the inner rows (|z| <= REST_Z) so none rest under the plate or bar; `band()`, `rest_zone()`, `throw_zone()` for tests |
   | `scripts/bonfire/phone_bottom_bar.gd` | `PhoneBottomBar` (extends `Panel`, child 0 of `BonfireHud`) | #204 phone landscape bottom bar (44 pt, under the HUD at z -1); `place(hud)` shows it on phone landscape only and parks the SEALS chip at its right end |
   | `scripts/bonfire/goal_icon.gd` | `GoalIcon` (extends `Control`) | drawn diamond / list / skull icons for the plate's chips |
   | `scripts/bonfire/table_goal_state.gd` | `TableGoalState` (stub) | temporary goal-state stub until Systems Dev's `scripts/core` version lands, then deleted |

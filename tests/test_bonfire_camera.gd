@@ -7,9 +7,10 @@
 ##     centre over the felt rest spots) at most cam_die_shrink_max smaller
 ##     than with the spec camera (pitch 55, 2.5 m, pivot z 0.05, no tilt);
 ##     the goal plaque as readable as before.
-##   - phone landscape (844x390 -> 2337x1080 canvas): the same must-see
-##     points and the pot row in frame, dice >= min_die_px and no smaller
-##     than on PC, headroom above the rail.
+##   - phone landscape (844x390 -> 2337x1080 canvas), #204 at 1.2x closer:
+##     throw zone, kept rest rows and pot row in frame 16 pt from the edge;
+##     rest rows 24 pt clear of the goal plate, bottom bar, SEALS and
+##     Nerve; smallest resting d6 >= 65 px; one side rail edge (soft).
 ##   - phone portrait (390x844 -> 1920x4155): unchanged; pot row 80 px clear.
 ##   - when the art is in the tree (art/board-hearth, art/dealer-smiles):
 ##     the real Hearth brazier meshes fully in frame on PC and phone
@@ -77,6 +78,19 @@ const DEALER_SPOT := Vector3(-0.42, -0.47, -0.86)
 
 ## Adds the Hearth board / Smiles to s when they're in the tree; returns
 ## {"brazier": corners, "smiles": corners} for whichever loaded.
+## Screen rects of the phone HUD boxes the resting dice must clear:
+## the goal plate, the bottom bar, SEALS and Nerve when they show.
+func _hud_boxes(s: Bonfire3D) -> Array:
+	var h := s.bhud
+	var out: Array = [["goal plate", h.target_plate.get_global_rect()], ["bottom bar", h.bottom_bar.get_global_rect()]]
+	check(h.target_plate.visible and h.bottom_bar.visible, "phone landscape: goal plate and bottom bar show")
+	if h.target_plate.seals_chip.is_visible_in_tree():
+		out.append(["SEALS chip", h.target_plate.seals_chip.get_global_rect()])
+	if s.nerve_ui != null and s.nerve_ui.pip != null and s.nerve_ui.pip.is_visible_in_tree():
+		out.append(["Nerve chip", s.nerve_ui.pip.get_global_rect()])
+	return out
+
+
 func _art(s: Bonfire3D) -> Dictionary:
 	var out := {}
 	if ResourceLoader.exists(HEARTH):
@@ -161,26 +175,49 @@ func _phone_landscape() -> void:
 	s.camera.snap_home()
 	var cam := s.camera.cam
 	var ds := s.tuning.die_size
-	# #204: 1.41x closer than the old whole-felt framing; resting dice sit
-	# between the Target plate and the bottom bar, and stay on screen.
-	check(is_equal_approx(s.camera.home_distance, bt.cam_phone_landscape_distance / PhoneFrame.CLOSER), "phone landscape: camera 1.41x closer (%.3f m)" % s.camera.home_distance)
-	# The inner rest rows (|z| <= 0.12) must clear the plate and bar; the
-	# full zone (to |z| 0.4) is taller than the band at 1.41x (flagged).
-	var band := PhoneFrame.band(s)
-	var span := PhoneFrame.rest_span(s, 0.15)
-	check(span.x >= band.x - 1.0 and span.y <= band.y + 1.0, "phone landscape: inner resting dice y %s inside the clear band %s" % [span, band])
-	var full := PhoneFrame.rest_span(s)
-	check(absf((full.x + full.y) - (band.x + band.y)) < 4.0, "phone landscape: rest zone centred on the band (%s vs %s)" % [full, band])
-	check(CameraFraming.margin(cam, CameraFraming.rest_spots(ds)) >= 0.0, "phone landscape: every rest spot on screen")
-	var st := CameraFraming.die_stats(cam, ds)
-	var head := CameraFraming.headroom(cam)
-	print("  phone landscape: headroom %.3f m, die px mean %.1f / min %.1f / centre %.1f" % [head, float(st["mean"]), float(st["min"]), float(st["center"])])
-	print("  phone landscape: %.2f m above the far rail (#204 closer camera: no 0.20 m minimum)" % head)
-	check(float(st["min"]) >= s.tuning.min_die_px, "phone landscape: every resting die >= min_die_px (%.1f)" % float(st["min"]))
-	check(float(st["mean"]) >= float(pc_ref["mean"]) * 1.3, "phone landscape: dice well above the spec PC camera (mean %.1f >= %.1f)" % [float(st["mean"]), float(pc_ref["mean"])])
-	var art := _art(s)
-	if art.has("brazier"):
-		print("  phone landscape: Hearth brazier margin %.0f px (#204: may crop)" % CameraFraming.margin(cam, art["brazier"]))
+	# #204 (AD: 1.2x): closer than the old whole-felt framing. Throw zone,
+	# kept rest rows and pot row fully in frame with a 16 pt safe edge;
+	# rest rows 24 pt clear of every HUD box; smallest resting d6 >= 65 px.
+	check(is_equal_approx(PhoneFrame.CLOSER, 1.2) and is_equal_approx(s.camera.home_distance, bt.cam_phone_landscape_distance / 1.2), "phone landscape: camera 1.2x closer (%.3f m)" % s.camera.home_distance)
+	var pt := 1080.0 / 390.0
+	var edge := 16.0 * pt  # AD spec, not PhoneFrame.EDGE_PT (a test reading the constant proves nothing)
+	var tz := CameraFraming.margin(cam, PhoneFrame.throw_zone(ds))
+	check(tz >= edge, "phone landscape: throw zone in frame, %.0f px from the edge (>= %.0f)" % [tz, edge])
+	var rz := CameraFraming.margin(cam, PhoneFrame.rest_zone(ds))
+	check(rz >= edge, "phone landscape: rest zone in frame, %.0f px from the edge (>= %.0f)" % [rz, edge])
+	var n := s.setup.dice.size()
+	var pot: Array[Vector3] = [s.pot_slot(0) + Vector3(0, Bonfire3D.PILLAR_HEIGHT, 0), s.pot_slot(n - 1) + Vector3(0, ds, 0), s.pot_slot(0) - Vector3(0, ds * 0.5, 0)]
+	var pm := CameraFraming.margin(cam, pot)
+	check(pm >= edge, "phone landscape: pot row in frame, %.0f px from the edge (>= %.0f)" % [pm, edge])
+	s._refresh_hud()
+	await process_frame
+	var span := PhoneFrame.span_of(cam, PhoneFrame.rest_zone(ds))
+	var zone := Rect2(cam.unproject_position(PhoneFrame.rest_zone(ds)[0]).x, span.x, 0, span.y - span.x)
+	for q in PhoneFrame.rest_zone(ds):
+		zone = zone.expand(cam.unproject_position(q))
+	for hb: Array in _hud_boxes(s):
+		var r: Rect2 = hb[1]
+		var gap := maxf(zone.position.y - r.end.y, r.position.y - zone.end.y)
+		if r.end.x < zone.position.x or r.position.x > zone.end.x:
+			gap = INF  # beside the zone, not above or below it
+		check(gap >= 24.0 * pt - 0.5, "phone landscape: rest zone %.0f px clear of the %s (>= 24 pt = %.0f)" % [gap, hb[0], 24.0 * pt])
+	var rest: Array[Vector3] = []
+	for q in CameraFraming.rest_spots(ds):
+		if absf(q.z) <= PhoneFrame.REST_Z - ds * 0.5 + 0.001:
+			rest.append(q)
+	var smallest := INF
+	for v: float in CameraFraming.die_sizes(cam, rest, ds):
+		smallest = minf(smallest, v)
+	check(rest.size() >= 10 and smallest >= 65.0, "phone landscape: smallest resting d6 %.1f px (>= 65, 23.5 pt) over %d spots" % [smallest, rest.size()])
+	# Soft (AD): at least one side rail's outer edge shows. A warning only.
+	var rx := Table3DBuilder.FELT_HALF.x + Table3DBuilder.RAIL_RADIUS * 2.0
+	var rails: Array[float] = []
+	for sx in [-1.0, 1.0]:
+		rails.append(CameraFraming.margin(cam, [Vector3(sx * rx, Table3DBuilder.RAIL_Y, 0.0)] as Array[Vector3]))
+	if maxf(rails[0], rails[1]) < 0.0:
+		print("WARN  phone landscape: no side rail edge in frame (%s px)" % str(rails))
+	else:
+		print("  phone landscape: side rail edges %s px (soft check ok)" % str(rails))
 	sv.queue_free()
 	await process_frame
 

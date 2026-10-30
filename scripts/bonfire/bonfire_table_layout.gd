@@ -58,7 +58,7 @@ func _update_portrait_hud() -> void:
 	var portrait := vs.y > vs.x
 	_place_reliquary()
 	bhud.set_portrait(portrait)
-	var phone_land := not portrait and phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y
+	var phone_land := not portrait and _phone_landscape()
 	bhud.set_ui_scale(ui_pt_px(portrait), BonfireHud.PHONE_LANDSCAPE_CARDS if phone_land else 1.0)
 	if felt_combos != null:
 		felt_combos.set_off(portrait or phone_land)  # #204: no felt Seal row on phone
@@ -268,6 +268,11 @@ func _fit_landscape_felt() -> void:
 
 ## Phone landscape: PhoneFrame's closer framing (#204: 1.41x, dice resting
 ## between the Target plate and the bottom bar). Returns the smallest die (px).
+## True on a phone held sideways (fit_phone got a wide screen).
+func _phone_landscape() -> bool:
+	return phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y
+
+
 func _fit_phone_landscape() -> float:
 	var px := PhoneFrame.fit_landscape(self)
 	phone_dial_visible = true
