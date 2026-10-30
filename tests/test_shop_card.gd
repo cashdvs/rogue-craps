@@ -275,7 +275,7 @@ func _test_titles_fit() -> void:
 	dice.append_array(run.data.shapes)
 	dice.append_array(run.data.special_dice)
 	var keep: SpecialDieData = run.shop_dice[1]
-	for win in [Vector2i(1920, 1080), Vector2i(390, 844)]:
+	for win in [Vector2i(1920, 1080), Vector2i(390, 844), Vector2i(844, 390)]:
 		var bad: Array[String] = []
 		var rares := 0
 		for d in dice:
