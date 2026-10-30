@@ -79,7 +79,7 @@ uniform float state_rim_power = 5.0;
 // Playtest fix: a lit die only warms its albedo this much (pips/body stay readable).
 uniform float lit_albedo_mix_max = 0.35;
 // Per-face value tint (AD, Bellows shop icon): faces that do not point up
-// get their albedo darkened by face_shade (0.28 = 28% darker value), so the
+// get their albedo darkened by face_shade (e.g. 0.22 = 22% darker value, the Bellows body), so the
 // top reads lighter than the sides under any light. Mask = world-space up
 // normal, so it follows whichever face is up. 0 = off (every other prop).
 uniform float face_shade = 0.0;
