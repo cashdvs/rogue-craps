@@ -20,6 +20,17 @@ const TEXT: Dictionary[String, String] = {
 	"hint_table_goal": "Clear the table by claiming these bounties; points only turn into Embers.",
 	"pot_preview_ticks": "Ticks: {name}",
 	"chit_pending_tag": "bank to claim",
+	# Target HUD v2.1 (handoff/table_goals_v1_pr1.md §4; strings_v1 lock Oct 30).
+	"goal_target_label": "TARGET",
+	"goal_to_go": "{n} to go · {h} hands left",
+	"goal_to_go_one_hand": "{n} to go · 1 hand left",
+	"goal_passed": "PASSED · {h} hands left",
+	"goal_passed_one_hand": "PASSED · 1 hand left",
+	"goal_over": "+{n}",
+	"goal_miss": "Missed: -{s} Soul",
+	"hud_seals_chip": "SEALS · {n}",
+	"hud_nerve": "Nerve {n}",
+	"goal_hint": "Bank points to reach the target.",
 }
 
 
