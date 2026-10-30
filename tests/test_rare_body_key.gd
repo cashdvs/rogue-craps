@@ -92,9 +92,14 @@ func _test_table(id: StringName) -> void:
 		small.free()
 		_check(body.material_override == d.body_material, "%s: keeps its toon material (lit / cold still work)" % id)
 	else:
-		_check(d.get_meta(&"art_body", &"") == &"" and body.mesh == cube, "%s: shaped rare keeps the cube for now" % id)
+		# Gallows / Beacon: no body key; PolyBody dresses them as d4 / d8 (#198).
+		_check(d.get_meta(&"art_body", &"") == &"" and d.shape != &"d6" and body.mesh == PolyBody.mesh_for(d.shape), "%s: shaped rare gets its own shaped body" % id)
 	_check(other.get_meta(&"art_body", &"") == &"" and not (other.faces.get_node("Body") as MeshInstance3D).mesh.resource_path.contains(".glb"), "%s: the Bone die beside it keeps the cube" % id)
-	# Reapplying a plain die gives the cube back.
+	# Reapplying a plain die gives the cube back (a cube-shaped die only).
+	if not art:
+		b.queue_free()
+		await process_frame
+		return
 	b.apply_art_body(d, &"bone")
 	_check(body.mesh == cube and body.scale == Vector3.ONE, "%s: a Bone look restores the cube" % id)
 	b.queue_free()

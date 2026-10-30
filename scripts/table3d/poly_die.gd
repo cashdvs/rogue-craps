@@ -101,7 +101,12 @@ static func art_body_mesh(die_id: StringName) -> Mesh:
 	return found
 
 
+## Collider points. Shapes the table dresses (PolyBody: d4, d8) use the PC
+## mesh's hull; the rest use the generated mobile-LOD hull.
 static func hull(shape: StringName) -> PackedVector3Array:
+	var pc := PolyBody.pc_hull(shape)
+	if pc.size() > 0:
+		return pc
 	return DieHullData.SHAPES[shape]["hull"]
 
 

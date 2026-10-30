@@ -72,10 +72,10 @@ func _check_bodies(s: Bonfire3D, g: DieVisual, b: DieVisual) -> void:
 		check(d.shape == pair[1], "%s: table shape %s (got %s)" % [pair[2], pair[1], d.shape])
 		check(body.mesh == PolyBody.mesh_for(pair[1]) and body.mesh != null, "%s: art mesh on the body" % pair[2])
 		check(body.mesh.resource_path.begins_with("res://art/models/dice/%s.glb" % pair[2]), "%s: the full-detail mesh, not the mobile LOD (%s)" % [pair[2], body.mesh.resource_path])
-		check(body.material_override == null and body.mesh.surface_get_material(0) != null, "%s: the art's own numbered material" % pair[2])
+		check(body.material_override == d.body_material and d.body_material.get_shader_parameter("use_overlay") == true, "%s: own toon material with the art's numbers" % pair[2])
 		check(d.faces.get_node_or_null("Pips") == null, "%s: no cube pips" % pair[2])
 		var ext := body.mesh.get_aabb().size * body.scale
-		check(maxf(ext.x, maxf(ext.y, ext.z)) <= PolyDie.MAX_HALF_EXTENT * 2.0 + 0.002, "%s: within the 0.050 m cap" % pair[2])
+		check(maxf(ext.x, maxf(ext.y, ext.z)) <= PolyDie.MAX_HALF_EXTENT * 2.0 + 1e-6 and PolyDie.half_extent(pair[1]) <= PolyDie.MAX_HALF_EXTENT + 1e-6, "%s: mesh and hull within the 0.050 m cap" % pair[2])
 	var bone: DieVisual = s.all_dice[2]
 	check(bone.shape == &"d6" and bone.faces.get_node_or_null("Pips") != null, "Bone die stays a pipped cube")
 	check(PolyBody.table_shape(TableDie.new()) == &"", "a d6 TableDie gets no shaped body")

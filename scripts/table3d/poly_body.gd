@@ -5,6 +5,7 @@
 ## die: DiceSim gives it the ConvexPolygonShape3D collider (PolyDie.make_shape),
 ## and up_slot() / face_rotation() read it from PolyDie's direction table
 ## (a d4 by its top POINT, a d8 by its top face, so Beacon's 7 and 8 show).
+## The collider hull comes from the same PC mesh (pc_hull).
 ## Only d4 and d8 for now; the other shaped dice stay on the cube until
 ## their own pass. Body-key art loading (Table3D.apply_art_body) is separate
 ## and untouched: a shaped die simply keeps its shape's own mesh.
@@ -24,15 +25,25 @@ static func table_shape(td: TableDie) -> StringName:
 	return &""
 
 
-## The full-detail mesh for a shape: the PC .glb next to the mobile one the
-## hull was built from (falls back to the mobile mesh).
-static func mesh_for(shape: StringName) -> Mesh:
+## Collider points per shape, built once from the PC mesh (see pc_hull).
+static var _hulls: Dictionary = {}
+
+
+## The full-detail PC .glb path for a shape (the file next to the mobile
+## LOD), or "" if it is not in the repo.
+static func pc_path(shape: StringName) -> String:
 	var p := PolyDie.mesh_path(shape)
 	if p == "":
+		return ""
+	p = p.replace("_mobile.glb", ".glb")
+	return p if ResourceLoader.exists(p) else ""
+
+
+## The full-detail mesh for a shape (the PC .glb, never the mobile LOD).
+static func mesh_for(shape: StringName) -> Mesh:
+	var p := pc_path(shape)
+	if p == "":
 		return null
-	var pc := p.replace("_mobile.glb", ".glb")
-	if ResourceLoader.exists(pc):
-		p = pc
 	var scene := load(p) as PackedScene
 	if scene == null:
 		return null
@@ -43,6 +54,21 @@ static func mesh_for(shape: StringName) -> Mesh:
 		break
 	inst.free()
 	return found
+
+
+## Convex-hull collider points for a table shape, taken from the PC mesh
+## the player sees (not the mobile LOD), so the die rests on exactly the
+## faces it shows. Empty for shapes this file does not dress.
+static func pc_hull(shape: StringName) -> PackedVector3Array:
+	if not TABLE_SHAPES.has(shape):
+		return PackedVector3Array()
+	if not _hulls.has(shape):
+		var mesh := mesh_for(shape)
+		var pts := PackedVector3Array()
+		if mesh != null:
+			pts = (mesh.create_convex_shape(true, false) as ConvexPolygonShape3D).points
+		_hulls[shape] = pts
+	return _hulls[shape]
 
 
 ## Turns die [param d] into the shaped body for [param td] (no-op for a d6,
@@ -58,13 +84,16 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	var body := d.faces.get_node("Body") as MeshInstance3D
 	body.mesh = mesh
 	body.scale = Vector3.ONE  # the art is already in metres, capped at 0.05
-	# The art's own material carries the printed numbers, so drop the
-	# bone-cube toon override and the cube's pips / mod decals.
-	body.material_override = null
+	# Keep the die's own toon material (the rare tint and the lit glow live
+	# on it) and borrow the art's printed numbers (its overlay texture).
+	body.material_override = d.body_material
+	var art := mesh.surface_get_material(0) as ShaderMaterial
+	if art != null and art.get_shader_parameter("overlay_tex") != null:
+		for k in ["use_overlay", "overlay_tex", "overlay_tint"]:
+			d.body_material.set_shader_parameter(k, art.get_shader_parameter(k))
+	# The cube's pips go (the art prints the numbers). FaceMods marks and a
+	# RareTrim child are other systems' nodes: left alone on purpose.
 	d.clear_pips()
-	var decals := d.faces.get_node_or_null("FaceMods")
-	if decals != null:
-		decals.free()
 	if d.hull_outline != null:
 		d.hull_outline.mesh = mesh
 		d.hull_outline.scale = Vector3.ONE
