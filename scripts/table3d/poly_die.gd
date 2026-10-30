@@ -71,7 +71,7 @@ static func body_shape_for(td: TableDie) -> StringName:
 ## bodies for now: they keep the cube collider and face read, so the shaped
 ## (d4 / d8 ...) meshes stay with the hull path above. "" = keep the cube.
 static func art_body_path(die_id: StringName) -> String:
-	if not DiceIds.is_die(die_id) or DiceIds.shape_of(die_id) != &"d6":
+	if not DiceIds.is_die(die_id):
 		return ""
 	if not DiceIds.RARE_ART_BODIES.has(DiceIds.asset_key(die_id)):
 		return ""  # Rares only; the other dice keep the procedural cube.

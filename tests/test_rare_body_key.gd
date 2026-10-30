@@ -83,6 +83,13 @@ func _test_table(id: StringName) -> void:
 		_check(d.get_meta(&"art_body", &"") == DiceIds.body_key(id) and body.mesh != cube, "%s: spawns its %s body" % [id, DiceIds.body_key(id)])
 		var ext := body.mesh.get_aabb().size.x * body.scale.x
 		_check(absf(ext - d.edge) < d.edge * 0.02, "%s: art body is scaled to the die edge (%.4f vs %.4f)" % [id, ext, d.edge])
+		# A die of another edge: the body is scaled by edge / mesh size (Godot Dev #197).
+		var small := DieVisual.new(0.05)
+		b.add_child(small)
+		b.apply_art_body(small, id)
+		var sb := small.faces.get_node("Body") as MeshInstance3D
+		_check(absf(sb.mesh.get_aabb().size.x * sb.scale.x - 0.05) < 0.001, "%s: a 0.05 m die gets a 0.05 m art body" % id)
+		small.free()
 		_check(body.material_override == d.body_material, "%s: keeps its toon material (lit / cold still work)" % id)
 	else:
 		_check(d.get_meta(&"art_body", &"") == &"" and body.mesh == cube, "%s: shaped rare keeps the cube for now" % id)
