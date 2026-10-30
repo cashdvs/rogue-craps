@@ -50,5 +50,27 @@ func _initialize() -> void:
 	check(CoinPhysics.RADIUS <= cap and CoinPhysics.THICKNESS * 0.5 <= cap, "coin: hull within 0.050 m")
 	if not merged:
 		print("PENDING (PR #102 not merged, its meshes are not in res://art/models/dice/): half-extent cap not enforced yet. Over 0.050 m now: %s" % (", ".join(over) if not over.is_empty() else "none"))
+	_check_d4_cap()
+	_check_rest_timer()
 	print("test_die_hull_extent: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+## QA ask: the d4's real collider (PolyBody.pc_hull, the one dress() uses)
+## must reach its 0.065 m cap, so shrinking it back to 0.050 m fails here.
+func _check_d4_cap() -> void:
+	var far := 0.0
+	for p: Vector3 in PolyBody.pc_hull(&"d4"):
+		far = maxf(far, maxf(absf(p.x), maxf(absf(p.y), absf(p.z))))
+	check(absf(PolyDie.cap_for(&"d4") - 0.065) < 0.0005, "d4: cap_for is %.4f m, want 0.065" % PolyDie.cap_for(&"d4"))
+	check(absf(far - 0.065) < 0.002, "d4: collider hull reaches %.4f m, want 0.065 m" % far)
+
+
+## QA ask: the settle rest timer. 0.12 s at 120 Hz = 15 still frames in a
+## row; any longer (e.g. +1 s) or shorter wait fails here.
+func _check_rest_timer() -> void:
+	var sim := DiceSim.new()
+	sim.tuning = TuningData.new()
+	check(is_equal_approx(sim.tuning.sim_rest_time, 0.12), "rest time %.3f s, want 0.12 s" % sim.tuning.sim_rest_time)
+	check(sim.rest_frames() == 15, "rest_frames() = %d, want 15" % sim.rest_frames())
+	sim.free()
