@@ -9,12 +9,36 @@ extends RefCounted
 const BODY_TINT := Color("#C8A878")
 const BODY_TINT_AMOUNT := 0.55
 ## Brass edge trim (AD rare-vs-bone): the main rare cue, on the bevels only.
-const TRIM := Color("#C9A24A")
+const TRIM := Color("#E6C46A")
 ## A body normal is flat face (no trim) when its largest object-space axis
 ## component is at least TRIM_FLAT; anything rounder is bevel / edge.
-const TRIM_FLAT := 0.93
+const TRIM_FLAT := 0.88
 ## The trim sits this far (edge units) out along the normal, over the body.
 const TRIM_LIFT := 0.002
+## Light resistance: share of the trim drawn flat (unshaded albedo, not
+## emission) over its lit result, so bonfire light cannot swallow it. Capped
+## at TRIM_UNSHADED_MAX.
+const TRIM_UNSHADED := 0.5
+const TRIM_UNSHADED_MAX := 0.5
+## Second pass: the flat albedo blended at TRIM_UNSHADED over the lit pass.
+const TRIM_FLAT_SHADER := """shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_back, shadows_disabled;
+uniform vec4 trim : source_color;
+uniform float flat_limit;
+uniform float lift;
+uniform float mix_amount;
+varying vec3 obj_n;
+void vertex() {
+	obj_n = NORMAL;
+	VERTEX += NORMAL * lift * 1.5;
+}
+void fragment() {
+	vec3 a = abs(normalize(obj_n));
+	if (max(a.x, max(a.y, a.z)) >= flat_limit) { discard; }
+	ALBEDO = trim.rgb;
+	ALPHA = mix_amount;
+}
+"""
 const TRIM_SHADER := """shader_type spatial;
 render_mode diffuse_toon, specular_disabled;
 uniform vec4 trim : source_color;
@@ -91,6 +115,15 @@ static func set_trim(d: DieVisual, on: bool) -> void:
 	m.set_shader_parameter("trim", TRIM)
 	m.set_shader_parameter("flat_limit", TRIM_FLAT)
 	m.set_shader_parameter("lift", TRIM_LIFT * d.edge)
+	var fs := Shader.new()
+	fs.code = TRIM_FLAT_SHADER
+	var f := ShaderMaterial.new()
+	f.shader = fs
+	f.set_shader_parameter("trim", TRIM)
+	f.set_shader_parameter("flat_limit", TRIM_FLAT)
+	f.set_shader_parameter("lift", TRIM_LIFT * d.edge)
+	f.set_shader_parameter("mix_amount", minf(TRIM_UNSHADED, TRIM_UNSHADED_MAX))
+	m.next_pass = f
 	var mi := MeshInstance3D.new()
 	mi.name = "RareTrim"
 	mi.mesh = body.mesh

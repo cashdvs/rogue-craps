@@ -141,11 +141,13 @@ func _test_mark_size() -> void:
 			d.free()
 
 
-## Brass bevel trim: #C9A24A, no emission, bevel normals only, its own node
+## Brass bevel trim: #E6C46A, no emission, bevel normals only, its own node
 ## (not the #162 hull outline), and gone again when the die stops being rare.
 func _test_trim() -> void:
-	_check(RareDieLook.TRIM == Color("#C9A24A"), "trim is brass #C9A24A")
-	_check(not RareDieLook.TRIM_SHADER.contains("EMISSION"), "trim has no emission")
+	_check(RareDieLook.TRIM == Color("#E6C46A"), "trim is brass #E6C46A")
+	_check(not RareDieLook.TRIM_SHADER.contains("EMISSION") and not RareDieLook.TRIM_FLAT_SHADER.contains("EMISSION"), "trim has no emission")
+	_check(is_equal_approx(RareDieLook.TRIM_FLAT, 0.88), "trim mask threshold 0.88")
+	_check(is_equal_approx(RareDieLook.TRIM_UNSHADED, 0.5) and RareDieLook.TRIM_UNSHADED <= RareDieLook.TRIM_UNSHADED_MAX, "trim mixes 50% toward flat albedo, within its cap")
 	var d := DieVisual.new()
 	root.add_child(d)
 	RareDieLook.set_trim(d, true)
@@ -154,6 +156,9 @@ func _test_trim() -> void:
 	_check(t != null and t != d.hull_outline and t.mesh == body.mesh, "trim is its own copy of the body mesh")
 	var m := t.material_override as ShaderMaterial if t != null else null
 	_check(m != null and (m.get_shader_parameter("trim") as Color).is_equal_approx(RareDieLook.TRIM), "trim shader draws brass at full strength")
+	var f := m.next_pass as ShaderMaterial if m != null else null
+	_check(f != null and f.shader.code.contains("unshaded") and f.shader.code.contains("discard") and is_equal_approx(f.get_shader_parameter("mix_amount"), 0.5) \
+			and (f.get_shader_parameter("trim") as Color).is_equal_approx(RareDieLook.TRIM) and is_equal_approx(f.get_shader_parameter("flat_limit"), RareDieLook.TRIM_FLAT), "flat pass: unshaded brass at 50%, same bevel mask")
 	_check(m != null and m.shader.code.contains("discard") and is_equal_approx(m.get_shader_parameter("flat_limit"), RareDieLook.TRIM_FLAT), "trim shader masks flat faces")
 	# Every body vertex: flat-face ones get no trim, bevel ones do, and the
 	# trim covers some but well under half the surface (never all-gold).
@@ -176,6 +181,7 @@ func _test_trim() -> void:
 	_check(RareDieLook.is_trim_normal(Vector3(1, 1, 0)) and RareDieLook.is_trim_normal(Vector3(1, 1, 1)), "edge and corner normals take the trim")
 	# A thin edge band, not the whole round: 15 deg off a face stays bare.
 	_check(not RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(15))), "trim is a thin edge band (15 deg off face is bare)")
+	_check(not RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(26))) and RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(31))), "trim starts ~28 deg off a face (0.88)")
 	RareDieLook.set_trim(d, false)
 	_check(body.get_node_or_null("RareTrim") == null, "set_trim off removes the trim")
 	d.free()
