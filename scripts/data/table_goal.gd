@@ -12,7 +12,8 @@ extends Resource
 @export var clear_embers: int = 10
 ## Out of hands: Soul lost per required bounty still unticked.
 @export var timeout_soul_per_bounty: int = 3
-## Points to bank to pass the table (0 = no target: never passes).
+## Points to bank to pass the table (0 = no target: BonfireRun._goal_met falls back to the
+## bounty rule, all `required` ticked; the standalone bonfire_tuning goal).
 @export var target: int = 0
 ## Out of hands short of the target: Soul lost (BonfireRun.soul_cost doubles
 ## it under Bloodletter).

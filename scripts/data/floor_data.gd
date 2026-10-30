@@ -22,7 +22,7 @@ extends Resource
 ## Unused since table_goals_v1 PR1 (kept for save compatibility; PR3 cleanup).
 @export var timeout_soul_per_bounty: int = 3
 ## table_goals_v1 PR1: a table is passed by banking its target score.
-## One target per node type on the floor (no ramp); 0 = never passes.
+## One target per node type on the floor (no ramp); 0 = no target (the table falls back to the bounty rule: BonfireRun._goal_met).
 @export var target_table: int = 0
 @export var target_elite: int = 0
 @export var target_boss: int = 0
