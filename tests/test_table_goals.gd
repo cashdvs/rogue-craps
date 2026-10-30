@@ -258,6 +258,29 @@ func _test_state() -> void:
 	_enter(run, NT.BOSS)
 	var bs := TableGoalState.watch(BonfireRun.new(_tuning, run.goal, 30, 5))
 	_check(bs.is_boss and bs.target == 700 and bs.seals == 0, "state: boss table, no map run -> seals 0")
+	var ms := TableGoalState.watch(run)
+	_check(ms.map_run == run and ms.run == null and ms.is_boss and ms.target == 700 and ms.banked == 0
+		and ms.hands_left == run.goal.hands and ms.seals == 1, "state: watch(map_run) alone -> map goal, seals, banked 0")
+	var both := TableGoalState.watch(run, bs.run)
+	_check(both.run == bs.run and both.map_run == run, "state: watch(map_run, run) in either order")
+	var seam := {"n": 0, "sig": []}
+	var ts := TableGoalState.new()
+	ts.changed.connect(func() -> void: seam["n"] += 1)
+	ts.banked_changed.connect(func(v: int) -> void: seam["sig"].append(["b", v]))
+	ts.target_changed.connect(func(v: int) -> void: seam["sig"].append(["t", v]))
+	ts.hands_left_changed.connect(func(v: int) -> void: seam["sig"].append(["h", v]))
+	ts.seals_changed.connect(func(v: int) -> void: seam["sig"].append(["s", v]))
+	ts.debuff_changed.connect(func(v: Variant) -> void: seam["sig"].append(["d", v]))
+	ts.set_for_test(300, 120, 3, null, 2, true)
+	_check(ts.target == 300 and ts.banked == 120 and ts.hands_left == 3 and ts.seals == 2 and ts.is_boss and seam["n"] == 1
+		and seam["sig"] == [["t", 300], ["b", 120], ["h", 3], ["s", 2]], "seam: set_for_test sets fields, emits each, one changed (%s)" % [seam])
+	var dbf := {"icon_id": &"x", "text": "y"}
+	ts.set_for_test(300, 120, 3, dbf, 2, true)
+	_check(ts.debuff == dbf and seam["n"] == 2 and seam["sig"].back() == ["d", dbf], "seam: a debuff change emits debuff_changed")
+	ts.set_for_test(300, 120, 3, dbf, 2, true)
+	_check(seam["n"] == 2, "seam: no change -> no signals")
+	var br := BonfireRun.new(_tuning, run.goal, 30, 5)
+	_check(not br.bounties_count(), "rules: a target table counts no bounties (no cards to tick)")
 	_check(TableGoalStrings.num(1234567) == "1,234,567" and TableGoalStrings.num(300) == "300"
 		and TableGoalStrings.progress(1000, 640, 3) == "360 to go · 3 hands left" and TableGoalStrings.progress(1000, 640, 1) == "360 to go · 1 hand left"
 		and TableGoalStrings.progress(1000, 1240, 2) == "PASSED · 2 hands left +240" and TableGoalStrings.progress(1000, 1000, 1) == "PASSED · 1 hand left",
