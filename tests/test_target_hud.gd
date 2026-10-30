@@ -93,7 +93,7 @@ func _check_pc() -> void:
 	# The stub follows the run: a real throw and bank change banked / hands.
 	var seen := {"changed": 0, "banked": 0}
 	g.changed.connect(func() -> void: seen["changed"] += 1)
-	g.banked_changed.connect(func() -> void: seen["banked"] += 1)
+	g.banked_changed.connect(func(_v: int) -> void: seen["banked"] += 1)
 	for i in 600:
 		if s.run.state == BonfireRun.State.AIM and not s.hand_moving():
 			break
@@ -108,9 +108,9 @@ func _check_pc() -> void:
 	check(seen["banked"] >= 1 and seen["changed"] >= 1, "banked_changed and changed fired")
 	check(p.banked_value.text == TargetPlate.fmt(s.run.points), "plate banked number redraws on changed")
 	# Stub values: chips (max 2), SEALS, bar, passed, boss, miss.
-	g.stub_set({"target": 270, "banked": 120, "hands_left": 3, "seals": 4, "bounties": [
-		{"icon_id": &"clean_hands", "text": "Clean Hands"}, {"icon_id": &"usurers_ledger", "text": "Usurer's Ledger"},
-		{"icon_id": &"pair_up", "text": "Pair Up"}]})
+	g._bounties = [{"icon_id": &"clean_hands", "text": "Clean Hands"}, {"icon_id": &"usurers_ledger", "text": "Usurer's Ledger"},
+		{"icon_id": &"pair_up", "text": "Pair Up"}]
+	g.set_for_test(270, 120, 3, null, 4)
 	await _frames(2)
 	var chips := p.chip_row.get_children().filter(func(c: Node) -> bool: return c is GoalIcon)
 	check(chips.size() == 2, "at most 2 chips (%d)" % chips.size())
@@ -121,11 +121,11 @@ func _check_pc() -> void:
 	p.seals_pressed.connect(func() -> void: pressed[0] += 1)
 	p.seals_chip.pressed.emit()
 	check(pressed[0] == 1, "SEALS opens the Seals list (seals_pressed)")
-	g.stub_set({"banked": 310, "hands_left": 2})
+	g.set_for_test(270, 310, 2, null, 4)
 	await _frames(1)
 	check(p.line3.text == "PASSED · 2 hands left" and p.line3_extra.visible and p.line3_extra.text == "+40", "passed: PASSED + over (%s %s)" % [p.line3.text, p.line3_extra.text])
 	check(p.bar_color() == Color("#F0CC72"), "bar is #F0CC72 at 100%")
-	g.stub_set({"target": 123456, "banked": 12400})
+	g.set_for_test(123456, 12400, 2, null, 4)
 	await _frames(1)
 	check(p.target_value.text == "123.5k" and p.banked_value.text == "12,400", "plate abbreviates above 99,999")
 	p.show_miss(5)
@@ -147,10 +147,11 @@ func _check_pc() -> void:
 	check(p.card.visible, "a tap opens the card")
 	chip.gui_input.emit(tap)
 	check(not p.card.visible, "a second tap closes it")
-	# Placement: x740 y100 w540 of 1600x900 = x888 y120 w648 here.
+	# Placement (AD Oct 30): w756 top-centre at y24 of 1600x900 = w907 x506 y29 here.
 	var r := p.get_global_rect()
-	check(absf(r.position.x - 888) < 1 and absf(r.position.y - 120) < 1 and absf(r.size.x - 648) < 1, "PC plate rect %s" % r)
-	check(absf(p.seals_chip.position.y - 228 * 1.2) < 1 and p.seals_chip.position.y >= r.end.y, "PC SEALS under the plate at y228")
+	check(absf(r.size.x - 756 * 1.2) < 1 and absf(r.get_center().x - 960) < 1 and absf(r.position.y - 24 * 1.2) < 1, "PC plate x1.4, top-centre %s" % r)
+	_check_sizes(p, 1.2, "PC", 14, 16, 24, 16)
+	check(p.seals_chip.position.y >= r.end.y and p.seals_chip.position.y - r.end.y < 8 * 1.2 and absf(p.seals_chip.position.x - r.position.x) < 1, "PC SEALS just under the plate's left end")
 	check(not r.grow(23).intersects(h.coin_label.get_global_rect()) and not r.intersects(h.points_label.get_global_rect()), "plate clear of the Embers readout")
 	await _check_nerve_clear(s, "PC")
 	m[0].queue_free()
@@ -183,6 +184,30 @@ func _nerve_clear(s: Bonfire3D, tag: String) -> void:
 	check(not nb.intersects(g.grow(24.0 * u - 1.0)), "%s: Nerve >= 24 px clear of the plate (%s vs %s)" % [tag, nb, g])
 
 
+## Font sizes in screen px (k = px per spec unit): TARGET label / to-go line,
+## banked number, chip size, padding.
+func _check_sizes(p: TargetPlate, k: float, tag: String, label_min: float, banked_min: float, chip: float, pad: float) -> void:
+	check(p.target_label.label_settings.font_size >= label_min * k - 0.5 and p.line3.label_settings.font_size >= label_min * k - 0.5, "%s: TARGET label and to-go line >= %d (%d / %d)" % [tag, label_min, p.target_label.label_settings.font_size, p.line3.label_settings.font_size])
+	check(p.banked_value.label_settings.font_size >= banked_min * k - 0.5, "%s: banked number >= %d (%d)" % [tag, banked_min, p.banked_value.label_settings.font_size])
+	check(is_equal_approx((p.get_theme_stylebox("panel") as StyleBoxFlat).content_margin_top, pad * k), "%s: padding %d" % [tag, pad])
+	var chips := p.chip_row.get_children().filter(func(c: Node) -> bool: return c is GoalIcon)
+	check(chips.is_empty() or absf((chips[0] as Control).custom_minimum_size.x - chip * k) < 1, "%s: chips %d" % [tag, chip])
+
+
+## The dealer art's screen rect (its mesh boxes projected).
+func _dealer_rect(s: Bonfire3D) -> Rect2:
+	var r := Rect2()
+	var cam := s.get_viewport().get_camera_3d()
+	for mi: VisualInstance3D in (s.dealer_art.scene if s.dealer_art.scene != null else s.dealer_art).find_children("*", "VisualInstance3D", true, false):
+		if not mi.is_visible_in_tree():
+			continue
+		var bb := mi.global_transform * mi.get_aabb()
+		for i in 8:
+			var sp := cam.unproject_position(bb.get_endpoint(i))
+			r = Rect2(sp, Vector2.ZERO) if not r.has_area() and r.position == Vector2.ZERO else r.expand(sp)
+	return r
+
+
 func _check_phone() -> void:
 	var m: Array = await _make(Vector2i(2337, 1080))
 	var s: Bonfire3D = m[1]
@@ -194,10 +219,15 @@ func _check_phone() -> void:
 	var u := 1080.0 / 390.0
 	check(h.is_phone_land and is_equal_approx(p.unit, h.ui_pt_px), "phone landscape: 1 spec pt = ui_pt_px")
 	var r := p.get_global_rect()
-	check(absf(r.position.x - 190 * u) < 1.5 and absf(r.position.y - 40 * u) < 1.5 and absf(r.size.x - 510 * u) < 1.5, "phone plate x190 y40 w510 (%s)" % (r.position / u))
+	check(absf(r.size.x - 390 * u) < 1.5 and absf(r.end.x - (2337 - 16 * u)) < 1.5 and absf(r.position.y - 40 * u) < 1.5, "phone plate w390 (46%%), right x-16, y40 (%s)" % (r.position / u))
+	check(r.size.x / 2337.0 <= 0.47, "phone plate <= ~46% of the width")
+	_check_sizes(p, u, "phone", 12, 12, 28, 12)
+	check(p.target_value.label_settings.font_size >= 24 * u - 0.5, "phone TARGET number >= 24 pt")
+	var dr := _dealer_rect(s)
+	check(dr.has_area() and not r.intersects(dr), "phone plate clear of the dealer (%s vs %s)" % [r, dr])
 	check(r.end.y <= 138 * u, "phone plate ends above the dice rest zone y138 (%.1f pt)" % (r.end.y / u))
 	check(not h.checklist_panel.visible, "phone: no bounty cards")
-	h.goal_state.stub_set({"seals": 2})
+	h.goal_state.set_for_test(300, 0, h.goal_state.hands_left, null, 2)
 	await _frames(2)
 	var sc := p.seals_chip.get_global_rect()
 	check(p.seals_chip.visible and Rect2(Vector2.ZERO, Vector2(2337, 1080)).encloses(sc) and not sc.intersects(r), "phone SEALS on screen, off the plate")
