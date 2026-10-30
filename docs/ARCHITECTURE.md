@@ -159,9 +159,9 @@ the only place to bump it. `Version` (`scripts/core/version.gd`) reads it: `disp
 `v0.1.2 (abc1234)` (`(dev)` when not stamped), `tag()` gives `beta-0.1.2`, `file_stem()` gives
 `DiceOfTheDamned-0.1.2` and `bug_subject()` gives `Bug report - v0.1.2 (abc1234)`. The Android
 versionCode is `major*10000 + minor*100 + patch` (0.1.2 = 102), so it always grows.
-`tools/stamp_version.sh` runs before an export. It writes the short sha into `version.cfg` (`--no-sha`
+`tools/stamp_version.sh` wraps an export. It writes the short sha into `version.cfg` (`--no-sha`
 keeps `dev`), copies the version into the Android/Windows presets and `project.godot`, and prints
-the export names (`DiceOfTheDamned-0.1.2-Windows.zip`, `-Android.apk`). **Stamping edits 3 tracked files** (`version.cfg`, `export_presets.cfg`, `project.godot`); never commit them stamped. Export from a fresh worktree, or run `git checkout -- version.cfg export_presets.cfg project.godot` afterwards. Anything players see or hear
+the export names (`DiceOfTheDamned-0.1.2-Windows.zip`, `-Android.apk`). Run exports through it: `tools/stamp_version.sh [--no-sha] -- <export command...>` stamps the 3 tracked files (`version.cfg`, `export_presets.cfg`, `project.godot`), runs the export, and restores the 3 files from a backup via `trap ... EXIT`, so the tree is clean again whether the export succeeds or fails (the script exits with the export's status). `--stamp-only` leaves the files stamped and is meant only for a throwaway copy or CI checkout. Anything players see or hear
 that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
 
 ## Recipes

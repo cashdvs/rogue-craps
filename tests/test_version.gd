@@ -77,7 +77,7 @@ func _stamp() -> void:
 	c.set_value("preset.2.options", "version/name", "0.0.9")
 	c.save(dir + "/export_presets.cfg")
 	var out := []
-	var rc := OS.execute("env", ["STAMP_DIR=" + dir, "STAMP_SHA=abc1234", ProjectSettings.globalize_path("res://tools/stamp_version.sh")], out, true)
+	var rc := OS.execute("env", ["STAMP_DIR=" + dir, "STAMP_SHA=abc1234", ProjectSettings.globalize_path("res://tools/stamp_version.sh"), "--stamp-only"], out, true)
 	var text := "".join(out)
 	check(rc == 0, "stamp script runs (%d: %s)" % [rc, text])
 	check(text.contains("DiceOfTheDamned-0.1.2-Windows.zip") and text.contains("DiceOfTheDamned-0.1.2-Android.apk"), "stamp prints the export file names")
@@ -87,10 +87,47 @@ func _stamp() -> void:
 	var p := ConfigFile.new()
 	p.load(dir + "/export_presets.cfg")
 	check(int(p.get_value("preset.2.options", "version/code", -1)) == 102 and str(p.get_value("preset.2.options", "version/name", "")) == "0.1.2", "stamp sets Android code/name from version.cfg")
-	rc = OS.execute("env", ["STAMP_DIR=" + dir, ProjectSettings.globalize_path("res://tools/stamp_version.sh"), "--no-sha"], out, true)
+	rc = OS.execute("env", ["STAMP_DIR=" + dir, ProjectSettings.globalize_path("res://tools/stamp_version.sh"), "--no-sha", "--stamp-only"], out, true)
 	Version.load_file(dir + "/version.cfg")
 	check(Version.sha() == "dev", "--no-sha (dev) falls back to dev")
 	Version.load_file()
+
+
+## Wrapped export in a throwaway git repo: the stub export copies version.cfg
+## out while it runs (so the build saw the sha), and the 3 tracked files are
+## restored afterwards, on success and on a failing export.
+func _wrapped() -> void:
+	var base := ProjectSettings.globalize_path("user://stamp_wrap")
+	var dir := base + "/repo"
+	OS.execute("rm", ["-rf", base])
+	DirAccess.make_dir_recursive_absolute(dir + "/tools")
+	for f in ["version.cfg", "export_presets.cfg", "project.godot", "tools/stamp_version.sh"]:
+		DirAccess.copy_absolute(ProjectSettings.globalize_path("res://" + f), dir + "/" + f)
+	var sh := dir + "/tools/stamp_version.sh"
+	OS.execute("chmod", ["+x", sh])
+	var git := ["-C", dir, "-c", "user.name=t", "-c", "user.email=t@t"]
+	OS.execute("git", ["init", "-q", dir])
+	OS.execute("git", git + ["add", "-A"])
+	OS.execute("git", git + ["commit", "-qm", "base"])
+	var out := []
+	var seen := base + "/seen.cfg"
+	var rc := OS.execute("env", ["STAMP_SHA=abc1234", sh, "--", "sh", "-c", "cp '%s/version.cfg' '%s' && echo built" % [dir, seen]], out, true)
+	check(rc == 0 and "".join(out).contains("built"), "wrapped export runs (%d: %s)" % [rc, "".join(out)])
+	check(_status(dir) == "", "tree clean after a good export (%s)" % _status(dir))
+	check(FileAccess.get_file_as_string(seen).contains("sha=\"abc1234\""), "the export saw the stamped sha")
+	check(FileAccess.get_file_as_string(dir + "/version.cfg").contains("sha=\"dev\""), "version.cfg back to dev after export")
+	out.clear()
+	rc = OS.execute("env", ["STAMP_SHA=abc1234", sh, "--", "sh", "-c", "exit 3"], out, true)
+	check(rc == 3, "failing export's status passed through (%d)" % rc)
+	check(_status(dir) == "", "tree clean after a failing export (%s)" % _status(dir))
+	rc = OS.execute(sh, [], out, true)
+	check(rc == 2 and _status(dir) == "", "no export command: usage, nothing stamped")
+
+
+func _status(dir: String) -> String:
+	var out := []
+	OS.execute("git", ["-C", dir, "status", "--porcelain"], out, true)
+	return "".join(out).strip_edges()
 
 
 func _label_ok(host: Node, what: String) -> void:
@@ -132,6 +169,7 @@ func _run() -> void:
 	_formats()
 	_presets()
 	_stamp()
+	_wrapped()
 	await _screens(Vector2i(1920, 1080), "PC")
 	await _screens(Vector2i(844, 390), "844x390")
 	await _screens(Vector2i(390, 844), "portrait")
