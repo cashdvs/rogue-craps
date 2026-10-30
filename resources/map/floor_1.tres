@@ -61,3 +61,7 @@ boss_cheats = Array[ExtResource("2_oylsk")]([ExtResource("3_bkmlj"), ExtResource
 boss_min_bounties = 3
 boss_max_bounties = 3
 boss_hands = 7
+clear_embers = 14
+target_table = 300
+target_elite = 400
+target_boss = 700

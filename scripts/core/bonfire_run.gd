@@ -3,15 +3,15 @@
 ## ONE combo (exact match) -> BANK or THROW the rest again. Nothing lit =
 ## BUST (hand pot and pending bounty ticks lost, -Soul). All 5 potted in the
 ## hand = HOT HAND: all dice back, +1 mult on every later pot this hand.
-## Table goal (TableGoal): bank every required bounty within the hands.
+## Table goal (TableGoal, table_goals_v1 PR1): bank `goal.target` points
+## within the hands.
 ##
-## Clearing (how_bonfire_plays.md §2.8): once every required bounty is
-## banked the table is CLEARED (`cleared` = true, the clear Embers are paid
-## right then) but it stays open. The player can keep throwing the hands
-## that are left to chase the bonus bounty and more points, or leave()
-## between hands. A bust while chasing costs Soul as usual but never undoes
-## the clear or a banked bounty. When the hands run out a cleared table ends
-## as CLEARED (no timeout penalty); an uncleared one as FAILED.
+## Passing: the bank that reaches the target makes the table CLEARED
+## (`cleared` = true, the clear Embers are paid right then) but it stays
+## open: keep throwing for more points, or leave() between hands. A bust
+## costs Soul as usual but never undoes the pass or banked points. When the
+## hands run out a passed table ends as CLEARED; an unpassed one as FAILED
+## (`goal.miss_soul`, which can end the run).
 ##
 ## Table rules (Elite twists, boss cheats, special-die abilities) are
 ## TableRule handlers (set_rules); every moment they hook is also emitted on
@@ -237,10 +237,10 @@ func _bust() -> void:
 func _finish(r: Dictionary) -> Dictionary:
 	hands_left -= 1
 	pending.clear()
-	# The bank that claims the last required bounty clears the table: the
-	# clear Embers are locked in now, and the table stays open.
+	# The bank that reaches the target passes the table (table_goals_v1
+	# PR1): the clear Embers are locked in now, and the table stays open.
 	r["cleared_now"] = false
-	if r["kind"] == &"bank" and not cleared and unticked_required() == 0:
+	if r["kind"] == &"bank" and not cleared and _goal_met():
 		cleared = true
 		embers += goal.clear_embers
 		r["cleared_now"] = true
@@ -261,13 +261,23 @@ func _finish(r: Dictionary) -> Dictionary:
 	return r
 
 
+## A target table (goal.target > 0, every map table in table_goals_v1
+## PR1) is passed once the banked points reach it. A goal with no target
+## (the standalone table's bonfire_tuning goal) keeps the bounty rule
+## until PR3 removes bounties.
+func _goal_met() -> bool:
+	if goal.target > 0:
+		return points >= goal.target
+	return unticked_required() == 0
+
+
 func _end_table(st: State) -> void:
 	var converted := points_to_embers(tuning, points)
 	# The clear Embers were already paid at the clearing bank (see _finish).
 	var clear := goal.clear_embers if cleared else 0
 	var soul_lost := 0
 	if st == State.FAILED:
-		soul_lost = soul_cost(unticked_required() * goal.timeout_soul_per_bounty, &"timeout")
+		soul_lost = soul_cost(goal.miss_soul if goal.target > 0 else unticked_required() * goal.timeout_soul_per_bounty, &"timeout")  # can end the run
 		soul = maxi(soul - soul_lost, 0)
 		if soul <= 0:
 			st = State.RUN_OVER
@@ -292,7 +302,7 @@ func leave() -> bool:
 
 
 ## Give up the table (run mode): ends it like running out of hands
-## (timeout Soul per unticked required bounty, points still convert to
+## (the goal's miss Soul, points still convert to
 ## Embers, no clear bonus); the hand in progress is lost. False if over.
 ## On a table that is already cleared it is a Leave instead: the hand in
 ## progress is lost, but the clear and the banked bounties stand (not
