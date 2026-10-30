@@ -168,12 +168,14 @@ func _test_trim() -> void:
 		var tr := RareDieLook.is_trim_normal(n)
 		flat += int(is_flat)
 		trim += int(tr)
-		wrong += int(is_flat == tr)
-	_check(wrong == 0, "trim exactly on the bevel normals (%d wrong of %d)" % [wrong, norms.size()])
-	_check(trim > 0 and flat > 0, "both bevel (%d) and flat (%d) vertices exist" % [trim, flat])
+		wrong += int(is_flat and tr)
+	_check(wrong == 0, "no trim on a flat-face normal (%d wrong of %d)" % [wrong, norms.size()])
+	_check(trim > 0 and flat > 0, "trim on the bevel, flat faces bare (%d trim, %d flat of %d)" % [trim, flat, norms.size()])
 	for n in [Vector3.UP, Vector3.LEFT, Vector3.BACK]:
 		_check(not RareDieLook.is_trim_normal(n), "flat face %s has no trim" % n)
 	_check(RareDieLook.is_trim_normal(Vector3(1, 1, 0)) and RareDieLook.is_trim_normal(Vector3(1, 1, 1)), "edge and corner normals take the trim")
+	# A thin edge band, not the whole round: 15 deg off a face stays bare.
+	_check(not RareDieLook.is_trim_normal(Vector3(0, 1, 0).rotated(Vector3.RIGHT, deg_to_rad(15))), "trim is a thin edge band (15 deg off face is bare)")
 	RareDieLook.set_trim(d, false)
 	_check(body.get_node_or_null("RareTrim") == null, "set_trim off removes the trim")
 	d.free()

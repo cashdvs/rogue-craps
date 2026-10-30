@@ -12,7 +12,7 @@ const BODY_TINT_AMOUNT := 0.55
 const TRIM := Color("#C9A24A")
 ## A body normal is flat face (no trim) when its largest object-space axis
 ## component is at least TRIM_FLAT; anything rounder is bevel / edge.
-const TRIM_FLAT := 0.995
+const TRIM_FLAT := 0.93
 ## The trim sits this far (edge units) out along the normal, over the body.
 const TRIM_LIFT := 0.002
 const TRIM_SHADER := """shader_type spatial;
