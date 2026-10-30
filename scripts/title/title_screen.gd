@@ -86,6 +86,7 @@ void fragment() {
 	studio.size = Vector2(260, 40)
 	studio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(studio)
+	add_child(Version.make_label())
 	options = OptionsPanel.new()
 	options.visible = false
 	var oc := CenterContainer.new()
