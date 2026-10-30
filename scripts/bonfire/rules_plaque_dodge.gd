@@ -11,9 +11,12 @@ const GAP := 6.0
 
 ## Screen rect of [param d] as [param cam] sees it: the bounds of a cube
 ## 1.5 die edges wide around it (covers any tumble and the hull outline).
+## A shaped die (the d4) is drawn bigger than its edge: use its own cap.
 static func die_rect(cam: Camera3D, d: DieVisual) -> Rect2:
 	var c := d.global_position
 	var h := d.edge * 0.75
+	if d.shape != &"":
+		h = maxf(h, PolyDie.cap_for(d.shape))
 	var r := Rect2(cam.unproject_position(c), Vector2.ZERO)
 	for x in [-h, h]:
 		for y in [-h, h]:

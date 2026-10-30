@@ -259,6 +259,13 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - A swapped-out dealer is freed at once, except Ashmouth mid-taunt: hidden and kept until ~1.75 s so his soot puff finishes. His `AshmouthPuffFx.reduced_motion` follows `Bonfire3D.reduced_motion` live.
   - Test: `tests/test_boss_dealer_swap.gd`.
 
+- **d4 readability (#198):** the table lamp's shadow leaves a d4's steep faces near black, so `PolyBody` gives every d4 (e.g. the Gallows die) two extras. Neither is a glow: a d4 has emission 0 at rest and only the normal scoring glow (<= 0.3).
+  - `scripts/table3d/d4_flat_pass.gd` (`D4FlatPass`): an unshaded `next_pass` on the d4 body (before its ink outline) that draws the die's OWN body colour and marks at `MIX` (0.6) over the lit toon draw, the #201 rare-trim idea. It follows the lit / cold state (`DieVisual._apply_glow` sets `die_lit` / `die_cold` on the body's next pass too); `COLD_LIFT` brightens only a cold d4 to the cold d6's ~0.45.
+  - `scripts/table3d/d4_value_tag.gd` (`D4ValueTag`, child `D4ValueTag` of the die): an unlit, camera-facing, fixed-size Label3D with the die's `shown_value()`, at least `MIN_VIEW_SHARE` (9%) of the view tall (~35 px on an 844x390 phone). Each frame `place()` tries below, right, left, then above the die and takes the first spot on screen that covers no HUD text; with none it hides.
+  - `scripts/bonfire/hud_text_rects.gd` (`HudTextRects.collect`): screen rects of all text a player reads: visible, non-empty 2D labels / buttons / rich text, and the felt's 3D labels (combo strip, seal row "Lv1 120x12"). Faded-out labels don't count.
+  - Tests: `tests/test_d4_readable.gd` (brightness part needs a renderer: `xvfb-run -a godot --path . --rendering-method gl_compatibility --script ...`).
+- **Nerve panel dodge (#198):** `NerveUi._place_panels` puts the "Nerve ready" pip and the rescue prompt at their home spot, then through `RulesPlaqueDodge.place(rect, blockers, view)` (left, below, above, right; else least overlap). The blockers (`NerveUi._blockers`) are the landed dice (`RulesPlaqueDodge.die_rect`) plus `HudTextRects.collect`, minus the Nerve UI's own labels and the bounty cards it hangs under. Test: `tests/test_nerve_die_clear.gd` (PC 16:9 and phone 844x390, d4 parked under the pip).
+
 <!-- SECTION: VFX Dev — FX (owner text; replace freely) -->
 ## FX and juice (owner: VFX Dev)
 - FX is listen-only. Godot Dev's `scripts/bonfire/table_events.gd` (`table.events`) emits gameplay signals: `dice_thrown`, `die_impact`, `dice_settled`, `die_lit_changed`, `combo_potted`, `hot_hand`, `no_score`, `bust`, `banked`, `bounty_claimed`, `table_cleared`, `boss_cheat`, `mod_triggered`, `selection_changed`. FX nodes connect to those signals and never call into scoring or the table flow.

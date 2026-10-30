@@ -100,13 +100,25 @@ func die_pick_at(p: Vector2) -> bool:
 	return phase == Phase.BET and run != null and run.state == BonfireRun.State.PICK and die_at_screen(p) >= 0
 
 
+## Centre-to-centre gap between neighbours in the hand ring: 1.2 cube
+## widths, or wider when a shaped die (the 0.065 m d4, a d8) would poke into
+## its neighbour: its tip reach plus a turned cube's half-diagonal (0.75 of
+## a width), over 0.9 because the ring is squashed that much front-to-back.
+func _hand_gap() -> float:
+	var gap := tuning.die_size * 1.2
+	for d in dice:
+		if PolyDie.has_shape(d.shape):
+			gap = maxf(gap, (PolyDie.radius(d.shape) + tuning.die_size * 0.75) / 0.9)
+	return gap
+
+
 ## A handful in the hand: a tight ring around HAND (a 5-wide row would
 ## start the outer dice in the rail).
 func hand_spot(i: int) -> Vector3:
 	var n := maxi(dice.size(), 1)
 	if n == 1:
 		return HAND + Vector3(0, tuning.die_size * 0.5, 0)
-	var r := tuning.die_size * 0.6 / sin(PI / float(n))
+	var r := _hand_gap() * 0.5 / sin(PI / float(n))
 	r = maxf(r, tuning.die_size * 0.65)
 	# Big handfuls: keep the whole ring on the felt.
 	var margin := tuning.die_size * 0.75
