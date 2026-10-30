@@ -5,7 +5,7 @@
 ## screen. QA #198: it also never covers other text, e.g. the felt combo
 ## strip's "Five of a Kind" (3D labels) or HUD labels, right after the
 ## throw and with the d4 parked. Real Bonfire HUD on PC 16:9 and phone
-## landscape (844x390). Nor any bounty card (the pip and the rescue panel).
+## landscape (844x390). Nor any bounty card (the pip and the rescue panel), nor the rules plaque.
 ##   godot --headless --path . --script res://tests/test_nerve_die_clear.gd
 extends SceneTree
 
@@ -107,6 +107,23 @@ func _check_cards(s: Bonfire3D, label: String) -> void:
 		check(hits.is_empty(), "%s: %s %s overlaps no bounty card %s" % [label, p.name, str(p.get_global_rect()), str(hits)])
 
 
+## The rules plaque (e.g. Powder Barrel) blocks the Nerve panels as a whole
+## box: shown, it is in NerveUi._blockers and neither panel overlaps it.
+func _check_plaque(s: Bonfire3D, label: String) -> void:
+	var p := s.bhud.rules_panel
+	p.visible = true
+	for k in 3:
+		await process_frame
+	var pr := p.get_global_rect()
+	var listed := false
+	for b: Rect2 in s.nerve_ui._blockers(s.bhud):
+		listed = listed or b.is_equal_approx(pr)
+	check(listed, "%s: rules plaque %s is a Nerve blocker" % [label, str(pr)])
+	for c: Control in [s.nerve_ui.pip_box, s.nerve_ui.rescue_panel]:
+		check(not c.get_global_rect().intersects(pr), "%s: %s clear of the rules plaque" % [label, c.name])
+	p.visible = false
+
+
 func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	for k in 600:
 		if s.phase == Table3D.Phase.BET and s.run.state == BonfireRun.State.AIM and not s.hand_moving():
@@ -145,6 +162,7 @@ func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	check(view.encloses(a), "%s: pip %s on screen" % [label, str(a)])
 	_check_text_clear(s, a, label + " d4 parked")
 	_check_cards(s, label + " d4 parked")
+	await _check_plaque(s, label)
 	# The game's own die rect must reach the d4's full size (its 0.065 m cap).
 	var game := RulesPlaqueDodge.die_rect(cam, d)
 	check(game.encloses(_d4_rect(cam, d)), "%s: die_rect %s covers the whole d4 %s" % [label, str(game), str(_d4_rect(cam, d))])

@@ -9,7 +9,9 @@
 ##     and a lit d4 keeps its body hue;
 ##   - its camera-facing value tag never covers HUD text (the felt seal row
 ##     "Lv1 120x12", combo strip, 2D labels), even parked right under the
-##     seal row, and is >= 24 px tall on a phone (844x390).
+##     seal row, and is >= 24 px tall on a phone (844x390);
+##   - nor sits on another die (QA: on phone it covered the next d6's pips):
+##     a d6 parked right beside / below the d4, on PC and phone.
 ##   godot --headless --path . --script res://tests/test_d4_readable.gd
 ##   (brightness part: xvfb-run -a godot --path . --rendering-method gl_compatibility --script ...)
 extends SceneTree
@@ -185,6 +187,53 @@ func _check_tag(s: Bonfire3D, d4: DieVisual, screen_h: float, label: String) -> 
 	if seal != null:
 		d4.global_position = Vector3(seal.global_position.x, d4.global_position.y, seal.global_position.z + 0.05)
 		await _tag_clear(s, tag, label + " under the seal row")
+	await _check_neighbours(s, d4, tag, label)
+
+
+## Screen rect of a die's body mesh, worked out here (not the game's die_rect).
+func _body_rect(cam: Camera3D, d: DieVisual) -> Rect2:
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	var ab := body.get_aabb()
+	var r := Rect2(cam.unproject_position(body.global_transform * ab.position), Vector2.ZERO)
+	for i in 8:
+		r = r.expand(cam.unproject_position(body.global_transform * ab.get_endpoint(i)))
+	return r
+
+
+## Parks d6s right next to the d4 (left, right, below, left + below) and
+## checks the tag never overlaps another die.
+func _check_neighbours(s: Bonfire3D, d4: DieVisual, tag: Label3D, label: String) -> void:
+	var others: Array[DieVisual] = []
+	for d: DieVisual in s.all_dice:
+		if d != d4 and d.shape != &"d4":
+			others.append(d)
+	check(others.size() >= 2, "%s: two d6s to park" % label)
+	if others.size() < 2:
+		return
+	var y := d4.global_position.y
+	var home := Vector3(0.0, y, 0.05)
+	var a := others[0]
+	var b := others[1]
+	var cases := {"left": [Vector3(-0.12, 0, 0)], "right": [Vector3(0.12, 0, 0)],
+		"below": [Vector3(0, 0, 0.12)], "left+below": [Vector3(-0.12, 0, 0), Vector3(0, 0, 0.12)]}
+	var shown := 0
+	for name: String in cases:
+		d4.global_position = home
+		var offs: Array = cases[name]
+		a.global_position = home + offs[0]
+		b.global_position = home + (offs[1] if offs.size() > 1 else Vector3(0.6, 0, -0.3))
+		for k in 3:
+			await process_frame
+		if not tag.visible:
+			check(true, "%s d6 %s: tag hidden" % [label, name])
+			continue
+		shown += 1
+		var r := _tag_rect(s, tag)
+		var hits := []
+		for d: DieVisual in s.all_dice:
+			if d != d4 and d.is_visible_in_tree() and _body_rect(s.camera.cam, d).intersects(r):
+				hits.append(d.name)
+		check(hits.is_empty(), "%s d6 %s: tag %s on no other die %s" % [label, name, str(r), str(hits)])
 
 
 ## Rendered check (skipped headless): cold d4 ~ d6 at ~0.45, lit keeps its hue.
@@ -230,3 +279,4 @@ func _measure(s: Bonfire3D, sv: SubViewport, d: DieVisual) -> Array:
 				col += c
 				cnt += 1
 	return [sum / maxf(cnt, 1), col / maxf(cnt, 1)]
+	check(shown >= 2, "%s: tag still shows beside parked d6s (%d of 4)" % [label, shown])

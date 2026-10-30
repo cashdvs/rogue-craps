@@ -24,6 +24,9 @@ const MIN_VIEW_SHARE := 0.09
 const GAP := 4.0
 ## How often (frames) the HUD text controls are re-collected.
 const HUD_SCAN_EVERY := 15
+## Extra px kept between the tag and any other die (QA #198: on phone the
+## tag sat on the next d6 and read as that die's value).
+const DIE_MARGIN := 6.0
 
 var die: DieVisual
 var _hud: Array[Rect2] = []
@@ -109,13 +112,31 @@ func hud_rects() -> Array[Rect2]:
 	return _hud
 
 
-## Moves the tag next to the die where it covers no HUD text, or hides it.
+## Screen rects (grown by DIE_MARGIN) of every other visible die on the
+## table (Table3D.all_dice), so the tag never sits on a neighbour's pips.
+func other_dice_rects(cam: Camera3D) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	var t: Node = die.get_parent()
+	while t != null and not "all_dice" in t:
+		t = t.get_parent()
+	if t == null:
+		return out
+	for d in t.get("all_dice"):
+		if d is DieVisual and d != die and is_instance_valid(d) and (d as DieVisual).is_visible_in_tree() \
+				and not cam.is_position_behind((d as DieVisual).global_position):
+			out.append(RulesPlaqueDodge.die_rect(cam, d).grow(DIE_MARGIN))
+	return out
+
+
+## Moves the tag next to the die where it covers no HUD text and no other
+## die (try order: below, right, left, above), or hides it.
 func place(cam: Camera3D) -> void:
 	var dr := RulesPlaqueDodge.die_rect(cam, die)
 	var view := get_viewport().get_visible_rect()
 	var half := rect_at(cam, Vector2.ZERO).size * 0.5
 	var c := dr.get_center()
-	var hud := hud_rects()
+	var hud := hud_rects().duplicate()
+	hud.append_array(other_dice_rects(cam))  # never on another die either
 	var spots: Array[Vector2] = [
 		Vector2(c.x, dr.end.y + GAP + half.y), Vector2(dr.end.x + GAP + half.x, c.y),
 		Vector2(dr.position.x - GAP - half.x, c.y), Vector2(c.x, dr.position.y - GAP - half.y)]
