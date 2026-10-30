@@ -22,9 +22,20 @@ const MARKS: Dictionary = {
 	&"fuse": FUSE_MARK, &"jackpot": JACKPOT_MARK, &"hex": HEX_MARK,
 	&"gilded": GILDED_MARK, &"step": STEP_MARK,
 }
-## Plate diameter / glyph size as a fraction of the die edge.
-const PLATE_SIZE := 0.26
-const GLYPH := 0.17
+## Plate diameter as a fraction of the die edge: as big as the pips allow
+## (readable at table zoom), up to PLATE_MAX. A five or six only has room
+## for about a quarter of the edge between its pips.
+const PLATE_MAX := 0.44
+## Glyph size / stroke as fractions of the plate diameter (thick enough to
+## read at table zoom).
+const GLYPH := 0.78
+const STROKE := 0.20
+## A rim of the mark's own colour around the plate; it is the ink, so it
+## glows (MARK_EMISSION_MAX) only when the die is lit or landed.
+const RIM := 0.10
+## Pip radius / face margin (edge units) the plate keeps clear of.
+const PIP_CLEAR := 0.09 + 0.012
+const FACE_MARGIN := 0.40
 
 
 ## The rare body colour: Bone multiplied by BODY_TINT at BODY_TINT_AMOUNT.
@@ -64,7 +75,10 @@ static func add_mark(root: Node3D, d: DieVisual, n: Vector3, u: Vector3, v: Vect
 	var mark := Node3D.new()
 	mark.name = "RareMark_%s" % mod_id
 	mark.set_meta("mod", mod_id)
-	var c := _free_spot(d, n, u, v) * e
+	var spot := _free_spot(d, n, u, v)
+	var c: Vector2 = spot["at"] * e
+	var size: float = spot["size"]
+	mark.set_meta("size", size)
 	mark.transform = Transform3D(Basis(u, v, n), n * lift + u * c.x + v * c.y)
 	root.add_child(mark)
 	var plate := _material(PLATE)
@@ -73,32 +87,35 @@ static func add_mark(root: Node3D, d: DieVisual, n: Vector3, u: Vector3, v: Vect
 	ink.emission = col
 	ink.emission_energy_multiplier = 0.0
 	mark.set_meta("ink", ink)
-	_disc(mark, Vector2.ZERO, e * PLATE_SIZE * 0.5, 0.0, plate)
-	var g := e * GLYPH
+	var pr := e * size * 0.5
+	_disc(mark, Vector2.ZERO, pr, 0.0, ink)
+	_disc(mark, Vector2.ZERO, pr * (1.0 - RIM), 0.0002, plate)
+	var g := pr * 2.0 * GLYPH
+	var w := g * STROKE
 	match mod_id:
 		&"fuse":
 			# A spark: a short fuse tail and a four-point star.
-			_bar(mark, Vector2(-0.30, -0.30) * g, g * 0.45, g * 0.12, PI * 0.25, ink)
+			_bar(mark, Vector2(-0.30, -0.30) * g, g * 0.45, w, PI * 0.25, ink)
 			for k in 4:
-				_bar(mark, Vector2(0.10, 0.10) * g, g * (0.70 if k % 2 == 0 else 0.45), g * 0.13, PI * 0.25 * k, ink)
+				_bar(mark, Vector2(0.10, 0.10) * g, g * (0.70 if k % 2 == 0 else 0.45), w, PI * 0.25 * k, ink)
 		&"jackpot":
 			# A coin: a disc with a dark centre hole.
-			_disc(mark, Vector2.ZERO, g * 0.45, 0.0004, ink)
-			_disc(mark, Vector2.ZERO, g * 0.14, 0.0008, plate)
+			_disc(mark, Vector2.ZERO, g * 0.45, 0.0006, ink)
+			_disc(mark, Vector2.ZERO, w, 0.001, plate)
 		&"hex":
 			# A cracked x: two crossing bars, one broken with a jog.
-			_bar(mark, Vector2.ZERO, g * 0.95, g * 0.14, PI * 0.25, ink)
-			_bar(mark, Vector2(-0.30, 0.18) * g, g * 0.36, g * 0.14, -PI * 0.25, ink)
-			_bar(mark, Vector2(0.18, -0.30) * g, g * 0.36, g * 0.14, -PI * 0.25, ink)
+			_bar(mark, Vector2.ZERO, g * 0.95, w, PI * 0.25, ink)
+			_bar(mark, Vector2(-0.30, 0.18) * g, g * 0.36, w, -PI * 0.25, ink)
+			_bar(mark, Vector2(0.18, -0.30) * g, g * 0.36, w, -PI * 0.25, ink)
 		&"gilded":
 			# A coin with a bite out of its rim.
-			_disc(mark, Vector2.ZERO, g * 0.45, 0.0004, ink)
-			_disc(mark, Vector2(0.36, 0.30) * g, g * 0.22, 0.0008, plate)
+			_disc(mark, Vector2.ZERO, g * 0.45, 0.0006, ink)
+			_disc(mark, Vector2(0.36, 0.30) * g, g * 0.22, 0.001, plate)
 		&"step":
 			# An up arrow.
-			_bar(mark, Vector2(0, -0.10) * g, g * 0.70, g * 0.15, PI * 0.5, ink)
-			_bar(mark, Vector2(-0.14, 0.20) * g, g * 0.42, g * 0.15, PI * 0.25, ink)
-			_bar(mark, Vector2(0.14, 0.20) * g, g * 0.42, g * 0.15, PI * 0.75, ink)
+			_bar(mark, Vector2(0, -0.10) * g, g * 0.70, w, PI * 0.5, ink)
+			_bar(mark, Vector2(-0.14, 0.20) * g, g * 0.42, w, PI * 0.25, ink)
+			_bar(mark, Vector2(0.14, 0.20) * g, g * 0.42, w, PI * 0.75, ink)
 	return true
 
 
@@ -112,8 +129,9 @@ static func set_marks_lit(d: DieVisual, on: bool) -> void:
 			(m.get_meta("ink") as StandardMaterial3D).emission_energy_multiplier = MARK_EMISSION_MAX if on else 0.0
 
 
-## A spot on the face (in edge units, u/v plane) clear of the pips.
-static func _free_spot(d: DieVisual, n: Vector3, u: Vector3, v: Vector3) -> Vector2:
+## The roomiest spot on the face clear of the pips: {"at": Vector2 (edge
+## units, u/v plane), "size": plate diameter / edge}.
+static func _free_spot(d: DieVisual, n: Vector3, u: Vector3, v: Vector3) -> Dictionary:
 	var taken: Array[Vector2] = []
 	var pips := d.faces.get_node_or_null("Pips")
 	if pips != null:
@@ -121,18 +139,20 @@ static func _free_spot(d: DieVisual, n: Vector3, u: Vector3, v: Vector3) -> Vect
 			if p is Node3D and (p as Node3D).position.dot(n) > d.edge * 0.3:
 				var q := (p as Node3D).position / d.edge
 				taken.append(Vector2(q.dot(u), q.dot(v)))
-	var spots: Array[Vector2] = [Vector2.ZERO, Vector2(0.25, 0.25), Vector2(-0.25, -0.25),
-		Vector2(0, 0.27), Vector2(0.27, 0), Vector2(0, -0.27), Vector2(-0.27, 0)]
+	var spots: Array[Vector2] = [Vector2.ZERO, Vector2(0.2, 0.2), Vector2(-0.2, -0.2),
+		Vector2(0.2, -0.2), Vector2(-0.2, 0.2), Vector2(0, 0.2), Vector2(0.2, 0),
+		Vector2(0, -0.2), Vector2(-0.2, 0), Vector2(0.25, 0), Vector2(-0.25, 0),
+		Vector2(0, 0.25), Vector2(0, -0.25)]
 	var best := spots[0]
-	var best_gap := -1.0
+	var best_r := -1.0
 	for s in spots:
-		var gap := 9.0
+		var r := FACE_MARGIN - maxf(absf(s.x), absf(s.y))
 		for t in taken:
-			gap = minf(gap, s.distance_to(t))
-		if gap > best_gap + 0.0001:
-			best_gap = gap
+			r = minf(r, s.distance_to(t) - PIP_CLEAR)
+		if r > best_r + 0.0001:
+			best_r = r
 			best = s
-	return best
+	return {"at": best, "size": minf(best_r * 2.0, PLATE_MAX)}
 
 
 static func _material(col: Color) -> StandardMaterial3D:

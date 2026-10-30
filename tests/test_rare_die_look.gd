@@ -11,6 +11,7 @@ func _initialize() -> void:
 	_test_colours()
 	_test_marks()
 	_test_rarity()
+	_test_mark_size()
 	print("=== rare die look: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -93,3 +94,43 @@ func _test_rarity() -> void:
 		_check(RareDieLook.is_rare(id), "%s is rare" % id)
 	for id: StringName in [&"bone", &"mirror", &"lantern", &""]:
 		_check(not RareDieLook.is_rare(id), "%s is not rare" % id)
+
+
+## Readable at table zoom: on every face value (1..6 pips) each mark's plate
+## (rim included) is at least MIN_FACE_FRACTION of the face edge, at least
+## ROOMY_FRACTION where the pips leave room (1..3), clear of every pip, and
+## the glyph fills most of the plate.
+const MIN_FACE_FRACTION := 0.25
+const ROOMY_FRACTION := 0.34
+func _test_mark_size() -> void:
+	var up_slot: int = DieVisual.FACE_AXES.find_key(Vector3.UP)
+	for pips in range(1, 7):
+		for id: StringName in RareDieLook.MARKS:
+			var d := DieVisual.new(0.08)
+			root.add_child(d)
+			var labels: Array[int] = [1, 2, 3, 4, 5, 6]
+			labels[up_slot - 1] = pips
+			d.set_look(Palette.BONE, Palette.PIT_BLACK, labels)
+			var fm := Node3D.new()
+			fm.name = "FaceMods"
+			d.faces.add_child(fm)
+			RareDieLook.add_mark(fm, d, Vector3.UP, Vector3.RIGHT, Vector3.BACK, d.edge * 0.52, id)
+			var mark := fm.get_node("RareMark_%s" % id) as Node3D
+			var outer := (mark.get_child(0) as MeshInstance3D).mesh as CylinderMesh
+			var frac := outer.top_radius * 2.0 / d.edge
+			var want := ROOMY_FRACTION if pips <= 3 else MIN_FACE_FRACTION
+			_check(frac >= want - 1e-4, "%s on a %d: mark is %.2f of the face (>= %.2f)" % [id, pips, frac, want])
+			var c := Vector2(mark.position.x, -mark.position.z)
+			var clear := true
+			for p in d.faces.get_node("Pips").get_children():
+				var q := (p as Node3D).position
+				if q.y > d.edge * 0.3:
+					clear = clear and Vector2(q.x, -q.z).distance_to(c) >= outer.top_radius + 0.09 * d.edge - 1e-5
+			_check(clear, "%s on a %d: mark clears every pip" % [id, pips])
+			var reach := 0.0
+			for k in range(2, mark.get_child_count()):
+				var mi := mark.get_child(k) as MeshInstance3D
+				var sz := mi.get_aabb().size
+				reach = maxf(reach, Vector2(mi.position.x, mi.position.y).length() + maxf(sz.x, maxf(sz.y, sz.z)) * 0.5)
+			_check(reach >= outer.top_radius * 0.55, "%s on a %d: glyph fills the plate (%.4f of %.4f)" % [id, pips, reach, outer.top_radius])
+			d.free()
