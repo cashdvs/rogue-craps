@@ -8,9 +8,9 @@
 ##     on the felt material's overlay layer (UV = the felt plane's UV:
 ##     u = (x + 1.02) / 2.04, v = (z + 0.52) / 1.04; texture top = far rail),
 ##     with a little emission so it reads in the lamp's falloff;
-##   - the live numbers: one Label3D per slot, "Lv1 30x3" (Seal level,
-##     base x mult), lying flat on the felt.
-## Landscape (PC, phone landscape) uses a thin band along the near rail;
+##   - the live numbers: one Label3D per slot, "Lv2 30x3" (Seal level,
+##     base x mult; just "30x3" with no Seal), lying flat on the felt.
+## Phones show none of it (set_off). PC uses a thin band along the near rail;
 ## phone portrait swaps to a block at the screen-bottom end of the felt,
 ## with the text turned to read upright there.
 class_name FeltComboTable
@@ -74,6 +74,10 @@ var _tex_port_flipped: Texture2D
 var _font: Font
 
 
+## True on phone: no felt print or slot numbers (set_off).
+var off := false
+
+
 func _init() -> void:
 	name = "FeltComboTable"
 
@@ -102,6 +106,14 @@ func set_combos(t: BonfireTuning, seal_levels: Dictionary = {}) -> void:
 	_tuning = t
 	_levels = seal_levels.duplicate()
 	_apply()
+
+
+## Phone (#204): the felt combo print and its numbers are off; Seals live in
+## the bottom bar's SEALS list instead.
+func set_off(on: bool) -> void:
+	if on != off:
+		off = on
+		_apply()
 
 
 ## Switches the felt print between the landscape band and the portrait
@@ -211,13 +223,23 @@ func _port_pivot() -> Vector2:
 
 
 ## The text a slot shows for combo c.
+## No Seal yet (level 1): just "30x3", no "Lv1" (#204).
 func slot_text(c: BonfireCombo, short: bool = false) -> String:
 	var lv := int(_levels.get(c.id, 1))
+	if lv <= 1:
+		return "%dx%d" % [c.base, c.mult]
 	return "%s%d %dx%d" % ["L" if short else "Lv", lv, c.base, c.mult]
 
 
 func _apply() -> void:
 	if _tuning == null:
+		return
+	if off:
+		if felt_material != null:
+			felt_material.set_shader_parameter("use_overlay", false)
+		for id in labels:
+			(labels[id] as Node).queue_free()
+		labels.clear()
 		return
 	if felt_material != null:
 		var tex := _tex_land

@@ -61,6 +61,7 @@ func _update_portrait_hud() -> void:
 	var phone_land := not portrait and phone_screen.y > 0.0 and phone_screen.x >= phone_screen.y
 	bhud.set_ui_scale(ui_pt_px(portrait), BonfireHud.PHONE_LANDSCAPE_CARDS if phone_land else 1.0)
 	if felt_combos != null:
+		felt_combos.set_off(portrait or phone_land)  # #204: no felt Seal row on phone
 		felt_combos.set_portrait(portrait, portrait and portrait_felt_flipped())
 		if not portrait:
 			_fit_landscape_felt()
@@ -265,30 +266,13 @@ func _fit_landscape_felt() -> void:
 	felt_combos.set_land_fit(k, sx)
 
 
-## Phone landscape: the home framing's pitch and tilt, closer in and
-## centred (BonfireTuning cam_phone_landscape_*), so the whole felt, the
-## near rail and the TotalPlate are in frame with dice as big as the old
-## hand-centred phone framing. Dollies out a little if a must-see point
-## (or the pot row) still touches an edge. Returns the smallest die (px).
+## Phone landscape: PhoneFrame's closer framing (#204: 1.41x, dice resting
+## between the Target plate and the bottom bar). Returns the smallest die (px).
 func _fit_phone_landscape() -> float:
-	camera.fit_viewport(Vector2(get_viewport().get_visible_rect().size))
-	camera.home_distance = bonfire_tuning.cam_phone_landscape_distance
-	camera.distance = camera.home_distance
-	camera.home_pivot = bonfire_tuning.cam_phone_landscape_pivot
-	camera.position = camera.home_pivot
-	camera._apply()
-	var n := maxi(setup.dice.size() if setup != null else 5, 1)
-	var pts := CameraFraming.must_points()
-	pts.append_array([pot_slot(0) + Vector3(0, PILLAR_HEIGHT, 0), pot_slot(n - 1) + Vector3(0, tuning.die_size, 0)])
-	for step in 20:
-		if CameraFraming.margin(camera.cam, pts) >= bonfire_tuning.cam_edge_margin_px:
-			break
-		camera.home_distance *= 1.02
-		camera.distance = camera.home_distance
-		camera._apply()
+	var px := PhoneFrame.fit_landscape(self)
 	phone_dial_visible = true
 	_fit_landscape_felt()
-	return _smallest_die_px(CameraFraming.rest_spots(tuning.die_size))
+	return px
 
 
 ## Smallest on-screen die (px) at the given points, current camera.

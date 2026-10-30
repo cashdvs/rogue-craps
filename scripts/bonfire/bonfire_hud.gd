@@ -24,10 +24,14 @@ var goal_state: TableGoalState
 var is_portrait: bool = false
 var is_phone_land: bool = false
 var _goal_run: BonfireRun
+## Phone landscape bottom bar holding SEALS (#204).
+var bottom_bar := PhoneBottomBar.new()
 
 
 func _ready() -> void:
 	super()
+	add_child(bottom_bar)
+	move_child(bottom_bar, 0)  # behind the pot, buttons and hints
 	add_child(target_plate)
 	_hide_old_goal()
 
@@ -40,14 +44,21 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 		goal_state = TableGoalState.watch(run)
 		target_plate.bind(goal_state)
 	_hide_old_goal()
-	TargetPlace.place(self)
+	_place_goal()
 
 
 ## Phone landscape is the one that shrinks the cards (Bonfire3D's call).
 func set_ui_scale(pt_px: float, cards: float = 1.0) -> void:
 	super(pt_px, cards)
 	is_phone_land = cards < 1.0
+	_place_goal()
+
+
+## The plate, then (phone landscape) the bottom bar, which takes the SEALS chip.
+func _place_goal() -> void:
 	TargetPlace.place(self)
+	if bottom_bar.is_inside_tree():
+		bottom_bar.place(self)
 
 
 # The per-table bounty cards, the portrait readout and the hands line all
@@ -176,7 +187,7 @@ func set_portrait(on: bool) -> void:
 		return
 	is_portrait = on
 	_hide_old_goal()
-	TargetPlace.place(self)
+	_place_goal()
 	_place_rules()
 	_place_result()
 

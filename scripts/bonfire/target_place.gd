@@ -3,7 +3,7 @@
 ##   PC 1600x900:     AD Oct 30: plate x1.4 (w756, text x1.4, pad 16, chips
 ##                    24), top-centre at y24; SEALS just under its left end.
 ##   Phone 844x390:   plate w390 (~46%), right-aligned (16) at y40, clear of the dealer
-##                    and the dice rest zone (y >= 138); SEALS bottom-right.
+##                    and the dice rest zone (y >= 138); SEALS in the bottom bar.
 ##   Portrait 390:    plate at (12, 36) pt, scale 0.8, SEALS under it (AD OK:
 ##                    left-aligned, stops short of the pot row on the right).
 ## The HUD's design canvas is 1920 wide, so on PC 1 spec px = 1.2 design px;
@@ -52,8 +52,7 @@ static func place(hud: BonfireHud) -> void:
 	if hud.is_portrait:  # top-left, just under the plate (the corner holds the help button)
 		chip.position = Vector2(pos.x, pos.y + p.size.y + 4.0 * pt)
 	elif hud.is_phone_land:
-		var vs := hud.get_viewport_rect().size
-		chip.position = vs - chip.size - Vector2(12.0, 12.0) * pt
+		pass  # PhoneBottomBar.place() puts it in the bottom bar (#204)
 	else:
 		chip.position = Vector2(pos.x, pos.y + p.size.y + 4.0 * u)
 

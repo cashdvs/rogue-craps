@@ -1,7 +1,7 @@
 ## Target HUD v2.1 (art/concept/hud_target_oct30/v2/HANDOFF_SPEC.md,
 ## handoff/table_goals_v1_pr1.md §4) on the real Bonfire scene:
 ##   - number format (12,400 in full, 123,456 -> 123.5k) and the line 3 text;
-##   - TableGoalState (stub) follows the run on hand_finished / table_event;
+##   - TableGoalState (stub) follows the run on table_event;
 ##   - the plate: TARGET + number, bar + banked, to go / PASSED +n / Missed;
 ##     bar brightens at 100 %; no empty chips, at most 2; SEALS hides at 0;
 ##   - a 150 ms hover or a tap opens the chip's name card;

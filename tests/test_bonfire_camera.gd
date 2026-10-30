@@ -161,19 +161,26 @@ func _phone_landscape() -> void:
 	s.camera.snap_home()
 	var cam := s.camera.cam
 	var ds := s.tuning.die_size
-	var pts := CameraFraming.must_points()
-	pts.append_array([s.pot_slot(0) + Vector3(0, Bonfire3D.PILLAR_HEIGHT, 0), s.pot_slot(4) + Vector3(0, ds, 0), s.hand_spot(0), s.hand_spot(1)])
-	var m := CameraFraming.margin(cam, pts)
-	check(m >= bt.cam_edge_margin_px, "phone landscape: whole felt, rails, TotalPlate, brazier, pot row, hand in frame (margin %.0f px)" % m)
+	# #204: 1.41x closer than the old whole-felt framing; resting dice sit
+	# between the Target plate and the bottom bar, and stay on screen.
+	check(is_equal_approx(s.camera.home_distance, bt.cam_phone_landscape_distance / PhoneFrame.CLOSER), "phone landscape: camera 1.41x closer (%.3f m)" % s.camera.home_distance)
+	# The inner rest rows (|z| <= 0.12) must clear the plate and bar; the
+	# full zone (to |z| 0.4) is taller than the band at 1.41x (flagged).
+	var band := PhoneFrame.band(s)
+	var span := PhoneFrame.rest_span(s, 0.15)
+	check(span.x >= band.x - 1.0 and span.y <= band.y + 1.0, "phone landscape: inner resting dice y %s inside the clear band %s" % [span, band])
+	var full := PhoneFrame.rest_span(s)
+	check(absf((full.x + full.y) - (band.x + band.y)) < 4.0, "phone landscape: rest zone centred on the band (%s vs %s)" % [full, band])
+	check(CameraFraming.margin(cam, CameraFraming.rest_spots(ds)) >= 0.0, "phone landscape: every rest spot on screen")
 	var st := CameraFraming.die_stats(cam, ds)
 	var head := CameraFraming.headroom(cam)
 	print("  phone landscape: headroom %.3f m, die px mean %.1f / min %.1f / centre %.1f" % [head, float(st["mean"]), float(st["min"]), float(st["center"])])
-	check(head >= 0.2, "phone landscape: %.2f m above the far rail at the dealer's depth (>= 0.20)" % head)
+	print("  phone landscape: %.2f m above the far rail (#204 closer camera: no 0.20 m minimum)" % head)
 	check(float(st["min"]) >= s.tuning.min_die_px, "phone landscape: every resting die >= min_die_px (%.1f)" % float(st["min"]))
-	check(float(st["mean"]) >= float(pc_ref["mean"]), "phone landscape: dice no smaller than the spec PC camera (mean %.1f >= %.1f)" % [float(st["mean"]), float(pc_ref["mean"])])
+	check(float(st["mean"]) >= float(pc_ref["mean"]) * 1.3, "phone landscape: dice well above the spec PC camera (mean %.1f >= %.1f)" % [float(st["mean"]), float(pc_ref["mean"])])
 	var art := _art(s)
 	if art.has("brazier"):
-		check(CameraFraming.margin(cam, art["brazier"]) >= 0.0, "phone landscape: Hearth brazier fully in frame (%.0f px)" % CameraFraming.margin(cam, art["brazier"]))
+		print("  phone landscape: Hearth brazier margin %.0f px (#204: may crop)" % CameraFraming.margin(cam, art["brazier"]))
 	sv.queue_free()
 	await process_frame
 
