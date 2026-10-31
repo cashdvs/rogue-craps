@@ -150,7 +150,7 @@ func _test_shop_prices(scene: RunScreen) -> void:
 func _test_table_preview(scene: RunScreen) -> void:
 	_enter(scene, NT.TABLE)
 	var t := _texts(scene._panel_box)
-	_check(t.has("Miss: -%d Soul per unclaimed bounty." % scene.run.goal.timeout_soul_per_bounty), "table preview: shows the miss cost")
+	_check(t.has(TableGoalStrings.PREVIEW_MISS % scene.run.goal.miss_soul) and t.has(TableGoalStrings.preview(scene.run.goal.target)), "table preview: shows the target and the miss cost")
 	scene.run.rules = [load("res://resources/map/rules/short_table.tres")] as Array[RunRuleData]
 	scene.run.goal.hands = 5
 	scene.refresh()

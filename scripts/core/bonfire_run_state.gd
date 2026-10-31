@@ -212,6 +212,9 @@ func next_throw_risk(table_dice: Array, kindling: bool = false) -> Dictionary:
 
 
 func bounties_count() -> bool:
+	# table_goals_v1 PR1: a target table has no bounty cards; nothing ticks.
+	if goal != null and goal.target > 0:
+		return false
 	for r in rules:
 		if not r.bounties_count(self):
 			return false

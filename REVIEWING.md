@@ -20,6 +20,13 @@ Embers, Dealer/taunts, UI, Shaders, Audio, Fonts, Art import, QA tests, Tools/CI
 ## 1. Gate checks (all must pass)
 - [ ] **CI green:** the required `tests` check (`.github/workflows/ci.yml`) passes. Locally,
       `./run_tests.sh` exits 0 on the PR head in a clean worktree (it includes `tests/qa_/qa_*.gd`).
+- [ ] **Repeat strict runs** of `./run_tests.sh` on the exact PR head, one at a time in a clean
+      worktree, with nothing else heavy running on the machine (a busy machine can fail timing tests).
+      Every run must exit 0:
+      - **Low-risk PRs: 3 runs.** Low-risk means test-only, docs, UI or layout, or art that doesn't
+        touch scoring, rules, dice physics or face-reading.
+      - **All other PRs: 10 runs.** This includes core rules, scoring, dice physics, face-reading,
+        and CI or repo config. If a PR mixes both, the 10-run rule applies.
 - [ ] Smoke runs, as in CI: `godot --headless --path . --quit-after 900` (main scene) and
       `godot --headless --path . res://scenes/bonfire.tscn --quit-after 300` print no script
       errors, warnings or crashes.
