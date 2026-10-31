@@ -1,7 +1,7 @@
 ## Target HUD v2.1 (art/concept/hud_target_oct30/v2/HANDOFF_SPEC.md,
 ## handoff/table_goals_v1_pr1.md §4) on the real Bonfire scene:
 ##   - number format (12,400 in full, 123,456 -> 123.5k) and the line 3 text;
-##   - TableGoalState (stub) follows the run on hand_finished / table_event;
+##   - TableGoalState.watch(run) (main, #213) follows the run on hand_finished / table_event;
 ##   - the plate: TARGET + number, bar + banked, to go / PASSED +n / Missed;
 ##     bar brightens at 100 %; no empty chips, at most 2; SEALS hides at 0;
 ##   - a 150 ms hover or a tap opens the chip's name card;
@@ -67,15 +67,12 @@ func _check_text() -> void:
 	check(TargetPlate.status_text(300, 300, 2) == "PASSED · 2 hands left", "exactly the target passes")
 	check(TargetPlate.status_text(300, 299, 2) != "PASSED · 2 hands left", "target - 1 is not passed")
 	check(TargetPlate.status_text(300, 340, 1) == "PASSED · 1 hand left", "goal_passed_one_hand")
-	var want := {"goal_target_label": "TARGET", "goal_to_go": "{n} to go · {h} hands left",
-		"goal_to_go_one_hand": "{n} to go · 1 hand left", "goal_passed": "PASSED · {h} hands left",
-		"goal_passed_one_hand": "PASSED · 1 hand left", "goal_over": "+{n}", "goal_miss": "Missed: -{s} Soul",
-		"hud_seals_chip": "SEALS · {n}", "hud_nerve": "Nerve {n}", "goal_hint": "Bank points to reach the target."}
-	for id: String in want:
-		check(GoalStrings.get_text(id) == want[id], "strings_v1 %s" % id)
+	# The plate's words are TableGoalStrings' (main, #213) plus its own BOSS / SEALS.
+	check(TargetPlate.BOSS_TAG == "BOSS" and TargetPlate.SEALS_CHIP % 4 == "SEALS · 4", "plate BOSS tag and SEALS chip words")
+	check(TableGoalStrings.MISS % 2 == "Missed: -2 Soul" and TableGoalStrings.OVER % "40" == "+40", "miss / over words from TableGoalStrings")
 
 
-## PC: the real HUD, the stub following the run, every plate state, chips.
+## PC: the real HUD, the TableGoalState following the run, every plate state, chips.
 func _check_pc() -> void:
 	var m: Array = await _make(Vector2i(1920, 1080))
 	var s: Bonfire3D = m[1]
@@ -86,11 +83,12 @@ func _check_pc() -> void:
 	check(g != null and p.goal == g, "the HUD made a TableGoalState for the run and bound the plate")
 	check(p.is_visible_in_tree() and not h.checklist_panel.visible and not h.portrait_goal.visible, "plate shown, bounty cards and portrait readout hidden")
 	check(not h.hands_label.visible, "the hands line moved onto the plate")
-	# Empty PR1 state: no chips, SEALS hidden, target from the stub.
-	check(p.target_value.text == "300" and p.target_label.text == "TARGET", "TARGET 300 (%s)" % p.target_value.text)
+	# Fresh state: no chips, SEALS hidden, target read from the run's goal.
+	var want_t := TargetPlate.fmt(s.run.goal.target)
+	check(p.target_value.text == want_t and p.target_label.text == "TARGET", "TARGET %s (%s)" % [want_t, p.target_value.text])
 	check(p.chip_row.get_child_count() == 0, "no bounties: no empty chips")
 	check(not p.seals_chip.visible, "0 seals: no SEALS chip")
-	# The stub follows the run: a real throw and bank change banked / hands.
+	# The state follows the run: a real throw and bank change banked / hands.
 	var seen := {"changed": 0, "banked": 0}
 	g.changed.connect(func() -> void: seen["changed"] += 1)
 	g.banked_changed.connect(func(_v: int) -> void: seen["banked"] += 1)

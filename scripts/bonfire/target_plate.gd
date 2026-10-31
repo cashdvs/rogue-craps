@@ -14,6 +14,10 @@ const CREAM := Palette.BONE
 const BAR_FULL := Color("#F0CC72")
 const MAX_CHIPS: int = 2
 const HOVER_S: float = 0.15
+## Plate words TableGoalStrings has no id for yet (strings_v1 "hud_boss_tag",
+## "hud_seals_chip"); kept here so the plate needs no other strings table.
+const BOSS_TAG := "BOSS"
+const SEALS_CHIP := "SEALS · %d"
 
 ## Design px per spec px (the HUD sets it: PC 1.2, phone = ui_pt_px).
 var unit: float = 1.2
@@ -53,13 +57,13 @@ static func fmt(n: int) -> String:
 	return ("-" if n < 0 else "") + s + out
 
 
-## Line 3 text: goal_to_go / _one_hand, or goal_passed / _one_hand once banked >= target.
+## Line 3 text (TableGoalStrings TO_GO / PASSED, one-hand forms at 1 left).
 static func status_text(target: int, banked: int, hands_left: int) -> String:
 	var one := hands_left == 1
 	if banked >= target:
-		return GoalStrings.get_text("goal_passed_one_hand" if one else "goal_passed").format({"h": hands_left})
-	var id := "goal_to_go_one_hand" if one else "goal_to_go"
-	return GoalStrings.get_text(id).format({"n": fmt(target - banked), "h": hands_left})
+		return TableGoalStrings.PASSED_ONE_HAND if one else TableGoalStrings.PASSED % hands_left
+	var left := fmt(target - banked)
+	return TableGoalStrings.TO_GO_ONE_HAND % left if one else TableGoalStrings.TO_GO % [left, hands_left]
 
 
 func _ready() -> void:
@@ -70,11 +74,11 @@ func _ready() -> void:
 	var row1 := HBoxContainer.new()
 	row1.alignment = BoxContainer.ALIGNMENT_BEGIN
 	v.add_child(row1)
-	boss_tag.text = GoalStrings.get_text("hud_boss_tag")
+	boss_tag.text = BOSS_TAG
 	boss_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	boss_tag.visible = false
 	row1.add_child(boss_tag)
-	target_label.text = GoalStrings.get_text("goal_target_label")
+	target_label.text = TableGoalStrings.TARGET_LABEL
 	target_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row1.add_child(target_label)
 	row1.add_child(target_value)
@@ -173,7 +177,7 @@ func refresh() -> void:
 	boss_tag.visible = g != null and g.is_boss
 	line3.label_settings.font_color = Color(CREAM, 0.6)
 	if _miss_soul >= 0:
-		var parts := GoalStrings.get_text("goal_miss").format({"s": _miss_soul}).split(": ", true, 1)
+		var parts := (TableGoalStrings.MISS % _miss_soul).split(": ", true, 1)
 		line3.text = parts[0] + ":"
 		line3.label_settings.font_color = Palette.DANGER
 		line3_extra.text = parts[1] if parts.size() > 1 else ""
@@ -182,12 +186,12 @@ func refresh() -> void:
 	else:
 		line3.text = status_text(target, banked, hands)
 		if target > 0 and banked >= target:
-			line3_extra.text = GoalStrings.get_text("goal_over").format({"n": fmt(banked - target)})
+			line3_extra.text = TableGoalStrings.OVER % fmt(banked - target)
 			line3_extra.label_settings.font_color = Palette.BRASS_HI
 			line3_extra.visible = banked > target
 	_build_chips(g.bounties if g != null else [])
 	var seals := g.seals if g != null else 0
-	seals_chip.text = GoalStrings.get_text("hud_seals_chip").format({"n": seals})
+	seals_chip.text = SEALS_CHIP % seals
 	seals_chip.visible = visible and seals > 0  # no empty chip
 	bar.queue_redraw()
 

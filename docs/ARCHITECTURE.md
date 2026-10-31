@@ -233,10 +233,9 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   | `scripts/bonfire/help_corner.gd` | `HelpCorner` (child of `Bonfire3D`, made in `_ready`) | first-table controls text: fades 30 s after the first pot or on the first Bank, stays off on later tables; F1 / ? card with the Replay-tutorial link (`settings` can be swapped for a stub in tests) |
   | `scripts/bonfire/bonfire_hud_build.gd` | `BonfireHudBuild` (extends `Control`) | HUD variables; builds the labels, buttons and panels |
   | `scripts/bonfire/bonfire_hud_goal.gd` | `BonfireHudGoal` (`BonfireHud` extends it) | goal / bounty readout, meters, stamps, UI scale |
-  | `scripts/bonfire/target_plate.gd` | `TargetPlate` (extends `PanelContainer`) | Target HUD v2.1 plate: target, banked bar, hands/passed line, bounty chips; redraws on `TableGoalState.changed` |
+  | `scripts/bonfire/target_plate.gd` | `TargetPlate` (extends `PanelContainer`) | Target HUD v2.1 plate: target, banked bar, hands/passed line, bounty chips; redraws on `TableGoalState.changed`; words from `TableGoalStrings` plus its own BOSS / SEALS |
   | `scripts/bonfire/target_place.gd` | `TargetPlace` (static) | where the plate and SEALS chip sit on PC, phone landscape and portrait; `goal_rect(hud)` for blockers |
   | `scripts/bonfire/goal_icon.gd` | `GoalIcon` (extends `Control`) | drawn diamond / list / skull icons for the plate's chips |
-  | `scripts/bonfire/table_goal_state.gd` | `TableGoalState` (stub) | temporary goal-state stub until Systems Dev's `scripts/core` version lands, then deleted |
   | `scripts/bonfire/bonfire_juice_sound.gd` | `BonfireJuiceSound` (`BonfireJuice` extends it) | the juice adapter's constants, variables, hook log and every sound (SfxManager events with fallbacks, crowd layers) |
   | `scripts/core/bonfire_run_state.gd` | `BonfireRunState` (`BonfireRun` extends it) | a table's rule state, rule hooks and read-only questions; `BonfireRun` keeps the actions |
 
