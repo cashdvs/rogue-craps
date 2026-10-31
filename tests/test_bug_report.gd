@@ -52,11 +52,17 @@ func _run() -> void:
 	root.add_child(pm)
 	var found := 0
 	for n in pm.find_children("*", "Button", true, false):
-		if (n as Button).text == BugReport.BUTTON:
+		if (n as Button).text == "REPORT A BUG":
 			found += 1
 	check(found == 1, "pause menu has one Report a bug button (%d)" % found)
-	var t := BugReport.toast(pm, BugReport.SAVED % "/tmp/x.png")
+	var t := BugReport.toast(pm, BugReportStrings.get_text("bug_report_saved").format({"path": "/tmp/x.png"}))
 	check(t.text == "Screenshot saved, attach it: /tmp/x.png", "toast text")
+	# strings_v1 golden rows, loaded by id.
+	check(BugReportStrings.get_text("bug_report_button") == "REPORT A BUG", "bug_report_button")
+	check(BugReportStrings.get_text("bug_report_what") == "What happened:", "bug_report_what")
+	check(BugReportStrings.get_text("bug_report_saved") == "Screenshot saved, attach it: {path}", "bug_report_saved")
+	check(BugReportStrings.get_text("bug_report_no_mail") == "No mail app: report copied, email it to tinyanvilgames@mail.grokbot.com", "bug_report_no_mail")
+	check(BugReportStrings.get_text("nope") == "", "unknown id: empty")
 	# send(): success opens the mailto and copies nothing.
 	var opened: Array[String] = []
 	var copied: Array[String] = []

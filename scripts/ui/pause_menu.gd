@@ -61,7 +61,7 @@ func _init() -> void:
 		panel.visible = false
 		options.visible = true)
 	box.add_child(opt)
-	var bug := OptionsPanel.menu_button(BugReport.BUTTON, Palette.FELT_DARK)
+	var bug := OptionsPanel.menu_button(BugReportStrings.get_text("bug_report_button"), Palette.FELT_DARK)
 	bug.pressed.connect(func() -> void: BugReport.report(self))
 	box.add_child(bug)
 	quit_button = OptionsPanel.menu_button("QUIT TO TITLE", Palette.PIT_BLACK)
