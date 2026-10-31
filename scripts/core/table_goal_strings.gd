@@ -13,6 +13,8 @@ const MISS := "Missed: -%d Soul"  # goal_miss
 const PREVIEW_TARGET := "Target %s"  # table_preview_target
 const PREVIEW_TARGET_RULE := "Target %s · %s"  # table_preview_target_rule
 const PREVIEW_MISS := "Miss: -%d Soul"  # table_preview_miss
+const BOSS_TAG := "BOSS"  # goal_boss_tag (the plate's boss tag)
+const SEALS_CHIP := "SEALS · %d"  # hud_seals_chip ("SEALS · {n}")
 
 
 ## 1234567 -> "1,234,567".
@@ -43,6 +45,29 @@ static func progress(target_points: int, banked: int, hands_left: int) -> String
 ## "TARGET 1,000 · 360 to go · 3 hands left" for one-line HUD readouts.
 static func line(run: BonfireRun) -> String:
 	return "%s · %s" % [target(run.goal.target), progress(run.goal.target, run.points, run.hands_left)]
+
+
+## "SEALS · 3" for the HUD Seals chip.
+static func seals(n: int) -> String:
+	return SEALS_CHIP % n
+
+
+## The Soul a miss really costs at this table: `miss_soul` through each
+## table's rules (map RunRuleData or TableRule): the Bloodletter's
+## soul_cost_mult (default 2) doubles it, 5 -> 10.
+static func miss_cost(miss_soul: int, rules: Array) -> int:
+	var c := miss_soul
+	for r in rules:
+		if r is TableRule:
+			c = (r as TableRule).soul_cost(null, c, &"timeout")
+		elif r is RunRuleData and (r as RunRuleData).id == &"bloodletter":
+			c *= int((r as RunRuleData).params.get("soul_cost_mult", 2))
+	return c
+
+
+## Map table preview miss line: "Miss: -5 Soul" ("Miss: -10 Soul" under the Bloodletter).
+static func preview_miss(miss_soul: int, rules: Array = []) -> String:
+	return PREVIEW_MISS % miss_cost(miss_soul, rules)
 
 
 ## Map table preview: "Target 1,000" or "Target 1,000 · <rule>".
