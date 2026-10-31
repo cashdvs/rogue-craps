@@ -59,6 +59,8 @@ var throw_dice: Array[DieVisual] = []
 ## Dice set aside by earlier throws of this hand.
 var pot_dice: Array[DieVisual] = []
 var _felt_pos: Array[Vector3] = []
+## True when the last throw's dice were nudged into the phone rest rows (#204).
+var last_nudge := false
 var _brng := RandomNumberGenerator.new()
 ## Dice showing the lit (scoring) look; keys only.
 var _lights: Dictionary = {}

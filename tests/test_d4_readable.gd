@@ -101,15 +101,16 @@ func _check_tag(s: Bonfire3D, d4: DieVisual, screen_h: float, label: String) -> 
 	check(tag.text == str(d4.shown_value()), "%s: tag shows the value (%s vs %d)" % [label, tag.text, d4.shown_value()])
 	var px := _tag_rect(s, tag).size.y * screen_h / s.get_viewport().get_visible_rect().size.y
 	check(px >= 24.0, "%s: tag %.1f px tall (>= 24)" % [label, px])
-	# Park the d4 just under the felt seal row ("Lv1 120x12"), the AD's case.
-	var seal: Label3D = null
-	for n in s.get_viewport().find_children("*", "Label3D", true, false):
-		if (n as Label3D).text.begins_with("Lv1") and (n as Label3D).is_visible_in_tree():
-			seal = n
-	check(seal != null, "%s: felt seal row found" % label)
-	if seal != null:
-		d4.global_position = Vector3(seal.global_position.x, d4.global_position.y, seal.global_position.z + 0.05)
-		await _tag_clear(s, tag, label + " under the seal row")
+	# Park the d4 just under a felt combo slot, the AD's case. #204: the felt
+	# print is off on phone, so there is nothing to sit under there.
+	if s.felt_combos.off:
+		check(s.felt_combos.labels.is_empty(), "%s: felt combo slots off (#204)" % label)
+	else:
+		var seal: Label3D = s.felt_combos.labels.get(&"trips")
+		check(seal != null and seal.is_visible_in_tree(), "%s: felt combo slot found" % label)
+		if seal != null:
+			d4.global_position = Vector3(seal.global_position.x, d4.global_position.y, seal.global_position.z + 0.05)
+			await _tag_clear(s, tag, label + " under the combo slot")
 	await _check_neighbours(s, d4, tag, label)
 
 
