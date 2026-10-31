@@ -172,7 +172,9 @@ func _make_tag(p: Control, soul_loss: int, s: float) -> HBoxContainer:
 	soul_tag.name = "GoalMissTag"
 	soul_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	soul_tag.modulate.a = 0.0
-	var px := ceilf((TAG_PT_PHONE if is_phone() else TAG_PX_PC) * s)
+	# Never smaller than the plate's to-go line (line3) as rendered, nor the floor.
+	var l3: Variant = p.get("line3")
+	var px := maxf(ceilf((TAG_PT_PHONE if is_phone() else TAG_PX_PC) * s), float((l3 as Label).label_settings.font_size) if l3 is Label and (l3 as Label).label_settings != null else 0.0)
 	for part: Array in [[TableGoalStrings.MISS.split(" ")[0], Palette.DANGER], [SOUL_TEXT % soul_loss, Palette.SOUL_FLAME]]:
 		var l := Label.new()
 		l.text = part[0]

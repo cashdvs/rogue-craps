@@ -124,6 +124,27 @@ func _run() -> void:
 	check(fx.is_phone() and (fx.soul_tag.get_child(0) as Label).label_settings.font_size >= ceili(12.0 * 2.5), "phone: tag >= 12 pt")
 	check(is_equal_approx(fx.soul_tag.position.y, plate.position.y + plate.size.y + 8.0 * 2.5 - GoalFx.DROP_PX), "phone: 8 pt gap (pre-drop)")
 	tb.bhud.is_phone_land = false
+	fx.clear()
+	# Tag never smaller than the rendered to-go line (line3), as TargetPlace sizes it:
+	# PC 1280 wide (unit 0.8, text x1.4), PC 1920 (1.2), phone land (unit = pt), portrait.
+	for c: Array in [["PC 1280", 0.8, TargetPlace.PC_TEXT_SCALE, false, false], ["PC 1920", 1.2, TargetPlace.PC_TEXT_SCALE, false, false],
+			["phone", 2.5, 1.0, true, false], ["portrait", 2.5 * TargetPlace.PORTRAIT_SCALE, 1.0, false, true]]:
+		plate.unit = c[1]
+		plate.text_scale = c[2]
+		plate.restyle()
+		tb.bhud.is_phone_land = c[3]
+		tb.bhud.is_portrait = c[4]
+		tb.events.goal_missed.emit(5)
+		var togo := plate.line3.label_settings.font_size
+		var tsz := (fx.soul_tag.get_child(0) as Label).label_settings.font_size
+		print("  %s: tag %d px, to-go %d px" % [c[0], tsz, togo])
+		check(tsz >= togo and (fx.soul_tag.get_child(1) as Label).label_settings.font_size >= togo, "%s: tag >= to-go line" % c[0])
+		fx.clear()
+	tb.bhud.is_phone_land = false
+	tb.bhud.is_portrait = false
+	plate.unit = 1.0
+	plate.text_scale = 1.0
+	plate.restyle()
 	tb.events.table_started.emit()
 	check(fx.soul_tag == null and plate.modulate.is_equal_approx(Color.WHITE), "table_started clears")
 
