@@ -147,7 +147,7 @@ and a few tiny spark dots that **fall** sideways (never rise above the die).
 | Call | Used by | Look |
 |---|---|---|
 | `apply(d, tier)` / `clear(d)` | score count-up | tier glow 0..3: amber → orange → gold → near-white (`TIER_COLORS`); pips stay ink |
-| `hot_hand_pulse(d, fx_root, reduced)` | `BonfireJuice.hot_hand` | 0.25 s full-ember pulse + 6 spark dots (glow only; sound is TableAudio's `hot_hand`) |
+| `hot_hand_pulse(d, fx_root, reduced)` | `BonfireJuice.hot_hand` | 0.15 s outline ignite at the Hot Hand pulse peak + tier-3 glow (emission 0.3) + 6 spark dots (glow only; sound is TableAudio's `hot_hand`) |
 | `ember_trail(d, fx_root, seconds)` | `fly_start` / `fly_stop` | short spark-dot trail (fades in ~0.3 s) behind dice flying back |
 | `sparks(parent, at, amount, life)` | tier glow | small falling dots |
 
@@ -206,11 +206,12 @@ look for the rest of a HOT hand: it starts on `events.hot_hand` and stops on `ba
 (`DieVisual.hull_outline`, `shaders/3d/die_hull_outline.gdshader`) breathes (AD spec):
 
 - width 1.0-1.5x the base 0.010 m on a 0.9 s sine (`0.5 - 0.5 cos`, low at t = 0, peak at 0.45 s);
-- colour #E8622A -> #FFA13A in step with the width;
+- colour #E8622A -> #FFA13A on screen, in step with the width (the shader draws `color * (1 + emission)`, so the uniform is pre-divided by 1.3);
+- ignite: on start the outline jumps to the peak for 0.15 s (`IGNITE_TIME`, also `DieGlow.hot_hand_pulse`), then the sine carries on from its peak;
 - outline emission held at 0.3 (no emission pulse);
 - reduced motion: a static 1.25x outline at the midpoint colour; no scale pulse at all (the optional 1.04x is left out so the die transform stays the sim's).
 
 Outline uniforms only: the die body is never tinted, no particles, no fire. Dimmed and plain dice are
 skipped; stop puts width back to 0.010 m and re-applies the die's own outline state.
-The separate one-shot "ignite" (`DieGlow.hot_hand_pulse`, table above) is unchanged.
+`DieGlow.hot_hand_pulse` no longer flares body emission 1.6 -> 1.0: it keeps the tier-3 glow (emission 0.3), the sparks, and the one-shot outline ignite beat (none under reduced motion).
 Tests: `tests/test_hot_hand_pulse.gd`. Capture: `tools/capture_hot_hand_pulse.gd` (Vulkan Forward+ only).

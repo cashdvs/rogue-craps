@@ -28,7 +28,8 @@ const TRAIL_STEP: float = 0.045
 ## Hot Hand: spark count and life (a small burst, not a flare-up).
 const HOT_SPARKS: int = 6
 const HOT_SPARK_LIFE: float = 0.3
-const HOT_PULSE_TIME: float = 0.25
+## Hot Hand ignite beat (outline at peak), = HotHandPulseFx.IGNITE_TIME.
+const HOT_IGNITE_TIME: float = 0.15
 ## Spark / trail aim: DOWN so the cone opens into the felt and sideways.
 ## Spread stays under 90° so the worst-case initial velocity.y is ≤ 0 (no
 ## rising flame cue above the die). Gravity is strongly negative so dots
@@ -90,16 +91,17 @@ static func clear(d: DieVisual) -> void:
 		halo.queue_free()
 
 
-## Hot Hand "ignite": a full ember glow pulse on the die (up in a frame, eases
-## to the held Hot Hand glow) plus a few spark dots that pop out and fall.
-## Returns the tween (tests).
+## Hot Hand "ignite" (AD, #220): a one-shot outline beat, no body flare.
+## The ember hull outline jumps to the pulse peak (HotHandPulseFx) for
+## HOT_IGNITE_TIME, then HotHandPulseFx's sine takes over. Body emission
+## stays at the tier-3 glow (0.3, no emission pulse). Plus a few spark dots
+## that pop out and fall. Returns the ignite beat's tween (tests).
 static func hot_hand_pulse(d: DieVisual, fx_root: Node3D, reduced: bool) -> Tween:
 	apply(d, 3)
-	var m := d.body_material
+	if not reduced:
+		HotHandPulseFx.apply_peak(d)
 	var tw := d.create_tween().set_ignore_time_scale(true)
-	if m != null:
-		m.set_shader_parameter("emission_color", Palette.EMBER)
-		tw.tween_method(func(e: float) -> void: m.set_shader_parameter("emission_energy", e), 1.6, 1.0, HOT_PULSE_TIME)
+	tw.tween_interval(HOT_IGNITE_TIME)
 	sparks(fx_root, d.global_position, HOT_SPARKS / 2 if reduced else HOT_SPARKS, HOT_SPARK_LIFE)
 	return tw
 

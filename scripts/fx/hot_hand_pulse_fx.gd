@@ -18,6 +18,9 @@ const REDUCED_WIDTH := 1.25
 const COLOR_LOW := Color("#E8622A")
 const COLOR_PEAK := Color("#FFA13A")
 const EMISSION := 0.3
+## One-shot ignite: the outline holds the peak for one beat, then the sine
+## takes over from its peak (AD; replaces the old 1.6 -> 1.0 body flare).
+const IGNITE_TIME := 0.15
 
 ## The Table3D this sits under (parent, set in _ready).
 var table: Node
@@ -25,6 +28,8 @@ var table: Node
 @export var reduced_motion: bool = false
 var active: bool = false
 var _t: float = 0.0
+## Seconds of ignite (peak hold) left.
+var _ignite: float = 0.0
 ## Dice whose outline this node has changed (restored on stop).
 var _touched: Dictionary = {}
 
@@ -46,6 +51,7 @@ func _ready() -> void:
 			ev.connect(sig, stop)
 
 
+## True when reduced motion is on (this node's export, or the table's setting).
 func is_reduced() -> bool:
 	if reduced_motion:
 		return true
@@ -57,19 +63,50 @@ static func phase(t: float) -> float:
 	return 0.5 - 0.5 * cos(TAU * t / PERIOD)
 
 
-## {width_mult, width, color, emission} at time t.
+## {width_mult, width, color, screen_color, emission} at time t. The shader
+## draws color * (1 + emission), so `color` is pre-divided: `screen_color`
+## (what lands on screen) runs exactly #E8622A -> #FFA13A.
 static func sample(t: float, reduced: bool = false) -> Dictionary:
 	var k := 0.5 if reduced else phase(t)
 	var mult := REDUCED_WIDTH if reduced else lerpf(WIDTH_MIN, WIDTH_MAX, k)
-	return {"width_mult": mult, "width": BASE_WIDTH * mult, "color": COLOR_LOW.lerp(COLOR_PEAK, k), "emission": EMISSION}
+	var on_screen := COLOR_LOW.lerp(COLOR_PEAK, k)
+	return {"width_mult": mult, "width": BASE_WIDTH * mult, "screen_color": on_screen,
+		"color": shader_color(on_screen), "emission": EMISSION}
 
 
+## The `color` uniform that renders as `on_screen` at EMISSION.
+static func shader_color(on_screen: Color) -> Color:
+	var c := on_screen / (1.0 + EMISSION)
+	c.a = 1.0
+	return c
+
+
+## Peak look for the ignite beat (DieGlow.hot_hand_pulse uses it too).
+static func peak() -> Dictionary:
+	return sample(PERIOD * 0.5)
+
+
+## Puts die d's outline at the peak (ignite). Lit, undimmed dice only.
+static func apply_peak(d: DieVisual) -> void:
+	if d == null or d.hull_outline == null or not d.hull_outline.visible or d.outline_dimmed:
+		return
+	var s := peak()
+	var m := d.hull_outline.material_override as ShaderMaterial
+	m.set_shader_parameter("width", float(s["width"]))
+	m.set_shader_parameter("color", s["color"])
+	m.set_shader_parameter("emission_energy", float(s["emission"]))
+
+
+## Starts the pulse (on events.hot_hand): ignite beat at the peak, then the sine.
 func start() -> void:
 	active = true
-	_t = 0.0
+	# Ignite: hold the peak one beat, then the sine carries on from its peak.
+	_t = PERIOD * 0.5
+	_ignite = 0.0 if is_reduced() else IGNITE_TIME
 	_apply()
 
 
+## Ends the pulse and puts every touched die's outline back (restore_outline).
 func stop() -> void:
 	active = false
 	for d in _touched.keys():
@@ -85,12 +122,22 @@ func _process(delta: float) -> void:
 
 ## Advances the pulse by dt seconds and applies it (tests call this directly).
 func step(dt: float) -> void:
+	if _ignite > 0.0:
+		var used := minf(dt, _ignite)
+		_ignite -= used
+		dt -= used
 	_t = fmod(_t + dt, PERIOD)
 	_apply()
 
 
+## The pulse sample now (see sample), honouring reduced motion.
 func current() -> Dictionary:
 	return sample(_t, is_reduced())
+
+
+## True during the ignite beat (outline held at the peak).
+func is_igniting() -> bool:
+	return active and _ignite > 0.0
 
 
 func _dice() -> Array:
@@ -125,4 +172,4 @@ func _restore(d: DieVisual) -> void:
 	if d.hull_outline == null:
 		return
 	(d.hull_outline.material_override as ShaderMaterial).set_shader_parameter("width", BASE_WIDTH)
-	d.call(&"_apply_outline_state")
+	d.restore_outline()

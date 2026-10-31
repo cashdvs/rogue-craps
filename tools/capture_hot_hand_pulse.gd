@@ -1,6 +1,7 @@
 ## Capture: Hot Hand pulse 48 px strip. Rows: lit (no Hot Hand) | pulse low
 ## (t=0, 1.0x #E8622A) | pulse peak (t=0.45 s, 1.5x #FFA13A) | reduced motion
-## (static 1.25x); columns: three lit bone dice, 48 px each. Refuses to run
+## (static 1.25x). Also die0_<low|peak>_<48|96>.png singles (same die) for
+## the labelled low-vs-peak pair; columns: three lit bone dice, 48 px each. Refuses to run
 ## unless the renderer is Vulkan Forward+:
 ##   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-method forward_plus \\
 ##       --rendering-driver vulkan --resolution 1280x720 --script res://tools/capture_hot_hand_pulse.gd -- --out=/workspace/dice/captures/hot_hand_pulse/
@@ -58,11 +59,12 @@ func _run() -> void:
 	for r in rows.size():
 		match rows[r]:
 			"lit": fx.stop()
-			"low": fx.reduced_motion = false; fx.start()
-			"peak": fx.step(0.45)
+			"low": fx.reduced_motion = false; fx.start(); fx.step(HotHandPulseFx.IGNITE_TIME + HotHandPulseFx.PERIOD * 0.5)
+			"peak": fx.step(HotHandPulseFx.PERIOD * 0.5)
 			"reduced": fx.reduced_motion = true; fx.start()
 		var m := dice[0].hull_outline.material_override as ShaderMaterial
-		print("%s: width=%.4f color=%s emission=%.2f" % [rows[r], m.get_shader_parameter("width"), (m.get_shader_parameter("color") as Color).to_html(false), m.get_shader_parameter("emission_energy")])
+		var sc: Color = (m.get_shader_parameter("color") as Color) * (1.0 + float(m.get_shader_parameter("emission_energy")))
+		print("%s: width=%.4f color=%s on_screen=%s emission=%.2f" % [rows[r], m.get_shader_parameter("width"), (m.get_shader_parameter("color") as Color).to_html(false), Color(sc.r, sc.g, sc.b).to_html(false), m.get_shader_parameter("emission_energy")])
 		for i in 6:
 			await process_frame
 		await RenderingServer.frame_post_draw
@@ -78,6 +80,13 @@ func _run() -> void:
 			var crop := img.get_region(Rect2i(int(c.x) - half, int(c.y) - half, half * 2, half * 2))
 			crop.convert(Image.FORMAT_RGB8)
 			crop.resize(CROP_PX, CROP_PX, Image.INTERPOLATE_LANCZOS)
+			if i == 0 and rows[r] in ["low", "peak"]:
+				# Same die, low vs peak: 48 px and 2x (96 px) singles for the labelled pair.
+				var big2 := img.get_region(Rect2i(int(c.x) - half, int(c.y) - half, half * 2, half * 2))
+				big2.convert(Image.FORMAT_RGB8)
+				big2.resize(CROP_PX * 2, CROP_PX * 2, Image.INTERPOLATE_LANCZOS)
+				crop.save_png("%sdie0_%s_48.png" % [_out, rows[r]])
+				big2.save_png("%sdie0_%s_96.png" % [_out, rows[r]])
 			strip.blit_rect(crop, Rect2i(0, 0, CROP_PX, CROP_PX), Vector2i(i * CROP_PX, r * CROP_PX))
 	strip.save_png("%shot_hand_pulse_48_strip.png" % _out)
 	var big := strip.duplicate() as Image
