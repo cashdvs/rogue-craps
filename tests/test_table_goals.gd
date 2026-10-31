@@ -79,7 +79,7 @@ func _pair_gain() -> int:
 
 
 func _test_data() -> void:
-	var want := [[350, 500, 1600, 14], [1000, 1300, 2500, 16], [2500, 3000, 3500, 18]]
+	var want := [[350, 500, 2200, 14], [1000, 1300, 2500, 16], [2500, 3000, 3500, 18]]
 	for f in 3:
 		var fd: FloorData = _data.floors[f]
 		_check([fd.target_table, fd.target_elite, fd.target_boss, fd.clear_embers] == want[f] and fd.miss_soul == 5,
@@ -257,9 +257,9 @@ func _test_state() -> void:
 	_check(gs.seals == 1 and got["seals"] == [1], "state: taking a Seal -> seals 1, seals_changed (%s)" % [got["seals"]])
 	_enter(run, NT.BOSS)
 	var bs := TableGoalState.watch(BonfireRun.new(_tuning, run.goal, 30, 5))
-	_check(bs.is_boss and bs.target == 1600 and bs.seals == 0, "state: boss table, no map run -> seals 0")
+	_check(bs.is_boss and bs.target == 2200 and bs.seals == 0, "state: boss table, no map run -> seals 0")
 	var ms := TableGoalState.watch(run)
-	_check(ms.map_run == run and ms.run == null and ms.is_boss and ms.target == 1600 and ms.banked == 0
+	_check(ms.map_run == run and ms.run == null and ms.is_boss and ms.target == 2200 and ms.banked == 0
 		and ms.hands_left == run.goal.hands and ms.seals == 1, "state: watch(map_run) alone -> map goal, seals, banked 0")
 	var both := TableGoalState.watch(run, bs.run)
 	_check(both.run == bs.run and both.map_run == run, "state: watch(map_run, run) in either order")
