@@ -6,9 +6,9 @@
 ## (the runner's --headless has no GPU), which draws a cube with bellows_body.tres as shipped and
 ## with face_shade = 0, and checks the side face is darker only with face_shade on. Deleting the
 ## face_shade branch in toon_noir.gdshader fails this. Needs a display: with no DISPLAY /
-## WAYLAND_DISPLAY (Linux), or if the helper fails to start or reports a non-opengl3 renderer, the
-## render checks print 'SKIPPED: no display ...' and count as neither pass nor fail (the
-## material-value checks above always run).
+## WAYLAND_DISPLAY (Linux) the render checks print 'SKIPPED: no display ...' and count as neither
+## pass nor fail. If either is set, a helper that fails to start, returns no/partial result, or
+## reports a non-opengl3 renderer is a hard FAIL. The material-value checks always run.
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_bellows_face_shade.gd
@@ -88,8 +88,10 @@ func _has_display() -> bool:
 
 func _render_check() -> void:
 	if not _has_display():
-		_skip("DISPLAY and WAYLAND_DISPLAY are unset")
+		_skip("DISPLAY and WAYLAND_DISPLAY are both unset")
 		return
+	# A display is present: from here on every problem is a hard FAIL, never a skip, so a shader
+	# compile crash or a renderer fallback can't pass silently.
 	var out: Array = []
 	var args := ["--rendering-driver", "opengl3", "--path", ProjectSettings.globalize_path("res://"),
 		"--script", "res://tests/support/face_shade_render.gd"]
@@ -99,13 +101,14 @@ func _render_check() -> void:
 		if line.begins_with("FS_RESULT "):
 			r = JSON.parse_string(line.trim_prefix("FS_RESULT "))
 	if not r is Dictionary:
-		_skip("render helper failed to start or gave no result, exit %d" % code)
+		_check(false, "render helper failed to start or gave no FS_RESULT (exit %d) with a display set (DISPLAY='%s' WAYLAND_DISPLAY='%s')" % [code, OS.get_environment("DISPLAY"), OS.get_environment("WAYLAND_DISPLAY")])
 		return
-	if str(r.get("driver", "")) != "opengl3":
-		_skip("render helper got renderer '%s', not opengl3" % str(r.get("driver", "")))
+	var keys_ok: bool = r.has("top_on") and r.has("side_on") and r.has("top_off") and r.has("side_off")
+	_check(keys_ok, "render helper returned all four samples (got keys %s)" % str(r.keys()))
+	var drv := str(r.get("driver", ""))
+	_check(drv == "opengl3", "rendered with opengl3 (got '%s')" % drv)
+	if not keys_ok or drv != "opengl3":
 		return
-	_check(r.has("top_on") and r.has("side_on") and r.has("top_off") and r.has("side_off"), "render helper returned all four samples")
-	_check(r["driver"] == "opengl3", "rendered with opengl3 (%s)" % r["driver"])
 	var top_on := _lum3(r["top_on"])
 	var top_off := _lum3(r["top_off"])
 	var side_on := _lum3(r["side_on"])
