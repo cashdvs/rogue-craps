@@ -112,6 +112,8 @@ func _emit_table_cleared() -> void:
 	if _cleared_emitted:
 		return
 	_cleared_emitted = true
+	if run.goal.target > 0:
+		events.goal_reached.emit()  # target tables: the goal sting first (#222)
 	events.table_cleared.emit()
 
 

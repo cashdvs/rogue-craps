@@ -50,6 +50,15 @@ signal table_started()
 ## The table is cleared: the TABLE CLEARED banner (bank that clears it) or
 ## Leave table. Exactly once per table (between two table_started).
 signal table_cleared()
+## Table goals (#222): the bank that reaches a target table's goal
+## (goal.target > 0). Fires once, just before table_cleared, so the goal
+## sting can stand in for the TABLE CLEARED cue. A bounty table (no target)
+## sends only table_cleared.
+signal goal_reached()
+## Table goals (#222): a target table ended short of its target (out of
+## hands, or given up). soul_loss: the Soul the miss really cost, after the
+## rules (e.g. the Bloodletter's x2), the same number the Soul meter loses.
+signal goal_missed(soul_loss: int)
 ## A boss cheat changed dice after they settled (e.g. Madame Shuffle's
 ## reroll): its rule id and the dice it touched.
 signal boss_cheat(cheat_id: StringName, die_ids: Array)
@@ -102,3 +111,16 @@ const PIP_LEAD := 0.167
 
 func _init() -> void:
 	name = "TableEvents"
+
+
+## Sends goal_missed when this run's target table ends without reaching its
+## goal. Bonfire3D calls it once for each new run. (The run decides the end
+## and the Soul it costs; this only passes the news on.)
+func watch_goal(run: BonfireRun) -> void:
+	run.table_event.connect(func(kind: StringName, data: Dictionary) -> void:
+		if kind != &"table_end" or run.goal.target <= 0:
+			return
+		# FAILED, or RUN_OVER because the miss took the last Soul.
+		var lost := int(run.table_summary.get("timeout_soul", 0))
+		if data.get("state") == BonfireRun.State.FAILED or lost > 0:
+			goal_missed.emit(lost))
