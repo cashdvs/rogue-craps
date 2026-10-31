@@ -9,7 +9,7 @@
 script = ExtResource("1_bodk")
 id = &"odds_bodkin"
 display_name = "Odds Bodkin"
-description = "Bounties count only on each hand's first throw; +1 hand."
+description = "Odds Bodkin gives you +1 hand at this table."
 kind = 1
 hands_delta = 1
 params = {

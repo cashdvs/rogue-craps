@@ -223,7 +223,7 @@ func _show_table() -> void:
 	var g := run.goal
 	# Target table preview (table_goals_v1 PR1 §3.1).
 	var lines: Array = [TableGoalStrings.preview(g.target, run.rules[0].display_name if not run.rules.is_empty() else ""),
-		"Hands: %d" % g.hands, TableGoalStrings.PREVIEW_MISS % g.miss_soul]
+		"Hands: %d" % g.hands, TableGoalStrings.preview_miss(g.miss_soul, run.rules)]
 	for r in run.rules:
 		lines.append("%s: %s - %s" % ["Cheat" if r.kind == RunRuleData.Kind.CHEAT else "Twist", r.display_name, r.text(g.hands)])
 	if run.table_type == NT.BOSS:
