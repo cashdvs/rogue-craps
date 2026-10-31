@@ -64,7 +64,9 @@ func _check_text() -> void:
 	check(TargetPlate.status_text(300, 299, 2) != "PASSED · 2 hands left", "target - 1 is not passed")
 	check(TargetPlate.status_text(300, 340, 1) == "PASSED · 1 hand left", "goal_passed_one_hand")
 	# The plate's words are TableGoalStrings' (main, #213) plus its own BOSS / SEALS.
-	check(TargetPlate.BOSS_TAG == "BOSS" and TargetPlate.SEALS_CHIP % 4 == "SEALS · 4", "plate BOSS tag and SEALS chip words")
+	check(TableGoalStrings.BOSS_TAG == "BOSS" and TableGoalStrings.seals(4) == "SEALS · 4", "plate BOSS tag and SEALS chip words")
+	check(TargetPlate.seals_text(2) == "SEALS · 2" and TargetPlate.seals_text(5) == "SEALS · 5", "SEALS · n for n >= 2 (%s)" % TargetPlate.seals_text(2))
+	check(TargetPlate.seals_text(1) == "SEAL · 1", "one Seal reads 'SEAL · 1' (%s)" % TargetPlate.seals_text(1))
 	check(TableGoalStrings.MISS % 2 == "Missed: -2 Soul" and TableGoalStrings.OVER % "40" == "+40", "miss / over words from TableGoalStrings")
 
 
@@ -111,6 +113,13 @@ func _check_pc() -> void:
 	check(p.line3.text == "150 to go · 3 hands left" and not p.line3_extra.visible, "line 3 to go")
 	check(is_equal_approx(p.fill(), 120.0 / 270.0) and p.bar_color() == Palette.BRASS, "bar fill and brass")
 	check(p.seals_chip.visible and p.seals_chip.text == "SEALS · 4", "SEALS · 4 (%s)" % p.seals_chip.text)
+	for c in [[2, true, "SEALS · 2"], [1, true, "SEAL · 1"], [0, false, ""]]:
+		g.set_for_test(270, 120, 3, null, c[0])
+		await _frames(1)
+		check(p.seals_chip.visible == c[1] and (not c[1] or p.seals_chip.text == c[2]),
+			"%d Seals on the plate: %s (%s, shown %s)" % [c[0], c[2] if c[1] else "chip hidden", p.seals_chip.text, p.seals_chip.visible])
+	g.set_for_test(270, 120, 3, null, 4)
+	await _frames(1)
 	var pressed := [0]
 	p.seals_pressed.connect(func() -> void: pressed[0] += 1)
 	p.seals_chip.pressed.emit()
@@ -128,12 +137,26 @@ func _check_pc() -> void:
 	p.show_miss(-1)
 	# Boss: a small brass BOSS tag left of TARGET (no red); hidden otherwise.
 	check(not p.boss_tag.visible, "no BOSS tag on a normal table")
-	# (Banked moves too: main's set_for_test only emits `changed` when a
-	# number changes, not for is_boss alone.)
-	g.set_for_test(123456, 12401, 2, null, 4, true)
+	# Only is_boss flips (no number moves): is_boss_changed shows the tag.
+	g.set_for_test(123456, 12400, 2, null, 4, true)
 	await _frames(1)
 	check(p.boss_tag.visible and p.boss_tag.text == "BOSS" and p.boss_tag.label_settings.font_color == Palette.BRASS_HI, "boss: brass BOSS tag")
 	check(p.boss_tag.get_index() < p.target_label.get_index() and p.boss_tag.get_parent() == p.target_label.get_parent(), "BOSS sits left of TARGET")
+	g.set_for_test(123456, 12400, 2, null, 4)
+	await _frames(1)
+	check(not p.boss_tag.visible and p.banked_value.text == "12,400", "flipping only is_boss back hides the BOSS tag")
+	# A plate bound to a goal that is already a boss shows the tag at once.
+	g.set_for_test(123456, 12400, 2, null, 4, true)
+	var p2 := TargetPlate.new()
+	root.add_child(p2)
+	p2.bind(g)
+	check(p2.boss_tag.visible, "bind() to a boss goal shows BOSS straight away")
+	p2.bind(null)
+	check(not p2.boss_tag.visible, "unbound: no BOSS tag")
+	g.set_for_test(123456, 12400, 2, null, 4)
+	g.set_for_test(123456, 12400, 2, null, 4, true)
+	check(not p2.boss_tag.visible, "unbinding stops the old goal's boss flips")
+	p2.queue_free()
 	g.set_for_test(123456, 12400, 2, null, 4)
 	# text_scale grows text (not padding or chips): AD PC x1.4.
 	p.text_scale = 1.4
