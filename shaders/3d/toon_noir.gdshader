@@ -78,10 +78,16 @@ uniform float state_rim_energy = 0.6;
 uniform float state_rim_power = 5.0;
 // Playtest fix: a lit die only warms its albedo this much (pips/body stay readable).
 uniform float lit_albedo_mix_max = 0.35;
+// Per-face value tint (AD, Bellows shop icon): faces that do not point up
+// get their albedo darkened by face_shade (e.g. 0.22 = 22% darker value, the Bellows body), so the
+// top reads lighter than the sides under any light. Mask = world-space up
+// normal, so it follows whichever face is up. 0 = off (every other prop).
+uniform float face_shade = 0.0;
 
 varying vec3 obj_pos;
 varying vec3 obj_normal;
 varying vec3 world_pos;
+varying vec3 world_normal;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -95,6 +101,7 @@ void vertex() {
 	obj_pos = VERTEX;
 	obj_normal = NORMAL;
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 }
 
 void fragment() {
@@ -122,6 +129,10 @@ void fragment() {
 		} else if (abs(r - 0.72) < 0.035) {
 			col = ring_color.rgb;
 		}
+	}
+	if (face_shade > 0.0) {
+		float up = normalize(world_normal).y;
+		col *= mix(1.0 - face_shade, 1.0, smoothstep(0.6, 0.85, up));
 	}
 	if (scorch > 0.0) {
 		col *= 1.0 - 0.5 * scorch;

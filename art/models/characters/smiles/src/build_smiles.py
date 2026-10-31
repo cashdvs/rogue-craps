@@ -162,6 +162,67 @@ def rot(x=0.0, y=0.0, z=0.0):
     return Euler((math.radians(x), math.radians(y), math.radians(z)), "XYZ").to_matrix()
 
 
+# ---------------------------------------------------------------- shared relaxed hand (Smiles + every boss)
+# Cash playtest (Oct 30): "the hands still look unnatural and weird". The old hands were a flat paddle with four
+# dead-straight tubes as long as the palm and a half (rakes / garden forks at the table), and the thumb ran parallel
+# to them. A relaxed human hand has fingers about as long as the palm, a cascade of curl (index least, pinky most)
+# and a thumb that sits forward of the palm, opposed. The rig has one bone per finger group (index, fingers, thumb),
+# so the relaxed curl is SCULPTED into the bind pose (bent at the knuckle, middle and end joints) and the bones only
+# add to it. Bone names, heads and count are unchanged.
+#   hand frame at rest: hangs down -Z from hand_s (x = sx*0.2, z = -0.085), palm faces the body (-sx X), thumb -Y.
+FINGERS = (  # (name, bone, thumb-side offset at the knuckle, length, (knuckle, middle, end joint) curl in degrees, fan deg)
+    ("index", "index", 0.024, 0.068, (8, 26, 16), 4),
+    ("middle", "fingers", 0.008, 0.074, (12, 32, 20), 0),
+    ("ring", "fingers", -0.008, 0.069, (16, 38, 24), -4),
+    ("pinky", "fingers", -0.023, 0.055, (22, 44, 28), -9),
+)
+PHALANX = (0.46, 0.31, 0.23)  # proximal / middle / distal share of the finger length
+
+
+def hand_point(sx, u, v, w):
+    """u = down the hand from the wrist pivot, v = toward the palm side, w = toward the thumb side."""
+    return (sx * 0.2 - sx * v, -w, -0.085 - u)
+
+
+def build_hand(part, s, mat, S, k=1.0, wrist_r=0.021, palm_r=0.037, fr=0.0098, tip=0.0, finger_mat=None,
+               palm_flat=0.52, seg_lo=4):
+    """Relaxed hand on hand_s / thumb_s / index_s / fingers_s. k scales the whole hand; fr = finger root radius;
+    tip = fingertip radius (0 = pointed claw); finger_mat = a different material for the fingers (Collector)."""
+    sx = 1 if s == "L" else -1
+    H = "hand_" + s
+    fm = finger_mat or mat
+    pt = lambda u, v, w: hand_point(sx, u * k, v * k, w * k)
+    # wrist + palm: palm ~6.6 cm long (wrist crease -> knuckles), ~1.75x the wrist width, a little thicker at the heel
+    part.tube([(pt(-0.012, 0, 0), wrist_r * k), (pt(0.018, 0.001, 0), wrist_r * 1.08 * k)], mat, H, seg=S(8, seg_lo))
+    part.tube([(pt(0.008, 0.002, 0.0), palm_r * 0.8 * k), (pt(0.042, 0.003, 0.0), palm_r * k), (pt(0.08, -0.002, 0.0), palm_r * 0.86 * k)],
+              mat, H, seg=S(10, seg_lo), flat=palm_flat, flat_axis=(1, 0, 0))
+    for _n, bone, w0, ln, curl, fan in FINGERS:
+        u, v, w = 0.077, 0.004, w0
+        a = 0.0
+        pts = [(pt(u, v, w), fr * k)]
+        rads = (0.95, 0.85, 0.72)
+        fw = math.sin(math.radians(fan))
+        for j, (share, c) in enumerate(zip(PHALANX, curl)):
+            a += math.radians(c)
+            seglen = ln * share
+            u += math.cos(a) * seglen
+            v += math.sin(a) * seglen
+            w += fw * seglen * 0.6
+            pts.append((pt(u, v, w), fr * rads[j] * k))
+        if tip <= 0.0:  # short claw past the fingertip
+            a += math.radians(10)
+            pts.append((pt(u + math.cos(a) * 0.012, v + math.sin(a) * 0.012, w), 0.0))
+        else:
+            pts[-1] = (pts[-1][0], max(tip, fr * 0.6) * k)
+        part.tube(pts, fm, bone + "_" + s, seg=S(5, seg_lo))
+    # thumb: a fat root on the heel of the palm (the thenar pad), angled forward of the palm, bent toward the index
+    tp = [(0.024, 0.008, 0.022), (0.05, 0.026, 0.042), (0.074, 0.036, 0.049), (0.088, 0.041, 0.046)]
+    pts = [(pt(*tp[0]), fr * 1.7 * k), (pt(*tp[1]), fr * 1.15 * k), (pt(*tp[2]), fr * 0.95 * k), (pt(*tp[3]), fr * (0.72 if tip else 0.6) * k)]
+    if tip <= 0.0:
+        pts.append((pt(0.097, 0.044, 0.042), 0.0))
+    part.tube(pts, mat, "thumb_" + s, seg=S(5, seg_lo))
+
+
 def build_model(arm, mobile):
     q = 0.74 if mobile else 1.25  # segment scale
 
@@ -204,18 +265,8 @@ def build_model(arm, mobile):
         body.tube([((sx * 0.185, 0.008, 0.15), 0.036), ((sx * 0.192, 0.002, 0.03), 0.041), ((sx * 0.198, 0, -0.045), 0.034)], "smiles_shirt", "forearm_" + s, seg=S(12))
         body.tube([((sx * 0.198, 0, -0.04), 0.037), ((sx * 0.2, 0, -0.082), 0.035)], "smiles_shirt", "forearm_" + s, seg=S(12))
         body.ellipsoid((sx * 0.2, -0.034, -0.062), (0.007, 0.004, 0.007), "smiles_gold", "forearm_" + s, seg=(S(6), S(4)))
-        # hand: wrist, big palm, three finger groups with claws (palm faces the body: -sx X)
-        H = "hand_" + s
-        body.tube([((sx * 0.2, 0, -0.07), 0.021), ((sx * 0.2, 0, -0.105), 0.026)], "smiles_skin", H, seg=S(8))
-        body.tube([((sx * 0.2, 0.0, -0.095), 0.03), ((sx * 0.2, -0.002, -0.135), 0.045), ((sx * 0.2, -0.004, -0.17), 0.042)], "smiles_skin", H, seg=S(10), flat=0.42, flat_axis=(1, 0, 0))
-        body.tube([((sx * 0.192, -0.03, -0.11), 0.014), ((sx * 0.182, -0.05, -0.14), 0.011), ((sx * 0.175, -0.066, -0.165), 0.008), ((sx * 0.172, -0.074, -0.18), 0.0)],
-                  "smiles_skin", "thumb_" + s, seg=S(7))
-        body.tube([((sx * 0.2, -0.026, -0.168), 0.011), ((sx * 0.199, -0.03, -0.215), 0.0095), ((sx * 0.196, -0.034, -0.255), 0.007), ((sx * 0.194, -0.036, -0.275), 0.0)],
-                  "smiles_skin", "index_" + s, seg=S(7))
-        for dy, ln in ((-0.004, 0.115), (0.016, 0.105), (0.034, 0.085)):
-            y = dy
-            body.tube([((sx * 0.2, y, -0.17), 0.0105), ((sx * 0.199, y, -0.17 - ln * 0.5), 0.009), ((sx * 0.196, y + 0.003, -0.17 - ln * 0.85), 0.0065), ((sx * 0.194, y + 0.004, -0.17 - ln), 0.0)],
-                      "smiles_skin", "fingers_" + s, seg=S(6))
+        # hand: wrist, palm, four relaxed fingers + thumb, claws (palm faces the body: -sx X)
+        build_hand(body, s, "smiles_skin", S)
     ob_body = body.finish(arm)
 
     head = Part("Smiles_Head")
@@ -335,16 +386,28 @@ def _local_euler(r_arm):
     return tuple(round(math.degrees(a), 2) for a in e)
 
 
-def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0, palm=None):
+def _arm_mat(e):
+    """Bone-local euler degrees -> armature-space rotation (inverse of _local_euler)."""
+    m = Matrix(((1, 0, 0), (0, 0, 1), (0, -1, 0))).transposed()
+    return m @ Euler([math.radians(a) for a in e], "XYZ").to_matrix() @ m.inverted()
+
+
+def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0, palm=None, sh=None):
     """Pose upper_arm_s / forearm_s so the wrist lands on `wrist` (armature rest coords, i.e. relative to the
     unposed chest; the chest / spine lean carries it). pole = a point the elbow bends toward.
     palm (with fingers): armature-space direction the palm should face. Without it the palm roll is whatever
     the forearm twist leaves (it depends on the elbow pole), so two hands with mirrored wrists / fingers can
-    still end up rolled 180 deg apart (both thumbs to the same side). Give mirrored palms for mirrored hands."""
-    S = Vector(BONES["upper_arm_" + s][1])
+    still end up rolled 180 deg apart (both thumbs to the same side). Give mirrored palms for mirrored hands.
+    sh: shoulder_s euler (bone-local degrees: X = round forward / back, Z = shrug up when sx * Z < 0 ... see SHRUG).
+    The IK is solved from the moved shoulder, so the wrist still lands on `wrist` and the shoulders can move
+    with the gesture (before, the shoulders never moved in any clip: the stiff "coat hanger" read)."""
+    Rsh = _arm_mat(sh) if sh else Matrix.Identity(3)
+    SH = Vector(BONES["shoulder_" + s][1])
+    S = SH + Rsh @ (Vector(BONES["upper_arm_" + s][1]) - SH)
+    S_rest = Vector(BONES["upper_arm_" + s][1])
     E0 = Vector(BONES["forearm_" + s][1])
     W0 = Vector(BONES["hand_" + s][1])
-    a, b = (E0 - S).length, (W0 - E0).length
+    a, b = (E0 - S_rest).length, (W0 - E0).length
     W = Vector(wrist)
     d = min((W - S).length, a + b - 1e-4)
     n = (W - S).normalized()
@@ -354,12 +417,13 @@ def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0, palm=
     pv = (pv - n * pv.dot(n)).normalized()
     E = S + n * x + pv * h
     Wr = S + n * d
-    ru = (E0 - S).rotation_difference(E - S).to_matrix()
+    ru = (E0 - S_rest).rotation_difference(E - S).to_matrix()  # world (armature) rotation of the upper arm
     fw = ru.inverted() @ (Wr - E)  # wrist direction in the upper arm's posed frame
     rf = (W0 - E0).rotation_difference(fw).to_matrix()
     if twist:
         rf = Matrix.Rotation(math.radians(twist), 3, (W0 - E0).normalized()) @ rf
-    out = {"upper_arm_" + s: _local_euler(ru), "forearm_" + s: _local_euler(rf), "hand_" + s: hand}
+    out = {"upper_arm_" + s: _local_euler(Rsh.inverted() @ ru), "forearm_" + s: _local_euler(rf), "hand_" + s: hand}
+    out["shoulder_" + s] = tuple(sh) if sh else (0, 0, 0)  # always keyed: an arm solved from the rest shoulder must not inherit a moved one
     if fingers is not None:  # aim the hand (wrist -> knuckles) along an armature-space direction
         rest = Vector((0, -0.004, -0.085))
         want = (ru @ rf).inverted() @ Vector(fingers).normalized()
@@ -379,10 +443,16 @@ def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0, palm=
     return out
 
 
+def shd(s, fwd=0.0, up=0.0):
+    """shoulder_s euler: fwd rounds the shoulder forward (toward the table), up shrugs it."""
+    sx = 1 if s == "L" else -1
+    return (0.0, -sx * fwd, sx * up)
+
+
 # Base standing pose: leaning in over the rail, face up toward the game camera, hands steepled.
 STAND = {
     "spine": (3, 0, 0), "chest": (4, 0, 0), "neck": (-16, 0, 0), "head": (-26, 0, 0),
-    **arm("L", (0.065, -0.04, 0.36), (0.35, 0.25, 0.0), fingers=(-0.35, 0.02, 1)), **arm("R", (-0.065, -0.04, 0.36), (-0.35, 0.25, 0.0), fingers=(0.35, 0.02, 1)),
+    **arm("L", (0.065, -0.04, 0.36), (0.35, 0.25, 0.0), fingers=(-0.35, 0.02, 1), sh=shd("L", 4, -1)), **arm("R", (-0.065, -0.04, 0.36), (-0.35, 0.25, 0.0), fingers=(0.35, 0.02, 1), sh=shd("R", 4, -1)),
     "index_L": (0, 0, -6), "fingers_L": (0, 0, -10), "thumb_L": (0, 0, -8),
     "index_R": (0, 0, 6), "fingers_R": (0, 0, 10), "thumb_R": (0, 0, 8),
 }
@@ -424,14 +494,20 @@ def clip(name, length_s, keys, loop=False):
 # Both forearms rest on the rail palms DOWN (knuckles up; the chip rolls over the back of the right hand).
 # palm= pins each hand's roll so the two hands mirror (before: left palm down, right palm up = two "right hands").
 IDLE_PALM = (0, -0.2, -1)
-_lean = arm("L", (0.1, -0.05, 0.655), (0.17, 0.35, 0.05), fingers=(-0.35, -1, 0.26), palm=IDLE_PALM)
-_chip_hand = P(STAND, _lean, arm("R", (-0.17, -0.05, 0.655), (-0.45, 0.3, 0.1), fingers=(0.3, -1, 0.24), palm=IDLE_PALM), spine=(6, 0, 0), chest=(10, 0, 0))
-_chip_hand2 = P(STAND, _lean, arm("R", (-0.17, -0.055, 0.665), (-0.45, 0.3, 0.1), fingers=(0.35, -1, 0.3), palm=IDLE_PALM), spine=(6, 0, 0), chest=(10, 0, 0))
+# Natural-hands pass (Cash, Oct 30): the wrists were cocked UP (fingers 15 deg above the forearm line) with the
+# shoulders square; now the wrists sit near neutral (a few degrees of droop over the rail), the sculpted finger curl
+# hangs off the rail edge, and both shoulders round forward onto the forearms and rise / settle with the breath.
+_lean = arm("L", (0.1, -0.05, 0.677), (0.17, 0.35, 0.05), fingers=(-0.35, -1, 0.42), palm=IDLE_PALM, sh=shd("L", 7, 2))
+_lean2 = arm("L", (0.1, -0.052, 0.68), (0.17, 0.35, 0.05), fingers=(-0.33, -1, 0.42), palm=IDLE_PALM, sh=shd("L", 8, 4))
+# fingers draped on the rail: the sculpted curl is eased open a little so the tips rest on the rail, not in it
+_rail_fingers = {"index_L": (0, 0, 18), "fingers_L": (0, 0, 22), "thumb_L": (0, 0, 14), "index_R": (0, 0, -18), "fingers_R": (0, 0, -22), "thumb_R": (0, 0, -14)}
+_chip_hand = P(STAND, _lean, _rail_fingers, arm("R", (-0.17, -0.05, 0.679), (-0.45, 0.3, 0.1), fingers=(0.3, -1, 0.4), palm=IDLE_PALM, sh=shd("R", 6, 2)), spine=(6, 0, 0), chest=(10, 0, 0))
+_chip_hand2 = P(STAND, _lean2, _rail_fingers, arm("R", (-0.17, -0.055, 0.687), (-0.45, 0.3, 0.1), fingers=(0.35, -1, 0.42), palm=IDLE_PALM, sh=shd("R", 7, 4)), spine=(6, 0, 0), chest=(10, 0, 0))
 clip("idle", 3.0, [
     (0.0, P(_chip_hand, chip=(0, 0, 0, -0.025, 0, 0))),
     (0.5, P(_chip_hand2, chest=(10, 0, 0), chip=(90, 0, 0, -0.025, -0.012, 0))),
-    (1.0, P(_chip_hand2, chest=(10, 0, 0), head=(-24, 0, 4), chip=(180, 0, 0, -0.025, -0.024, 0), index_R=(0, 0, 14))),
-    (1.4, P(_chip_hand2, chest=(10, 0, 0), head=(-26, 0, 5), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8), chip=(260, 0, 0, -0.025, -0.03, 0), index_R=(0, 0, 14))),
+    (1.0, P(_chip_hand2, chest=(10, 0, 0), head=(-24, 0, 4), chip=(180, 0, 0, -0.025, -0.024, 0), index_R=(0, 0, 2))),
+    (1.4, P(_chip_hand2, chest=(10, 0, 0), head=(-26, 0, 5), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8), chip=(260, 0, 0, -0.025, -0.03, 0), index_R=(0, 0, 2))),
     (1.7, P(_chip_hand2, chest=(10, 0, 0), head=(-25, 0, 3), jaw=(0, 0, 0), chip=(300, 0, 0, -0.025, -0.02, 0))),
     (2.2, P(_chip_hand, chest=(10, 0, 0), head=(-23, 0, 0), chip=(340, 0, 0, -0.025, -0.008, 0))),
     (3.0, P(_chip_hand, chip=(360, 0, 0, -0.025, 0, 0))),
@@ -443,10 +519,10 @@ clip("idle", 3.0, [
 
 # taunt (1.4 s, bust): lean in, cackle (jaw chatter, head tipped back a little), jab a finger at the player at
 # eye height (the hand stays at or below his head)
-_point = P(STAND, arm("R", (-0.17, -0.06, 0.63), (-0.4, 0.3, 0.2), fingers=(0.15, -1, 0.38)), arm("L", (0.1, -0.08, 0.12), (0.5, 0.1, 0.2), hand=(0, 0, 0)),
+_point = P(STAND, arm("R", (-0.17, -0.06, 0.63), (-0.4, 0.3, 0.2), fingers=(0.15, -1, 0.38), sh=shd("R", 9, 3)), arm("L", (0.1, -0.08, 0.12), (0.5, 0.1, 0.2), hand=(0, 0, 0), sh=shd("L", 0, -3)),
            curl("L", 50), spine=(4, 0, 0), chest=(5, 0, 0), neck=(-18, 0, 0), head=(-28, 0, 0),
            index_R=(0, 0, 0), fingers_R=(0, 0, 70), thumb_R=(0, 0, 30))
-_wind = arm("R", (-0.21, 0.03, 0.54), (-0.45, 0.3, 0.2), fingers=(0.1, -0.3, 1))
+_wind = arm("R", (-0.21, 0.03, 0.54), (-0.45, 0.3, 0.2), fingers=(0.1, -0.3, 1), sh=shd("R", -4, 4))
 _wind_back = arm("R", (-0.22, 0.03, 0.47), (-0.45, 0.3, 0.2), fingers=(0.1, -0.25, 1))
 clip("taunt", 1.4, [
     (0.0, STAND),
@@ -476,9 +552,9 @@ def _clap(hx, wy=None, wz=None, fs=0.12, roll=None):
     wy = CW[0] if wy is None else wy
     wz = CW[1] if wz is None else wz
     roll = PALM_ROLL if roll is None else roll
-    return {**arm("L", (hx, wy, wz), (0.17, 0.35, 0.35), fingers=(fs, FY, 1), roll=roll),
-            **arm("R", (-hx, wy, wz), (-0.17, 0.35, 0.35), fingers=(-fs, FY, 1), roll=-roll), **_splay}
-_clap_open = P(STAND, _crack, _up, _clap(0.075))
+    return {**arm("L", (hx, wy, wz), (0.17, 0.35, 0.35), fingers=(fs, FY, 1), roll=roll, sh=shd("L", 3, 4)),
+            **arm("R", (-hx, wy, wz), (-0.17, 0.35, 0.35), fingers=(-fs, FY, 1), roll=-roll, sh=shd("R", 3, 4)), **_splay}
+_clap_open = P(STAND, _crack, _up, _clap(0.083))
 _clap_shut = P(_clap_open, _clap(0.017, fs=0.0))
 # The way up / down: dense keys along a wrist path (straight up behind the rail, then forward over it) with the palm
 # roll ramped, so the FK in-betweens never swing the wrists across each other or out toward the brazier.
@@ -506,14 +582,14 @@ clip("grudging", 1.6, [
 # that way, visor tipped down, and the right hand palms the chip low by his right shoulder and flicks it up the
 # cuff (hand at or below head height; left hand stays down behind the rail), then a smug grin.
 _glance = P(STAND, head=(-14, -16, 8), neck=(-12, -7, 0), visor=(12, 0, 0))
-_cuff = lambda wx, wy, wz, f: arm("R", (wx, wy, wz), (-0.3, 0.35, -0.1), fingers=f)
+_cuff = lambda wx, wy, wz, f: arm("R", (wx, wy, wz), (-0.3, 0.35, -0.1), fingers=f, sh=shd("R", 3, 6))
 clip("cheat", 1.2, [
     (0.0, STAND),
-    (0.1, P(STAND, _cuff(-0.13, -0.03, 0.47, (0.15, -0.1, 1)), head=(-12, -10, 4), neck=(-8, -4, 0), visor=(6, 0, 0))),
+    (0.1, P(STAND, _cuff(-0.14, 0.0, 0.53, (0.2, -0.45, 0.85)), head=(-12, -10, 4), neck=(-8, -4, 0), visor=(6, 0, 0))),
     (0.2, P(_glance, _cuff(-0.2, -0.03, 0.545, (0.25, -0.3, 1)))),
     (0.45, P(_glance, _cuff(-0.22, -0.01, 0.565, (-0.25, -0.2, 1)), chip=(40, 0, 0, 0, 0.0, 0, 0.6))),
-    (0.6, P(_glance, _cuff(-0.215, -0.01, 0.545, (-0.3, -0.15, 1)), head=(-18, 10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
-    (0.72, P(STAND, _cuff(-0.15, 0.03, 0.5, (0.15, 0.1, 1)), head=(-20, -4, 4), visor=(7, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10),
+    (0.6, P(_glance, _cuff(-0.215, -0.01, 0.545, (-0.15, -0.3, 1)), head=(-18, 10, 0), chip=(80, 0, 0, 0, 0.0, 0, 0.0))),
+    (0.72, P(STAND, _cuff(-0.15, 0.03, 0.5, (0.15, -0.15, 1)), head=(-20, -4, 4), visor=(7, 0, 0), grin_L=(0, 0, 10), grin_R=(0, 0, -10),
              chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (0.79, P(STAND, _cuff(-0.12, 0.03, 0.42, (0.25, 0.08, 1)), head=(-21, -2, 5), visor=(5, 0, 0), grin_L=(0, 0, 12), grin_R=(0, 0, -12),
              chip=(0, 0, 0, 0, 0, 0, 0.0))),
@@ -525,18 +601,20 @@ clip("cheat", 1.2, [
 # deal (1.0 s): right hand flicks a chip out across the felt, low over the rail (inside the phone band)
 clip("deal", 1.0, [
     (0.0, STAND),
-    (0.25, P(STAND, arm("R", (-0.17, -0.02, 0.5), (-0.5, 0.35, 0.0), fingers=(0.1, 0.0, 1)), chest=(2, -3, 0))),
-    (0.42, P(STAND, arm("R", (-0.15, -0.2, 0.675), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.12)), chest=(4, 6, 0), chip=(0, 0, 0, 0, 0, 0.0, 1.0))),
-    (0.5, P(STAND, arm("R", (-0.15, -0.2, 0.68), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.12)), chest=(4, 6, 0), chip=(0, 0, 0, 0, 0, 0.03, 0.0))),
-    (0.7, P(STAND, arm("R", (-0.19, -0.04, 0.58), (-0.45, 0.4, 0.3), fingers=(0.1, -0.2, 1)), chest=(3, 2, 0), chip=(0, 0, 0, 0, 0, 0, 0.0))),
+    (0.25, P(STAND, arm("R", (-0.17, 0.01, 0.56), (-0.5, 0.35, 0.0), fingers=(0.1, -0.4, 0.9), sh=shd("R", -3, 3)), chest=(2, -3, 0), index_R=(0, 0, 14), fingers_R=(0, 0, 18))),
+    (0.42, P(STAND, arm("R", (-0.15, -0.2, 0.688), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.04), sh=shd("R", 10, 2)), arm("L", (0.075, -0.045, 0.37), (0.35, 0.25, 0.0), fingers=(-0.35, 0.0, 1), sh=shd("L", 2, -2)),
+             chest=(4, 6, 0), index_R=(0, 0, -8), fingers_R=(0, 0, -4), thumb_R=(0, 0, -14), chip=(0, 0, 0, 0, 0, 0.0, 1.0))),
+    (0.5, P(STAND, arm("R", (-0.15, -0.2, 0.692), (-0.45, 0.4, 0.4), fingers=(0.1, -1, 0.06), sh=shd("R", 10, 2)), arm("L", (0.075, -0.045, 0.37), (0.35, 0.25, 0.0), fingers=(-0.35, 0.0, 1), sh=shd("L", 2, -2)),
+            chest=(4, 6, 0), index_R=(0, 0, -6), fingers_R=(0, 0, 0), thumb_R=(0, 0, -12), chip=(0, 0, 0, 0, 0, 0.03, 0.0))),
+    (0.7, P(STAND, arm("R", (-0.19, -0.04, 0.58), (-0.45, 0.4, 0.3), fingers=(0.1, -0.2, 1), sh=shd("R", 4, 2)), chest=(3, 2, 0), chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (0.9, P(STAND, chip=(0, 0, 0, 0, 0, 0, 0.0))),
     (1.0, P(STAND, chip=(0, 0, 0, 0, 0, 0, 1.0))),
 ])
 
 # MC variant (boss in the dealer spot, Smiles on the left rail): upright, fist on hip, chip held up
 _mc = P({"spine": (0, 0, 0), "chest": (2, 0, 0), "neck": (-6, 0, 0), "head": (-14, 0, -4)},
-        arm("L", (0.2, 0.0, 0.02), (0.6, 0.3, 0.2), hand=(0, 0, -10)), curl("L", 60),
-        arm("R", (-0.3, 0.0, 0.62), (-0.5, 0.1, 0.3), hand=(0, -30, 0)), index_R=(0, 0, 6))
+        arm("L", (0.2, 0.0, 0.02), (0.6, 0.3, 0.2), hand=(0, 0, -10), sh=shd("L", -3, 2)), curl("L", 60),
+        arm("R", (-0.3, 0.0, 0.62), (-0.5, 0.1, 0.3), hand=(0, -30, 0), sh=shd("R", 2, 5)), index_R=(0, 0, 6))
 clip("mc_idle", 2.4, [
     (0.0, _mc),
     (0.6, P(_mc, chest=(4, 0, 2), head=(-16, 0, 2), jaw=(4, 0, 0))),
@@ -544,9 +622,9 @@ clip("mc_idle", 2.4, [
     (1.8, P(_mc, chest=(4, 0, -2), head=(-16, 0, 4), grin_L=(0, 0, 6), grin_R=(0, 0, -6))),
     (2.4, _mc),
 ], loop=True)
-_cheer = P(_mc, arm("L", (0.3, -0.05, 0.82), (0.6, 0.2, 0.4)), arm("R", (-0.3, -0.05, 0.82), (-0.6, 0.2, 0.4)), curl("L", 80), curl("R", 80),
+_cheer = P(_mc, arm("L", (0.3, -0.05, 0.82), (0.6, 0.2, 0.4), sh=shd("L", 0, 9)), arm("R", (-0.3, -0.05, 0.82), (-0.6, 0.2, 0.4), sh=shd("R", 0, 9)), curl("L", 80), curl("R", 80),
            spine=(-4, 0, 0), chest=(-6, 0, 0), head=(-26, 0, 0), jaw=(26, 0, 0), grin_L=(0, 0, 12), grin_R=(0, 0, -12))
-_cheer2 = P(_cheer, arm("L", (0.26, -0.05, 0.74), (0.6, 0.2, 0.4)), arm("R", (-0.26, -0.05, 0.74), (-0.6, 0.2, 0.4)), jaw=(10, 0, 0))
+_cheer2 = P(_cheer, arm("L", (0.26, -0.05, 0.74), (0.6, 0.2, 0.4), sh=shd("L", 0, 5)), arm("R", (-0.26, -0.05, 0.74), (-0.6, 0.2, 0.4), sh=shd("R", 0, 5)), jaw=(10, 0, 0))
 clip("mc_cheer", 1.2, [
     (0.0, _mc),
     (0.2, _cheer),

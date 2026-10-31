@@ -32,8 +32,12 @@ var boss_misses: int = 0
 var tables_played: int = 0
 ## Tables (any kind) cleared this run, for the end summary.
 var tables_cleared: int = 0
+## Points banked at every table this run, and the best combo banked
+## (seal_combos order; &"" = none), for the RUN COMPLETE screen.
+var run_points: int = 0
+var best_combo: StringName = &""
 ## Why the run ended: &"soul" (Soul ran out), &"boss" (missed the boss and
-## its re-sit), &"contract" (last boss beaten without every piece), &"won".
+## its re-sit), &"complete" (beat the boss of the last floor in floors_in_run), &"contract" (last boss beaten without every piece), &"won".
 var end_reason: StringName = &""
 
 ## Reward screen: Seal options (combo ids, or rare Seal ids) and Elite dice.
@@ -62,6 +66,14 @@ var rest_mod: FaceModData
 ## The FloorData of the floor being played.
 func floor_data() -> FloorData:
 	return data.floors[floor_index]
+
+
+## Add one table's banked points and combos to the run's score stats.
+func _record_score(points: int, banked: Array[StringName]) -> void:
+	run_points += points
+	for c in banked:
+		if data.seal_combos.find(c) > data.seal_combos.find(best_combo):
+			best_combo = c
 
 
 func _rng(purpose: StringName, extra: int = 0) -> RandomNumberGenerator:

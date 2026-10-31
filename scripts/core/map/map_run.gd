@@ -15,6 +15,7 @@ func _init(run_data: RunData, seed_value: int) -> void:
 	run_seed = seed_value
 	progress = RunProgress.new(data)
 	_start_floor(0)
+	BugReport.set_run(self)
 
 
 func _start_floor(i: int) -> void:
@@ -33,6 +34,29 @@ func _start_floor(i: int) -> void:
 	boss_misses = 0
 	progress.next_table_twist = null  # an unplayed event twist expires with the floor
 	_set_screen(Screen.MAP)
+
+
+## Dev sandbox (SandboxPreset): start floor `i` (0-based) on its map.
+func sandbox_floor(i: int) -> void:
+	if i != floor_index:
+		_start_floor(i)
+
+
+## Dev sandbox: open node `id` of type `t` directly (no travel), with
+## `forced_boss` as the floor boss when non-null. Shop rolls its stock;
+## Table / Elite / Boss build the goal.
+func enter_for_sandbox(t: NT, id: int, forced_boss: RunRuleData = null) -> void:
+	if forced_boss != null:
+		boss = forced_boss
+	map.current_id = id
+	map.visited.append(id)
+	if t == NT.SHOP:
+		_roll_shop()
+		_set_screen(Screen.SHOP)
+	else:
+		table_type = t
+		goal = make_goal(t)
+		_set_screen(Screen.TABLE)
 
 
 ## The floor boss's name (its cheat), or "Boss".
@@ -160,6 +184,10 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 		_set_screen(Screen.MAP)
 		return
 	tables_cleared += 1
+	if table_type == NT.BOSS and data.is_last_floor(floor_index):
+		progress.change_embers(data.boss_embers)
+		_end(&"complete")
+		return
 	if table_type == NT.BOSS:
 		progress.change_embers(data.boss_embers)
 		progress.gain_contract_piece()
@@ -174,6 +202,7 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 ## each banked pot's combo counts toward the Black Seal.
 func apply_outcome(o: TableOutcome) -> void:
 	progress.remove_dice(o.shattered_dice)
+	_record_score(o.points, o.banked_combos)
 	finish_table(o.cleared and not o.forfeited, o.soul_after, o.embers, o.banked_combos)
 
 
@@ -266,6 +295,6 @@ func choose_event(i: int, picks: Array[Vector2i] = []) -> Array[String]:
 
 func _end(reason: StringName) -> void:
 	end_reason = reason
-	_set_screen(Screen.RUN_WON if reason == &"won" else Screen.RUN_OVER)
+	_set_screen(Screen.RUN_WON if reason in [&"won", &"complete"] else Screen.RUN_OVER)
 
 

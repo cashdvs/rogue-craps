@@ -71,16 +71,8 @@ def build_model(arm, mobile):
         body.ellipsoid((sx * 0.185, 0.008, 0.15), (0.044, 0.044, 0.044), "pitboss_skin", "forearm_" + s, seg=(S(10), S(6)))
         body.tube([((sx * 0.185, 0.008, 0.15), 0.044), ((sx * 0.192, 0.002, 0.03), 0.048), ((sx * 0.198, 0, -0.06), 0.034)], "pitboss_skin", "forearm_" + s, seg=S(12))
         # hand: same bones and joint spots as Smiles; thick blunt fingers, no claws
-        H = "hand_" + s
-        body.tube([((sx * 0.2, 0, -0.07), 0.026), ((sx * 0.2, 0, -0.105), 0.03)], "pitboss_skin", H, seg=S(8))
-        body.tube([((sx * 0.2, 0.0, -0.095), 0.034), ((sx * 0.2, -0.002, -0.135), 0.048), ((sx * 0.2, -0.004, -0.17), 0.045)], "pitboss_skin", H, seg=S(10), flat=0.5, flat_axis=(1, 0, 0))
-        body.tube([((sx * 0.192, -0.03, -0.11), 0.016), ((sx * 0.182, -0.05, -0.14), 0.014), ((sx * 0.176, -0.064, -0.162), 0.011), ((sx * 0.174, -0.068, -0.17), 0.005)],
-                  "pitboss_skin", "thumb_" + s, seg=S(7))
-        body.tube([((sx * 0.2, -0.028, -0.168), 0.0135), ((sx * 0.199, -0.031, -0.21), 0.012), ((sx * 0.197, -0.033, -0.24), 0.01), ((sx * 0.196, -0.034, -0.25), 0.004)],
-                  "pitboss_skin", "index_" + s, seg=S(7))
-        for dy, ln in ((-0.004, 0.085), (0.017, 0.08), (0.036, 0.065)):
-            body.tube([((sx * 0.2, dy, -0.17), 0.0135), ((sx * 0.199, dy, -0.17 - ln * 0.6), 0.012), ((sx * 0.197, dy + 0.002, -0.17 - ln * 0.95), 0.009), ((sx * 0.196, dy + 0.002, -0.17 - ln), 0.004)],
-                      "pitboss_skin", "fingers_" + s, seg=S(6))
+        # relaxed hand (shared builder, natural-hands pass): sculpted finger curl, opposed thumb
+        bs.build_hand(body, s, "pitboss_skin", S, k=1.06, wrist_r=0.025, palm_r=0.041, fr=0.0124, tip=0.0045)
     ob_body = body.finish(arm)
 
     head = P("PitBoss_Head")

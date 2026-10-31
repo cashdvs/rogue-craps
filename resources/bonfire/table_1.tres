@@ -1,49 +1,11 @@
-[gd_resource type="Resource" script_class="TableGoal" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="TableGoal" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/table_goal.gd" id="1_goal"]
-[ext_resource type="Script" path="res://scripts/data/bounty_data.gd" id="2_bounty"]
-
-[sub_resource type="Resource" id="b_triple"]
-script = ExtResource("2_bounty")
-id = &"triple"
-display_name = "Trips"
-description = "Pot three of a kind."
-kind = 0
-n = 3
-bonus_embers = 0
-
-[sub_resource type="Resource" id="b_run3"]
-script = ExtResource("2_bounty")
-id = &"run3"
-display_name = "Run of 3"
-description = "Pot three numbers in a row."
-kind = 1
-n = 3
-bonus_embers = 0
-
-[sub_resource type="Resource" id="b_two_pairs"]
-script = ExtResource("2_bounty")
-id = &"two_pairs"
-display_name = "Two Pair"
-description = "Pot two different pairs in one pot."
-kind = 2
-n = 2
-bonus_embers = 0
-
-[sub_resource type="Resource" id="b_full_house"]
-script = ExtResource("2_bounty")
-id = &"full_house"
-display_name = "Full House"
-description = "Pot three of a kind plus a pair."
-kind = 3
-n = 5
-bonus_embers = 5
 
 [resource]
 script = ExtResource("1_goal")
 display_name = "Table 1"
 hands = 5
-required = Array[ExtResource("2_bounty")]([SubResource("b_triple"), SubResource("b_run3"), SubResource("b_two_pairs")])
-bonus = Array[ExtResource("2_bounty")]([SubResource("b_full_house")])
 clear_embers = 10
-timeout_soul_per_bounty = 3
+target = 350
+miss_soul = 5

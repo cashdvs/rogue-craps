@@ -60,14 +60,8 @@ def build_model(arm, mobile):
         b.tube([((sx * 0.15, 0, 0.41), 0.048), ((sx * 0.17, 0.002, 0.27), 0.045), ((sx * 0.185, 0.008, 0.16), 0.042)], "col_coat", "upper_arm_" + s, seg=S(10))
         b.tube([((sx * 0.185, 0.008, 0.17), 0.043), ((sx * 0.192, 0.002, 0.03), 0.04), ((sx * 0.198, 0, -0.05), 0.04)], "col_coat", "forearm_" + s, seg=S(10))
         b.tube([((sx * 0.198, 0, -0.035), 0.044), ((sx * 0.199, 0, -0.065), 0.044)], "col_brass", "forearm_" + s, seg=S(10))  # cuff band
-        H = "hand_" + s
-        # furred paw-hands: same joints as Smiles, dark fur, short claws (bone)
-        b.tube([((sx * 0.2, 0, -0.07), 0.024), ((sx * 0.2, 0, -0.105), 0.027)], "col_fur_dark", H, seg=S(8))
-        b.tube([((sx * 0.2, 0.0, -0.095), 0.031), ((sx * 0.2, -0.002, -0.135), 0.042), ((sx * 0.2, -0.004, -0.17), 0.04)], "col_fur_dark", H, seg=S(10), flat=0.5, flat_axis=(1, 0, 0))
-        b.tube([((sx * 0.192, -0.03, -0.11), 0.013), ((sx * 0.182, -0.05, -0.14), 0.012), ((sx * 0.176, -0.064, -0.162), 0.009), ((sx * 0.174, -0.068, -0.17), 0.004)], "col_fur_dark", "thumb_" + s, seg=S(6))
-        b.tube([((sx * 0.2, -0.028, -0.168), 0.012), ((sx * 0.199, -0.031, -0.21), 0.011), ((sx * 0.197, -0.033, -0.24), 0.008), ((sx * 0.196, -0.034, -0.252), 0.003)], "col_fur_dark", "index_" + s, seg=S(6))
-        for dy, ln in ((-0.004, 0.085), (0.016, 0.08), (0.034, 0.065)):
-            b.tube([((sx * 0.2, dy, -0.17), 0.012), ((sx * 0.199, dy, -0.17 - ln * 0.6), 0.011), ((sx * 0.197, dy + 0.002, -0.17 - ln * 0.9), 0.008), ((sx * 0.196, dy + 0.002, -0.17 - ln), 0.003)], "col_bone", "fingers_" + s, seg=S(6))
+        # relaxed hand (shared builder, natural-hands pass): sculpted finger curl, opposed thumb
+        bs.build_hand(b, s, "col_fur_dark", S, wrist_r=0.024, palm_r=0.036, fr=0.0112, tip=0.0, finger_mat="col_bone")
     ob_body = b.finish(arm)
 
     h = P("Collector_Head")
