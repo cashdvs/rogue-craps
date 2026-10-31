@@ -197,3 +197,12 @@ Boss-dealer FX for Ashmouth "Smiles": an ash puff out of the firebox door at 0.1
 - **Art rules:** greys only, no fire, no violet/cyan/red; soft 10-12 cm clouds of a procedural radial soft-dot texture that grow 1.5x; every burst under 0.6 s; must read at 48 px.
 - **Renderer / motion:** GPUParticles3D on Forward+, CPUParticles3D otherwise. Reduced motion (~1/3 the dots) follows the game setting, read live from the nearest ancestor's `is_reduced_motion()` (Table3D) or `reduced_motion` (Bonfire3D, Dealer3D); the `@export reduced_motion` forces it on.
 - Tests: `tests/test_fx_ashmouth_puffs.gd`. Capture: `tools/capture_ashmouth_puffs.gd` (Vulkan Forward+, `phone=844x390`; needs the local Ashmouth assets).
+
+## Goal reached / missed (`goal_fx.gd`)
+
+`GoalFx` listens to `TableEvents.goal_reached` and `goal_missed(soul_loss)` (#229) and plays a short, visual-only cue on the HUD target plate (`bhud.target_plate`). It never touches the dice, the run or the pot flow: its tweens ignore time scale and nothing awaits, so a pot is never slowed.
+- reached: an Ember #E8622A border (3 px) and a faint Ember wash (0.22) over the plate, fading out in 0.35 s;
+- missed: the plate dims (0.25 s) and an Ember "-N Soul" tag drops 14 px into place under it, held 1.4 s. N is the `soul_loss` #229 sends (after the rules, e.g. the Bloodletter's x2), shown as given and never recomputed;
+- reduced motion / Instant: nothing moves; the flare and dim hold still for the same time, then snap off; the tag shows in place;
+- cleared at once on `table_started`; binds to nothing until #229's signals exist.
+Hooked by one line in `table_3d.gd` (`add_child(GoalFx.new())`). Tests: `tests/test_goal_fx.gd`. Capture: `tools/capture_goal_fx.gd` (Vulkan Forward+ only).
