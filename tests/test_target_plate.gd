@@ -65,6 +65,8 @@ func _check_text() -> void:
 	check(TargetPlate.status_text(300, 340, 1) == "PASSED · 1 hand left", "goal_passed_one_hand")
 	# The plate's words are TableGoalStrings' (main, #213) plus its own BOSS / SEALS.
 	check(TableGoalStrings.BOSS_TAG == "BOSS" and TableGoalStrings.seals(4) == "SEALS · 4", "plate BOSS tag and SEALS chip words")
+	check(TargetPlate.seals_text(2) == "SEALS · 2" and TargetPlate.seals_text(5) == "SEALS · 5", "SEALS · n for n >= 2 (%s)" % TargetPlate.seals_text(2))
+	check(TargetPlate.seals_text(1) == "SEAL · 1", "one Seal reads 'SEAL · 1' (%s)" % TargetPlate.seals_text(1))
 	check(TableGoalStrings.MISS % 2 == "Missed: -2 Soul" and TableGoalStrings.OVER % "40" == "+40", "miss / over words from TableGoalStrings")
 
 
@@ -111,6 +113,13 @@ func _check_pc() -> void:
 	check(p.line3.text == "150 to go · 3 hands left" and not p.line3_extra.visible, "line 3 to go")
 	check(is_equal_approx(p.fill(), 120.0 / 270.0) and p.bar_color() == Palette.BRASS, "bar fill and brass")
 	check(p.seals_chip.visible and p.seals_chip.text == "SEALS · 4", "SEALS · 4 (%s)" % p.seals_chip.text)
+	for c in [[2, true, "SEALS · 2"], [1, true, "SEAL · 1"], [0, false, ""]]:
+		g.set_for_test(270, 120, 3, null, c[0])
+		await _frames(1)
+		check(p.seals_chip.visible == c[1] and (not c[1] or p.seals_chip.text == c[2]),
+			"%d Seals on the plate: %s (%s, shown %s)" % [c[0], c[2] if c[1] else "chip hidden", p.seals_chip.text, p.seals_chip.visible])
+	g.set_for_test(270, 120, 3, null, 4)
+	await _frames(1)
 	var pressed := [0]
 	p.seals_pressed.connect(func() -> void: pressed[0] += 1)
 	p.seals_chip.pressed.emit()

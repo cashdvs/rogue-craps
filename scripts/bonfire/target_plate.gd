@@ -41,6 +41,17 @@ var _hover_chip: GoalIcon
 var _miss_soul: int = -1
 
 
+## The SEALS chip words: "SEALS · 3" (n >= 2, TableGoalStrings.seals) and
+## "SEAL · 1" for one Seal (hud_seals_chip_one, PM Oct 31). At 0 the chip is
+## hidden (see refresh), so the text never shows. TableGoalStrings has no
+## one-Seal string yet, so it lives here for now.
+const SEALS_CHIP_ONE := "SEAL · 1"
+
+
+static func seals_text(n: int) -> String:
+	return SEALS_CHIP_ONE if n == 1 else TableGoalStrings.seals(n)
+
+
 ## Thousands separators; above 99,999 one decimal plus k (12,400 stays; 123,456 -> "123.5k").
 static func fmt(n: int) -> String:
 	if n > 99999:
@@ -195,7 +206,7 @@ func refresh() -> void:
 			line3_extra.visible = banked > target
 	_build_chips(g.bounties if g != null else [])
 	var seals := g.seals if g != null else 0
-	seals_chip.text = TableGoalStrings.seals(seals)  # "SEALS · 4"
+	seals_chip.text = seals_text(seals)
 	seals_chip.visible = visible and seals > 0  # no empty chip
 	bar.queue_redraw()
 
