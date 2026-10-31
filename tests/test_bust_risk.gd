@@ -82,6 +82,7 @@ func _text() -> void:
 	check(BustRisk.odds_text(0.004) == "<1%", "tiny reads '<1%'")
 	# No cold rethrow: the prompt is only ever the Hot Hand one.
 	check(BustRisk.prompt(2, risk(plain(2))) == "Hot Hand, all 2 dice: 1 in 3 chance nothing lights", "the TH5 wording")
+	check(BustRisk.prompt(1, risk(plain(1))) == "Hot Hand, 1 die: 2 in 3 chance nothing lights", "1 die: singular")
 	check(BustRisk.prompt(5, risk(plain(5))) == "Hot Hand, all 5 dice: they can't bust", "Hot Hand prompt")
 
 

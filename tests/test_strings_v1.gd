@@ -40,7 +40,9 @@ func _run() -> void:
 	# Hot Hand only (no cold rethrow).
 	check(BustRisk.prompt(3, {"text": "1 in 12"}) == "Hot Hand, all 3 dice: 1 in 12 chance nothing lights", "rethrow prompt")
 	check(BustRisk.prompt(5, {"text": BustRisk.odds_text(1.0)}) == "Hot Hand, all 5 dice: a sure bust", "sure bust")
-	check(BustRisk.prompt(5, {"text": BustRisk.odds_text(0.0)}) == "Hot Hand, all 5 dice: they can't bust", "can't bust (%s)" % BustRisk.prompt(5, {"text": BustRisk.odds_text(0.0)}))
+	# Can't bust: "it" for one die, "they" for more.
+	check(BustRisk.prompt(1, {"text": BustRisk.odds_text(0.0)}) == "Hot Hand, 1 die: it can't bust", "can't bust, 1 die: 'it' (%s)" % BustRisk.prompt(1, {"text": BustRisk.odds_text(0.0)}))
+	check(BustRisk.prompt(5, {"text": BustRisk.odds_text(0.0)}) == "Hot Hand, all 5 dice: they can't bust", "can't bust, 5 dice: 'they' (%s)" % BustRisk.prompt(5, {"text": BustRisk.odds_text(0.0)}))
 	# The bust status line (sentence case; the big BUST callout art stays caps).
 	check(FileAccess.get_file_as_string("res://scripts/bonfire/bonfire_throw_flow.gd").contains("\"Nothing lit. Bust: pot of %d lost, -%d Soul.\""), "bust line text")
 	# Pause menu leave-confirm line (strings_v1, exact).

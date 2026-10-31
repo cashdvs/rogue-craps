@@ -260,8 +260,8 @@ func pick_die(i: int) -> bool:
 	return true
 
 
-## The rethrow prompt with its exact bust risk ("Throw 2 cold dice: 1 in 3
-## burns", BustRisk). "" when there's no rethrow to talk about.
+## The Hot Hand prompt with its exact bust risk (BustRisk). "" unless the
+## hand is hot (only a Hot Hand throws again).
 func rethrow_prompt() -> String:
 	var n := next_throw_size()
 	if n <= 0:
@@ -277,8 +277,8 @@ func rethrow_prompt() -> String:
 			tds.append(_die_of.get(d))
 	else:
 		kindling = run.kindling_armed
-		# Mid-rethrow the active dice can still be the whole handful (the cold
-		# ones go active right after): no prompt until they match.
+		# Mid Hot Hand the active dice may not match the next throw yet: no
+		# prompt until they do.
 		if dice.size() != n:
 			return ""
 		for d in dice:

@@ -1,6 +1,7 @@
 ## Bonfire rules state (pure; the 3D scene only shows it).
-## A hand: throw the cold dice -> dice that can form a combo light -> pot
-## ONE combo (exact match) -> BANK or THROW the rest again. Nothing lit =
+## A hand: throw -> dice that can form a combo light -> pot ONE combo
+## (exact match) -> BANK. No cold rethrow: THROW banks unless every die is
+## potted (Hot Hand). Nothing lit =
 ## BUST (hand pot and pending bounty ticks lost, -Soul). All 5 potted in the
 ## hand = HOT HAND: all dice back, +1 mult on every later pot this hand.
 ## Table goal (TableGoal, table_goals_v1 PR1): bank `goal.target` points

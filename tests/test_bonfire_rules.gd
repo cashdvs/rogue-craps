@@ -73,6 +73,7 @@ func _initialize() -> void:
 	_mods()
 	_specials()
 	_outcome()
+	_no_cold_rethrow()
 	print("test_bonfire_rules: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -460,6 +461,28 @@ func _specials() -> void:
 	check(int(sc([d(4, null, &"blood_pact"), d(4)], {"soul": 25, "max_soul": 35})["points"]) == 18 * 4, "Blood Pact: +1 mult per 5 missing Soul")
 	check(int(sc([d(4, null, &"last_breath"), d(4)], {"throw_size": 2, "is_rethrow": true})["points"]) == 108, "Last Breath: x3 potted from a rethrow of 2")
 	check(int(sc([d(4, null, &"last_breath"), d(4)], {"throw_size": 3, "is_rethrow": true})["points"]) == 36, "Last Breath: not from 3 dice")
+
+
+## No cold rethrow: rethrow() is refused unless every die is potted (Hot Hand).
+func _no_cold_rethrow() -> void:
+	for n in [1, 3, 5]:
+		var r := run_with([], [], null, n)
+		var faces: Array[int] = []
+		for k in n:
+			faces.append(1)
+		r.set_throw(faces)
+		check(r.rethrow().is_empty() and r.state == BonfireRun.State.PICK, "%d dice, nothing potted: no rethrow" % n)
+		if n > 1:
+			pot(r, [0])
+			check(not r.is_hot() and r.rethrow_block_reason() == "Bank it: only a Hot Hand throws again.", "%d dice, 1 potted: blocked with the bank reason" % n)
+			check(r.rethrow().is_empty() and r.state == BonfireRun.State.PICK and r.pot == 0 and r.hot_hands == 0, "%d dice, partial pot: rethrow refused, nothing committed" % n)
+			for i in range(1, n):
+				r.toggle(i)
+		else:
+			pot(r, [0])
+		check(r.is_hot() and r.rethrow_block_reason() == "", "%d dice, all potted: Hot Hand may rethrow" % n)
+		var res := r.rethrow()
+		check(res.get("hot", false) and r.cold == n and r.hot_hands == 1 and r.state == BonfireRun.State.AIM, "%d dice: the Hot Hand throws all %d again" % [n, n])
 
 
 func _outcome() -> void:

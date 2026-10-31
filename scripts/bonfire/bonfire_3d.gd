@@ -1,6 +1,6 @@
 ## Bonfire sandbox on the 3D table: grab and flick a handful of real dice
 ## (seeded faces via the pre-sim remap), scoring dice CATCH FIRE, click them
-## into the pot on the far rail, then BANK or THROW the cold dice again.
+## into the pot on the far rail, then BANK (a Hot Hand throws every die again).
 ## Rules live in BonfireRun / BonfireScoring; numbers in bonfire_tuning.tres.
 ##
 ## Opened by the run: set `setup` (TableSetup: the handful as TableDie with

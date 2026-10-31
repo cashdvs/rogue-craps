@@ -49,12 +49,12 @@ func wait_bet(s: Bonfire3D) -> void:
 		await process_frame
 
 
-func make_table(size := Vector2i(1920, 1080)) -> Array:
+func make_table(size := Vector2i(1920, 1080), count := 5) -> Array:
 	var sv := SubViewport.new()
 	sv.size = size
 	sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(sv)
-	var st := TableSetup.sandbox(t, 5)
+	var st := TableSetup.sandbox(t, count)
 	st.table_seed = 5
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
@@ -70,6 +70,7 @@ func _run() -> void:
 	t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	_pure()
 	await _scene()
+	await _pending_card()
 	await _felt_portrait()
 	await _debug_overlay()
 	print("test_bonfire_readability: %d passed, %d failed" % [_passed, _failed])
@@ -246,6 +247,26 @@ func j_clear(s: Bonfire3D) -> void:
 
 ## Phone portrait swaps the print and the slots to the portrait block, with
 ## the near-rail end of the felt at the bottom of the screen.
+## The pending bounty card: a Hot Hand commits the pot (the only way a pot
+## rides into another throw), so the Triple shows PENDING · bank to claim it,
+## and the AIM prompt carries the Hot Hand risk.
+func _pending_card() -> void:
+	var made: Array = await make_table(Vector2i(1920, 1080), 3)
+	var sv: SubViewport = made[0]
+	var s: Bonfire3D = made[1]
+	await throw_faces(s, [4, 4, 4] as Array[int])
+	for i in 3:
+		s.pick_die(i)
+	check(s.throw_again(), "3-die table: pot the 4-4-4, Hot Hand throws again")
+	await wait_bet(s)
+	s._refresh_hud()
+	var card: BountyCard = s.bhud.bounty_cards[&"triple"]
+	check(card.state == "pending" and card.ghost.visible and card.pending_label.visible and card.pending_label.text == "Pending: bank to claim it.", "Triple card PENDING · bank to lock (%s)" % card.state)
+	check(s.bhud.throw_label.text.begins_with("Hot Hand, all 3 dice: "), "AIM prompt with the Hot Hand risk (%s)" % s.bhud.throw_label.text)
+	sv.queue_free()
+	await process_frame
+
+
 func _felt_portrait() -> void:
 	var made: Array = await make_table(Vector2i(1920, 4155))
 	var sv: SubViewport = made[0]

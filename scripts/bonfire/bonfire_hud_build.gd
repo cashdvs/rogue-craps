@@ -42,7 +42,7 @@ var throw_label: Label
 ## Under the pot preview: what changed the numbers ("Hot Hand +1 mult ·
 ## Hellfire x1.5").
 var notes_label: Label
-## The rethrow prompt with the bust risk ("2 cold dice: 1 in 3 chance nothing lights").
+## The Hot Hand bust risk (empty unless the hand is hot).
 var risk_label: Label
 ## Set by Bonfire3D before each refresh (it knows which dice will be thrown).
 var rethrow_prompt: String = ""

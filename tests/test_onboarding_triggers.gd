@@ -45,10 +45,9 @@ func _hints_once() -> void:
 	pick_faces(s, [2, 3, 4])
 	check(tut.current == &"th3_pending" and tut.label.text == "This combo claims that bounty. Bank to lock it.", "a valid pot closes TH2; it claims Run of 3: TH3 (%s)" % tut.current)
 	tut.dismiss()
-	check(tut.current == &"th4_choice", "then TH4 (Bank and Rethrow both on)")
+	check(tut.current == &"th4_choice", "then TH4 (a live pot banks)")
 	tut.dismiss()
-	check(tut.current == &"th5_risk" and tut.label.text == "Hot Hand throws every die again, but it can bust.", "then TH5, the Hot Hand risk (%s)" % tut.label.text)
-	tut.dismiss()
+	check(tut.current != &"th5_risk" and not log.has(&"th5_risk"), "no TH5 on a partial pot: no cold rethrow, no risk line (%s)" % tut.current)
 	for k in 4:
 		s.pick_die(4)
 	check(log.count(&"th2b_nofit") == 3, "TH2b: up to 3 times (%d)" % log.count(&"th2b_nofit"))

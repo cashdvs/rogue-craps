@@ -140,8 +140,10 @@ func _run() -> void:
 	check(int(bk.get("gain", 0)) > 0 and r.hands_left == 1, "bank the hand")
 	await _wait_bet7(s)
 
-	# Hand 3: a pot holds at most 5 dice and there is no cold rethrow, so a
-	# 7-die hand can't go Hot. Pot five 5s and forfeit mid-hand.
+	# Hand 3, the 7-die Hot Hand check under the no-cold-rethrow rule: a pot
+	# holds at most 5 dice, so 5 of 7 potted isn't Hot and THROW is blocked
+	# (6-7-die bags and the pot cap: Game Designer ruling pending). Then
+	# forfeit mid-hand.
 	res = await throw_slots(s, [5, 6, 5, 5, 5, 5, 5] as Array[int])
 	for i in [1, 0, 2, 3, 4, 5]:
 		s.pick_die(i)

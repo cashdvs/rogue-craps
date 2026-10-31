@@ -186,9 +186,8 @@ func on_nerve_rescue() -> void:
 
 
 ## After a pick that leaves a valid pot: TH3 if it would claim a bounty
-## (HB4 if a bigger combo claims it), TH4 when Bank and Rethrow are both on
-## offer, TH5 (with the exact odds) when the rethrow would be 1-3 dice. One
-## at a time: the later ones wait and show only if still true.
+## (HB4 if a bigger combo claims it), TH4 while a pot is live. One at a
+## time: the later ones wait and show only if still true.
 func on_selection() -> void:
 	var t := table
 	var run := t.run
@@ -209,11 +208,6 @@ func on_selection() -> void:
 	var both := func() -> bool: return run.state == BonfireRun.State.PICK and run.can_continue() and t.next_throw_size() > 0
 	if both.call():
 		hint(&"th4_choice", {}, both)
-	var small := func() -> bool:
-		var k := t.next_throw_size()
-		return run.state == BonfireRun.State.PICK and run.can_continue() and k >= 1 and k <= 3 and not run.is_hot()
-	if small.call():
-		hint(&"th5_risk", {}, small)
 
 
 ## HB3: the bonus card is on screen and TH1 has been dismissed (or no

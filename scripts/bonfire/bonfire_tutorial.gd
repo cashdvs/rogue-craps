@@ -18,7 +18,7 @@ signal shown_hint(id: StringName)
 ## The seen counts changed (the table saves them).
 signal seen_changed(seen: Dictionary)
 
-## Text: {pot} = Click / Tap, {n} = cold dice, {odds} = "1 in 3".
+## Text: {pot} = Click / Tap, {n} = dice thrown, {odds} = "1 in 3".
 ## "touch": the mobile text, when it differs. "anchor": what it points at
 ## (the table resolves it to a screen rect). "dismiss": the actions that
 ## close it (&"any" = the next one). "timeout": seconds. "max": times per
