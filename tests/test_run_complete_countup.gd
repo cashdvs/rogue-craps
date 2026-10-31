@@ -123,6 +123,7 @@ func _test_attach_real_run() -> void:
 	_check(e.text == RunSummary.complete_lines(run)[1], "attach: Embers line ends on RunSummary's row")
 	_check(e.text.contains("x7") and e.text.contains("+63"), "attach: mult 7 shows x7 and +63 (9 Embers x 7)")
 	_check(c.final_total == 777 + 63 and t.text == "Final score: 840", "attach: Final score includes the +63")
+	_check(c.final_total == RunSummary.final_score(run) and RunSummary.final_score(run) == 840, "attach: mult 7 final == RunSummary.final_score")
 	_check(shared.ember_score_mult == 10, "attach: shared bonfire_run.tres data not mutated")
 	c.queue_free()
 

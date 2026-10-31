@@ -8,6 +8,7 @@
 class_name RunCompleteCountup
 extends Node
 
+## Emitted once when the final values are shown (end, skip or reduced motion).
 signal finished
 
 ## Delay before the Embers line starts (s).
@@ -18,12 +19,18 @@ const EMBERS_TIME: float = 0.6
 const GAP: float = 0.15
 ## Final score tick-up length (s).
 const TOTAL_TIME: float = 0.6
+## TuningData resource that holds reduced_motion.
 const TUNING_PATH := "res://resources/tuning/poc_tuning.tres"
 
+## The "Embers left" row (panel row 3).
 var embers_label: Label
+## The "Final score" row (panel row 4).
 var total_label: Label
+## True: no count-up, final values at once.
 var reduced_motion: bool = false
+## Embers left to count up to.
 var embers: int = 0
+## Ember multiplier shown in the row (RunData.ember_score_mult).
 var mult: int = 0
 ## Embers line target points (RunSummary.ember_points).
 var ember_pts: int = 0
@@ -31,7 +38,9 @@ var ember_pts: int = 0
 var start_total: int = 0
 ## Final score target (RunSummary.final_score).
 var final_total: int = 0
+## Seconds since the count-up started.
 var elapsed: float = 0.0
+## True once the final values are shown.
 var done: bool = false
 ## Which line is moving: &"wait", &"embers", &"total" or &"done" (for tests).
 var phase: StringName = &"wait"
