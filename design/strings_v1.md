@@ -18,7 +18,7 @@ Repo copy: only the rows the game loads by id from this file so far; the full ta
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_title | (new) | RUN COMPLETE | 2 |
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_reason | (new) | You beat {boss}, and the run is yours. | 8 |
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_points | (new) | Points banked: {n} | 3 |
-| No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_embers | (new) | Embers left: {n} x10 = +{pts} | 5 |
+| No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_embers | (new) | Embers left: {n} x{mult} = +{pts} | 5 |
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_total | (new) | Final score: {n} | 3 |
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_new | (new) | New Run | 2 |
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_menu | (new) | Main Menu | 2 |
