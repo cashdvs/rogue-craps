@@ -10,13 +10,13 @@
 #     `trap ... EXIT`, so the tree is clean again on success AND on failure.
 #     The script exits with the export command's status.
 # Usage:
-#   tools/stamp_version.sh [--no-sha] -- <export command...>
+#   tools/stamp_version.sh [--no-sha] [--public] -- <export command...>
 #     e.g. tools/stamp_version.sh -- godot --headless --export-release "Android" \
 #            build/DiceOfTheDamned-0.1.2-Android.apk
 #   tools/stamp_version.sh [--no-sha] [--public] --stamp-only
+#     stamps and leaves the files stamped: only for a throwaway copy/CI checkout.
 #   --public: public release, writes dev_tools=false (no sandbox); beta
 #     review builds omit it and keep version.cfg's dev_tools=true.
-#     stamps and leaves the files stamped: only for a throwaway copy/CI checkout.
 # STAMP_DIR / STAMP_SHA override the tree and the sha (tests).
 set -euo pipefail
 DIR="${STAMP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"

@@ -65,7 +65,7 @@ status, its team owner and whether it's open to outside contributors.
 `scripts/table/table_scene.gd` is the 2D table's director. Feel, UI and Betting all touch it, so
 keep changes there small and say which part you changed in the PR.
 
-**Build version:** bump only `patch` (or `major_minor`) in `version.cfg`. Run exports through it: `tools/stamp_version.sh [--no-sha] -- <export command...>` stamps the 3 tracked files (`version.cfg`, `export_presets.cfg`, `project.godot`), runs the export, and restores the 3 files from a backup via `trap ... EXIT`, so the tree is clean again whether the export succeeds or fails (the script exits with the export's status). `--stamp-only` leaves the files stamped and is meant only for a throwaway copy or CI checkout.
+**Build version:** bump only `patch` (or `major_minor`) in `version.cfg`. Run exports through it: `tools/stamp_version.sh [--no-sha] [--public] -- <export command...>` stamps the 3 tracked files (`version.cfg`, `export_presets.cfg`, `project.godot`), runs the export, and restores the 3 files from a backup via `trap ... EXIT`, so the tree is clean again whether the export succeeds or fails (the script exits with the export's status). `--stamp-only` leaves the files stamped and is meant only for a throwaway copy or CI checkout. `--public` (public releases) stamps `dev_tools=false`; without it (beta review builds) `dev_tools=true` is kept. The restore puts it back either way.
 
 **`tests/qa_/`:** contributors may **add** checks there, but must never weaken or remove existing
 ones.
