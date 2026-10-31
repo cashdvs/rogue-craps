@@ -1,0 +1,421 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/fire_flame_hell.tres" id="1_tcno2"]
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/fire_flame.tres" id="2_v62yf"]
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/fire_spark.tres" id="3_3i5h8"]
+
+[sub_resource type="Gradient" id="Gradient_oi4e1"]
+offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
+colors = PackedColorArray(1, 1, 1, 0.35, 1, 1, 1, 1, 1, 1, 1, 0.85, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_m2gnl"]
+gradient = SubResource("Gradient_oi4e1")
+width = 64
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ldhp7"]
+emission_shape_offset = Vector3(0, 0.05, 0)
+emission_shape = 3
+emission_box_extents = Vector3(0.045, 0.02, 0.045)
+direction = Vector3(0, 1, 0)
+spread = 15.0
+initial_velocity_min = 0.06
+initial_velocity_max = 0.16
+gravity = Vector3(0, 0, 0)
+scale_min = 0.8
+scale_max = 1.25
+color_ramp = SubResource("GradientTexture1D_m2gnl")
+
+[sub_resource type="QuadMesh" id="QuadMesh_aifq1"]
+material = ExtResource("1_tcno2")
+size = Vector2(0.08, 0.12)
+
+[sub_resource type="Gradient" id="Gradient_tg7wr"]
+offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
+colors = PackedColorArray(1, 1, 1, 0.4, 1, 1, 1, 1, 1, 1, 1, 0.8, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_2oghe"]
+gradient = SubResource("Gradient_tg7wr")
+width = 64
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_bpxdr"]
+emission_shape_offset = Vector3(0, 0.06, 0)
+emission_shape = 3
+emission_box_extents = Vector3(0.025, 0.005, 0.025)
+direction = Vector3(0, 1, 0)
+spread = 8.0
+initial_velocity_min = 0.05
+initial_velocity_max = 0.12
+gravity = Vector3(0, 0, 0)
+scale_min = 0.8
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_2oghe")
+
+[sub_resource type="QuadMesh" id="QuadMesh_b16tf"]
+material = ExtResource("2_v62yf")
+size = Vector2(0.045, 0.075)
+
+[sub_resource type="Gradient" id="Gradient_o7wkl"]
+offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.6, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_4vab3"]
+gradient = SubResource("Gradient_o7wkl")
+width = 64
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_me2s8"]
+emission_shape_offset = Vector3(0, 0.06, 0)
+emission_shape = 3
+emission_box_extents = Vector3(0.04, 0.02, 0.04)
+direction = Vector3(0, 1, 0)
+spread = 35.0
+initial_velocity_min = 0.25
+initial_velocity_max = 0.5
+gravity = Vector3(0, -0.2, 0)
+scale_min = 0.012
+scale_max = 0.02
+color_ramp = SubResource("GradientTexture1D_4vab3")
+
+[sub_resource type="QuadMesh" id="QuadMesh_ddr11"]
+material = ExtResource("3_3i5h8")
+
+[sub_resource type="Animation" id="Animation_ts47c"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Flames:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Flames:instance_shader_parameters/heat")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Core:emitting")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Core:instance_shader_parameters/heat")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Sparks:emitting")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Sparks:instance_shader_parameters/heat")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.0]
+}
+
+[sub_resource type="Animation" id="Animation_bvnw8"]
+length = 1.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Flames:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Flames:instance_shader_parameters/heat")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.12, 1, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.3, 1.0, 1.0, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Core:emitting")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Core:instance_shader_parameters/heat")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.12, 1, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.3, 1.0, 1.0, 0.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Sparks:emitting")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Sparks:instance_shader_parameters/heat")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.12, 1, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.3, 1.0, 1.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_cgv73"]
+length = 0.12
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Flames:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Flames:instance_shader_parameters/heat")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.12),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.3, 1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Core:emitting")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Core:instance_shader_parameters/heat")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.12),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.3, 1.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Sparks:emitting")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Sparks:instance_shader_parameters/heat")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.12),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.3, 1.0]
+}
+
+[sub_resource type="Animation" id="Animation_c50du"]
+length = 0.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Flames:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Flames:instance_shader_parameters/heat")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Core:emitting")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Core:instance_shader_parameters/heat")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Sparks:emitting")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Sparks:instance_shader_parameters/heat")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_4ay0b"]
+_data = {
+&"RESET": SubResource("Animation_ts47c"),
+&"burst": SubResource("Animation_bvnw8"),
+&"ignite": SubResource("Animation_cgv73"),
+&"snuff": SubResource("Animation_c50du")
+}
+
+[node name="FireTier3Inferno" type="Node3D" unique_id=905125295]
+
+[node name="Flames" type="GPUParticles3D" parent="." unique_id=1180819308]
+cast_shadow = 0
+emitting = false
+amount = 18
+lifetime = 0.5
+visibility_aabb = AABB(-0.3, -0.1, -0.3, 0.6, 0.6, 0.6)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_ldhp7")
+draw_pass_1 = SubResource("QuadMesh_aifq1")
+
+[node name="Core" type="GPUParticles3D" parent="." unique_id=2001138414]
+cast_shadow = 0
+emitting = false
+lifetime = 0.4
+visibility_aabb = AABB(-0.3, -0.1, -0.3, 0.6, 0.6, 0.6)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_bpxdr")
+draw_pass_1 = SubResource("QuadMesh_b16tf")
+
+[node name="Sparks" type="GPUParticles3D" parent="." unique_id=216723955]
+cast_shadow = 0
+emitting = false
+amount = 14
+lifetime = 0.7
+visibility_aabb = AABB(-0.3, -0.1, -0.3, 0.6, 0.6, 0.6)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_me2s8")
+draw_pass_1 = SubResource("QuadMesh_ddr11")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=787305356]
+libraries/ = SubResource("AnimationLibrary_4ay0b")

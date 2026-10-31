@@ -1,0 +1,144 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/props/bonfire/wax_stamp.glb" id="1_c0n23"]
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/wax_crumb.tres" id="2_jv3ig"]
+
+[sub_resource type="Gradient" id="Gradient_ppgel"]
+offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_f5518"]
+gradient = SubResource("Gradient_ppgel")
+width = 64
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_34mpg"]
+emission_shape_offset = Vector3(0, 0.003, 0)
+emission_shape = 3
+emission_box_extents = Vector3(0.025, 0.002, 0.025)
+direction = Vector3(0, 1, 0)
+spread = 80.0
+initial_velocity_min = 0.08
+initial_velocity_max = 0.18
+gravity = Vector3(0, -2, 0)
+scale_min = 0.004
+scale_max = 0.007
+color_ramp = SubResource("GradientTexture1D_f5518")
+
+[sub_resource type="QuadMesh" id="QuadMesh_b5f7n"]
+material = ExtResource("2_jv3ig")
+
+[sub_resource type="Animation" id="Animation_xonc1"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Body:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Body:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(1, 1, 1)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Body:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_mfujp"]
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Body:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0.07, 0), Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Body:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.13, 0.25),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(1.3, 1.3, 1.3), Vector3(1.12, 1.12, 1.12), Vector3(1.18, 0.6, 1.18), Vector3(1, 1, 1)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Body:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, -0.25, 0), Vector3(0, 0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Crumbs:emitting")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.1),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_2nt2p"]
+_data = {
+&"RESET": SubResource("Animation_xonc1"),
+&"stamp": SubResource("Animation_mfujp")
+}
+
+[node name="WaxStamp" type="Node3D" unique_id=544414773]
+
+[node name="Body" type="Node3D" parent="." unique_id=705192790]
+
+[node name="Model" type="Node3D" parent="Body" unique_id=1039711924 instance=ExtResource("1_c0n23")]
+
+[node name="Crumbs" type="GPUParticles3D" parent="." unique_id=590885133]
+cast_shadow = 0
+emitting = false
+lifetime = 0.35
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-0.3, -0.1, -0.3, 0.6, 0.6, 0.6)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_34mpg")
+draw_pass_1 = SubResource("QuadMesh_b5f7n")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1338454602]
+libraries/ = SubResource("AnimationLibrary_2nt2p")

@@ -1,0 +1,171 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/models/props/bonfire/soul_flask.glb" id="1_8di2l"]
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/soul_drip.tres" id="2_epdy5"]
+
+[sub_resource type="Gradient" id="Gradient_tuea7"]
+offsets = PackedFloat32Array(0, 0.33333334, 0.6666667, 1)
+colors = PackedColorArray(1, 1, 1, 0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_hpwlf"]
+gradient = SubResource("Gradient_tuea7")
+width = 64
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_hdsa0"]
+emission_shape_offset = Vector3(0.024, 0.026, 0.024)
+emission_shape = 3
+emission_box_extents = Vector3(0.002, 0.002, 0.002)
+direction = Vector3(0.3, -1, 0.3)
+spread = 10.0
+initial_velocity_min = 0.01
+initial_velocity_max = 0.03
+gravity = Vector3(0, -0.25, 0)
+scale_min = 0.006
+scale_max = 0.009
+color_ramp = SubResource("GradientTexture1D_hpwlf")
+
+[sub_resource type="QuadMesh" id="QuadMesh_h6fwu"]
+material = ExtResource("2_epdy5")
+
+[sub_resource type="Animation" id="Animation_ghpr5"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Body/Model/SoulFlask:instance_shader_parameters/crack")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Body/Model/SoulFlask:instance_shader_parameters/fill")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Body:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Drips:emitting")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+
+[sub_resource type="Animation" id="Animation_sr75s"]
+length = 0.35
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Body/Model/SoulFlask:instance_shader_parameters/crack")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.15),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 0.55, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Body:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.03, 0.06, 0.09, 0.12, 0.16),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0.004, 0, 0), Vector3(-0.004, 0, 0), Vector3(0.003, 0, 0), Vector3(-0.002, 0, 0), Vector3(0, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Drips:emitting")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.15),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="Animation" id="Animation_7385j"]
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Body/Model/SoulFlask:instance_shader_parameters/crack")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Drips:emitting")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_4vqoi"]
+_data = {
+&"RESET": SubResource("Animation_ghpr5"),
+&"crack": SubResource("Animation_sr75s"),
+&"drip": SubResource("Animation_7385j")
+}
+
+[node name="SoulFlask" type="Node3D" unique_id=29866575]
+
+[node name="Body" type="Node3D" parent="." unique_id=13331856]
+
+[node name="Model" type="Node3D" parent="Body" unique_id=240481996 instance=ExtResource("1_8di2l")]
+
+[node name="Drips" type="GPUParticles3D" parent="." unique_id=558785351]
+cast_shadow = 0
+emitting = false
+amount = 6
+lifetime = 0.6
+visibility_aabb = AABB(-0.3, -0.1, -0.3, 0.6, 0.6, 0.6)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_hdsa0")
+draw_pass_1 = SubResource("QuadMesh_h6fwu")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1509213567]
+libraries/ = SubResource("AnimationLibrary_4vqoi")

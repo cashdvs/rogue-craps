@@ -1,0 +1,27 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/ash_outline.tres" id="1_n522g"]
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/ash_die.gdshader" id="2_m57qh"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_n522g")
+shader = ExtResource("2_m57qh")
+shader_parameter/base_color = Color(0.9098039, 0.8627451, 0.7529412, 1)
+shader_parameter/base_shadow = Color(0.5568628, 0.47843137, 0.36078432, 1)
+shader_parameter/ash_color = Color(0.3529412, 0.36862746, 0.38431373, 1)
+shader_parameter/ash_shadow = Color(0.078431375, 0.08627451, 0.09411765, 1)
+shader_parameter/ember_color = null
+shader_parameter/ember_energy = null
+shader_parameter/ash_flat = null
+shader_parameter/front_width = null
+shader_parameter/cell_scale = null
+shader_parameter/mid_tint = null
+shader_parameter/wrap = null
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = null
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = null
+shader_parameter/ambient_energy = null

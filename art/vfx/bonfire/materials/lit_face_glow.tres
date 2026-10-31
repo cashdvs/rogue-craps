@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/lit_face_glow.gdshader" id="1_a5nnq"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_a5nnq")
+shader_parameter/glow_color = null
+shader_parameter/edge_color = null
+shader_parameter/face_dir = Vector3(0, 1, 0)
+shader_parameter/face_threshold = null
+shader_parameter/half_size = 0.04
+shader_parameter/face_fill = null
+shader_parameter/frame_at = null
+shader_parameter/hot_at = null
+shader_parameter/energy = null
+shader_parameter/body_glow = null
+shader_parameter/pulse_speed = null
+shader_parameter/pulse_amount = null
+shader_parameter/round_pool = null

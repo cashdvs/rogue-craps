@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/props/bonfire/materials/prop_ink_mode0.tres" id="1_rm01l"]
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/soul_glass.gdshader" id="2_6uqbw"]
+
+[resource]
+render_priority = 1
+next_pass = ExtResource("1_rm01l")
+shader = ExtResource("2_6uqbw")
+shader_parameter/tint = null
+shader_parameter/rim_color = null
+shader_parameter/crack_color = null
+shader_parameter/crack_glow = null
+shader_parameter/crack_point = null
+shader_parameter/crack_reach = null
+shader_parameter/crack_cells = null
