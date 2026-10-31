@@ -99,6 +99,11 @@ func _play_table(t: Bonfire3D) -> TableOutcome:
 			if not r.is_ticked(b):
 				want = b
 				break
+		if want == null and r.goal.required.is_empty():
+			# A target table (table_goals_v1 PR1): bank Five of a Kind pots.
+			want = BountyData.new()
+			want.kind = BountyData.Kind.N_OF_A_KIND
+			want.n = 5
 		var p := _plan(t, _pattern(want, r))
 		t.rig_slots(p[0])
 		if not t.quick_throw():

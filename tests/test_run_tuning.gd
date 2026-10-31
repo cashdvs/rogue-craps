@@ -63,18 +63,18 @@ func _test_tuning_v1() -> void:
 	var f1: FloorData = _data.floors[0]
 	var f2: FloorData = _data.floors[1]
 	var f3: FloorData = _data.floors[2]
-	_check(f1.clear_embers == 10 and f1.hands == 5, "tuning v1: floor 1 unchanged")
-	_check(f2.max_bounties == 3 and _bounty_ids(f2.featured_bounties) == [&"run4"] and f2.clear_embers == 12
+	_check(f1.clear_embers == 14 and f1.hands == 5, "tuning v1: floor 1 hands 5, clear 14 (table_goals_v1)")
+	_check(f2.max_bounties == 3 and _bounty_ids(f2.featured_bounties) == [&"run4"] and f2.clear_embers == 16
 		and f2.bonus_bounties.size() == 2 and f2.bonus_bounties.all(func(b): return b.bonus_embers == 6),
-		"tuning v1: floor 2 max 3, featured Run of 4, clear 12, bonuses 6")
+		"tuning v1: floor 2 max 3, featured Run of 4, clear 16, bonuses 6")
 	_check(f2.hands == 4 and f2.boss_hands == 5 and f3.boss_hands == 5 and f1.boss_hands == 7,
 		"addendum 4 (Nerve): floors 2/3 hands 4, boss_hands 5; floor 1 boss 7 unchanged")
 	var fh: BountyData = f3.bonus_bounties[0] if f3.bonus_bounties.size() > 0 else null
-	_check(f3.hands == 4 and _bounty_ids(f3.featured_bounties) == [&"run4"] and f3.clear_embers == 14
+	_check(f3.hands == 4 and _bounty_ids(f3.featured_bounties) == [&"run4"] and f3.clear_embers == 18
 		and _bounty_ids(f3.bonus_bounties) == [&"bonus_full_house", &"bonus_quads"]
 		and fh.kind == BountyData.Kind.FULL_HOUSE and fh.n == 5
 		and f3.bonus_bounties.all(func(b): return b.bonus_embers == 8),
-		"tuning v1: floor 3 hands 4 (Nerve retune), featured Run of 4, clear 14, bonus Full House/Quads at 8")
+		"tuning v1: floor 3 hands 4 (Nerve retune), featured Run of 4, clear 18, bonus Full House/Quads at 8")
 	_check(f3.boss_bounties.is_empty() and f3.boss_min_bounties == 4 and f3.boss_max_bounties == 4 and not f3.boss_adds_twist,
 		"tuning v1: floor 3 boss draws 4 from the floor pool, no twist")
 	var wick: RunRuleData = f3.boss_cheats[0]
@@ -92,8 +92,8 @@ func _test_tuning_v1() -> void:
 			continue
 		saw_wick = true
 		var ts: TableSetup = run.table_setup().to_table_setup(base)
-		ok = ok and ts.rules.size() == 1 and ts.rules[0]["id"] == &"mister_wick" and ts.tuning.bust_soul_loss == 2 and run.goal.required.size() == 4
-	_check(saw_wick and ok, "tuning v1: Mister Wick's table is mister_wick, bust_soul_loss 2, 4 bounties")
+		ok = ok and ts.rules.size() == 1 and ts.rules[0]["id"] == &"mister_wick" and ts.tuning.bust_soul_loss == 2 and run.goal.required.is_empty()
+	_check(saw_wick and ok, "tuning v1: Mister Wick's table is mister_wick, bust_soul_loss 2, no bounties (target table)")
 	_test_tuning_addendum_2()
 
 
@@ -124,7 +124,7 @@ func _test_tuning_addendum_2() -> void:
 		var n: String = run.boss.display_name
 		seen[n] = true
 		var want_h: int = {"Odds Bodkin": 6, "Mister Wick": 5, "Baron Vig": 4}.get(n, -1)
-		hok = hok and run.goal.hands == want_h and run.goal.required.size() == 4 and run.rules.size() == 1
+		hok = hok and run.goal.hands == want_h and run.goal.required.is_empty() and run.rules.size() == 1
 	_check(seen.has("Mister Wick") and seen.has("Baron Vig") and seen.has("Odds Bodkin") and seen.size() == 3,
 		"addendum 2: all 3 Floor 3 bosses appear across 200 seeds (%d seen)" % seen.size())
 	_check(hok, "addendum 4: Odds Bodkin boss tables have 6 hands, Wick 5, Vig 4")
@@ -151,10 +151,8 @@ func _test_tuning_addendum() -> void:
 		for b in run.goal.required:
 			ids.append(b.id)
 		ids.sort()
-		var want: Array = [&"run3", &"run4", &"triple", &"two_pairs", &"two_pairs_x2"]
-		want.sort()
-		ok = ok and ids == want
-	_check(ok, "addendum: floor 2 boss draws Run of 4, the 3 commons and Two Pair x2")
+		ok = ok and ids.is_empty() and run.goal.target == f2.target_boss
+	_check(ok, "addendum: floor 2 boss is a target table (no bounties drawn, table_goals_v1)")
 	var want_r := {"ashmouth": [-1, "No Hot Hand, and you get one fewer hand."], "cold_sixes": [1, "6s never light, but you get +1 hand."],
 		"first_throw": [1, "Bounties count only on each hand's first 2 throws; +1 hand."],
 		"greedy_pot": [1, "Pot at least 2 dice every throw, but you get +1 hand."], "cold_hands": [1, "No Hot Hand, but you get +1 hand."],

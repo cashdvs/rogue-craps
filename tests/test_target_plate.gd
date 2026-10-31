@@ -1,7 +1,7 @@
 ## Target HUD v2.1 goal plate (art/concept/hud_target_oct30/v2/HANDOFF_SPEC.md,
 ## handoff/table_goals_v1_pr1.md §4), on its own (the HUD wiring is the next PR):
 ##   - number format (12,400 in full, 123,456 -> 123.5k) and the line 3 text;
-##   - TableGoalState (stub) follows the real run on table_event;
+##   - TableGoalState.watch(run) (main, #213) follows the real run on table_event;
 ##   - TARGET + number, bar + banked, to go / PASSED +n / Missed;
 ##     bar #F0CC72 at 100 %; no empty chips, at most 2; SEALS hides at 0;
 ##   - a 150 ms hover or a tap opens the chip's name card.
@@ -63,15 +63,12 @@ func _check_text() -> void:
 	check(TargetPlate.status_text(300, 300, 2) == "PASSED · 2 hands left", "exactly the target passes")
 	check(TargetPlate.status_text(300, 299, 2) != "PASSED · 2 hands left", "target - 1 is not passed")
 	check(TargetPlate.status_text(300, 340, 1) == "PASSED · 1 hand left", "goal_passed_one_hand")
-	var want := {"goal_target_label": "TARGET", "goal_to_go": "{n} to go · {h} hands left",
-		"goal_to_go_one_hand": "{n} to go · 1 hand left", "goal_passed": "PASSED · {h} hands left",
-		"goal_passed_one_hand": "PASSED · 1 hand left", "goal_over": "+{n}", "goal_miss": "Missed: -{s} Soul",
-		"hud_seals_chip": "SEALS · {n}", "hud_nerve": "Nerve {n}", "goal_hint": "Bank points to reach the target."}
-	for id: String in want:
-		check(GoalStrings.get_text(id) == want[id], "strings_v1 %s" % id)
+	# The plate's words are TableGoalStrings' (main, #213) plus its own BOSS / SEALS.
+	check(TargetPlate.BOSS_TAG == "BOSS" and TargetPlate.SEALS_CHIP % 4 == "SEALS · 4", "plate BOSS tag and SEALS chip words")
+	check(TableGoalStrings.MISS % 2 == "Missed: -2 Soul" and TableGoalStrings.OVER % "40" == "+40", "miss / over words from TableGoalStrings")
 
 
-## A plate bound to TableGoalState.watch(s.run) on the real scene: the stub
+## A plate bound to TableGoalState.watch(s.run) on the real scene: the state
 ## follows the run, every plate state, chips. (The HUD wiring is the next PR.)
 func _check_pc() -> void:
 	var m: Array = await _make(Vector2i(1920, 1080))
@@ -82,8 +79,9 @@ func _check_pc() -> void:
 	p.bind(g)
 	await _frames(1)
 	check(p.goal == g, "the plate is bound to the run's TableGoalState")
-	# Empty PR1 state: no chips, SEALS hidden, target from the stub.
-	check(p.target_value.text == "300" and p.target_label.text == "TARGET", "TARGET 300 (%s)" % p.target_value.text)
+	# Fresh state: no chips, SEALS hidden, target read from the run's goal.
+	var want_t := TargetPlate.fmt(s.run.goal.target)
+	check(p.target_value.text == want_t and p.target_label.text == "TARGET", "TARGET %s (%s)" % [want_t, p.target_value.text])
 	check(p.chip_row.get_child_count() == 0, "no bounties: no empty chips")
 	check(not p.seals_chip.visible, "0 seals: no SEALS chip")
 	# The stub follows the run: a real throw and bank change banked / hands.
@@ -130,7 +128,9 @@ func _check_pc() -> void:
 	p.show_miss(-1)
 	# Boss: a small brass BOSS tag left of TARGET (no red); hidden otherwise.
 	check(not p.boss_tag.visible, "no BOSS tag on a normal table")
-	g.set_for_test(123456, 12400, 2, null, 4, true)
+	# (Banked moves too: main's set_for_test only emits `changed` when a
+	# number changes, not for is_boss alone.)
+	g.set_for_test(123456, 12401, 2, null, 4, true)
 	await _frames(1)
 	check(p.boss_tag.visible and p.boss_tag.text == "BOSS" and p.boss_tag.label_settings.font_color == Palette.BRASS_HI, "boss: brass BOSS tag")
 	check(p.boss_tag.get_index() < p.target_label.get_index() and p.boss_tag.get_parent() == p.target_label.get_parent(), "BOSS sits left of TARGET")

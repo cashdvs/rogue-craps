@@ -63,10 +63,10 @@ func _enter(run: MapRun, type: int) -> bool:
 # --- P1: points -> Embers cap ---
 
 func _test_points_cap() -> void:
-	_check(_tuning.points_embers_cap == 5 and _tuning.points_per_ember == 100, "P1 data: cap 5 per table, 1 Ember per 100")
-	_check(_points_embers(_tuning, 900) == 5, "P1: 900 points pay 5 Embers (capped)")
+	_check(_tuning.points_embers_cap == 6 and _tuning.points_per_ember == 100, "P1 data: cap 6 per table, 1 Ember per 100")
+	_check(_points_embers(_tuning, 900) == 6, "P1: 900 points pay 6 Embers (capped)")
 	_check(_points_embers(_tuning, 300) == 3, "P1: 300 points pay 3 Embers (under the cap)")
-	_check(_points_embers(_tuning, 60000) == 5, "P1: a 60k Floor 3 score still pays 5")
+	_check(_points_embers(_tuning, 60000) == 6, "P1: a 60k Floor 3 score still pays 6")
 	var same := true
 	for pts in [300, 500, 501, 750, 60000]:
 		var r := BonfireRun.new(_tuning, _tuning.table_goal, 30, 5)
@@ -74,24 +74,24 @@ func _test_points_cap() -> void:
 		r.points = pts
 		r.forfeit()
 		same = same and BonfireRun.points_to_embers(_tuning, pts) == int(r.table_summary["points_embers"]) and r.embers - e0 == int(r.table_summary["points_embers"])
-	_check(same and BonfireRun.points_to_embers(_tuning, 750) == 5, "P1: over 500 points the shared preview (points_to_embers) matches what's paid")
+	_check(same and BonfireRun.points_to_embers(_tuning, 750) == 6, "P1: over 600 points the shared preview (points_to_embers) matches what's paid")
 	var hud := BonfireHud.new()
 	root.add_child(hud)
 	var hr := BonfireRun.new(_tuning, _tuning.table_goal, 30, 5)
 	hr.points = 750
 	hud.refresh(hr, true)
-	_check(hud.points_label.text == "points 750 → +5 Embers", "P1: the HUD's points preview is capped like the payout (%s)" % hud.points_label.text)
+	_check(hud.points_label.text == "points 750 → +6 Embers", "P1: the HUD's points preview is capped like the payout (%s)" % hud.points_label.text)
 	hud.free()
 	var bare := BonfireTuning.new()
 	bare.table_goal = _tuning.table_goal
 	_check(bare.points_embers_cap == 0 and _points_embers(bare, 900) == 9, "P1: no cap set (field absent) = uncapped, 900 pays 9")
 	var lev := RunProgress.new(_data).leveled_tuning(_tuning)
-	_check(lev.points_embers_cap == 5, "P1: the run's Seal-levelled tuning copy keeps the cap")
+	_check(lev.points_embers_cap == 6, "P1: the run's Seal-levelled tuning copy keeps the cap")
 	var r := BonfireRun.new(_tuning, _tuning.table_goal, 30, 5)
 	r.points = 900
 	r.forfeit()
-	_check(r.embers == 5, "P1: the table's Embers total uses the capped amount")
-	_check(EconomyStrings.table_points_embers(_tuning) == "Points: 1 Ember per 100, up to 5 per table.", "P1 string: table_points_embers matches strings_v1")
+	_check(r.embers == 6, "P1: the table's Embers total uses the capped amount")
+	_check(EconomyStrings.table_points_embers(_tuning) == "Points: 1 Ember per 100, up to 6 per table.", "P1 string: table_points_embers follows the cap (strings_v1 row still says 5)")
 
 
 # --- P6: price fixes ---
