@@ -23,6 +23,8 @@ const NT := MapGenData.NodeType
 @export var debug_table_stubs: bool = false
 ## -1 = a random run each launch.
 @export var run_seed: int = -1
+## Dev sandbox: a prebuilt run (SandboxPreset) to show instead of a new one.
+var preset_run: MapRun
 
 var run: MapRun
 var map_view: MapView
@@ -102,7 +104,8 @@ func _ready() -> void:
 func new_run(seed_value: int) -> void:
 	if seed_value < 0:
 		seed_value = randi()
-	run = MapRun.new(run_data, seed_value)
+	run = preset_run if preset_run != null else MapRun.new(run_data, seed_value)
+	preset_run = null
 	run.screen_changed.connect(func(_s: S) -> void: refresh())
 	run.progress.changed.connect(_refresh_bar)
 	# Opens by itself once per profile (RunProfile), then only via Key / K.

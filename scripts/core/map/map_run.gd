@@ -35,6 +35,29 @@ func _start_floor(i: int) -> void:
 	_set_screen(Screen.MAP)
 
 
+## Dev sandbox (SandboxPreset): start floor `i` (0-based) on its map.
+func sandbox_floor(i: int) -> void:
+	if i != floor_index:
+		_start_floor(i)
+
+
+## Dev sandbox: open node `id` of type `t` directly (no travel), with
+## `forced_boss` as the floor boss when non-null. Shop rolls its stock;
+## Table / Elite / Boss build the goal.
+func enter_for_sandbox(t: NT, id: int, forced_boss: RunRuleData = null) -> void:
+	if forced_boss != null:
+		boss = forced_boss
+	map.current_id = id
+	map.visited.append(id)
+	if t == NT.SHOP:
+		_roll_shop()
+		_set_screen(Screen.SHOP)
+	else:
+		table_type = t
+		goal = make_goal(t)
+		_set_screen(Screen.TABLE)
+
+
 ## The floor boss's name (its cheat), or "Boss".
 func boss_name() -> String:
 	return boss.display_name if boss != null else "Boss"
