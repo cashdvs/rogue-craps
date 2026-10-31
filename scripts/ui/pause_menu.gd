@@ -61,6 +61,9 @@ func _init() -> void:
 		panel.visible = false
 		options.visible = true)
 	box.add_child(opt)
+	var bug := OptionsPanel.menu_button(BugReport.BUTTON, Palette.FELT_DARK)
+	bug.pressed.connect(func() -> void: BugReport.report(self))
+	box.add_child(bug)
 	quit_button = OptionsPanel.menu_button("QUIT TO TITLE", Palette.PIT_BLACK)
 	quit_button.pressed.connect(quit_to_title)
 	box.add_child(quit_button)
@@ -169,6 +172,11 @@ func quit_to_title() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == KEY_F8 and OS.has_feature("pc"):
+		BugReport.report(self)  # F8 on PC: bug report, menu open or not
+		get_viewport().set_input_as_handled()
+		return
 	if not visible:
 		return
 	if event.is_action_pressed("ui_cancel"):

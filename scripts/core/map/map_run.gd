@@ -15,6 +15,7 @@ func _init(run_data: RunData, seed_value: int) -> void:
 	run_seed = seed_value
 	progress = RunProgress.new(data)
 	_start_floor(0)
+	BugReport.set_run(self)
 
 
 func _start_floor(i: int) -> void:
