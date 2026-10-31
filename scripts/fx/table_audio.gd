@@ -18,6 +18,10 @@
 ##   trail sound: dice never sound like fire (bonfire_map_events_juice.md 3).
 ## - no_score -> `no_score` (PR #58), in place of the old `chip_refuse`.
 ## - table_cleared -> `table_cleared` (PR #58), once per table.
+## - goal_reached -> `table_goal_reached` (table goals). It stands in for
+##   the TABLE CLEARED cue: a table_cleared after it stays silent.
+## - goal_missed(soul_loss) -> `table_goal_missed` (out of hands short of
+##   the target). Both are connected only once TableEvents has the signals.
 ##
 ## Fallbacks cover stand-in SfxManagers in tests (and any cue the live
 ## manager does not have yet) so nothing goes silent and SfxManager never warns.
@@ -34,6 +38,8 @@ const FALLBACK: Dictionary[StringName, StringName] = {
 	&"hot_hand": &"win_big",
 	&"no_score": &"chip_refuse",
 	&"table_cleared": &"win_big",
+	&"table_goal_reached": &"table_cleared",
+	&"table_goal_missed": &"soul_burn",
 }
 ## Signal on TableEvents -> handler method here (the agreed payloads).
 const HOOKS: Dictionary[StringName, StringName] = {
@@ -43,6 +49,8 @@ const HOOKS: Dictionary[StringName, StringName] = {
 	&"no_score": &"_on_no_score",
 	&"table_cleared": &"_on_table_cleared",
 	&"table_started": &"_on_table_started",
+	&"goal_reached": &"_on_goal_reached",
+	&"goal_missed": &"_on_goal_missed",
 }
 
 ## The SfxManager (typed Node so tests can pass a stand-in).
@@ -148,6 +156,18 @@ func _on_table_cleared() -> void:
 		return
 	_cleared_played = true
 	cue(&"table_cleared", 0.0)
+
+
+## The banked points reach the target: one goal sting in place of TABLE CLEARED.
+func _on_goal_reached() -> void:
+	if _cleared_played:
+		return
+	_cleared_played = true
+	cue(&"table_goal_reached", 0.0)
+
+
+func _on_goal_missed(_soul_loss: int = 0) -> void:
+	cue(&"table_goal_missed", 0.0)
 
 
 ## Trigger FX sound (trigger_fx_spec.md 4, "Sound hooks"). TableAudio is the

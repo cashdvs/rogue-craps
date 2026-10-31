@@ -28,6 +28,15 @@ background ambience (see "Crowd" below).
 
 **Rev 2 (core-loop cues):** `hot_hand`, `bank`, `bounty_claimed` and `bust` were revised and `table_cleared` and `no_score` added; the event names and calls are unchanged, so existing hooks keep working. `BonfireSynth.REVISED` says what each revision replaced. Rule: dice sounds are bone, felt and wood; fire/ember texture goes only on `bust` and in `bank`'s embers (`tests/test_core_loop_cues.gd` checks the dice cues have no hiss or crackle).
 
+## Table goals
+
+| Event | When | Call |
+|---|---|---|
+| `table_goal_reached` **(new)** | the bank whose points reach the table's target (`BonfireRun._goal_met()`, the same bank that emits `table_cleared`) | emit `table.events.goal_reached` **before** `table_cleared`; `scripts/fx/table_audio.gd` plays it in place of the TABLE CLEARED cue (one sting per table; falls back to `table_cleared`). 1.1 s: bone bells climbing A minor (A4 C5 E5) into a held A5 + E6, wooden knock. Level 0.75. `TableGoalSynth`. |
+| `table_goal_missed` **(new)** | the table ends FAILED: out of hands short of the target, `goal.miss_soul` (5) Soul lost (`BonfireRun._end_table`) | emit `table.events.goal_missed(soul_loss)`; `TableAudio` plays it (falls back to `soul_burn`). 1.5 s: `soul_burn`'s hollow ring turned around, gliding down 780 to 390 Hz, under a low D2 toll and a breath drawn out. Level 0.72. Play it instead of `soul_burn` for the miss Soul so the drain isn't heard twice. `TableGoalSynth`. |
+
+`TableEvents` has no `goal_reached` / `goal_missed` signals yet (Godot Dev's); `TableAudio` connects them only when they exist, so nothing plays until they're added.
+
 ## Nerve nudge
 
 | Event | When | Call |
