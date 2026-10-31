@@ -26,3 +26,13 @@ Repo copy: only the rows the game loads by id from this file so far; the full ta
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_seals_chip_one | (new) | SEAL · 1 | 2 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_boss_tag | (new) | BOSS | 1 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_miss_soul_float | (new) | -{n} Soul | 2 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_target_label | (new) | TARGET | 1 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_to_go | (new) | {n} to go · {h} hands left | 6 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_to_go_one_hand | (new) | {n} to go · 1 hand left | 6 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_passed | (new) | PASSED · {h} hands left | 4 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_passed_one_hand | (new) | PASSED · 1 hand left | 4 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_over | (new) | +{n} | 1 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_miss | (new) | Missed: -{s} Soul | 3 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_score_label | (new) | SCORE | 1 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_nerve | (new) | Nerve {n} | 2 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_hint | (new) | Bank points to reach the target. | 6 |
