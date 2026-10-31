@@ -198,6 +198,25 @@ Boss-dealer FX for Ashmouth "Smiles": an ash puff out of the firebox door at 0.1
 - **Renderer / motion:** GPUParticles3D on Forward+, CPUParticles3D otherwise. Reduced motion (~1/3 the dots) follows the game setting, read live from the nearest ancestor's `is_reduced_motion()` (Table3D) or `reduced_motion` (Bonfire3D, Dealer3D); the `@export reduced_motion` forces it on.
 - Tests: `tests/test_fx_ashmouth_puffs.gd`. Capture: `tools/capture_ashmouth_puffs.gd` (Vulkan Forward+, `phone=844x390`; needs the local Ashmouth assets).
 
+## RunCompleteCountup
+
+`run_complete_countup.gd` animates two rows of the RUN COMPLETE panel (#225,
+one_floor_v1). `RunScreen.refresh()` attaches it after `_panel(...)` when
+`run.end_reason == &"complete"` (one hook, panel rows 3 and 4).
+
+| Step | Time | Shows |
+|---|---|---|
+| wait | 0.20 s | `Embers left: 0 x{mult} = +0`, `Final score: {points banked}` |
+| Embers line | 0.60 s (ease-out) | `Embers left: {n} x{mult} = +{pts}` counts up |
+| gap | 0.15 s | Embers line holds |
+| Final score | 0.60 s (ease-out) | `Final score: {n}` ticks up to `RunSummary.final_score(run)` |
+
+- Colour: both rows use `Palette.EMBER` (#E8622A), no glow (glow is dice only).
+- Reduced motion (`TuningData.reduced_motion`, `poc_tuning.tres`): final values at once.
+- Skip: any tap, click, key or pad press finishes instantly (`finish()`).
+- No scoring math here: targets are `RunSummary.ember_points` / `final_score`; text comes from `RunSummary.embers_line()` / `text()` (strings_v1 rows).
+- Strip: `tools/capture_run_complete_countup.gd` (Forward+/Vulkan).
+
 ## Hot Hand pulse (`hot_hand_pulse_fx.gd`)
 
 `HotHandPulseFx` (child of Table3D, one line after `SelectionDimFx`) holds the Hot Hand
