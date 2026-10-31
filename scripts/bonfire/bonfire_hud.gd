@@ -62,6 +62,37 @@ func _place_goal() -> void:
 	TargetPlace.place(self)
 	if bottom_bar.is_inside_tree():
 		bottom_bar.place(self)
+	_place_embers()
+
+
+## Where the EMBERS / points lines sit (PC and portrait: the design spot).
+const EMBERS_POS := Vector2(1560, 24)
+const POINTS_POS := Vector2(1560, 72)
+## Phone landscape: least gap (pt) between the Embers lines and the plate.
+const EMBERS_GAP_PT := 4.0
+
+
+## On phone landscape the plate sits right under the EMBERS / points lines,
+## and "points ..." touched its top edge (QA, Oct 31). There the two lines
+## sit above the plate's live top edge (>= EMBERS_GAP_PT), right-aligned
+## with it; if the plate is too high for that, they go to its left instead.
+## PC and portrait keep the design spot.
+func _place_embers() -> void:
+	if coin_label == null or points_label == null:
+		return
+	if not is_phone_land or is_portrait or target_plate == null or not target_plate.is_inside_tree():
+		coin_label.position = EMBERS_POS
+		points_label.position = POINTS_POS
+		return
+	var gap := EMBERS_GAP_PT * ui_pt_px
+	var plate := Rect2(target_plate.position, target_plate.size)
+	var w := maxf(coin_label.size.x, points_label.size.x)
+	var tall := POINTS_POS.y - EMBERS_POS.y + points_label.size.y  # both lines
+	var pos := Vector2(plate.end.x - w, minf(EMBERS_POS.y, plate.position.y - gap - tall))
+	if pos.y < 0.0:  # no room above: beside the plate, on its left
+		pos = Vector2(plate.position.x - gap - w, EMBERS_POS.y)
+	coin_label.position = pos
+	points_label.position = pos + POINTS_POS - EMBERS_POS
 
 
 # The per-table bounty cards, the portrait readout and the hands line all
