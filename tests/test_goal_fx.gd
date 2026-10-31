@@ -61,7 +61,11 @@ func _run() -> void:
 	# Reached: Ember flare, fades to white.
 	tb.events.goal_reached.emit()
 	check(fx.calls == ["reached"], "goal_reached plays")
-	var sb := fx.flare.get_theme_stylebox(&"panel") as StyleBoxFlat if fx.flare != null else null
+	check(fx.flare != null, "flare made")
+	if fx.flare == null:  # reached() returned early: stop here, exit non-zero
+		_finish()
+		return
+	var sb := fx.flare.get_theme_stylebox(&"panel") as StyleBoxFlat
 	check(sb != null and sb.border_color == Palette.EMBER and _ember_only(sb.bg_color), "flare: Ember border + wash")
 	check(fx.flare.get_parent() == tb.bhud and fx.flare.size.is_equal_approx(plate.size) and fx.flare.position.is_equal_approx(plate.position), "flare covers the plate")
 	check(is_equal_approx(fx.flare.modulate.a, 1.0), "flare at full on reach")
@@ -76,6 +80,9 @@ func _run() -> void:
 	tb.events.goal_missed.emit(10)
 	check(fx.calls[-1] == "missed:10", "goal_missed plays with the soul_loss")
 	check(fx.soul_tag != null and fx.soul_tag.text == "-10 Soul", "tag shows the number #229 sent")
+	if fx.soul_tag == null:
+		_finish()
+		return
 	check(fx.soul_tag.get_parent() == tb.bhud, "tag is a sibling, not dimmed with the plate")
 	check(_ember_only(fx.soul_tag.label_settings.font_color), "tag is Ember, not red/cyan/violet")
 	check(fx.soul_tag.label_settings.font_size >= 24, "tag reads at small sizes")
@@ -118,5 +125,70 @@ func _run() -> void:
 	Engine.time_scale = 1.0
 	check(fx.get_child_count() == 0, "no nodes on the table (dice untouched)")
 
+	tb.queue_free()
+	await _real_build()
+	_finish()
+
+
+## Prints the tally and exits non-zero on any failure (as the other tests do).
+func _finish() -> void:
 	print("goal_fx: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+
+## The real Bonfire table: the tag shows goal_missed's own soul_loss, 5 on a
+## plain miss and 10 under the Bloodletter (x2), never a number GoalFx makes.
+func _real_build() -> void:
+	var tu := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	var sv := SubViewport.new()
+	sv.size = Vector2i(1920, 1080)
+	root.add_child(sv)
+	for case: Array in [[[] as Array[StringName], 5], [[&"bloodletter"] as Array[StringName], 10]]:
+		var g := TableGoal.new()
+		g.target = 99999
+		g.hands = 1
+		g.clear_embers = 14
+		g.miss_soul = 5
+		var st := TableSetup.sandbox(tu, 3)
+		st.goal = g
+		st.rules = case[0]
+		st.table_seed = 5
+		st.nerve_uses = 0
+		var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+		s.setup = st
+		s.tutorial_override = 0
+		s.test_speed = 10.0
+		sv.add_child(s)
+		await process_frame
+		await process_frame
+		var fx := s.get_node_or_null("GoalFx") as GoalFx
+		check(fx != null, "real table has GoalFx (%s)" % str(case[0]))
+		if fx == null:
+			s.queue_free()
+			continue
+		fx.hold = true
+		var sent: Array[int] = []
+		s.events.goal_missed.connect(func(n: int) -> void:
+			sent.append(n)
+			if fx.soul_tag != null:
+				sent.append(-1 if fx.soul_tag.text != GoalFx.SOUL_TEXT % n else n))
+		for k in 600:
+			if s.phase == Table3D.Phase.BET:
+				break
+			await process_frame
+		s.rig_faces([5, 5, 1] as Array[int])
+		s.quick_throw()
+		await s.throw_resolved
+		await s.sequence_finished
+		for i in 2:
+			s.pick_die(i)
+		await s.bank()
+		for k in 120:
+			if not sent.is_empty():
+				break
+			await process_frame
+		print("real build %s: goal_missed sent %s" % [str(case[0]), str(sent)])
+		check(sent.size() == 2 and sent[0] == case[1] and sent[1] == sent[0], "tag text is the signal's value (%d): %s" % [case[1], str(sent)])
+		check(fx.soul_tag != null and fx.soul_tag.text == "-%d Soul" % case[1], "real tag reads -%d Soul" % case[1])
+		s.queue_free()
+		await process_frame

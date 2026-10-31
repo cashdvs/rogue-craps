@@ -23,7 +23,8 @@ const DIM := Color(0.55, 0.5, 0.48)
 const DIM_TIME: float = 0.25
 const MISS_HOLD: float = 1.4
 const DROP_PX: float = 14.0
-const SOUL_TEXT := "-%d Soul"
+## design/strings_v1.md goal_miss_soul_float "-{n} Soul"; {n} = goal_missed's soul_loss.
+const SOUL_TEXT := "-%d Soul"  # goal_miss_soul_float
 const SOUL_FONT: int = 30
 
 var table: Node

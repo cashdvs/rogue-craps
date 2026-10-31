@@ -239,7 +239,7 @@ Tests: `tests/test_hot_hand_pulse.gd`. Capture: `tools/capture_hot_hand_pulse.gd
 
 `GoalFx` listens to `TableEvents.goal_reached` and `goal_missed(soul_loss)` (#229) and plays a short, visual-only cue on the HUD target plate (`bhud.target_plate`). It never touches the dice, the run or the pot flow: its tweens ignore time scale and nothing awaits, so a pot is never slowed.
 - reached: an Ember #E8622A border (3 px) and a faint Ember wash (0.22) over the plate, fading out in 0.35 s;
-- missed: the plate dims (0.25 s) and an Ember "-N Soul" tag drops 14 px into place under it, held 1.4 s. N is the `soul_loss` #229 sends (after the rules, e.g. the Bloodletter's x2), shown as given and never recomputed;
+- missed: the plate dims (0.25 s) and an Ember "-N Soul" tag (string id `goal_miss_soul_float`, "-{n} Soul" in design/strings_v1.md; `GoalFx.SOUL_TEXT`) drops 14 px into place under it, held 1.4 s. N is the `soul_loss` #229 sends (after the rules, e.g. the Bloodletter's x2), shown as given and never recomputed;
 - reduced motion / Instant: nothing moves; the flare and dim hold still for the same time, then snap off; the tag shows in place;
 - cleared at once on `table_started`; binds to nothing until #229's signals exist.
 Hooked by one line in `table_3d.gd` (`add_child(GoalFx.new())`). Tests: `tests/test_goal_fx.gd`. Capture: `tools/capture_goal_fx.gd` (Vulkan Forward+ only).
