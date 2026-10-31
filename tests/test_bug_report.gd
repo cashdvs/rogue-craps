@@ -80,6 +80,13 @@ func _run() -> void:
 	for l in toasts:
 		hit = hit or (l as Label).text == "No mail app: report copied, email it to tinyanvilgames@mail.grokbot.com"
 	check(hit, "fail: no-mail toast shown")
+	# report() headless: no frame wait, returns "" (no shot) and calls the opener.
+	opened.clear()
+	BugReport.opener = func(url: String) -> int:
+		opened.append(url)
+		return OK
+	var shot: String = await BugReport.report(pm)
+	check(shot == "" and opened.size() == 1 and opened[0].begins_with("mailto:tinyanvilgames@mail.grokbot.com?subject=" + Version.bug_subject().uri_encode()), "report() completes headless and opens the mailto (%s)" % str(opened))
 	BugReport.opener = Callable()
 	BugReport.clipboard = Callable()
 	for l in toasts:

@@ -85,7 +85,8 @@ static func shot_path(when: Dictionary) -> String:
 ## Fire and forget: callers don't await it (it awaits one frame for the shot).
 static func report(layer: CanvasLayer) -> String:
 	var path := ""
-	if OS.has_feature("pc"):
+	# Headless: frame_post_draw never fires, so skip the shot and go straight to send().
+	if OS.has_feature("pc") and DisplayServer.get_name() != "headless":
 		var was := layer.visible
 		layer.visible = false
 		await RenderingServer.frame_post_draw
