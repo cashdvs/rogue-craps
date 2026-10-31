@@ -351,8 +351,8 @@ func anchor_rect(anchor: StringName, ctx: Dictionary) -> Rect2:
 			var id := StringName(ctx.get("card", &""))
 			if anchor == &"bonus_leave" and bhud.leave_button.visible:
 				return bhud.leave_button.get_global_rect()
-			if bhud.portrait_goal.visible:
-				return bhud.portrait_goal.get_global_rect()
+			if bhud.target_plate.is_visible_in_tree():
+				return bhud.target_plate.get_global_rect()  # the plate replaced the cards
 			if bhud.bounty_cards.has(id):
 				return (bhud.bounty_cards[id] as Control).get_global_rect()
 			return bhud.checklist_panel.get_global_rect()

@@ -154,7 +154,7 @@ func _test_tuning_addendum() -> void:
 		ok = ok and ids.is_empty() and run.goal.target == f2.target_boss
 	_check(ok, "addendum: floor 2 boss is a target table (no bounties drawn, table_goals_v1)")
 	var want_r := {"ashmouth": [-1, "No Hot Hand, and you get one fewer hand."], "cold_sixes": [1, "6s never light, but you get +1 hand."],
-		"first_throw": [1, "Bounties count only on each hand's first 2 throws; +1 hand."],
+		"first_throw": [1, "You get +1 hand at this table."],
 		"greedy_pot": [1, "Pot at least 2 dice every throw, but you get +1 hand."], "cold_hands": [1, "No Hot Hand, but you get +1 hand."],
 		"straight_man": [0, "Runs of 3 don't count; runs of 4 or 5 still do."], "bloodletter": [0, "Every Soul cost is doubled: a bust costs 2 Soul."],
 		"madame_shuffle": [0, "Each hand, a 2 or a 4 never lights."]}

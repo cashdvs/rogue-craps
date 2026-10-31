@@ -14,7 +14,7 @@
 ##   seals: int        owned Seals in the run (MapRun.owned_seals().size()), 0 without a map run
 ##   bounties: Array   always [] in PR1 (Run Bounties, PR2); entries {icon_id, text}
 ##   debuff            null in PR1 (PR3); a Dictionary {icon_id, text}
-## Signals: target_changed, banked_changed, hands_left_changed,
+## Signals: is_boss_changed, target_changed, banked_changed, hands_left_changed,
 ## seals_changed, debuff_changed (each with the new value), then `changed`
 ## once after any of them.
 class_name TableGoalState
@@ -25,6 +25,7 @@ signal banked_changed(value: int)
 signal hands_left_changed(value: int)
 signal seals_changed(value: int)
 signal debuff_changed(value: Variant)
+signal is_boss_changed(value: bool)
 signal changed
 
 var target: int:
@@ -86,8 +87,7 @@ static func watch(source: Object, other: Object = null) -> TableGoalState:
 ## refresh() of a watched state re-reads its sources.
 func set_for_test(p_target: int, p_banked: int, p_hands_left: int, p_debuff: Variant = null,
 		p_seals: int = 0, p_is_boss: bool = false) -> void:
-	_is_boss = p_is_boss
-	_apply(p_target, p_banked, p_hands_left, p_seals, p_debuff, true)
+	_apply(p_target, p_banked, p_hands_left, p_seals, p_debuff, true, p_is_boss)
 
 
 ## Re-read the sources; emits the signals for what changed.
@@ -97,16 +97,21 @@ func refresh() -> void:
 
 func _read(emit: bool) -> void:
 	var g: TableGoal = run.goal if run != null else (map_run.goal if map_run != null else null)
-	_is_boss = g != null and g.is_boss
+	var boss := g != null and g.is_boss
 	var t := g.target if g != null else 0
 	var b := run.points if run != null else 0
 	var h := run.hands_left if run != null else (g.hands if g != null else 0)
 	var n := map_run.owned_seals().size() if map_run != null else 0
-	_apply(t, b, h, n, _debuff, emit)
+	_apply(t, b, h, n, _debuff, emit, boss)
 
 
-func _apply(t: int, b: int, h: int, n: int, d: Variant, emit: bool) -> void:
+func _apply(t: int, b: int, h: int, n: int, d: Variant, emit: bool, boss: bool) -> void:
 	var any := false
+	if boss != _is_boss:
+		_is_boss = boss
+		any = true
+		if emit:
+			is_boss_changed.emit(boss)
 	if t != _target:
 		_target = t
 		any = true

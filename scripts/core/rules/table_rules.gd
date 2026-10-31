@@ -44,7 +44,7 @@ const DEFAULT_PARAMS := {
 ## the run applies; the line tells the player.
 const INFO := {
 	&"cold_sixes": ["Cold Sixes", "6s never light, but you get +1 hand.", TableRule.Kind.TWIST],
-	&"first_throw": ["First Throw", "Bounties count only on each hand's first 2 throws; +1 hand.", TableRule.Kind.TWIST],
+	&"first_throw": ["First Throw", "You get +1 hand at this table.", TableRule.Kind.TWIST],
 	&"short_table": ["Short Table", "4 hands.", TableRule.Kind.TWIST],
 	&"heavy_burn": ["Heavy Toll", "A bust costs 3 Soul.", TableRule.Kind.TWIST],
 	&"greedy_pot": ["Greedy Pot", "Pot at least 2 dice every throw, but you get +1 hand.", TableRule.Kind.TWIST],
@@ -58,7 +58,7 @@ const INFO := {
 	&"bloodletter": ["The Bloodletter", "Every Soul cost is doubled: a bust costs 2 Soul.", TableRule.Kind.CHEAT],
 	&"mister_wick": ["Mister Wick", "6s never light, and a bust costs 2 Soul.", TableRule.Kind.CHEAT],
 	&"baron_vig": ["Baron Vig", "Pot at least 3 dice every throw; -1 hand.", TableRule.Kind.CHEAT],
-	&"odds_bodkin": ["Odds Bodkin", "Bounties count only on each hand's first throw; +1 hand.", TableRule.Kind.CHEAT],
+	&"odds_bodkin": ["Odds Bodkin", "Odds Bodkin gives you +1 hand at this table.", TableRule.Kind.CHEAT],
 }
 ## Special dice with a table-side handler (scoring-only ones live in
 ## BonfireScoring: twin_flame, coven, cracked x2, blood_pact, last_breath).

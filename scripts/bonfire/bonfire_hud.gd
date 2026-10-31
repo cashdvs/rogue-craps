@@ -15,6 +15,48 @@ extends BonfireHudGoal
 ## Space (design px) between the hands line and the rules panel in portrait.
 const RULES_GAP := 14.0
 
+## Target HUD v2.1: the goal plate replaces the bounty cards (PC, phone
+## landscape) and the portrait goal readout. Placed by TargetPlace.
+var target_plate := TargetPlate.new()
+## What the plate reads (TableGoalState.watch(run), made on the first refresh).
+var goal_state: TableGoalState
+## Phone portrait / phone landscape (set by set_portrait / set_ui_scale).
+var is_portrait: bool = false
+var is_phone_land: bool = false
+var _goal_run: BonfireRun
+
+
+func _ready() -> void:
+	super()
+	add_child(target_plate)
+	_hide_old_goal()
+
+
+## The plate follows the run's TableGoalState; the old cards stay hidden.
+func refresh(run: BonfireRun, can_act: bool) -> void:
+	super(run, can_act)
+	if run != _goal_run:
+		_goal_run = run
+		goal_state = TableGoalState.watch(run)
+		target_plate.bind(goal_state)
+	_hide_old_goal()
+	TargetPlace.place(self)
+
+
+## Phone landscape is the one that shrinks the cards (Bonfire3D's call).
+func set_ui_scale(pt_px: float, cards: float = 1.0) -> void:
+	super(pt_px, cards)
+	is_phone_land = cards < 1.0
+	TargetPlace.place(self)
+
+
+# The per-table bounty cards, the portrait readout and the hands line all
+# moved onto the plate (Systems Dev's PR1 drops the cards from the rules).
+func _hide_old_goal() -> void:
+	checklist_panel.visible = false
+	portrait_goal.visible = false
+	hands_label.visible = false
+
 
 ## Leave table asks once (PM, Oct 19: no modal): the first tap or L turns
 ## the button into "Leave? Tap again"; a second one within LEAVE_CONFIRM_S
@@ -110,7 +152,7 @@ func show_cleared(speed: float = 1.0, instant: bool = false) -> void:
 
 ## Where the banner rests: over the upper felt, clear of the BANKED flash.
 func _banner_center() -> Vector2:
-	if portrait_goal.visible:
+	if is_portrait:
 		var vs := get_viewport_rect().size
 		return Vector2(960, maxf(vs.y * 0.40, result_label.position.y + 600.0))
 	return Vector2(960, 620)
@@ -130,27 +172,31 @@ func flash(text: String, col: Color) -> void:
 ## banner moves down under the readout so both stay readable. PC and phone
 ## landscape keep the cards and the banner where they were.
 func set_portrait(on: bool) -> void:
-	if on == portrait_goal.visible:
+	if on == is_portrait:
 		return
-	portrait_goal.visible = on
-	checklist_panel.visible = not on
+	is_portrait = on
+	_hide_old_goal()
+	TargetPlace.place(self)
 	_place_rules()
 	_place_result()
 
 
-## Rules panel: BonfireHudGoal's spot, but in portrait (no cards) it also
-## clears the Embers / points / hands lines above it.
+## Rules panel: under the goal plate and its SEALS chip, and in portrait
+## also clear of the Embers / points lines above it.
 func _place_rules() -> void:
 	super()
-	if portrait_goal != null and portrait_goal.visible:
-		rules_panel.position.y = maxf(rules_panel.position.y, hands_label.position.y + hands_label.size.y + RULES_GAP)  # QA: don't crowd the Embers lines
+	if target_plate != null and target_plate.is_inside_tree():
+		var r := TargetPlace.goal_rect(self)
+		rules_panel.position.y = maxf(rules_panel.position.y, r.end.y + RULES_GAP)
+	if is_portrait:
+		rules_panel.position.y = maxf(rules_panel.position.y, points_label.position.y + points_label.size.y + RULES_GAP)  # QA: don't crowd the Embers lines
 
 
 ## The bank / bust banner: under the readout in portrait (its height can
 ## change when the goal's rows are built), else at RESULT_Y.
 func _place_result() -> void:
-	if portrait_goal.visible:
-		result_label.position.y = portrait_goal.position.y + portrait_goal.get_combined_minimum_size().y + RESULT_GAP
+	if is_portrait:
+		result_label.position.y = TargetPlace.goal_rect(self).end.y + RESULT_GAP
 	else:
 		result_label.position.y = RESULT_Y
 
