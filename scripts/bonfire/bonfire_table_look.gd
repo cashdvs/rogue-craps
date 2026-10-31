@@ -78,6 +78,12 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
 	u = (u - n * u.dot(n)).normalized()
 	var v := n.cross(u)
+	# The d4 Twin and d8 rare glyphs go around the printed face art.
+	if d.shape == &"d4" and m.effect == FaceModData.Effect.TWIN and not RareDieLook.MARKS.has(m.id):
+		PolyFaceMarks.twin_diamond(root, d, slot)
+		return
+	if d.shape == &"d8" and PolyFaceMarks.rare_on_d8(root, d, slot, m.id):
+		return
 	# Rare mods (Fuse, Jackpot, Hex, Gilded, Step) get their own glyph mark.
 	if RareDieLook.add_mark(root, d, n, u, v, lift, m.id):
 		if PolyBody.has_face_spots(d):

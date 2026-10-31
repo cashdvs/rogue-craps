@@ -106,21 +106,21 @@ func _check_marks(d: DieVisual, shape: StringName, slots: int) -> void:
 	var hangs_off := 0
 	var centres := {}
 	for pc: Array in pieces:
-		var xf: Transform3D = pc[0]
-		var box: AABB = pc[1]
-		# A flat piece's thin axis (a quad's z, a disc's y) is its normal.
+		var pts: PackedVector3Array = pc[0]
+		var pn: Vector3 = pc[1]
+		var mid := Vector3.ZERO
+		for p in pts:
+			mid += p / float(pts.size())
 		# (On a d8 the opposite face is parallel: take the one it sits on.)
 		var k := -1
 		for i in faces.size():
-			for ax in 3:
-				if box.size[ax] < 0.001 and absf(xf.basis[ax].normalized().dot(faces[i].n)) > 0.999:
-					if k < 0 or xf.origin.dot(faces[i].n) > xf.origin.dot(faces[k].n):
-						k = i
+			if absf(pn.dot(faces[i].n)) > 0.999:
+				if k < 0 or mid.dot(faces[i].n) > mid.dot(faces[k].n):
+					k = i
 		if k < 0:
 			off_face += 1
 			continue
-		for c in 8:
-			var p: Vector3 = xf * box.get_endpoint(c)
+		for p in pts:
 			var h: float = p.dot(faces[k].n) - faces[k].dist
 			if h < 0.0 or h > 0.001:
 				not_flush += 1
@@ -129,61 +129,28 @@ func _check_marks(d: DieVisual, shape: StringName, slots: int) -> void:
 					hangs_off += 1
 		if not centres.has(k):
 			centres[k] = []
-		centres[k].append(xf.origin)
+		centres[k].append(mid)
 	check(off_face == 0, "%s: every mark faces along a flat face normal (%d off)" % [shape, off_face])
 	check(not_flush == 0, "%s: mark bounds lie on the face plane (%d off)" % [shape, not_flush])
 	check(hangs_off == 0, "%s: mark bounds stay inside the face triangle (%d out)" % [shape, hangs_off])
 	check(centres.size() == slots, "%s: every face got its mark (%d of %d)" % [shape, centres.size(), slots])
-	if shape == &"d4":
-		_check_d4_corners(centres, faces)
-
-
-## A d4 is read by its top corner, so each mark leans toward one corner of
-## its face (where that face shows the number): off the face middle, and
-## each of the 4 faces toward a different corner.
-func _check_d4_corners(centres: Dictionary, faces: Array) -> void:
-	var dirs: Array = DieHullData.SHAPES[&"d4"]["dirs"]
-	var used := {}
-	var centred := 0
-	for k in centres:
-		var c := Vector3.ZERO
-		for p: Vector3 in centres[k]:
-			c += p
-		c /= float(centres[k].size())
-		var mid: Vector3 = faces[k].n * faces[k].dist  # a regular face's middle
-		if c.distance_to(mid) < 0.002:
-			centred += 1
-		var best := 0
-		for i in 4:
-			if (c - mid).dot(dirs[i]) > (c - mid).dot(dirs[best]):
-				best = i
-		used[best] = true
-	check(centred == 0, "d4: marks lean toward a corner, not the face middle (%d centred)" % centred)
-	check(used.size() == 4, "d4: each face's mark leans toward a different corner (%d)" % used.size())
-
-
-## Every drawn mesh under [param n], with its transform in die-faces space.
-func _collect(n: Node, xf: Transform3D, out: Array) -> void:
-	for c in n.get_children():
-		if c is Node3D:
-			var t: Transform3D = xf * (c as Node3D).transform
-			if c is MeshInstance3D and (c as MeshInstance3D).mesh != null:
-				out.append([t, (c as MeshInstance3D).mesh.get_aabb()])
-			_collect(c, t, out)
 
 
 ## How many FaceMods children one mod draws (Twin: 8 strips, Wild: 4,
 ## Blank: 1 quad, a rare glyph: 1 mark node).
-func _pieces_of(m: FaceModData) -> int:
+func _pieces_of(m: FaceModData, shape: StringName) -> int:
 	if RareDieLook.MARKS.has(m.id):
 		return 1
+	if shape == &"d4" and m.effect == FaceModData.Effect.TWIN:
+		return 2  # the brass diamond and its dark outline
 	return {FaceModData.Effect.TWIN: 8, FaceModData.Effect.WILD: 4}.get(m.effect, 1)
 
 
 ## Slot by slot (FaceMods children come in slot order): slot k's mark is on
 ## the right face. d8: the face whose normal is dirs[k] (that face reads k).
 ## d4 (read by its top corner k): a face touching corner k, the one opposite
-## corner k+1, and the mark's middle is nearer corner k than the others.
+## corner k+1 (where the mark goes is checked against the art in
+## test_poly_face_art).
 func _check_slots(d: DieVisual, mods: Array) -> void:
 	var dirs: Array = DieHullData.SHAPES[d.shape]["dirs"]
 	var kids := d.faces.get_node("FaceMods").get_children()
@@ -192,23 +159,56 @@ func _check_slots(d: DieVisual, mods: Array) -> void:
 	for k in mods.size():
 		var mid := Vector3.ZERO
 		var n := Vector3.ZERO
-		var cnt: int = _pieces_of(mods[k])
+		var cnt: int = _pieces_of(mods[k], d.shape)
 		for i in cnt:
 			var c := kids[at + i] as Node3D
-			mid += c.position / float(cnt)
-			n = c.transform.basis.z.normalized()
+			var pcs: Array = []
+			_collect(c, c.transform, pcs)
+			if c is MeshInstance3D:
+				pcs.append(_piece(c.transform, (c as MeshInstance3D).mesh))
+			for pc: Array in pcs:
+				n = pc[1]
+				for p: Vector3 in pc[0]:
+					mid += p / float(cnt * pc[0].size() * pcs.size())
 		at += cnt
 		var dk: Vector3 = (dirs[k] as Vector3).normalized()
 		var ok := false
 		if d.shape == &"d8":
-			ok = n.dot(dk) > 0.999
+			ok = absf(n.dot(dk)) > 0.999 and mid.dot(dk) > 0.0
 		else:
 			var dn: Vector3 = (dirs[(k + 1) % 4] as Vector3).normalized()
 			ok = n.dot(dk) > 0.3 and n.dot(dn) < -0.99
-			for j in 4:
-				if j != k and mid.distance_to(dirs[j] * 0.05) <= mid.distance_to(dk * 0.05):
-					ok = false
 		if not ok:
 			wrong += 1
 	check(at == kids.size(), "%s: FaceMods children match the mods (%d of %d)" % [d.shape, at, kids.size()])
-	check(wrong == 0, "%s: each slot's mark is on its own face, near its corner (%d wrong)" % [d.shape, wrong])
+	check(wrong == 0, "%s: each slot's mark is on its own face (%d wrong)" % [d.shape, wrong])
+
+
+## A drawn piece as [its points, its normal], in die-faces space. A quad or
+## disc: its bounds' 8 corners, normal = its thin axis (a quad's z, a disc's
+## y). A baked mesh (the tinted numeral): its triangle corners.
+func _piece(t: Transform3D, mesh: Mesh) -> Array:
+	var pts := PackedVector3Array()
+	var n := Vector3.ZERO
+	if mesh is ArrayMesh:
+		for p in mesh.get_faces():
+			pts.append(t * p)
+		n = (pts[1] - pts[0]).cross(pts[2] - pts[0]).normalized()
+	else:
+		var box := mesh.get_aabb()
+		for c in 8:
+			pts.append(t * box.get_endpoint(c))
+		for ax in 3:
+			if box.size[ax] < 0.001:
+				n = t.basis[ax].normalized()
+	return [pts, n]
+
+
+## Every drawn mesh under [param n], as _piece()s in die-faces space.
+func _collect(n: Node, xf: Transform3D, out: Array) -> void:
+	for c in n.get_children():
+		if c is Node3D:
+			var t: Transform3D = xf * (c as Node3D).transform
+			if c is MeshInstance3D and (c as MeshInstance3D).mesh != null:
+				out.append(_piece(t, (c as MeshInstance3D).mesh))
+			_collect(c, t, out)

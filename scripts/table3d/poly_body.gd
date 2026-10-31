@@ -140,52 +140,61 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	return true
 
 
-## Where a face-mod mark goes on a d4 or d8 face slot, for placing a decal:
-## {normal, dist, at, width}. normal = the flat face's outward normal;
-## dist = how far that face sits from the centre (the body mesh's farthest
-## vertex along it, times its scale), so a decal there is flush; at = the
-## mark's centre, an offset in the face plane; width = a square side that
-## fits inside the face triangle with room for the bevels.
-## A d8 slot is a face (DieHullData dirs are face normals): the mark sits in
-## the middle of it. A d4 is read by its top VERTEX (dirs point at the
-## corners), so slot k's mark goes on the next slot's opposite face, pulled
-## toward corner k, where that face shows the k.
-static func face_spot(d: DieVisual, slot: int) -> Dictionary:
+## The real flat triangle of a d4 / d8 face slot, measured from the body
+## mesh: {normal, dist, tri, g, r, h}. normal = outward normal; dist = how
+## far the flat face sits from the centre, so a decal there is flush; tri =
+## its 3 corners on the face plane (always in the same order, so baked
+## spots can be stored as weights of them); g = the middle; r = inradius;
+## h = the triangle's height (corner to opposite edge).
+## A d8 slot is a face (DieHullData dirs are face normals). A d4 is read by
+## its top VERTEX (dirs point at the corners), so slot k uses the face
+## opposite the next corner, which touches corner k; tri[0] is corner k.
+static func face_tri(d: DieVisual, slot: int) -> Dictionary:
 	var dirs: Array = DieHullData.SHAPES[d.shape]["dirs"]
 	var i := clampi(slot, 1, dirs.size()) - 1
 	var n: Vector3 = (dirs[i] as Vector3).normalized()
 	# The die's corners: the d4's are its dirs, the d8's the 6 axis tips.
 	var corner_dirs: Array = dirs
-	var toward := -1
 	if d.shape == &"d4":
-		toward = i
 		n = -(dirs[(i + 1) % 4] as Vector3).normalized()
+		corner_dirs = [dirs[i]]
+		for j in 4:
+			if j != i and j != (i + 1) % 4:
+				corner_dirs.append(dirs[j])
 	else:
-		corner_dirs = [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN, Vector3.BACK, Vector3.FORWARD]
+		corner_dirs = []
+		for c: Vector3 in [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN, Vector3.BACK, Vector3.FORWARD]:
+			if c.dot(n) > 0.1:  # the 3 axis tips on this face's side
+				corner_dirs.append(c)
 	var pts := _body_points(d)
 	var dist := _far(pts, n)
-	# The face's 3 corners are the die corners that lean most along n,
-	# dropped onto the face plane.
-	corner_dirs = corner_dirs.duplicate()
-	corner_dirs.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.dot(n) > b.dot(n))
+	# Each corner tip dropped onto the face plane.
 	var tri: Array[Vector3] = []
-	for c: Vector3 in corner_dirs.slice(0, 3):
+	for c: Vector3 in corner_dirs:
 		var tip: Vector3 = c.normalized() * _far(pts, c.normalized())
 		tri.append(tip - n * (tip.dot(n) - dist))
 	var g := (tri[0] + tri[1] + tri[2]) / 3.0
-	# Inradius: twice the area over the perimeter.
 	var area := (tri[1] - tri[0]).cross(tri[2] - tri[0]).length() * 0.5
-	var r := 2.0 * area / (tri[0].distance_to(tri[1]) + tri[1].distance_to(tri[2]) + tri[2].distance_to(tri[0]))
-	var at := g
-	if toward >= 0:
-		var tip: Vector3 = (dirs[toward] as Vector3).normalized()
-		for c in tri:
-			if c.normalized().dot(tip) > 0.9:
-				at = g.lerp(c, D4_PULL)  # edges near the corner come in by (1 - pull)
+	var per := tri[0].distance_to(tri[1]) + tri[1].distance_to(tri[2]) + tri[2].distance_to(tri[0])
+	return {"normal": n, "dist": dist, "tri": tri, "g": g, "r": 2.0 * area / per, "h": 6.0 * area / per}
+
+
+## Where a plain face-mod mark goes on a d4 or d8 face slot:
+## {normal, dist, at, width}. at = the mark's centre as an offset in the
+## face plane; width = a square side that fits inside the face triangle
+## with room for the bevels. On a d8 it sits in the middle; on a d4 it is
+## pulled toward corner k, where that face shows the k.
+static func face_spot(d: DieVisual, slot: int) -> Dictionary:
+	var f := face_tri(d, slot)
+	var n: Vector3 = f.normal
+	var at: Vector3 = f.g
+	var r: float = f.r
+	if d.shape == &"d4":
+		at = at.lerp(f.tri[0], D4_PULL)  # edges near the corner come in by (1 - pull)
 		r *= 1.0 - D4_PULL
 	# A square of side r * sqrt(2) fits in a circle of radius r; BEVEL_FIT
 	# keeps it off the rounded edges.
-	return {"normal": n, "dist": dist, "at": at - n * at.dot(n), "width": r * sqrt(2.0) * BEVEL_FIT}
+	return {"normal": n, "dist": f.dist, "at": at - n * at.dot(n), "width": r * sqrt(2.0) * BEVEL_FIT}
 
 
 ## How far a d4 mark slides from the face middle toward its corner (0..1).
