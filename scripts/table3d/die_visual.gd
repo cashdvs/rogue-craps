@@ -95,7 +95,6 @@ func _init(edge_m: float = 0.08) -> void:
 	blob.top_level = true
 	add_child(blob)
 
-
 func _process(_delta: float) -> void:
 	# Keep the blob flat on the felt under the die.
 	var blob := get_node("Blob") as Node3D
@@ -104,23 +103,19 @@ func _process(_delta: float) -> void:
 	blob.scale = Vector3.ONE * (1.0 + h)
 	blob.visible = visible
 
-
 ## The face value currently on top (reads the faces node's world basis).
 func up_value() -> int:
 	return value_up(faces.global_transform.basis)
-
 
 ## How flat the top face is: 1.0 = perfectly flat.
 func up_dot() -> float:
 	var b := faces.global_transform.basis.orthonormalized()
 	return (b * (FACE_AXES[value_up(b)] as Vector3)).dot(Vector3.UP)
 
-
 ## Screen-space size: projects the die's 8 corners and returns the bounding
 ## box size in pixels (used by the phone readability check).
 func screen_size(cam: Camera3D) -> Vector2:
 	return projected_size(cam, faces.global_transform, edge)
-
 
 ## Pixel bounding box of a cube of size `edge` with transform `xf`.
 static func projected_size(cam: Camera3D, xf: Transform3D, edge_m: float) -> Vector2:
@@ -264,6 +259,10 @@ func _apply_outline_state() -> void:
 	hull_outline.visible = glow_lit > 0.01 or dim
 	m.set_shader_parameter("color", DIM_OUTLINE_COLOR if dim else (spec["color"] as Color))
 	m.set_shader_parameter("emission_energy", 0.0 if dim else float(spec["emission"]))
+
+
+## Puts the outline back to its normal lit/dimmed look.
+func restore_outline() -> void: _apply_outline_state()
 
 
 ## Whether this die's material family takes the lit hull outline.
