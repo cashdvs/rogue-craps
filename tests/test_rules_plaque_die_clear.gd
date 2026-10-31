@@ -1,6 +1,7 @@
 ## QA #201: the table-rules plaque (Powder Barrel row) never covers a thrown
-## die: with the Barrel die right under it (phone landscape, near the right
-## edge), the plaque moves off it and stays on screen. Real Bonfire HUD on
+## die: each die in turn is parked under it, and the plaque moves off it and
+## stays on screen. A HUD-moved plaque keeps its new home (dodges from there
+## and returns there). Real Bonfire HUD on
 ## PC 16:9, phone landscape and phone portrait.
 ##   godot --headless --path . --script res://tests/test_rules_plaque_die_clear.gd
 extends SceneTree
@@ -67,27 +68,59 @@ func _check_layout(s: Bonfire3D, label: String, shot: String) -> void:
 	await process_frame
 	var h := s.bhud
 	check(h.rules_panel.is_visible_in_tree(), "%s: rules plaque shown" % label)
-	# Park the Barrel die (dice[0]) under the plaque's centre, on its own plane.
 	var cam := s.camera.cam
-	var d: DieVisual = s.throw_dice[0]
-	var plane := Plane(Vector3.UP, d.global_position.y)
-	var c := h.rules_panel.get_global_rect().get_center()
-	var hit = plane.intersects_ray(cam.project_ray_origin(c), cam.project_ray_normal(c))
-	check(hit != null, "%s: plaque centre is over the table" % label)
-	if hit != null:
-		d.global_position = hit
+	var view := Rect2(Vector2.ZERO, s.get_viewport().get_visible_rect().size)
+	# Clear the felt under the plaque first: its home is where it sits then.
+	var away := Vector2(view.size.x * 0.15, view.size.y * 0.85)
+	for d: DieVisual in s.throw_dice:
+		_park(cam, d, away)
 	for k in 3:
 		await process_frame
+	var home := h.rules_panel.get_global_rect()
+	# Park each thrown die in turn under the plaque's home centre.
+	for i in s.throw_dice.size():
+		var d: DieVisual = s.throw_dice[i]
+		check(_park(cam, d, home.get_center()), "%s: plaque centre is over the table" % label)
+		for k in 3:
+			await process_frame
+		var a := h.rules_panel.get_global_rect()
+		var b := _die_rect(cam, d)
+		check(not a.intersects(b), "%s: plaque %s clear of die %d %s" % [label, str(a), i, str(b)])
+		check(view.encloses(a), "%s: plaque %s on screen %s (die %d)" % [label, str(a), str(view), i])
+		_park(cam, d, away)
+	# The HUD moves the plaque (overridden home): it stays there while clear,
+	# dodges a die from there, and comes back there, not to the old spot.
+	for k in 3:
+		await process_frame
+	check(h.rules_panel.get_global_rect().position.is_equal_approx(home.position), "%s: plaque %s back home %s with no die under it" % [label, str(h.rules_panel.get_global_rect()), str(home)])
+	var moved := home.position + Vector2(-home.size.x * 0.6, home.size.y * 0.5)
+	h.rules_panel.global_position = moved
+	for k in 3:
+		await process_frame
+	check(h.rules_panel.global_position.is_equal_approx(moved), "%s: HUD-moved plaque %s stays at %s" % [label, str(h.rules_panel.global_position), str(moved)])
+	var d0: DieVisual = s.throw_dice[0]
+	_park(cam, d0, Rect2(moved, home.size).get_center())
+	for k in 3:
+		await process_frame
+	check(not h.rules_panel.get_global_rect().intersects(_die_rect(cam, d0)), "%s: moved plaque clear of its die" % label)
+	_park(cam, d0, away)
+	for k in 3:
+		await process_frame
+	check(h.rules_panel.global_position.is_equal_approx(moved), "%s: plaque returns to the new home %s, not the old (%s)" % [label, str(moved), str(h.rules_panel.global_position)])
 	var a := h.rules_panel.get_global_rect()
-	var b := _die_rect(cam, d)
-	var view := Rect2(Vector2.ZERO, s.get_viewport().get_visible_rect().size)
-	check(not a.intersects(b), "%s: plaque %s clear of its die %s" % [label, str(a), str(b)])
-	check(view.encloses(a), "%s: plaque %s on screen %s" % [label, str(a), str(view)])
 	var pip := s.nerve_ui.pip_box
 	check(not pip.is_visible_in_tree() or not pip.get_global_rect().intersects(a), "%s: Nerve pip still clear of the plaque" % label)
 	if shot != "" and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		s.get_viewport().get_texture().get_image().save_png(shot % label.replace(" ", "_"))
+
+
+## Puts [param d] where screen point [param at] meets its own table plane.
+func _park(cam: Camera3D, d: DieVisual, at: Vector2) -> bool:
+	var hit = Plane(Vector3.UP, d.global_position.y).intersects_ray(cam.project_ray_origin(at), cam.project_ray_normal(at))
+	if hit != null:
+		d.global_position = hit
+	return hit != null
 
 
 ## place() alone: no room left of a wide die row, so it goes below it,
