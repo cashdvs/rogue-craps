@@ -98,6 +98,8 @@ static func clear(d: DieVisual) -> void:
 ## that pop out and fall. Returns the ignite beat's tween (tests).
 static func hot_hand_pulse(d: DieVisual, fx_root: Node3D, reduced: bool) -> Tween:
 	apply(d, 3)
+	if d.body_material != null:
+		d.body_material.set_shader_parameter("emission_color", Palette.EMBER)  # tier-3 energy (0.3), ember hue
 	if not reduced:
 		HotHandPulseFx.apply_peak(d)
 	var tw := d.create_tween().set_ignore_time_scale(true)
