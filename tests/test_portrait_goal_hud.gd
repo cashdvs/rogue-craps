@@ -230,6 +230,7 @@ func _feedback(s: Bonfire3D, g: PortraitGoalHud) -> void:
 	# 5 plain dice always light something, so the bust runs on a 3-die
 	# portrait table: pot 1-2-3 (Run of 3 pending), throw 2-4-6.
 	var made: Array = await _make(Vector2i(int(round(PHONE.x / SCALE)), int(round(PHONE.y / SCALE))), 3)
+	(made[0] as SubViewport).own_world_3d = true  # keep its dice out of the 5-die table's physics
 	var s3: Bonfire3D = made[1]
 	s3.camera.cam.current = true
 	s3.fit_phone(PHONE)
