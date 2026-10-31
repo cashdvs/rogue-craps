@@ -9,20 +9,20 @@ extends BonfireThrowFlow
 var help_corner: HelpCorner
 
 
-## Space / THROW: in AIM throws the dice; after a throw, pots the picked dice
-## and gathers the cold ones (or all of them on a Hot Hand) into the hand.
+## Space / THROW: in AIM throws the dice; after a throw, a Hot Hand pots every
+## die and gathers them all into the hand; a partial pot banks the hand.
 func throw_again() -> bool:
 	if phase != Phase.BET or run.is_over():
 		return false
 	if run.state == BonfireRun.State.AIM:
 		return quick_throw()
+	# No cold rethrow: a throw press on a partial pot banks the hand.
+	if run.can_continue() and not run.is_hot():
+		bank()  # checks pass synchronously; the bank plays on
+		return true
 	var potted_now: Array[DieVisual] = []
 	for i in run.potted:
 		potted_now.append(throw_dice[i])
-	var cold_now: Array[DieVisual] = []
-	for i in throw_dice.size():
-		if not run.potted.has(i):
-			cold_now.append(throw_dice[i])
 	var why := run.rethrow_block_reason()
 	var sel := run.selection()
 	var hot_before := run.hot_hands
@@ -45,21 +45,14 @@ func throw_again() -> bool:
 	_start_count_up(sel, potted_now, faces_now, hot_before, per_hot)
 	_hold_display(hold)
 	juice.crowd_pot(run.pot)
-	if rt["hot"]:
-		_taunt(&"bonfire_hot")
-		# The lists change now; the dice ignite and fly back after the count-up.
-		pot_dice.clear()
-		throw_dice.clear()
-		_set_active(all_dice)
-		_hot_hand_moment()
-		_set_why("Hot Hand! All %d dice back, +%d mult on every pot this hand." % [run.cold, run.mult_bonus()])
-		onboarding.on_hot_hand()
-	else:
-		for d in cold_now:
-			_set_lit(d, false)
-		_set_active(cold_now)
-		_to_hand()
-		_set_why("Pot %d. Flick the %d cold dice, or regret it." % [run.pot, run.cold])
+	_taunt(&"bonfire_hot")
+	# The lists change now; the dice ignite and fly back after the count-up.
+	pot_dice.clear()
+	throw_dice.clear()
+	_set_active(all_dice)
+	_hot_hand_moment()
+	_set_why("Hot Hand! All %d dice back, +%d mult on every pot this hand." % [run.cold, run.mult_bonus()])
+	onboarding.on_hot_hand()
 	_refresh_hud()
 	return true
 
@@ -267,30 +260,25 @@ func pick_die(i: int) -> bool:
 	return true
 
 
-## The rethrow prompt with its exact bust risk ("Throw 2 cold dice: 1 in 3
-## burns", BustRisk). "" when there's no rethrow to talk about.
+## The Hot Hand prompt with its exact bust risk (BustRisk). "" unless the
+## hand is hot (only a Hot Hand throws again).
 func rethrow_prompt() -> String:
 	var n := next_throw_size()
 	if n <= 0:
 		return ""
 	var tds: Array = []
 	var kindling := false
-	var hot := false
 	if run.state == BonfireRun.State.PICK:
-		var sel := run.selection()
-		kindling = bool(sel.get("kindling", false))
-		hot = run.is_hot()
-		if hot:
-			for d in all_dice:
-				tds.append(_die_of.get(d))
-		else:
-			for i in throw_dice.size():
-				if not run.potted.has(i):
-					tds.append(_die_of.get(throw_dice[i]))
+		# Only a Hot Hand throws again (no cold rethrow): no prompt otherwise.
+		if not run.is_hot():
+			return ""
+		kindling = bool(run.selection().get("kindling", false))
+		for d in all_dice:
+			tds.append(_die_of.get(d))
 	else:
 		kindling = run.kindling_armed
-		# Mid-rethrow the active dice can still be the whole handful (the cold
-		# ones go active right after): no prompt until they match.
+		# Mid Hot Hand the active dice may not match the next throw yet: no
+		# prompt until they do.
 		if dice.size() != n:
 			return ""
 		for d in dice:
@@ -299,7 +287,7 @@ func rethrow_prompt() -> String:
 	if key != _risk_key:
 		_risk_key = key
 		_risk = run.next_throw_risk(tds, kindling)
-	return BustRisk.prompt(n, _risk, hot)
+	return BustRisk.prompt(n, _risk)
 
 
 func _add_chip() -> String:

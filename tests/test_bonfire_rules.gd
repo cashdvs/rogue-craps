@@ -73,6 +73,7 @@ func _initialize() -> void:
 	_mods()
 	_specials()
 	_outcome()
+	_no_cold_rethrow()
 	print("test_bonfire_rules: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -119,11 +120,11 @@ func _twists() -> void:
 	pot(r, [2, 3, 4])
 	check(not r.can_continue() or r.selection()["combo"] != &"run3", "Cold Sixes: no lit 6 means no 2-3-4 with a 6")
 	# First Throw
-	r = run_with([rule(&"first_throw")])
-	r.set_throw([5, 2, 3, 6, 6])
-	pot(r, [0])
-	r.rethrow()
-	r.set_throw([4, 4, 4, 2])
+	r = run_with([rule(&"first_throw")], [], null, 3)
+	r.set_throw([1, 2, 3])
+	pot(r, [0, 1, 2])
+	r.rethrow()  # Hot Hand: the 2nd throw
+	r.set_throw([4, 4, 4])
 	pot(r, [0, 1, 2])
 	r.bank()
 	check(not r.is_ticked(t.table_goal.required[0]) and r.points > 0, "First Throw: trips from the 2nd throw score but don't tick Triple")
@@ -245,23 +246,24 @@ func _bosses() -> void:
 	r = run_with([rule(&"collector")])
 	r.set_throw([5, 2, 3, 6, 6], [M.blank, null, null, null, null])
 	check(not r.lit().has(0) and r.lit().has(3), "Collector: Blank is a curse face, it stays Blank on the first throw")
-	r = run_with([rule(&"collector")])
-	r.set_throw([5, 2, 3, 6, 6])
-	pot(r, [0])
-	r.rethrow()
-	r.set_throw([4, 4, 4, 2], [M.hellfire, null, null, null])
+	# Second throw via a Hot Hand (no cold rethrow).
+	r = run_with([rule(&"collector")], [], null, 3)
+	r.set_throw([4, 4, 4])
 	pot(r, [0, 1, 2])
-	check(r.throw_points() == 189, "Collector: mods back on from the second throw (189)")
+	r.rethrow()
+	r.set_throw([4, 4, 4], [M.hellfire, null, null])
+	pot(r, [0, 1, 2])
+	check(r.throw_points() == 252, "Collector: mods back on from the second throw (42 x4 Hot Hand x1.5 Hellfire = 252)")
 	# The Bloodletter
 	r = run_with([rule(&"bloodletter", {"soul_cost_mult": 2})], [], null, 2)
 	var soul := r.soul
 	r.set_throw([2, 6])
 	check(r.soul == soul - 2 and int(r.last_result["soul_lost"]) == 2, "Bloodletter: a bust costs 2")
-	r = run_with([rule(&"bloodletter")])
+	r = run_with([rule(&"bloodletter")], [], null, 2)
 	soul = r.soul
-	r.set_throw([4, 4, 2, 3, 6], [M.blood, null, null, null, null])
+	r.set_throw([4, 4], [M.blood, null])
 	pot(r, [0, 1])
-	r.rethrow()
+	r.rethrow()  # Hot Hand: the pot scores
 	check(r.soul == soul - 2, "Bloodletter: a Blood face costs 2")
 	r = run_with([rule(&"bloodletter")])
 	soul = r.soul
@@ -315,12 +317,12 @@ func _mods() -> void:
 	r.bank()
 	check(r.soul == 1 and r.points == 108, "Blood at 2 Soul: pays 1, +4 mult (108)")
 	# Gilded
-	r = run_with([], [], null, 3)
-	r.set_throw([5, 2, 6], [M.gilded, null, null])
+	r = run_with([], [], null, 1)
+	r.set_throw([5], [M.gilded])
 	pot(r, [0])
-	r.rethrow()
+	r.rethrow()  # Hot Hand
 	check(r.embers == 1, "Gilded: +1 Ember when potted")
-	r.set_throw([2, 6])
+	r.set_throw([2])
 	check(r.embers == 1 and r.last_result["kind"] == &"bust", "Gilded: the Ember is kept through a bust")
 	# Step
 	check(sc([d(2), d(3), d(5, M.step)])["combo"] == &"run3", "Step: 5 counts as 4 for 2-3-(4)")
@@ -332,19 +334,19 @@ func _mods() -> void:
 	check(int(s["stair"]) == 30 and int(s["points"]) == (20 + 30 + 6) * 2, "Stair: +10 base per die in the run (112)")
 	check(int(sc([d(3, M.stair), d(3)])["stair"]) == 0, "Stair: nothing outside a run")
 	# Kindling
-	r = run_with([], [], null, 3)
-	r.set_throw([5, 2, 6], [M.kindling, null, null])
+	r = run_with([], [], null, 1)
+	r.set_throw([5], [M.kindling])
 	pot(r, [0])
-	r.rethrow()
+	r.rethrow()  # Hot Hand
 	soul = r.soul
 	var hands := r.hands_left
-	check(not r.set_throw([2, 6]) and r.kindling_saved and r.state == BonfireRun.State.AIM and r.soul == soul and r.hands_left == hands and r.pot > 0 and r.cold == 2, "Kindling: next throw lights nothing -> no bust, throw again")
-	check(not r.set_throw([2, 6]) and r.last_result.get("kind") == &"bust" and r.soul == soul - 1, "Kindling: used up, the throw after busts")
-	r = run_with([], [], null, 3)
-	r.set_throw([5, 2, 6], [M.kindling, null, null])
+	check(not r.set_throw([2]) and r.kindling_saved and r.state == BonfireRun.State.AIM and r.soul == soul and r.hands_left == hands and r.pot > 0 and r.cold == 1, "Kindling: next throw lights nothing -> no bust, throw again")
+	check(not r.set_throw([2]) and r.last_result.get("kind") == &"bust" and r.soul == soul - 1, "Kindling: used up, the throw after busts")
+	r = run_with([], [], null, 1)
+	r.set_throw([5], [M.kindling])
 	pot(r, [0])
 	r.rethrow()
-	check(r.set_throw([5, 2]) and not r.kindling_armed, "Kindling: consumed by a throw that lights")
+	check(r.set_throw([5]) and not r.kindling_armed, "Kindling: consumed by a throw that lights")
 
 
 func _specials() -> void:
@@ -396,13 +398,13 @@ func _specials() -> void:
 			shattered_events[0] += 1)
 	r.set_throw([4, 2, 4, 1, 6], [], tds)
 	pot(r, [0, 2])
-	r.rethrow()
-	check(r.shattered == [&"cracked_1"] and shattered_events[0] == 1, "Cracked: of two Cracked dice only the potted one shatters (run_die_id)")
-	check(r.dice_count == 4 and r.cold == 3 and r.owned_dice_count == 6, "Cracked: the table has one die fewer")
-	r.set_throw([2, 1, 5], [], [tds[1], tds[3], tds[4]])
-	pot(r, [2])
 	r.bank()
-	check(r.cold == 4 and r.dice_count == 4, "Cracked: next hand throws 4 (gone for the rest of the table)")
+	check(r.shattered == [&"cracked_1"] and shattered_events[0] == 1, "Cracked: of two Cracked dice only the potted one shatters (run_die_id)")
+	check(r.dice_count == 4 and r.cold == 4 and r.owned_dice_count == 6, "Cracked: the table has one die fewer")
+	r.set_throw([2, 1, 6, 6], [], [tds[1], tds[2], tds[3], tds[4]])
+	pot(r, [1])
+	r.bank()
+	check(r.cold == 4 and r.dice_count == 4 and r.shattered.size() == 1, "Cracked: next hand throws 4 (gone for the rest of the table)")
 	check(TableOutcome.from_run(r, r.soul).shattered_dice == ([&"cracked_1"] as Array[StringName]), "Cracked: TableOutcome.shattered_dice lists it")
 	r = run_with([], [&"cracked"], tc, 2)
 	r.owned_dice_count = 6
@@ -461,20 +463,40 @@ func _specials() -> void:
 	check(int(sc([d(4, null, &"last_breath"), d(4)], {"throw_size": 3, "is_rethrow": true})["points"]) == 36, "Last Breath: not from 3 dice")
 
 
+## No cold rethrow: rethrow() is refused unless every die is potted (Hot Hand).
+func _no_cold_rethrow() -> void:
+	for n in [1, 3, 5]:
+		var r := run_with([], [], null, n)
+		var faces: Array[int] = []
+		for k in n:
+			faces.append(1)
+		r.set_throw(faces)
+		check(r.rethrow().is_empty() and r.state == BonfireRun.State.PICK, "%d dice, nothing potted: no rethrow" % n)
+		if n > 1:
+			pot(r, [0])
+			check(not r.is_hot() and r.rethrow_block_reason() == "Bank it: only a Hot Hand throws again.", "%d dice, 1 potted: blocked with the bank reason" % n)
+			check(r.rethrow().is_empty() and r.state == BonfireRun.State.PICK and r.pot == 0 and r.hot_hands == 0, "%d dice, partial pot: rethrow refused, nothing committed" % n)
+			for i in range(1, n):
+				r.toggle(i)
+		else:
+			pot(r, [0])
+		check(r.is_hot() and r.rethrow_block_reason() == "", "%d dice, all potted: Hot Hand may rethrow" % n)
+		var res := r.rethrow()
+		check(res.get("hot", false) and r.cold == n and r.hot_hands == 1 and r.state == BonfireRun.State.AIM, "%d dice: the Hot Hand throws all %d again" % [n, n])
+
+
 func _outcome() -> void:
 	var r := run_with([])
 	r.hands_left = 9
 	r.set_throw([4, 4, 4, 2, 6])
 	pot(r, [0, 1, 2])
-	r.rethrow()
-	r.set_throw([5, 3])
+	r.bank()
+	r.set_throw([5, 3, 2, 6, 4])
 	pot(r, [0])
 	r.bank()
-	r.set_throw([2, 2, 3, 6, 4])
-	pot(r, [0, 1])
-	r.rethrow()
-	r.set_throw([6, 2, 3])
-	pot(r, [0])
+	# A Hot Hand that then busts: nothing from that hand is banked.
+	r.set_throw([2, 2, 2, 3, 3])
+	pot(r, [0, 1, 2, 3, 4])
 	r.rethrow()
 	r.set_throw([2, 3])
 	r.set_throw([1, 1, 3, 6, 4])

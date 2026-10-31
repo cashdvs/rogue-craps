@@ -45,44 +45,39 @@ func _hints_once() -> void:
 	pick_faces(s, [2, 3, 4])
 	check(tut.current == &"th3_pending" and tut.label.text == "This combo claims that bounty. Bank to lock it.", "a valid pot closes TH2; it claims Run of 3: TH3 (%s)" % tut.current)
 	tut.dismiss()
-	check(tut.current == &"th4_choice", "then TH4 (Bank and Rethrow both on)")
+	check(tut.current == &"th4_choice", "then TH4 (a live pot banks)")
 	tut.dismiss()
-	check(tut.current == &"th5_risk" and tut.label.text == "2 cold dice: 1 in 3 chance nothing lights.", "then TH5 with the exact odds (%s)" % tut.label.text)
-	tut.dismiss()
+	check(tut.current != &"th5_risk" and not log.has(&"th5_risk"), "no TH5 on a partial pot: no cold rethrow, no risk line (%s)" % tut.current)
 	for k in 4:
 		s.pick_die(4)
 	check(log.count(&"th2b_nofit") == 3, "TH2b: up to 3 times (%d)" % log.count(&"th2b_nofit"))
 	tut.dismiss()
-	s.throw_again()
-	await wait_bet(s)
-	await throw(s)
-	check(tut.current == &"hb3_bonus", "after TH1, the next throw that lights: HB3 for the bonus card (%s)" % tut.current)
-	tut.dismiss()
-	pick_faces(s, [1, 1])
-	s.throw_again()
-	check(tut.current == &"th6_hot" and tut.label.text == "Every die scored! All five come back, plus 1 mult.", "Hot Hand: TH6 (%s)" % tut.label.text)
-	await wait_bet(s)
-	await throw(s)
-	check(tut.current != &"th6_hot", "the next throw closes TH6")
-	pick_faces(s, [3, 3, 3])
-	close_all(s)
+	# No cold rethrow: bank the run (it locks Run of 3).
 	await s.bank()
 	check(tut.current == &"th7_claimed", "a bank that locks a required bounty: TH7")
 	tut.dismiss()
 	check(tut.current == &"th8_points", "then TH8 (first bank, after TH7)")
 	tut.dismiss()
 	await wait_bet(s)
-	# A real bust (rigged): TH9.
-	await throw(s, [4, 4, 4, 2, 3] as Array[int])
-	pick_faces(s, [4, 4, 4])
+	await throw(s)
+	check(tut.current == &"hb3_bonus", "after TH1, the next throw that lights: HB3 for the bonus card (%s)" % tut.current)
+	tut.dismiss()
+	pick_faces(s, [1, 1])
+	close_all(s)
+	await s.bank()
+	await wait_bet(s)
+	# Every die potted: Hot Hand, TH6.
+	await throw(s, [1, 1, 1, 1, 1] as Array[int])
+	pick_faces(s, [1, 1, 1, 1, 1])
 	close_all(s)
 	s.throw_again()
+	check(tut.current == &"th6_hot" and tut.label.text == "Every die scored! All five come back, plus 1 mult.", "Hot Hand: TH6 (%s)" % tut.label.text)
 	await wait_bet(s)
-	await throw(s, [2, 3] as Array[int])
-	for k in 30:
-		await process_frame
-	check(tut.current == &"th9_bust" and tut.label.text == "Nothing lit, so you bust: lose the hand's points and 1 Soul.", "first bust: TH9 (%s)" % tut.label.text)
-	tut.dismiss()
+	await throw(s, [3, 3, 3, 2, 6] as Array[int])
+	check(tut.current != &"th6_hot", "the next throw closes TH6")
+	pick_faces(s, [3, 3, 3])
+	close_all(s)
+	await s.bank()
 	await wait_bet(s)
 	# Clear the table (Two Pairs is the one left): TH10.
 	await throw(s, [2, 2, 3, 3, 6] as Array[int])
@@ -93,6 +88,22 @@ func _hints_once() -> void:
 	await wait_bet(s)
 	s.leave()
 	check(tut.current == &"", "Leave table closes TH10")
+	# A real bust (rigged): TH9. 5 plain dice always light something, so the
+	# first bust is on a 2-die Table 1 (same seen flags, same log).
+	var seen9 := tut.seen.duplicate()
+	s.queue_free()
+	await process_frame
+	s = await make_table(1, TableSetup.sandbox(t, 2))
+	tut = s.bhud.tutorial
+	tut.seen = seen9
+	tut.shown_hint.connect(func(id: StringName) -> void: log.append(id))
+	close_all(s)
+	await throw(s, [2, 3] as Array[int])
+	for k in 30:
+		await process_frame
+	check(tut.current == &"th9_bust" and tut.label.text == "Nothing lit, so you bust: lose the hand's points and 1 Soul.", "first bust: TH9 (%s)" % tut.label.text)
+	tut.dismiss()
+	await wait_bet(s)
 	var once := true
 	for id: StringName in log:
 		if id != &"th2b_nofit" and log.count(id) != 1:
@@ -111,10 +122,12 @@ func _hints_once() -> void:
 	await throw(s)
 	pick_faces(s, [2, 3, 4])
 	s.pick_die(4)
-	s.throw_again()
-	await wait_bet(s)
+	await s.bank()
 	await throw(s)
 	pick_faces(s, [1, 1])
+	await s.bank()
+	await throw(s, [1, 1, 1, 1, 1] as Array[int])
+	pick_faces(s, [1, 1, 1, 1, 1])
 	s.throw_again()
 	check(again.is_empty(), "seen flags: no hint fires a second time (%s)" % str(again))
 	s.queue_free()
@@ -177,13 +190,24 @@ func _bounty_seal_hints() -> void:
 	var want := "Bigger combos count too: %s claims a %s card." % [str(s.run.selection()["name"]), tri.display_name if tri != null else "?"]
 	check(tut.current == &"hb4_bigger" and tut.label.text == want, "HB4: '%s' (want '%s')" % [tut.label.text, want])
 	check(tut.text_for(&"hb4_bigger", {"run": true, "combo": "Run of 4", "card_name": "Run of 3"}) == "Bigger combos count too: a Run of 4 claims Run of 3.", "HB4 run variant")
-	# Rethrow the 2 and bust: the pending Triple is lost, HB5 (not TH9).
-	s.throw_again()
+	var seen0 := tut.seen.duplicate()
+	s.queue_free()
+	await process_frame
+	# HB5: a Hot Hand busts and the pending Triple is lost (not TH9). Only a
+	# Hot Hand throws again, so on a 3-die table: pot 4-4-4, throw 2-4-6.
+	s = await hints_table(TableSetup.sandbox(t, 3))
+	tut = s.bhud.tutorial
+	tut.seen = seen0
+	close_all(s)
+	await throw(s, [4, 4, 4] as Array[int])
+	pick_faces(s, [4, 4, 4])
+	close_all(s)
+	check(s.throw_again(), "Hot Hand: throw all 3 dice")
 	await wait_bet(s)
-	tut.dismiss()
-	await throw(s, [2] as Array[int])
+	close_all(s)
+	await throw(s, [2, 4, 6] as Array[int])
 	if s.run.state != BonfireRun.State.AIM or s.run.last_result.get("kind") != &"bust":
-		check(false, "the lone 2 busts (%s)" % str(s.run.last_result))
+		check(false, "2-4-6 busts (%s)" % str(s.run.last_result))
 	for k in 30:
 		await process_frame
 	check(tut.current == &"hb5_lost" and tut.label.text == "That bust lost your pending bounty; bank sooner to keep it.", "HB5 on a bust that loses a pending bounty (%s)" % tut.current)
