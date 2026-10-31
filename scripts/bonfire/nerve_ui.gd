@@ -42,7 +42,17 @@ func setup(n: NerveTable) -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build()
 	nerve.changed.connect(refresh)
+	var hud := get_parent() as BonfireHud
+	if hud != null and hud.target_plate != null:
+		# Target HUD v2.1: re-place the pip in the same frame the plate moves or resizes.
+		hud.target_plate.item_rect_changed.connect(_on_plate_moved)
+		hud.target_plate.seals_chip.item_rect_changed.connect(_on_plate_moved)
 	refresh()
+
+
+func _on_plate_moved() -> void:
+	if visible:
+		_place_panels()
 
 
 func _build() -> void:
@@ -55,6 +65,7 @@ func _build() -> void:
 	pip.text = NerveText.get_text("nerve_button")
 	pip.tooltip_text = NerveText.get_text("nerve_tooltip")
 	pip.custom_minimum_size = PIP_SIZE
+	pip.flat = true  # Target HUD v2.1: borderless Nerve chip
 	pip.pressed.connect(func() -> void: nerve.token_pressed())
 	pip.size_flags_horizontal = Control.SIZE_SHRINK_END
 	box.add_child(pip)
@@ -224,6 +235,9 @@ func _blockers(hud: BonfireHud) -> Array[Rect2]:
 		if c is Control and is_instance_valid(c) and (c as Control).is_visible_in_tree():
 			skip.append(c)  # the whole card blocks, so its own labels need no rects
 			out.append((c as Control).get_global_rect())
+	if hud.target_plate.is_visible_in_tree():  # the goal plate keeps 24 spec px clear
+		skip.append(hud.target_plate)
+		out.append(TargetPlace.goal_rect(hud).grow(TargetPlace.CLEAR_GAP * hud.target_plate.unit))
 	out.append_array(HudTextRects.collect(get_viewport(), nerve.table.camera.cam, skip))
 	return out
 
@@ -243,15 +257,20 @@ func _dice_rects() -> Array[Rect2]:
 ## The screen rect the Nerve controls go under: the bounty cards (PC,
 ## landscape) or the portrait goal readout.
 func _cards_rect(hud: BonfireHud) -> Rect2:
-	if hud.portrait_goal != null and hud.portrait_goal.visible:
+	if hud.is_portrait:
 		# Portrait: under the whole top stack (goal, buttons, pot line),
 		# right-aligned on the felt.
-		var r := hud.portrait_goal.get_global_rect()
+		var r := hud.target_plate.get_global_rect()
 		for c: Control in [hud.bank_button, hud.throw_button, hud.pot_label, hud.throw_label, hud.result_label, hud.tutorial]:
 			if c != null and c.is_visible_in_tree():
 				r = r.merge(c.get_global_rect())
 		r.end.x = get_viewport_rect().size.x
 		return r
+	if hud.target_plate.is_visible_in_tree():
+		# Target HUD v2.1: under the plate (and SEALS), >= 24 spec px clear of it.
+		var g := TargetPlace.goal_rect(hud)
+		g.size.y += maxf(0.0, TargetPlace.CLEAR_GAP * hud.target_plate.unit - GAP * hud.ui_pt_px / 2.0)
+		return g
 	var r := Rect2()
 	for c: Control in hud.bounty_cards.values():
 		if c.is_visible_in_tree():

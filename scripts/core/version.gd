@@ -32,6 +32,12 @@ static func load_file(file: String = PATH) -> void:
 
 
 ## "0.1.2".
+## Dev tools (the sandbox) on: `dev_tools` in version.cfg (beta review
+## builds true, public releases false; missing = false).
+static func dev_tools() -> bool:
+	return bool(_val("dev_tools", false))
+
+
 static func number() -> String:
 	return "%s.%d" % [_val("major_minor", "0.1"), int(_val("patch", 0))]
 

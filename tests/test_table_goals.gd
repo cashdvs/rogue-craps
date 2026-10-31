@@ -279,6 +279,20 @@ func _test_state() -> void:
 	_check(ts.debuff == dbf and seam["n"] == 2 and seam["sig"].back() == ["d", dbf], "seam: a debuff change emits debuff_changed")
 	ts.set_for_test(300, 120, 3, dbf, 2, true)
 	_check(seam["n"] == 2, "seam: no change -> no signals")
+	var boss_sig: Array = []
+	ts.is_boss_changed.connect(func(v: bool) -> void: boss_sig.append(v))
+	ts.set_for_test(300, 120, 3, dbf, 2, false)
+	_check(not ts.is_boss and boss_sig == [false] and seam["n"] == 3, "seam: only is_boss changes -> is_boss_changed + changed (%s, %d)" % [boss_sig, seam["n"]])
+	_check(TableGoalStrings.BOSS_TAG == "BOSS" and TableGoalStrings.seals(3) == "SEALS · 3", "strings: BOSS tag and SEALS chip")
+	var bl := RunRuleData.new()
+	bl.id = &"bloodletter"
+	_check(TableGoalStrings.preview_miss(5) == "Miss: -5 Soul" and TableGoalStrings.preview_miss(5, [bl]) == "Miss: -10 Soul",
+		"strings: preview miss doubles under the Bloodletter")
+	for rl: Array in [[], [bl]]:
+		var cr := BonfireRun.new(_tuning, run.goal, 30, 5)
+		cr.set_rules(TableRules.build(rl))
+		_check(TableGoalStrings.miss_cost(5, rl) == cr.soul_cost(5, &"timeout"),
+			"strings: preview miss cost == the run's real timeout charge (%d rules)" % rl.size())
 	var br := BonfireRun.new(_tuning, run.goal, 30, 5)
 	_check(not br.bounties_count(), "rules: a target table counts no bounties (no cards to tick)")
 	_check(TableGoalStrings.num(1234567) == "1,234,567" and TableGoalStrings.num(300) == "300"

@@ -88,7 +88,7 @@ func _run() -> void:
 	var made: Array = await _make(Vector2i(1920, 1080))
 	var s: Bonfire3D = made[1]
 	s._refresh_hud()
-	check(not s.bhud.portrait_goal.visible and s.bhud.checklist_panel.visible, "PC 16:9: goal readout hidden, bounty cards shown")
+	check(not s.bhud.portrait_goal.visible and not s.bhud.checklist_panel.visible and s.bhud.target_plate.visible, "PC 16:9: Target HUD v2.1 plate replaces the readout and the cards")
 	(made[0] as Node).queue_free()
 	await process_frame
 	# Phone landscape: hidden.
@@ -96,7 +96,7 @@ func _run() -> void:
 	s = made[1]
 	s.fit_phone(Vector2(844, 390))
 	s._refresh_hud()
-	check(not s.bhud.portrait_goal.visible and s.bhud.checklist_panel.visible, "phone landscape: goal readout hidden, bounty cards shown")
+	check(not s.bhud.portrait_goal.visible and not s.bhud.checklist_panel.visible and s.bhud.target_plate.visible, "phone landscape: the plate replaces the readout and the cards")
 	(made[0] as Node).queue_free()
 	await process_frame
 	# Phone portrait: shown, live, out of the way.
@@ -110,19 +110,19 @@ func _run() -> void:
 	s._refresh_hud()
 	await process_frame
 	var g := s.bhud.portrait_goal
-	check(g.visible, "phone portrait: goal readout shown")
+	check(not g.visible and s.bhud.target_plate.visible, "phone portrait: the plate replaces the old readout")
 	check(not s.bhud.checklist_panel.visible, "phone portrait: the old bounty cards are hidden (one list)")
 	check(is_equal_approx(s.camera.pitch_deg, 60.0) and is_zero_approx(s.camera.look_up_deg), "portrait camera unchanged (pitch 60, no tilt)")
 	_live(s, g)
 	_text_size(g)
 	await process_frame
-	_clearance(sv, s, g)
+	_clearance(sv, s, s.bhud.target_plate)
 	await _feedback(s, g)
 	# Rotating back to landscape hides it again and brings the cards back.
 	sv.size = Vector2i(2337, 1080)
 	await process_frame
 	s._refresh_hud()
-	check(not g.visible and s.bhud.checklist_panel.visible, "back to landscape: readout hidden, cards back")
+	check(not g.visible and not s.bhud.checklist_panel.visible and s.bhud.target_plate.visible, "back to landscape: the plate stays, old readout and cards stay hidden")
 	check(is_equal_approx(s.bhud.result_label.position.y, BonfireHud.RESULT_Y), "back to landscape: banner back at its usual place")
 	print("test_portrait_goal_hud: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -167,7 +167,8 @@ func _text_size(g: PortraitGoalHud) -> void:
 	check(smallest >= MIN_TEXT_PX, "readout text >= %.0f px on screen (%.1f)" % [MIN_TEXT_PX, smallest])
 
 
-func _clearance(sv: SubViewport, s: Bonfire3D, g: PortraitGoalHud) -> void:
+## Target HUD v2.1: run on the goal plate (the old readout is hidden).
+func _clearance(sv: SubViewport, s: Bonfire3D, g: Control) -> void:
 	var cam := s.camera.cam
 	var ds := s.tuning.die_size
 	# Everything below in real screen px (canvas px x SCALE).
@@ -241,6 +242,7 @@ func _banner_clear(s: Bonfire3D, g: PortraitGoalHud, word: String) -> void:
 	var res := s.bhud.result_label
 	check(res.text.begins_with(word), "%s banner shows (%s)" % [word, res.text])
 	check(not res.get_global_rect().intersects(g.get_global_rect()), "%s banner not under the readout" % word)
+	check(not res.get_global_rect().intersects(s.bhud.target_plate.get_global_rect()), "%s banner not under the goal plate" % word)
 
 
 func _throw(s: Bonfire3D, faces: Array[int]) -> void:

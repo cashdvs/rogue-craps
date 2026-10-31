@@ -142,6 +142,11 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 - **`RunScreen`** (`scenes/run.tscn`) only displays `MapRun` and forwards clicks. Its
   "Stub: clear / miss" buttons show only with `debug_table_stubs` on in a debug build.
 
+<a id="sandbox"></a>**Sandbox (dev only, Systems Dev):** jump straight into one event for testing and screenshots.
+- `SandboxPreset` (`scripts/core/map/sandbox_preset.gd`): event (`table` / `elite` / `boss` / `shop`), floor 1-3, boss id, seed. `build(RunData)` returns a `MapRun` already on that screen via `MapRun.sandbox_floor()` + `enter_for_sandbox()`, with the starting 5-die bag and the real table_goals_v1 target from `make_goal`. An unknown event `push_error`s and opens a regular Table; an unknown boss keeps the seeded boss. `boss_ids(data, floor)` lists the floor's `boss_cheats`.
+- `SandboxScreen` (`scenes/sandbox.tscn`, `scripts/map/sandbox_screen.gd`): the picker menu; Launch opens `RunScreen` with `preset_run` (stub clear/miss on). Gate: `SandboxScreen.enabled(Version.dev_tools())`, from `dev_tools` in `version.cfg` (true for beta review builds, which are release exports; the default `stamp_version.sh` export keeps it; `stamp_version.sh --public` sets it to false for public releases). With it off the scene goes to the title, the title shows no SANDBOX button, and `--sandbox=` flags are ignored (also at boot). The title adds the button with one line, `SandboxScreen.title_hook(self, menu)`.
+- CLI (user args after `--`): `--sandbox=<table|elite|boss|shop>`, `--boss=<rule id>`, `--floor=<1-3>`, `--seed=<N>`. At normal boot the title jumps to the sandbox once (`godot --path . -- --sandbox=boss --boss=pit_boss`); you can also run `res://scenes/sandbox.tscn` directly. Shots: `tools/capture_sandbox.gd`. Tests: `tests/test_sandbox.gd`. Public releases export with `tools/stamp_version.sh --public`, which stamps `dev_tools=false` (the trap restore puts `true` back); beta review builds omit it and keep the sandbox.
+
 ## Data files
 
 | File | Class | Holds |
@@ -169,7 +174,7 @@ the only place to bump it. `Version` (`scripts/core/version.gd`) reads it: `disp
 versionCode is `major*10000 + minor*100 + patch` (0.1.2 = 102), so it always grows.
 `tools/stamp_version.sh` wraps an export. It writes the short sha into `version.cfg` (`--no-sha`
 keeps `dev`), copies the version into the Android/Windows presets and `project.godot`, and prints
-the export names (`DiceOfTheDamned-0.1.2-Windows.zip`, `-Android.apk`). Run exports through it: `tools/stamp_version.sh [--no-sha] -- <export command...>` stamps the 3 tracked files (`version.cfg`, `export_presets.cfg`, `project.godot`), runs the export, and restores the 3 files from a backup via `trap ... EXIT`, so the tree is clean again whether the export succeeds or fails (the script exits with the export's status). `--stamp-only` leaves the files stamped and is meant only for a throwaway copy or CI checkout. Anything players see or hear
+the export names (`DiceOfTheDamned-0.1.2-Windows.zip`, `-Android.apk`). Run exports through it: `tools/stamp_version.sh [--no-sha] [--public] -- <export command...>` stamps the 3 tracked files (`version.cfg`, `export_presets.cfg`, `project.godot`), runs the export, and restores the 3 files from a backup via `trap ... EXIT`, so the tree is clean again whether the export succeeds or fails (the script exits with the export's status). `--stamp-only` leaves the files stamped and is meant only for a throwaway copy or CI checkout. `--public` (public releases) stamps `dev_tools=false`; without it (beta review builds) `dev_tools=true` is kept. The restore puts it back either way. Anything players see or hear
 that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
 
 ## Recipes
@@ -240,6 +245,7 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   | `scripts/bonfire/bonfire_hud_build.gd` | `BonfireHudBuild` (extends `Control`) | HUD variables; builds the labels, buttons and panels |
   | `scripts/bonfire/bonfire_hud_goal.gd` | `BonfireHudGoal` (`BonfireHud` extends it) | goal / bounty readout, meters, stamps, UI scale |
   | `scripts/bonfire/target_plate.gd` | `TargetPlate` (extends `PanelContainer`) | Target HUD v2.1 plate: target, banked bar, hands/passed line, bounty chips; redraws on `TableGoalState.changed`; words from `TableGoalStrings` plus its own BOSS / SEALS |
+  | `scripts/bonfire/target_place.gd` | `TargetPlace` (static) | where the plate and SEALS chip sit on PC, phone landscape and portrait; `goal_rect(hud)` for blockers |
   | `scripts/bonfire/goal_icon.gd` | `GoalIcon` (extends `Control`) | drawn diamond / list / skull icons for the plate's chips |
   | `scripts/bonfire/bonfire_juice_sound.gd` | `BonfireJuiceSound` (`BonfireJuice` extends it) | the juice adapter's constants, variables, hook log and every sound (SfxManager events with fallbacks, crowd layers) |
   | `scripts/core/bonfire_run_state.gd` | `BonfireRunState` (`BonfireRun` extends it) | a table's rule state, rule hooks and read-only questions; `BonfireRun` keeps the actions |
@@ -284,7 +290,7 @@ that you add gets a row in [AI_CONTENT_LOG.md](AI_CONTENT_LOG.md).
   - `scripts/table3d/d4_value_tag.gd` (`D4ValueTag`, child `D4ValueTag` of the die): an unlit, camera-facing, fixed-size Label3D with the die's `shown_value()`, at least `MIN_VIEW_SHARE` (9%) of the view tall (~35 px on an 844x390 phone). Each frame `place()` tries below, right, left, then above the die and takes the first spot on screen that covers no HUD text; with none it hides.
   - `scripts/bonfire/hud_text_rects.gd` (`HudTextRects.collect`): screen rects of all text a player reads: visible, non-empty 2D labels / buttons / rich text, and the felt's 3D labels (combo strip, seal row "Lv1 120x12"). Faded-out labels don't count.
   - Tests: `tests/test_d4_readable.gd` (brightness part needs a renderer: `xvfb-run -a godot --path . --rendering-method gl_compatibility --script ...`).
-- **Nerve panel dodge (#198):** `NerveUi._place_panels` puts the "Nerve ready" pip and the rescue prompt at their home spot, then through `RulesPlaqueDodge.place(rect, blockers, view)` (left, below, above, right; else least overlap). The blockers (`NerveUi._blockers`) are the landed dice (`RulesPlaqueDodge.die_rect`) plus `HudTextRects.collect`, minus the Nerve UI's own labels and the bounty cards it hangs under. Test: `tests/test_nerve_die_clear.gd` (PC 16:9 and phone 844x390, d4 parked under the pip).
+- **Nerve panel dodge (#198):** `NerveUi._place_panels` puts the "Nerve ready" pip and the rescue prompt at their home spot, then through `RulesPlaqueDodge.place(rect, blockers, view)` (left, below, above, right; else least overlap). The blockers (`NerveUi._blockers`) are the landed dice (`RulesPlaqueDodge.die_rect`) plus `HudTextRects.collect`, minus the Nerve UI's own labels and the bounty cards it hangs under. Target HUD v2.1: the goal plate (grown 24 px) is a blocker too, Nerve re-places in the same frame the plate or SEALS chip moves (`item_rect_changed`), and when all 4 spots overlap the dodge sweeps for the first clear spot. Test: `tests/test_target_hud.gd`. Test: `tests/test_nerve_die_clear.gd` (PC 16:9 and phone 844x390, d4 parked under the pip).
 
 <!-- SECTION: VFX Dev — FX (owner text; replace freely) -->
 ## FX and juice (owner: VFX Dev)

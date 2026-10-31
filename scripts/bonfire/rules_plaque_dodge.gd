@@ -50,6 +50,16 @@ static func place(r: Rect2, dice: Array[Rect2], view: Rect2) -> Vector2:
 		if o < least:
 			best = q
 			least = o
+	# Target HUD v2.1: the merged box (plate + a die) can block all 4 tries:
+	# sweep down the screen, then across, for the first clear spot.
+	var step := maxf(8.0, r.size.y / 2.0)
+	for x in [r.position.x, view.end.x - r.size.x, box.position.x - GAP - r.size.x]:
+		var y := view.position.y
+		while y + r.size.y <= view.end.y:
+			var q := _clamp(Vector2(x, y), r.size, view)
+			if _overlap(Rect2(q, r.size), dice) <= 0.0:
+				return q
+			y += step
 	return best
 
 
