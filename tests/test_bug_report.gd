@@ -57,6 +57,23 @@ func _run() -> void:
 	check(found == 1, "pause menu has one Report a bug button (%d)" % found)
 	var t := BugReport.toast(pm, BugReport.SAVED % "/tmp/x.png")
 	check(t.text == "Screenshot saved, attach it: /tmp/x.png", "toast text")
+	# send(): success opens the mailto and copies nothing.
+	var opened: Array[String] = []
+	var copied: Array[String] = []
+	BugReport.clipboard = func(tx: String) -> void: copied.append(tx)
+	BugReport.opener = func(url: String) -> int:
+		opened.append(url)
+		return OK
+	check(BugReport.send(pm, "Subj", "Body") == OK and opened.size() == 1 and opened[0] == BugReport.build_mailto("Subj", "Body") and copied.is_empty(), "send ok: opens, no copy")
+	# Failure: copies address + subject + body and toasts NO_MAIL.
+	BugReport.opener = func(_url: String) -> int: return ERR_CANT_OPEN
+	check(BugReport.send(pm, "Subj", "What happened:\n\nBody") == ERR_CANT_OPEN, "send fail returns error")
+	check(copied.size() == 1 and copied[0] == "To: tinyanvilgames@mail.grokbot.com\nSubject: Subj\n\nWhat happened:\n\nBody", "fail: report copied (%s)" % str(copied))
+	var toasts := root.find_children("BugReportToast", "Label", true, false)
+	var hit := false
+	for l in toasts:
+		hit = hit or (l as Label).text == "No mail app: report copied, email it to tinyanvilgames@mail.grokbot.com"
+	check(hit, "fail: no-mail toast shown")
 	pm.queue_free()
 	await process_frame
 	print("test_bug_report: %d passed, %d failed" % [_passed, _failed])

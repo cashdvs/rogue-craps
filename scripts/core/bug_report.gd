@@ -11,7 +11,13 @@ const DIR := "user://bug_reports/"
 const BUTTON := "REPORT A BUG"  # bug_report_button
 const WHAT := "What happened:"  # bug_report_what
 const SAVED := "Screenshot saved, attach it: %s"  # bug_report_saved
+const NO_MAIL := "No mail app: report copied, email it to %s"  # bug_report_no_mail
 const TOAST_SECS := 6.0
+
+## Opens a URL, returns an Error (tests swap it for a fake).
+static var opener: Callable = func(url: String) -> int: return OS.shell_open(url)
+## Copies text to the clipboard (tests swap it for a fake).
+static var clipboard: Callable = func(text: String) -> void: DisplayServer.clipboard_set(text)
 
 static var _run: WeakRef
 
@@ -21,6 +27,7 @@ static func set_run(run: Object) -> void:
 	_run = weakref(run) if run != null else null
 
 
+## The live MapRun registered by set_run(), or null (no run / freed).
 static func current_run() -> Object:
 	return _run.get_ref() if _run != null else null
 
@@ -39,6 +46,7 @@ static func build_body(version: String, platform: String, run: Object = null) ->
 	return "\n".join(lines)
 
 
+## The run part of the body: seed, floor/table, boss, Embers/Soul, bag.
 static func run_lines(run: Object) -> Array[String]:
 	var p: RunProgress = run.progress
 	var out: Array[String] = ["Seed: %d" % int(run.run_seed)]
@@ -66,6 +74,7 @@ static func bag_text(dice: Array) -> String:
 	return ", ".join(parts) if not parts.is_empty() else "none"
 
 
+## "Windows (1920, 1080)": OS name and window size ("headless" without a display).
 static func platform() -> String:
 	return "%s %s" % [OS.get_name(), str(DisplayServer.window_get_size()) if DisplayServer.get_name() != "headless" else "headless"]
 
@@ -77,6 +86,7 @@ static func shot_path(when: Dictionary) -> String:
 
 ## Full report from [param layer] (e.g. the pause menu, hidden for the shot).
 ## PC: saves a screenshot first and toasts its path. Returns the path or "".
+## Fire and forget: callers don't await it (it awaits one frame for the shot).
 static func report(layer: CanvasLayer) -> String:
 	var path := ""
 	if OS.has_feature("pc"):
@@ -87,10 +97,23 @@ static func report(layer: CanvasLayer) -> String:
 		layer.visible = was
 		if path != "":
 			toast(layer, SAVED % ProjectSettings.globalize_path(path))
-	OS.shell_open(build_mailto(Version.bug_subject(), build_body(Version.display(), platform(), current_run())))
+	send(layer, Version.bug_subject(), build_body(Version.display(), platform(), current_run()))
 	return path
 
 
+## Opens the mailto through `opener`. If that fails (no mail app), copies the
+## address, subject and body through `clipboard` and toasts NO_MAIL on
+## [param node]. Returns the opener's Error.
+static func send(node: Node, subject: String, body: String) -> int:
+	var err := int(opener.call(build_mailto(subject, body)))
+	if err != OK:
+		clipboard.call("To: %s\nSubject: %s\n\n%s" % [TO, subject, body])
+		if node != null:
+			toast(node, NO_MAIL % TO)
+	return err
+
+
+## Saves [param vp] as a PNG under DIR; returns its user:// path, or "" on failure.
 static func save_shot(vp: Viewport) -> String:
 	var img := vp.get_texture().get_image()
 	if img == null:
