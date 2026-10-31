@@ -14,6 +14,10 @@ var _failed: int = 0
 
 
 func _initialize() -> void:
+	# The sandbox table_1 is a real F1 target table now; this suite tests bounties.
+	var sandbox_tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	sandbox_tuning.table_goal = load("res://tests/fixtures/bounty_table_1.tres") as TableGoal
+	set_meta(&"sandbox_tuning", sandbox_tuning)  # keep it cached so every load sees the fixture
 	_run.call_deferred()
 
 

@@ -53,7 +53,7 @@ const TEXT: Dictionary[String, String] = {
 	"run_complete_title": "RUN COMPLETE",
 	"run_complete_reason": "You beat {boss}, and the run is yours.",
 	"run_complete_points": "Points banked: {n}",
-	"run_complete_embers": "Embers left: {n} x10 = +{pts}",
+	"run_complete_embers": "Embers left: {n} x{mult} = +{pts}",
 	"run_complete_total": "Final score: {n}",
 	"run_complete_new": "New Run",
 	"run_complete_menu": "Main Menu",
@@ -82,7 +82,7 @@ static func complete_lines(run: MapRun) -> Array[String]:
 	var best := String(run.best_combo).capitalize() if run.best_combo != &"" else "None"
 	return [
 		text("run_complete_points", {"n": run.run_points}),
-		text("run_complete_embers", {"n": run.progress.embers, "pts": ember_points(run)}).replace("x10", "x%d" % run.data.ember_score_mult),
+		text("run_complete_embers", {"n": run.progress.embers, "mult": run.data.ember_score_mult, "pts": ember_points(run)}),
 		text("run_complete_total", {"n": final_score(run)}),
 		"Tables cleared: %d" % run.tables_cleared,
 		"Souls left: %d" % run.progress.soul,
