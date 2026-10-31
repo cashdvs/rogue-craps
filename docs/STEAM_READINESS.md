@@ -109,6 +109,7 @@ cached editor; bump the `-vN` suffix on all three keys together to force a cold,
 - **CI stamp:** `export.yml` rewrites it in the runner's checkout to `x.y.z.<run number>` before
   exporting. Windows file and product versions must be numeric `a.b.c.d`, so the commit SHA goes into
   the artifact name and `BUILD_INFO.txt` instead. Nothing is committed.
+- **Public builds:** must be stamped with `tools/stamp_version.sh --public` (sets `dev_tools=false`, so no dev sandbox); beta review builds omit `--public`.
 - **Missing:** the version isn't shown anywhere in the game. It should be a small label on the title
   screen and in the pause menu (`ProjectSettings.get_setting("application/config/version")`), so bug
   reports carry it. The title screen belongs to Godot Dev.
