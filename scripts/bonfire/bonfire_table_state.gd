@@ -41,7 +41,10 @@ const MAX_HANDFUL: int = 12
 const HELLFIRE_COLOR := Color("#E2380C")
 const WILD_COLOR := Color("#C88A00")
 const TWIN_COLOR := Color("#2A1A10")
-const RAINBOW: Array[Color] = [Color("#D7261E"), Color("#E7A400"), Color("#1E9E4A"), Color("#2266CC")]
+## The Wild rim's 4 strips (top, right, bottom, left): brass and cream in
+## turn, with small dark ticks over the 4 corners.
+const WILD_FRAME: Array[Color] = [Color("#C9A24A"), Color("#EDE3CC"), Color("#C9A24A"), Color("#EDE3CC")]
+const WILD_TICK := Color("#1E1712")
 ## Tint of a die whose face a rule changed (by rule id; others use the default).
 const CHANGE_TINT := {&"mirror": Color("#BFE3FF"), &"madame_shuffle": Color("#C060FF")}
 const CHANGE_TINT_DEFAULT := Color("#FFFFFF")

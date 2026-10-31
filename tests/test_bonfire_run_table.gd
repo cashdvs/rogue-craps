@@ -97,7 +97,7 @@ func _run() -> void:
 	check(s.all_dice[4].labels == [1, 1, 3, 3, 5, 5], "custom face values show as pips")
 	check(s.all_dice[0].faces.get_node_or_null("FaceMods") != null and s.all_dice[0].faces.get_node("FaceMods").get_child_count() == 4, "Hellfire rim on die 0")
 	check(s.all_dice[2].faces.get_node("FaceMods").get_child_count() == 8, "Twin: double outline (8 strips)")
-	check(s.all_dice[1].faces.get_node("FaceMods").get_child_count() == 4, "Wild: rainbow rim")
+	check(s.all_dice[1].faces.get_node("FaceMods").get_child_count() == 8, "Wild: brass/cream rim (4 strips + 4 corner ticks)")
 	check(s.all_dice[5].faces.get_node("FaceMods").get_child_count() == 0, "plain die: no decals")
 	var felt := Table3DBuilder.FELT_HALF
 	var ring_ok := true
