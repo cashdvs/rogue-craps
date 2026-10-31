@@ -7,6 +7,13 @@ extends Resource
 
 @export_group("Run")
 @export var floors: Array[FloorData] = []
+## one_floor_v1: floors a run plays (0 = every floor in `floors`). Beating
+## the boss of the last one ends the run on RUN COMPLETE (no boss Embers,
+## no reward pick). Unplayed floors stay in `floors`, switched off.
+@export var floors_in_run: int = 0
+## one_floor_v1: RUN COMPLETE final score = points banked + this x Embers
+## left (boss Embers paid first). 0 = Embers don't count.
+@export var ember_score_mult: int = 10
 @export var max_soul: int = 35
 @export var starting_soul: int = 35
 @export var starting_embers: int = 0
@@ -109,3 +116,8 @@ extends Resource
 @export var shop_soul_amount: int = 4
 @export var shop_soul_price: int = 12
 @export var shop_soul_step: int = 4
+
+
+## Is floor `i` (0-based) the last floor of a run under floors_in_run?
+func is_last_floor(i: int) -> bool:
+	return floors_in_run > 0 and i + 1 >= mini(floors_in_run, floors.size())

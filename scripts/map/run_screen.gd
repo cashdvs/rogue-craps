@@ -177,7 +177,9 @@ func refresh() -> void:
 		S.RUN_WON, S.RUN_OVER:
 			var lines: Array = [RunSummary.reason_line(run)]
 			lines.append_array(RunSummary.lines(run))
-			_panel(RunSummary.title(run), lines, [["New run", func() -> void: new_run(-1)], ["Quit to title", quit_to_title]])
+			var done := run.end_reason == &"complete"
+			_panel(RunSummary.title(run), lines, [[RunSummary.RUN_COMPLETE_NEW if done else "New run", func() -> void: new_run(-1)],
+				[RunSummary.RUN_COMPLETE_MENU if done else "Quit to title", quit_to_title]])
 
 
 func _refresh_bar() -> void:

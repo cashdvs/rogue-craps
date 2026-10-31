@@ -160,6 +160,10 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 		_set_screen(Screen.MAP)
 		return
 	tables_cleared += 1
+	if table_type == NT.BOSS and data.is_last_floor(floor_index):
+		progress.change_embers(data.boss_embers)
+		_end(&"complete")
+		return
 	if table_type == NT.BOSS:
 		progress.change_embers(data.boss_embers)
 		progress.gain_contract_piece()
@@ -174,6 +178,7 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 ## each banked pot's combo counts toward the Black Seal.
 func apply_outcome(o: TableOutcome) -> void:
 	progress.remove_dice(o.shattered_dice)
+	_record_score(o.points, o.banked_combos)
 	finish_table(o.cleared and not o.forfeited, o.soul_after, o.embers, o.banked_combos)
 
 
@@ -266,6 +271,6 @@ func choose_event(i: int, picks: Array[Vector2i] = []) -> Array[String]:
 
 func _end(reason: StringName) -> void:
 	end_reason = reason
-	_set_screen(Screen.RUN_WON if reason == &"won" else Screen.RUN_OVER)
+	_set_screen(Screen.RUN_WON if reason in [&"won", &"complete"] else Screen.RUN_OVER)
 
 

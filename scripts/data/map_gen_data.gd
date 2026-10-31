@@ -30,6 +30,10 @@ enum NodeType { TABLE, ELITE, EVENT, SHOP, REST, BOSS }
 @export var first_row_type: NodeType = NodeType.TABLE
 ## The row right before the boss is all Rest stops.
 @export var rest_before_boss: bool = true
+## one_floor_v1: the row before the boss mixes Shop and Rest instead (even
+## node ids are Shops, odd are Rests, and it always has at least one of
+## each). Wins over rest_before_boss. Off by default (F2 / F3 unchanged).
+@export var pre_boss_mix: bool = false
 ## Earliest row (0-based) an Elite Table may appear on (spec: no Elite before row 3).
 @export var elite_min_row: int = 2
 ## Earliest row a Shop may appear on (0-based).
@@ -53,6 +57,11 @@ enum NodeType { TABLE, ELITE, EVENT, SHOP, REST, BOSS }
 
 func weight_of(t: NodeType) -> float:
 	return type_weights[t] if t < type_weights.size() else 0.0
+
+
+## Is `row` the forced pre-boss row (all Rest, or the Shop / Rest mix)?
+func forced_pre_boss(row: int) -> bool:
+	return (rest_before_boss or pre_boss_mix) and row == rows - 1
 
 
 func is_valid() -> bool:

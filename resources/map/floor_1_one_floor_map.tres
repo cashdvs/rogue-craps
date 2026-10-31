@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="MapGenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/map_gen_data.gd" id="1_mapgen"]
+
+[resource]
+script = ExtResource("1_mapgen")
+type_weights = PackedFloat32Array(41, 12, 22, 16, 9, 0)
+pre_boss_mix = true
+shop_guarantee_to = 4

@@ -133,6 +133,8 @@ func _run() -> void:
 	var guard := ProfileGuard.begin("run_e2e")
 	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
 	scene.run_seed = 4242
+	scene.run_data = (load("res://resources/map/bonfire_run.tres") as RunData).duplicate() as RunData
+	scene.run_data.floors_in_run = 0  # this suite plays the full 3-floor run
 	root.add_child(scene)
 	await process_frame
 	var run := scene.run

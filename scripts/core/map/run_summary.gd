@@ -6,7 +6,7 @@ extends RefCounted
 
 ## strings_v1 run_screen rows (boss lost title, run over title); other
 ## reasons use "Run Over".
-const TITLES := {&"won": "Run Won", &"soul": "Out of Soul", &"boss": "The House Wins"}
+const TITLES := {&"won": "Run Won", &"complete": "RUN COMPLETE", &"soul": "Out of Soul", &"boss": "The House Wins"}
 
 
 ## The end screen's title for MapRun.end_reason.
@@ -20,6 +20,8 @@ static func reason_line(run: MapRun) -> String:
 	match run.end_reason:
 		&"won":
 			return "The contract is whole, and you win the run."
+		&"complete":
+			return "You beat %s, and the run is yours." % run.boss_name()
 		&"soul":
 			return "Your run ends on %s." % floor_name
 		&"boss":
@@ -31,6 +33,8 @@ static func reason_line(run: MapRun) -> String:
 
 ## Summary lines: floor reached, tables cleared, Embers earned, final bag, seed.
 static func lines(run: MapRun) -> Array[String]:
+	if run.end_reason == &"complete":
+		return complete_lines(run)
 	var bag: Array[String] = []
 	for i in run.progress.dice.size():
 		bag.append(run.progress.die_name(i))
@@ -39,5 +43,37 @@ static func lines(run: MapRun) -> Array[String]:
 		"Tables cleared: %d" % run.tables_cleared,
 		"Embers earned: %d" % run.progress.embers_earned,
 		"Final bag: %s" % ", ".join(bag),
+		"Seed: %d" % run.run_seed,
+	]
+
+
+## strings_v1 run_complete_* rows (one_floor_v1).
+const RUN_COMPLETE_POINTS := "Points banked: %d"
+const RUN_COMPLETE_EMBERS := "Embers left: %d x%d = +%d"
+const RUN_COMPLETE_TOTAL := "Final score: %d"
+const RUN_COMPLETE_NEW := "New Run"
+const RUN_COMPLETE_MENU := "Main Menu"
+
+
+## Score from Embers left: RunData.ember_score_mult x Embers.
+static func ember_points(run: MapRun) -> int:
+	return run.progress.embers * run.data.ember_score_mult
+
+
+## RUN COMPLETE final score: points banked this run + ember_points.
+static func final_score(run: MapRun) -> int:
+	return run.run_points + ember_points(run)
+
+
+## RUN COMPLETE rows: points, Embers x mult, final score, then the stats.
+static func complete_lines(run: MapRun) -> Array[String]:
+	var best := String(run.best_combo).capitalize() if run.best_combo != &"" else "None"
+	return [
+		RUN_COMPLETE_POINTS % run.run_points,
+		RUN_COMPLETE_EMBERS % [run.progress.embers, run.data.ember_score_mult, ember_points(run)],
+		RUN_COMPLETE_TOTAL % final_score(run),
+		"Tables cleared: %d" % run.tables_cleared,
+		"Souls left: %d" % run.progress.soul,
+		"Best hand: %s" % best,
 		"Seed: %d" % run.run_seed,
 	]
