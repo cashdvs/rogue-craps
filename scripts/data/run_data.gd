@@ -8,8 +8,8 @@ extends Resource
 @export_group("Run")
 @export var floors: Array[FloorData] = []
 ## one_floor_v1: floors a run plays (0 = every floor in `floors`). Beating
-## the boss of the last one ends the run on RUN COMPLETE (no boss Embers,
-## no reward pick). Unplayed floors stay in `floors`, switched off.
+## the boss of the last one ends the run on RUN COMPLETE: its boss Embers are
+## paid first (they count in the final score), then no reward pick. Unplayed floors stay in `floors`, switched off.
 @export var floors_in_run: int = 0
 ## one_floor_v1: RUN COMPLETE final score = points banked + this x Embers
 ## left (boss Embers paid first). 0 = Embers don't count.
