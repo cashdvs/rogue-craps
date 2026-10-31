@@ -140,25 +140,76 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	return true
 
 
-## The d4's four face normals (object space), in face-slot order 1..4.
-const D4_FACE_NORMALS: Array[Vector3] = [
-	Vector3(0, 1, 0), Vector3(0, -0.3333, 0.9428),
-	Vector3(-0.8165, -0.3333, -0.4714), Vector3(0.8165, -0.3333, -0.4714)]
+## Where a face-mod mark goes on a d4 or d8 face slot, for placing a decal:
+## {normal, dist, at, width}. normal = the flat face's outward normal;
+## dist = how far that face sits from the centre (the body mesh's farthest
+## vertex along it, times its scale), so a decal there is flush; at = the
+## mark's centre, an offset in the face plane; width = a square side that
+## fits inside the face triangle with room for the bevels.
+## A d8 slot is a face (DieHullData dirs are face normals): the mark sits in
+## the middle of it. A d4 is read by its top VERTEX (dirs point at the
+## corners), so slot k's mark goes on the next slot's opposite face, pulled
+## toward corner k, where that face shows the k.
+static func face_spot(d: DieVisual, slot: int) -> Dictionary:
+	var dirs: Array = DieHullData.SHAPES[d.shape]["dirs"]
+	var i := clampi(slot, 1, dirs.size()) - 1
+	var n: Vector3 = (dirs[i] as Vector3).normalized()
+	# The die's corners: the d4's are its dirs, the d8's the 6 axis tips.
+	var corner_dirs: Array = dirs
+	var toward := -1
+	if d.shape == &"d4":
+		toward = i
+		n = -(dirs[(i + 1) % 4] as Vector3).normalized()
+	else:
+		corner_dirs = [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN, Vector3.BACK, Vector3.FORWARD]
+	var pts := _body_points(d)
+	var dist := _far(pts, n)
+	# The face's 3 corners are the die corners that lean most along n,
+	# dropped onto the face plane.
+	corner_dirs = corner_dirs.duplicate()
+	corner_dirs.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.dot(n) > b.dot(n))
+	var tri: Array[Vector3] = []
+	for c: Vector3 in corner_dirs.slice(0, 3):
+		var tip: Vector3 = c.normalized() * _far(pts, c.normalized())
+		tri.append(tip - n * (tip.dot(n) - dist))
+	var g := (tri[0] + tri[1] + tri[2]) / 3.0
+	# Inradius: twice the area over the perimeter.
+	var area := (tri[1] - tri[0]).cross(tri[2] - tri[0]).length() * 0.5
+	var r := 2.0 * area / (tri[0].distance_to(tri[1]) + tri[1].distance_to(tri[2]) + tri[2].distance_to(tri[0]))
+	var at := g
+	if toward >= 0:
+		var tip: Vector3 = (dirs[toward] as Vector3).normalized()
+		for c in tri:
+			if c.normalized().dot(tip) > 0.9:
+				at = g.lerp(c, D4_PULL)  # edges near the corner come in by (1 - pull)
+		r *= 1.0 - D4_PULL
+	# A square of side r * sqrt(2) fits in a circle of radius r; BEVEL_FIT
+	# keeps it off the rounded edges.
+	return {"normal": n, "dist": dist, "at": at - n * at.dot(n), "width": r * sqrt(2.0) * BEVEL_FIT}
 
 
-## Where a d4 face is, for placing a decal on it: {normal, dist, width}.
-## dist = how far the flat face sits from the centre (the body mesh's
-## farthest vertex along the normal, times its scale), so a decal there is
-## flush. width = a square that fits inside the triangle: a regular
-## tetrahedron's face incircle has radius sqrt(2) * dist, so a square of
-## side 2 * dist fits; 0.9 leaves room for the bevels.
-static func d4_face(d: DieVisual, slot: int) -> Dictionary:
-	var n: Vector3 = D4_FACE_NORMALS[clampi(slot, 1, 4) - 1].normalized()
-	var dist := d.edge * 0.5
+## How far a d4 mark slides from the face middle toward its corner (0..1).
+const D4_PULL := 0.3
+## Share of the ideal (sharp-edged) fit kept, so marks clear the bevels.
+const BEVEL_FIT := 0.8
+
+
+static func _body_points(d: DieVisual) -> PackedVector3Array:
+	var out := PackedVector3Array()
 	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
 	if body != null and body.mesh != null:
-		var far := -INF
 		for p: Vector3 in body.mesh.get_faces():
-			far = maxf(far, (body.scale * p).dot(n))
-		dist = far
-	return {"normal": n, "dist": dist, "width": 2.0 * dist * 0.9}
+			out.append(body.scale * p)
+	return out
+
+
+static func _far(pts: PackedVector3Array, n: Vector3) -> float:
+	var far := -INF
+	for p in pts:
+		far = maxf(far, p.dot(n))
+	return far
+
+
+## True for the shapes whose face-mod marks sit on real triangle faces.
+static func has_face_spots(d: DieVisual) -> bool:
+	return d.shape == &"d4" or d.shape == &"d8"
