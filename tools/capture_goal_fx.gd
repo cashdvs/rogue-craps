@@ -1,5 +1,5 @@
 ## Capture: GoalFx states on the real Bonfire HUD target plate, 1280x720
-## (the size where a die reads at 48 px). Writes goal_<idle|reached|missed>.png
+## (the size where a die reads at 48 px). Writes goal_v2_<idle|reached|missed>.png
 ## crops (plate plus the Soul tag area); the labelled strip is assembled
 ## outside Godot. Refuses to run unless the renderer is Vulkan Forward+:
 ##   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-method forward_plus \\
@@ -35,10 +35,10 @@ func _run() -> void:
 	fx.hold = true
 	var plate := fx.find_plate()
 	plate.visible = true
-	if plate.goal != null:
-		plate.goal.target = 300
-		plate.goal.banked = 300
-	plate.refresh()
+	# Real reached state: banked at/over target, so line 3 reads PASSED.
+	var gi := TableGoalState.new()
+	gi.set_for_test(350, 220, 2)
+	plate.bind(gi)
 	await create_timer(0.3).timeout
 	var xf := root.get_final_transform() * plate.get_global_transform_with_canvas()
 	var pr := xf * Rect2(Vector2.ZERO, plate.size)
@@ -46,15 +46,21 @@ func _run() -> void:
 	var r := Rect2i(pr.grow(8)).intersection(Rect2i(Vector2i.ZERO, root.get_texture().get_size()))
 	print("plate rect ", r)
 	await _grab(r, "idle")
+	# Real reached state: banked at/over target, so line 3 reads PASSED.
+	var g := TableGoalState.new()
+	g.set_for_test(350, 380, 2)
+	plate.bind(g)
+	print("reached line3: ", plate.line3.text, " ", plate.line3_extra.text)
 	s.events.goal_reached.emit()
 	await _grab(r, "reached")
 	fx.clear()
-	if plate.goal != null:
-		plate.goal.banked = 180
+	var gm := TableGoalState.new()
+	gm.set_for_test(350, 180, 0)
+	plate.bind(gm)
 	s.events.goal_missed.emit(5)
 	fx.advance(GoalFx.DIM_TIME)
 	await _grab(r, "missed")
-	print("missed tag: ", fx.soul_tag.text)
+	print("missed tag: ", (fx.soul_tag.get_child(0) as Label).text, " ", (fx.soul_tag.get_child(1) as Label).text)
 	quit(0)
 
 
@@ -63,7 +69,7 @@ func _grab(r: Rect2i, label: String) -> void:
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var img := root.get_texture().get_image().get_region(r)
-	img.save_png(_out.path_join("goal_%s.png" % label))
+	img.save_png(_out.path_join("goal_v2_%s.png" % label))
 	if label == "missed":
-		root.get_texture().get_image().save_png(_out.path_join("goal_full_missed.png"))
+		root.get_texture().get_image().save_png(_out.path_join("goal_v2_full_missed.png"))
 	print("saved ", label)
