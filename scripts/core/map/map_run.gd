@@ -15,6 +15,7 @@ func _init(run_data: RunData, seed_value: int) -> void:
 	run_seed = seed_value
 	progress = RunProgress.new(data)
 	_start_floor(0)
+	BugReport.set_run(self)
 
 
 func _start_floor(i: int) -> void:
@@ -33,6 +34,29 @@ func _start_floor(i: int) -> void:
 	boss_misses = 0
 	progress.next_table_twist = null  # an unplayed event twist expires with the floor
 	_set_screen(Screen.MAP)
+
+
+## Dev sandbox (SandboxPreset): start floor `i` (0-based) on its map.
+func sandbox_floor(i: int) -> void:
+	if i != floor_index:
+		_start_floor(i)
+
+
+## Dev sandbox: open node `id` of type `t` directly (no travel), with
+## `forced_boss` as the floor boss when non-null. Shop rolls its stock;
+## Table / Elite / Boss build the goal.
+func enter_for_sandbox(t: NT, id: int, forced_boss: RunRuleData = null) -> void:
+	if forced_boss != null:
+		boss = forced_boss
+	map.current_id = id
+	map.visited.append(id)
+	if t == NT.SHOP:
+		_roll_shop()
+		_set_screen(Screen.SHOP)
+	else:
+		table_type = t
+		goal = make_goal(t)
+		_set_screen(Screen.TABLE)
 
 
 ## The floor boss's name (its cheat), or "Boss".

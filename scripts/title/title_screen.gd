@@ -87,6 +87,7 @@ void fragment() {
 	studio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(studio)
 	add_child(Version.make_label())
+	SandboxScreen.title_hook(self, menu)  # dev sandbox, only with version.cfg dev_tools (Systems Dev)
 	options = OptionsPanel.new()
 	options.visible = false
 	var oc := CenterContainer.new()
