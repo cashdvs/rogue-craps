@@ -1,7 +1,7 @@
 ## Hot Hand pulse (AD spec): while the hand is HOT (events.hot_hand until the
 ## hand ends: banked, bust, table_started or table_cleared), every lit die's
 ## ember hull outline (DieVisual.hull_outline, die_hull_outline.gdshader)
-## breathes: width 1.0-1.5x the base 0.010 m on a 0.9 s sine, colour
+## breathes: width 1.0-1.7x the base 0.010 m (peak 0.017 m) on a 0.9 s sine, colour
 ## #E8622A -> #FFA13A in step with the width. Emission is held at 0.3 (never
 ## above, never pulsed). Reduced motion: a static 1.25x outline at the
 ## midpoint colour. No scale pulse (optional in the spec; left out so the
@@ -13,7 +13,7 @@ extends Node
 const PERIOD := 0.9
 const BASE_WIDTH := 0.010
 const WIDTH_MIN := 1.0
-const WIDTH_MAX := 1.5
+const WIDTH_MAX := 1.7
 const REDUCED_WIDTH := 1.25
 const COLOR_LOW := Color("#E8622A")
 const COLOR_PEAK := Color("#FFA13A")

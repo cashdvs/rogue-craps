@@ -1,4 +1,4 @@
-## HotHandPulseFx (AD spec): outline width 1.0-1.5x on a 0.9 s sine, colour
+## HotHandPulseFx (AD spec): outline width 1.0-1.7x on a 0.9 s sine, colour
 ## #E8622A -> #FFA13A, emission <= 0.3, reduced motion static 1.25x, clean stop.
 ##   godot --headless --path . --script res://tests/test_hot_hand_pulse.gd
 extends SceneTree
@@ -78,11 +78,11 @@ func _run() -> void:
 		var s := HotHandPulseFx.sample(i * 0.001)
 		lo = minf(lo, s["width_mult"]); hi = maxf(hi, s["width_mult"])
 		check(float(s["emission"]) <= 0.3, "emission <= 0.3 at t=%.3f" % (i * 0.001))
-	check(is_equal_approx(lo, 1.0) and absf(hi - 1.5) < 1e-4, "width range 1.0-1.5x: %f..%f" % [lo, hi])
+	check(is_equal_approx(lo, 1.0) and absf(hi - 1.7) < 1e-4, "width range 1.0-1.7x: %f..%f" % [lo, hi])
 	check(HotHandPulseFx.PERIOD == 0.9, "period 0.9 s")
 	check(is_equal_approx(HotHandPulseFx.sample(0.0)["width_mult"], HotHandPulseFx.sample(0.9)["width_mult"]), "repeats every 0.9 s")
-	check(absf(HotHandPulseFx.sample(0.45)["width_mult"] - 1.5) < 1e-6, "peak at 0.45 s")
-	check(is_equal_approx(HotHandPulseFx.sample(0.45)["width"], 0.015), "peak width 0.015 m")
+	check(absf(HotHandPulseFx.sample(0.45)["width_mult"] - 1.7) < 1e-6, "peak at 0.45 s")
+	check(is_equal_approx(HotHandPulseFx.sample(0.45)["width"], 0.017), "peak width 0.017 m")
 	check(_close(_screen(HotHandPulseFx.sample(0.0)), Color("#E8622A")), "on-screen low colour #E8622A")
 	check(_close(_screen(HotHandPulseFx.sample(0.45)), Color("#FFA13A")), "on-screen peak colour #FFA13A")
 	var e0: float = HotHandPulseFx.sample(0.0)["emission"]
@@ -97,10 +97,10 @@ func _run() -> void:
 	tb.hot_hand.emit(1)
 	check(fx.active, "hot_hand starts it")
 	check(fx.is_igniting(), "ignite beat on start")
-	check(is_equal_approx(float(_mat(lit).get_shader_parameter("width")), 0.015), "ignite: peak width at once")
+	check(is_equal_approx(float(_mat(lit).get_shader_parameter("width")), 0.017), "ignite: peak width at once")
 	check(_close(_mat_screen(lit), Color("#FFA13A")), "ignite: on-screen peak colour")
 	fx.step(0.1)
-	check(fx.is_igniting() and is_equal_approx(float(_mat(lit).get_shader_parameter("width")), 0.015), "ignite holds the peak at 0.1 s")
+	check(fx.is_igniting() and is_equal_approx(float(_mat(lit).get_shader_parameter("width")), 0.017), "ignite holds the peak at 0.1 s")
 	fx.step(0.05)
 	check(not fx.is_igniting(), "ignite over after 0.15 s")
 	check(is_equal_approx(HotHandPulseFx.IGNITE_TIME, 0.15) and is_equal_approx(DieGlow.HOT_IGNITE_TIME, 0.15), "ignite beat 0.15 s")
@@ -108,7 +108,7 @@ func _run() -> void:
 	check(absf(float(_mat(lit).get_shader_parameter("width")) - 0.010) < 1e-6, "sine hands off from the peak: low 0.45 s later")
 	check(_close(_mat_screen(lit), Color("#E8622A")), "lit die on-screen low colour")
 	fx.step(0.45)
-	check(is_equal_approx(float(_mat(lit).get_shader_parameter("width")), 0.015), "lit die outline at peak width")
+	check(is_equal_approx(float(_mat(lit).get_shader_parameter("width")), 0.017), "lit die outline at peak width")
 	check(_close(_mat_screen(lit), Color("#FFA13A")), "lit die on-screen peak colour")
 	check(float(_mat(lit).get_shader_parameter("emission_energy")) <= 0.3, "lit die emission <= 0.3")
 	check(is_equal_approx(float(_mat(plain).get_shader_parameter("width")), 0.010), "plain die untouched")
@@ -151,7 +151,7 @@ func _run() -> void:
 	(c[0] as Node).add_child(fxroot)
 	var tw := DieGlow.hot_hand_pulse(litg, fxroot, false)
 	check(float(litg.body_material.get_shader_parameter("emission_energy")) <= 0.3, "ignite: body emission <= 0.3")
-	check(is_equal_approx(float(_mat(litg).get_shader_parameter("width")), 0.015), "ignite: outline at peak width")
+	check(is_equal_approx(float(_mat(litg).get_shader_parameter("width")), 0.017), "ignite: outline at peak width")
 	check(_close(_mat_screen(litg), Color("#FFA13A")), "ignite: on-screen peak colour")
 	check(float(_mat(litg).get_shader_parameter("emission_energy")) <= 0.3, "ignite: outline emission <= 0.3")
 	await tw.finished

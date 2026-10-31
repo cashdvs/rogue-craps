@@ -205,7 +205,7 @@ look for the rest of a HOT hand: it starts on `events.hot_hand` and stops on `ba
 `table_started` or `table_cleared`. While on, every lit die's ember hull outline
 (`DieVisual.hull_outline`, `shaders/3d/die_hull_outline.gdshader`) breathes (AD spec):
 
-- width 1.0-1.5x the base 0.010 m on a 0.9 s sine (`0.5 - 0.5 cos`, low at t = 0, peak at 0.45 s);
+- width 1.0-1.7x the base 0.010 m (peak 0.017 m) on a 0.9 s sine (`0.5 - 0.5 cos`, low at t = 0, peak at 0.45 s);
 - colour #E8622A -> #FFA13A on screen, in step with the width (the shader draws `color * (1 + emission)`, so the uniform is pre-divided by 1.3);
 - ignite: on start the outline jumps to the peak for 0.15 s (`IGNITE_TIME`, also `DieGlow.hot_hand_pulse`), then the sine carries on from its peak;
 - outline emission held at 0.3 (no emission pulse);
