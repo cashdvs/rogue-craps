@@ -83,12 +83,10 @@ func make_goal(t: NT) -> TableGoal:
 	var g := TableGoal.new()
 	g.clear_embers = f.clear_embers
 	g.timeout_soul_per_bounty = f.timeout_soul_per_bounty
-	var count: int = rng.randi_range(f.min_bounties, f.max_bounties)
 	g.hands = f.hands
 	g.display_name = "Table"
 	rules.clear()
 	if t == NT.BOSS:
-		count = rng.randi_range(f.boss_min_bounties, f.boss_max_bounties)
 		g.hands = f.boss_hands
 		g.display_name = boss_name()
 		for r in [boss, boss_twist]:
@@ -107,44 +105,12 @@ func make_goal(t: NT) -> TableGoal:
 	for r in rules:
 		g.hands += r.hands_delta
 	g.hands = maxi(g.hands, 1)
-	var picks: Array[BountyData] = []
-	if not f.featured_bounties.is_empty():
-		picks.append(f.featured_bounties[rng.randi_range(0, f.featured_bounties.size() - 1)])
-	var pool: Array[BountyData] = f.common_bounties.duplicate()
-	pool.append_array(f.featured_bounties)
-	if t == NT.BOSS:
-		pool.append_array(f.boss_bounties)
-	while picks.size() < count and not pool.is_empty():
-		var b: BountyData = pool.pop_at(rng.randi_range(0, pool.size() - 1))
-		if not picks.has(b):
-			picks.append(b)
-	g.required = picks
-	var bonus := pick_bonus(f.bonus_bounties, picks, rng)
-	if bonus != null:
-		g.bonus = [bonus] as Array[BountyData]
+	# table_goals_v1 PR1: target-only, no bounties rolled (keeps the rule
+	# RNG draws above stable).
+	g.target = f.target_boss if t == NT.BOSS else (f.target_elite if t == NT.ELITE else f.target_table)
+	g.miss_soul = f.miss_soul
+	g.is_boss = t == NT.BOSS
 	return g
-
-
-## The table's bonus bounty (Game Designer, #106): one drawn from `pool`; if
-## it repeats a required bounty (same kind and size), the pool's Full House
-## instead; if Full House is required too (or the pool has none), no bonus.
-static func pick_bonus(pool: Array[BountyData], required: Array[BountyData], rng: RandomNumberGenerator) -> BountyData:
-	if pool.is_empty():
-		return null
-	var b: BountyData = pool[rng.randi_range(0, pool.size() - 1)]
-	if not _repeats(b, required):
-		return b
-	for fh in pool:
-		if fh.kind == BountyData.Kind.FULL_HOUSE:
-			return null if _repeats(fh, required) else fh
-	return null
-
-
-static func _repeats(b: BountyData, required: Array[BountyData]) -> bool:
-	for r in required:
-		if r.kind == b.kind and r.n == b.n:
-			return true
-	return false
 
 
 ## What the table gets for this node (dice, mods, goal, Soul, seed, rules).
@@ -212,11 +178,11 @@ func apply_outcome(o: TableOutcome) -> void:
 
 
 ## STUB table: resolve instantly. A clear pays the floor's clear Embers; a
-## miss costs Soul for every required bounty (as if none were banked).
+## miss costs the goal's flat miss Soul.
 func quick_resolve(cleared: bool) -> void:
 	if goal == null:
 		return
-	var lost: int = 0 if cleared else goal.required.size() * goal.timeout_soul_per_bounty
+	var lost: int = 0 if cleared else goal.miss_soul
 	finish_table(cleared, progress.soul - lost, goal.clear_embers if cleared else 0)
 
 

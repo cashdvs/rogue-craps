@@ -19,7 +19,15 @@ extends Resource
 ## One optional bonus bounty per table, drawn from here.
 @export var bonus_bounties: Array[BountyData] = []
 @export var clear_embers: int = 10
+## Unused since table_goals_v1 PR1 (kept for save compatibility; PR3 cleanup).
 @export var timeout_soul_per_bounty: int = 3
+## table_goals_v1 PR1: a table is passed by banking its target score.
+## One target per node type on the floor (no ramp); 0 = no target (the table falls back to the bounty rule: BonfireRun._goal_met).
+@export var target_table: int = 0
+@export var target_elite: int = 0
+@export var target_boss: int = 0
+## Soul lost when the hands run out short of the target (Bloodletter doubles it).
+@export var miss_soul: int = 5
 
 @export_group("Elite and Boss")
 ## Twist pool: each Elite picks one at random (Cold Sixes, First Throw,

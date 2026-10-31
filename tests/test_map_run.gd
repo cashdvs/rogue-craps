@@ -48,8 +48,8 @@ func _enter(run: MapRun, type: int) -> bool:
 
 
 func _test_goals() -> void:
+	# table_goals_v1 PR1: target tables, no bounties (test_table_goals.gd has the targets).
 	var ok: Array[bool] = [true, true, true]
-	var m5_none := 0
 	for s in 40:
 		var run := MapRun.new(_data, s)
 		for f in 3:
@@ -57,42 +57,30 @@ func _test_goals() -> void:
 			_enter(run, NT.TABLE)
 			var g := run.goal
 			var fd: FloorData = _data.floors[f]
-			var n: int = g.required.size()
-			# Exactly 1 bonus, except the explicit M5 fallback-to-none case.
-			var want_bonus := 0 if _m5_none(fd.bonus_bounties, g.required) else 1
-			if want_bonus == 0:
-				m5_none += 1
-			var good: bool = n >= fd.min_bounties and n <= fd.max_bounties and g.hands == fd.hands and g.bonus.size() == want_bonus
-			if not fd.featured_bounties.is_empty():
-				var has: bool = false
-				for b in g.required:
-					has = has or fd.featured_bounties.has(b)
-				good = good and has
-			ok[f] = ok[f] and good
-	_check(ok[0], "goals: floor 1 tables have 3 bounties, 5 hands, exactly 1 bonus (%d M5 fallback-to-none tables over 3 floors)" % m5_none)
-	_test_m5_detector()
-	_check(ok[1], "goals: floor 2 has 3-4 incl. Run of 4 or Full House, 4 hands")
-	_check(ok[2], "goals: floor 3 has 4 incl. Quads or Run of 5, 4 hands")
+			ok[f] = ok[f] and g.required.is_empty() and g.bonus.is_empty() and g.hands == fd.hands and g.target == fd.target_table
+	_check(ok[0], "goals: floor 1 tables: target, no bounties, 5 hands")
+	_check(ok[1], "goals: floor 2 tables: target, no bounties, 4 hands")
+	_check(ok[2], "goals: floor 3 tables: target, no bounties, 4 hands")
 	var boss_ok := true
 	for f in 3:
 		var run := MapRun.new(_data, 5)
 		run._start_floor(f)
 		_enter(run, NT.BOSS)
-		boss_ok = boss_ok and run.goal.required.size() == [3, 5, 4][f] and run.goal.display_name == run.boss_name()
-	_check(boss_ok, "goals: bosses have 3 / 5 / 4 bounties on floors 1 / 2 / 3")
+		boss_ok = boss_ok and run.goal.required.is_empty() and run.goal.target == _data.floors[f].target_boss and run.goal.display_name == run.boss_name()
+	_check(boss_ok, "goals: bosses have the floor's boss target, no bounties")
 	var a := MapRun.new(_data, 9)
 	var b := MapRun.new(_data, 9)
 	_enter(a, NT.TABLE)
 	_enter(b, NT.TABLE)
-	_check(a.goal.required == b.goal.required, "goals: same seed -> same bounties")
+	_check(a.goal.target == b.goal.target and a.rules == b.rules, "goals: same seed -> same goal and rules")
 
 
 func _test_rewards() -> void:
 	var run := MapRun.new(_data, 2)
 	_enter(run, NT.TABLE)
 	run.quick_resolve(true)
-	_check(run.screen == S.REWARD and run.seal_options.size() == 3 and run.dice_options.is_empty() and run.progress.embers == 10,
-		"reward: cleared table pays 10 Embers, pick 1 of 3 Seals")
+	_check(run.screen == S.REWARD and run.seal_options.size() == 3 and run.dice_options.is_empty() and run.progress.embers == 14,
+		"reward: cleared table pays 14 Embers, pick 1 of 3 Seals")
 	run.seal_options[0] = &"trips"
 	run.take_seal(0)
 	_check(run.screen == S.MAP and run.progress.seal_level(&"trips") == 1, "reward: taking a Seal levels it")
@@ -112,7 +100,7 @@ func _test_rewards() -> void:
 	run.take_seal(0)
 	_enter(run, NT.TABLE)
 	run.quick_resolve(false)
-	_check(run.screen == S.MAP and run.progress.soul == soul - 9, "miss: back to the map, -3 Soul per unbanked bounty")
+	_check(run.screen == S.MAP and run.progress.soul == soul - 5, "miss: back to the map, -5 Soul")
 
 
 func _test_boss() -> void:
@@ -127,7 +115,7 @@ func _test_boss() -> void:
 	_enter(win, NT.BOSS)
 	win.quick_resolve(true)
 	var rare: bool = win.is_rare_seal(win.seal_options[win.seal_options.size() - 1])
-	_check(win.progress.embers == 10 + 25 and win.progress.contract_pieces == 1 and rare and win.seal_options.size() == 4,
+	_check(win.progress.embers == 14 + 25 and win.progress.contract_pieces == 1 and rare and win.seal_options.size() == 4,
 		"boss: 25 Embers, a contract piece, Seal pick with a guaranteed rare")
 	_check(win.progress.max_soul == 40 and win.progress.soul == 40, "boss: contract piece +5 max Soul, heals to full")
 	win.seal_options[0] = &"pair"
@@ -351,38 +339,3 @@ func _test_full_run() -> void:
 		if _play(s).screen == S.RUN_WON:
 			wins += 1
 	_check(wins == 20, "run: every seed reaches the final boss (stub tables)")
-
-
-## The M5 fallback-to-none case, identified explicitly (MapRun.pick_bonus):
-## every bonus in the pool repeats a required bounty (same kind and size),
-## including the pool's Full House, so whatever is drawn falls back to none.
-func _m5_none(pool: Array[BountyData], required: Array[BountyData]) -> bool:
-	if pool.is_empty():
-		return true
-	var fh_clash := true
-	for b in pool:
-		if b.kind == BountyData.Kind.FULL_HOUSE:
-			fh_clash = MapRun._repeats(b, required)
-	if not fh_clash:
-		return false
-	for b in pool:
-		if not MapRun._repeats(b, required):
-			return false
-	return true
-
-
-## _m5_none() agrees with MapRun.pick_bonus: none only if Full House clashes too.
-func _test_m5_detector() -> void:
-	var mk := func(kind: BountyData.Kind, n: int) -> BountyData:
-		var b := BountyData.new()
-		b.kind = kind
-		b.n = n
-		return b
-	var run4: BountyData = mk.call(BountyData.Kind.RUN, 4)
-	var fh: BountyData = mk.call(BountyData.Kind.FULL_HOUSE, 3)
-	var pool: Array[BountyData] = [mk.call(BountyData.Kind.RUN, 4), mk.call(BountyData.Kind.FULL_HOUSE, 3)]
-	var rng := RandomNumberGenerator.new()
-	var both: Array[BountyData] = [run4, fh]
-	var one: Array[BountyData] = [run4]
-	_check(_m5_none(pool, both) and MapRun.pick_bonus(pool, both, rng) == null, "M5 detector: Run of 4 + Full House required -> none")
-	_check(not _m5_none(pool, one) and MapRun.pick_bonus(pool, one, rng) != null, "M5 detector: only Run of 4 required -> not none")
