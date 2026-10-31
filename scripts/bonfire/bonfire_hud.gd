@@ -33,6 +33,9 @@ func _ready() -> void:
 	add_child(bottom_bar)
 	move_child(bottom_bar, 0)  # behind the pot, buttons and hints
 	add_child(target_plate)
+	# The plate is resized on each screen fit and its rows settle a frame
+	# later: the rules card follows it so the plate never covers it (QA #231).
+	target_plate.resized.connect(_place_rules)
 	_hide_old_goal()
 
 

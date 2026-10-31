@@ -10,6 +10,8 @@ class_name HelpCorner
 extends Control
 
 const BUTTON_SIZE := 44.0
+## Space between the "?" button and the controls text (#218).
+const TEXT_GAP := 8.0
 const INLAY := Color("#141210")
 const RING := Color("#C9A24A")
 const CREAM := Color("#E8DCC0")
@@ -91,6 +93,17 @@ func start_table(label: Label, first: bool, reduced: bool) -> void:
 	dismissed = not first
 	label.modulate.a = 1.0
 	label.visible = first
+	_inset(label)
+
+
+## Starts the controls text right of the "?" button (its width + 8 px), so
+## the button never covers the first words (#218). Keeps its right edge.
+func _inset(label: Label) -> void:
+	var right := label.position.x + label.size.x
+	var left := label.position.x + button.get_global_rect().end.x + TEXT_GAP - label.global_position.x
+	if left > label.position.x:
+		label.position.x = left
+		label.size.x = right - left
 
 
 ## The first pot of the table: the text fades POT_TIMEOUT s later.
