@@ -9,7 +9,7 @@
 [ext_resource type="Resource" path="res://resources/map/rules/first_throw.tres" id="7_g1enu"]
 [ext_resource type="Resource" path="res://resources/map/rules/greedy_pot.tres" id="10_44yws"]
 [ext_resource type="Resource" path="res://resources/map/rules/cold_hands.tres" id="11_0b40a"]
-[ext_resource type="Resource" path="res://resources/map/floor_1_map.tres" id="12_hbrin"]
+[ext_resource type="Resource" path="res://resources/map/floor_1_one_floor_map.tres" id="12_hbrin"]
 [ext_resource type="Script" path="res://scripts/data/floor_data.gd" id="13_1c8eg"]
 
 [sub_resource type="Resource" id="Resource_mhwom"]
@@ -62,6 +62,6 @@ boss_min_bounties = 3
 boss_max_bounties = 3
 boss_hands = 7
 clear_embers = 14
-target_table = 300
-target_elite = 400
-target_boss = 700
+target_table = 350
+target_elite = 500
+target_boss = 1600

@@ -10,3 +10,4 @@ shader_parameter/shadow_color = Color(0.078431, 0.015686, 0.039216, 1)
 shader_parameter/roughness = 0.8
 shader_parameter/ambient_energy = 0.1
 shader_parameter/light_gain = 0.5
+shader_parameter/face_shade = 0.6

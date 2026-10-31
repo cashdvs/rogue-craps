@@ -100,9 +100,9 @@ func _test_prices() -> void:
 	for d in _run.special_dice:
 		prices[d.id] = d.price
 	for pair in [[&"extra", 18], [&"mirror", 18], [&"cracked", 18], [&"twin_flame", 18], [&"wanderer", 18],
-			[&"bellows", 18], [&"blood_pact", 18], [&"coven", 24], [&"last_breath", 24]]:
+			[&"bellows", 18], [&"blood_pact", 18], [&"coven", 24]]:
 		dice_ok = dice_ok and prices.get(pair[0], -1) == pair[1]
-	_check(dice_ok and _run.special_dice.size() == 9, "prices: 9 special dice at 18 / 24 (economy v1: Extra, Mirror, Cracked 18)")
+	_check(dice_ok and _run.special_dice.size() == 8, "prices: 8 special dice at 18 / 24 (economy v1: Extra, Mirror, Cracked 18)")
 	var p := RunProgress.new(_run)
 	var hell: FaceModData = load("res://resources/mods/hellfire.tres")
 	_check(p.mod_price(hell, 0) == 14, "prices: Hellfire 14 on a fresh die")
@@ -157,7 +157,7 @@ func _test_table_dice() -> void:
 	var all_defined := true
 	for d in _run.special_dice:
 		all_defined = all_defined and d.faces == ([1, 2, 3, 4, 5, 6] as Array[int]) and d.weights.is_empty()
-	_check(_run.special_dice.size() == 9 and all_defined, "special dice: plain Bone 1-6, equal weights (GD spec)")
+	_check(_run.special_dice.size() == 8 and all_defined, "special dice: plain Bone 1-6, equal weights (GD spec)")
 	var roomy := _run.duplicate() as RunData
 	roomy.max_dice = 7
 	var q := RunProgress.new(roomy)

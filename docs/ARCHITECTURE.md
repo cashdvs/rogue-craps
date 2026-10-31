@@ -83,7 +83,7 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 | `MapView.node_pressed(id)`, `EventView.choice_made(i, picks)` | `scripts/map/` | UI → `MapRun.choose_node()` / `choose_event()` |
 | `TableSetup.run_embers` | `scripts/data/table_setup.gd`, set from `RunTableSetup.run_embers` (`MapRun.table_setup()`: `progress.embers`) | run mode: the run's Embers before this table. The HUD shows it plus the table's payout ("EMBERS n"); `TableOutcome.embers` stays the payout only |
 | `RunSeals` (`seal_level`, `add_seal_levels`, `seal_bonus`, `record_bank(s)`, `most_banked`, `transference`; `changed`) | `scripts/core/run/run_seals.gd` (base of `RunProgress`) | Seal levels per combo, the rare Seals' moves (Transference, Black, Ashen) and the combos banked this run |
-| `RunSummary.title(run)`, `reason_line(run)`, `lines(run)` | `scripts/core/map/run_summary.gd` | run end screens: the real reason the run ended (`MapRun.end_reason`) and a short summary (floor reached, tables cleared, Embers earned, final bag, seed) |
+| `RunSummary.title(run)`, `reason_line(run)`, `lines(run)` | `scripts/core/map/run_summary.gd` | run end screens: the real reason the run ended (`MapRun.end_reason`) and a short summary (floor reached, tables cleared, Embers earned, final bag, seed). For `&"complete"`, `complete_lines(run)` gives the RUN COMPLETE rows: points banked, Embers x `ember_score_mult`, final score (`final_score`), tables cleared, Souls left, best hand, seed |
 | `RunProfile.map_key_seen()`, `mark_map_key_seen()`, `file_path()` | `scripts/core/run/run_profile.gd` | per-profile flags that outlive a run (for now: the map key has opened by itself once), saved to `user://profile.cfg`; tests set `path` to a scratch file (`tests/support/profile_guard.gd`), and `--script` runs without a `path` write no file |
 | `DieCardInfo.from_run(progress, i)`, `mod_name()` | `scripts/ui/die_card_info.gd` | plain data for one die card: name, ability line, shape, every face (value, mod id, mod name) and, in pick mode, the next mod's price. The table can fill one from a `TableDie` |
 | `DieCard.create(info, read_only)`, `set_die(...)`; `face_picked(face_index)` | `scripts/ui/die_card.gd` | one die's card built in code: "name - ability", the next mod's price, one button per face with "Face n: mod" tooltips. Read-only cards disable every face; otherwise `allowed` decides which faces can be picked |
@@ -100,6 +100,12 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
   books Soul and Embers, removes shattered dice, then goes to the Seal **Reward** (cleared), back
   to the **Map** (missed), a boss **re-sit** (`RunData.boss_resits`) or **Run over**. Beating a
   boss pays `boss_embers` and a contract piece; the last boss wins the run.
+  one_floor_v1: `RunData.floors_in_run` (1 in `bonfire_run.tres`; 0 = every floor) caps the run.
+  Beating the boss of the last such floor (`RunData.is_last_floor`) pays `boss_embers`, then ends
+  with `end_reason` `&"complete"` on the `RUN_WON` screen titled **RUN COMPLETE**. Final score =
+  points banked (`MapRun.run_points`) + `RunData.ember_score_mult` (10) x Embers left
+  (`RunSummary.final_score`). `MapGenData.pre_boss_mix` makes the pre-boss row a Shop/Rest mix
+  (at least one of each, no RNG); F1 uses `floor_1_one_floor_map.tres`.
 - **`RunProgress`** holds run state: Soul and max Soul, Embers, the dice bag (`RunDie`: optional
   special id + one face-mod id per face), Seal levels and banked-combo counts.
   `table_dice()` turns the bag into `TableDie`s (special faces and weights, mods, Heavy weights).
