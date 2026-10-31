@@ -24,8 +24,7 @@ const DIM_TIME: float = 0.25
 const MISS_HOLD: float = 1.4
 const DROP_PX: float = 14.0
 ## "Missed:" reuses goal_miss (TableGoalStrings.MISS, the plate's own miss
-## line); the amount is goal_miss_soul_float "-{n} Soul" (strings_v1 row in
-## bffe9c3, #231); {n} = goal_missed's soul_loss.
+## line); the amount is goal_miss_soul_float "-{n} Soul"; {n} = goal_missed's soul_loss.
 const SOUL_TEXT := "-%d Soul"  # goal_miss_soul_float
 ## Tag text size: >= 14 px on PC (spec px), >= 12 pt on phone; gap under the plate.
 const TAG_PX_PC: float = 14.0
