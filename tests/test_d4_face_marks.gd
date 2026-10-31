@@ -55,6 +55,8 @@ func _run() -> void:
 	await process_frame
 	_check_marks(s.all_dice[0], &"d4", 4)
 	_check_marks(s.all_dice[1], &"d8", 8)
+	_check_slots(s.all_dice[0], g.mods)
+	_check_slots(s.all_dice[1], b.mods)
 	s.queue_free()
 	await process_frame
 	print("test_d4_face_marks: %d passed, %d failed" % [_passed, _failed])
@@ -168,3 +170,45 @@ func _collect(n: Node, xf: Transform3D, out: Array) -> void:
 			if c is MeshInstance3D and (c as MeshInstance3D).mesh != null:
 				out.append([t, (c as MeshInstance3D).mesh.get_aabb()])
 			_collect(c, t, out)
+
+
+## How many FaceMods children one mod draws (Twin: 8 strips, Wild: 4,
+## Blank: 1 quad, a rare glyph: 1 mark node).
+func _pieces_of(m: FaceModData) -> int:
+	if RareDieLook.MARKS.has(m.id):
+		return 1
+	return {FaceModData.Effect.TWIN: 8, FaceModData.Effect.WILD: 4}.get(m.effect, 1)
+
+
+## Slot by slot (FaceMods children come in slot order): slot k's mark is on
+## the right face. d8: the face whose normal is dirs[k] (that face reads k).
+## d4 (read by its top corner k): a face touching corner k, the one opposite
+## corner k+1, and the mark's middle is nearer corner k than the others.
+func _check_slots(d: DieVisual, mods: Array) -> void:
+	var dirs: Array = DieHullData.SHAPES[d.shape]["dirs"]
+	var kids := d.faces.get_node("FaceMods").get_children()
+	var at := 0
+	var wrong := 0
+	for k in mods.size():
+		var mid := Vector3.ZERO
+		var n := Vector3.ZERO
+		var cnt: int = _pieces_of(mods[k])
+		for i in cnt:
+			var c := kids[at + i] as Node3D
+			mid += c.position / float(cnt)
+			n = c.transform.basis.z.normalized()
+		at += cnt
+		var dk: Vector3 = (dirs[k] as Vector3).normalized()
+		var ok := false
+		if d.shape == &"d8":
+			ok = n.dot(dk) > 0.999
+		else:
+			var dn: Vector3 = (dirs[(k + 1) % 4] as Vector3).normalized()
+			ok = n.dot(dk) > 0.3 and n.dot(dn) < -0.99
+			for j in 4:
+				if j != k and mid.distance_to(dirs[j] * 0.05) <= mid.distance_to(dk * 0.05):
+					ok = false
+		if not ok:
+			wrong += 1
+	check(at == kids.size(), "%s: FaceMods children match the mods (%d of %d)" % [d.shape, at, kids.size()])
+	check(wrong == 0, "%s: each slot's mark is on its own face, near its corner (%d wrong)" % [d.shape, wrong])

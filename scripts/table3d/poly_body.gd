@@ -194,6 +194,9 @@ const D4_PULL := 0.3
 const BEVEL_FIT := 0.8
 
 
+## The body mesh's triangle corners, scaled like the drawn body (die-faces
+## space), so distances measured from them match what is on screen.
+## Empty when the die has no body mesh yet.
 static func _body_points(d: DieVisual) -> PackedVector3Array:
 	var out := PackedVector3Array()
 	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
@@ -203,6 +206,9 @@ static func _body_points(d: DieVisual) -> PackedVector3Array:
 	return out
 
 
+## How far the body reaches along direction [param n]: the largest
+## p . n over the points. Along a face normal that is the flat face's
+## distance from the centre; along a corner direction, the corner tip.
 static func _far(pts: PackedVector3Array, n: Vector3) -> float:
 	var far := -INF
 	for p in pts:
