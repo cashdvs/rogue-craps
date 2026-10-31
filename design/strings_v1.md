@@ -35,3 +35,4 @@ Repo copy: only the rows the game loads by id from this file so far; the full ta
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_score_label | (new) | SCORE | 1 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_nerve | (new) | Nerve {n} | 2 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_hint | (new) | Bank points to reach the target. | 6 |
+| HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_miss | (new) | Missed: -{s} Soul | 3 |
