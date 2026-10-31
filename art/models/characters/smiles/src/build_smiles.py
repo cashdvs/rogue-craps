@@ -335,9 +335,12 @@ def _local_euler(r_arm):
     return tuple(round(math.degrees(a), 2) for a in e)
 
 
-def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0):
+def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0, palm=None):
     """Pose upper_arm_s / forearm_s so the wrist lands on `wrist` (armature rest coords, i.e. relative to the
-    unposed chest; the chest / spine lean carries it). pole = a point the elbow bends toward."""
+    unposed chest; the chest / spine lean carries it). pole = a point the elbow bends toward.
+    palm (with fingers): armature-space direction the palm should face. Without it the palm roll is whatever
+    the forearm twist leaves (it depends on the elbow pole), so two hands with mirrored wrists / fingers can
+    still end up rolled 180 deg apart (both thumbs to the same side). Give mirrored palms for mirrored hands."""
     S = Vector(BONES["upper_arm_" + s][1])
     E0 = Vector(BONES["forearm_" + s][1])
     W0 = Vector(BONES["hand_" + s][1])
@@ -361,6 +364,15 @@ def arm(s, wrist, pole, twist=0.0, hand=(0, 0, 0), fingers=None, roll=0.0):
         rest = Vector((0, -0.004, -0.085))
         want = (ru @ rf).inverted() @ Vector(fingers).normalized()
         rh = rest.rotation_difference(want).to_matrix()
+        if palm is not None:  # roll about the wrist -> knuckles axis until the palm faces `palm`
+            fw_w = Vector(fingers).normalized()
+            cur = (ru @ rf @ rh) @ Vector((-1 if s == "L" else 1, 0, 0))  # palm faces the body at rest: -sx X
+            cur = (cur - fw_w * cur.dot(fw_w)).normalized()
+            tgt = Vector(palm) - fw_w * Vector(palm).dot(fw_w)
+            if tgt.length > 1e-4:
+                tgt.normalize()
+                ang = math.atan2(fw_w.dot(cur.cross(tgt)), cur.dot(tgt))
+                rh = Matrix.Rotation(ang, 3, want) @ rh
         if roll:  # spin the hand about its own wrist -> knuckles axis (palm direction)
             rh = Matrix.Rotation(math.radians(roll), 3, want) @ rh
         out["hand_" + s] = _local_euler(rh)
@@ -409,17 +421,20 @@ def clip(name, length_s, keys, loop=False):
 
 # idle (3.0 s loop): leans low on the far rail, both forearms on it; the right hand rolls a chip over its
 # knuckles just above the rail top (inside the phone band, clear of the brazier and plaque), grin twitch, head sway.
-_lean = arm("L", (0.1, -0.05, 0.655), (0.17, 0.35, 0.05), fingers=(-0.35, -1, 0.26))
-_chip_hand = P(STAND, _lean, arm("R", (-0.17, -0.05, 0.655), (-0.45, 0.3, 0.1), fingers=(0.3, -1, 0.24)), spine=(6, 0, 0), chest=(10, 0, 0))
-_chip_hand2 = P(STAND, _lean, arm("R", (-0.17, -0.055, 0.665), (-0.45, 0.3, 0.1), fingers=(0.35, -1, 0.3)), spine=(6, 0, 0), chest=(10, 0, 0))
+# Both forearms rest on the rail palms DOWN (knuckles up; the chip rolls over the back of the right hand).
+# palm= pins each hand's roll so the two hands mirror (before: left palm down, right palm up = two "right hands").
+IDLE_PALM = (0, -0.2, -1)
+_lean = arm("L", (0.1, -0.05, 0.655), (0.17, 0.35, 0.05), fingers=(-0.35, -1, 0.26), palm=IDLE_PALM)
+_chip_hand = P(STAND, _lean, arm("R", (-0.17, -0.05, 0.655), (-0.45, 0.3, 0.1), fingers=(0.3, -1, 0.24), palm=IDLE_PALM), spine=(6, 0, 0), chest=(10, 0, 0))
+_chip_hand2 = P(STAND, _lean, arm("R", (-0.17, -0.055, 0.665), (-0.45, 0.3, 0.1), fingers=(0.35, -1, 0.3), palm=IDLE_PALM), spine=(6, 0, 0), chest=(10, 0, 0))
 clip("idle", 3.0, [
-    (0.0, P(_chip_hand, chip=(0, 0, 0, 0.025, 0, 0))),
-    (0.5, P(_chip_hand2, chest=(10, 0, 0), chip=(90, 0, 0, 0.025, -0.012, 0))),
-    (1.0, P(_chip_hand2, chest=(10, 0, 0), head=(-24, 0, 4), chip=(180, 0, 0, 0.025, -0.024, 0), index_R=(0, 0, 14))),
-    (1.4, P(_chip_hand2, chest=(10, 0, 0), head=(-26, 0, 5), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8), chip=(260, 0, 0, 0.025, -0.03, 0), index_R=(0, 0, 14))),
-    (1.7, P(_chip_hand2, chest=(10, 0, 0), head=(-25, 0, 3), jaw=(0, 0, 0), chip=(300, 0, 0, 0.025, -0.02, 0))),
-    (2.2, P(_chip_hand, chest=(10, 0, 0), head=(-23, 0, 0), chip=(340, 0, 0, 0.025, -0.008, 0))),
-    (3.0, P(_chip_hand, chip=(360, 0, 0, 0.025, 0, 0))),
+    (0.0, P(_chip_hand, chip=(0, 0, 0, -0.025, 0, 0))),
+    (0.5, P(_chip_hand2, chest=(10, 0, 0), chip=(90, 0, 0, -0.025, -0.012, 0))),
+    (1.0, P(_chip_hand2, chest=(10, 0, 0), head=(-24, 0, 4), chip=(180, 0, 0, -0.025, -0.024, 0), index_R=(0, 0, 14))),
+    (1.4, P(_chip_hand2, chest=(10, 0, 0), head=(-26, 0, 5), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8), chip=(260, 0, 0, -0.025, -0.03, 0), index_R=(0, 0, 14))),
+    (1.7, P(_chip_hand2, chest=(10, 0, 0), head=(-25, 0, 3), jaw=(0, 0, 0), chip=(300, 0, 0, -0.025, -0.02, 0))),
+    (2.2, P(_chip_hand, chest=(10, 0, 0), head=(-23, 0, 0), chip=(340, 0, 0, -0.025, -0.008, 0))),
+    (3.0, P(_chip_hand, chip=(360, 0, 0, -0.025, 0, 0))),
 ], loop=True)
 
 # Camera v2 (Godot Dev a153087): the band above the far rail at Smiles' spot is ~0.22 m on phone landscape and
