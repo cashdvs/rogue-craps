@@ -46,27 +46,31 @@ static func boss_ids(data: RunData, floor_n: int) -> Array[StringName]:
 	return out
 
 
+## Event id -> node type; an unknown id push_errors and falls back to a
+## regular Table (`event` is set to &"table" so the fallback shows).
+func node_type() -> NT:
+	var types := {&"table": NT.TABLE, &"elite": NT.ELITE, &"boss": NT.BOSS, &"shop": NT.SHOP}
+	if not types.has(event):
+		push_error("SandboxPreset: unknown --sandbox=%s (use %s); opening a regular table." % [event, EVENTS])
+		event = &"table"
+	return types[event]
+
+
 ## The run, already on this preset's event screen.
 func build(data: RunData) -> MapRun:
 	var run := MapRun.new(data, seed_value)
-	var f := clampi(floor_num, 1, data.floors.size()) - 1
-	if f != 0:
-		run._start_floor(f)
-	if boss_id != &"" and ResourceLoader.exists(RULES_DIR % boss_id):
-		run.boss = load(RULES_DIR % boss_id) as RunRuleData
-	var t: NT = {&"table": NT.TABLE, &"elite": NT.ELITE, &"boss": NT.BOSS, &"shop": NT.SHOP}.get(event, NT.TABLE)
+	var t := node_type()
+	run.sandbox_floor(clampi(floor_num, 1, data.floors.size()) - 1)
+	var forced: RunRuleData = null
+	if boss_id != &"":
+		if ResourceLoader.exists(RULES_DIR % boss_id):
+			forced = load(RULES_DIR % boss_id) as RunRuleData
+		else:
+			push_error("SandboxPreset: unknown --boss=%s; using the seeded boss." % boss_id)
 	var id := run.map.boss_id if t == NT.BOSS else _first_of(run.map, t)
 	if id < 0:  # this floor's map rolled none: take any row-0 node
 		id = run.map.row_nodes(0)[0].id
-	run.map.current_id = id
-	run.map.visited.append(id)
-	if t == NT.SHOP:
-		run._roll_shop()
-		run._set_screen(MapRunState.Screen.SHOP)
-	else:
-		run.table_type = t
-		run.goal = run.make_goal(t)
-		run._set_screen(MapRunState.Screen.TABLE)
+	run.enter_for_sandbox(t, id, forced)
 	return run
 
 

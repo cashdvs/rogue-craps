@@ -23,6 +23,11 @@ func _run() -> void:
 		if a.begins_with("--out="):
 			OUT = a.trim_prefix("--out=").trim_suffix("/") + "/"
 	DirAccess.make_dir_recursive_absolute(OUT)
+	var title := (load("res://scenes/title.tscn") as PackedScene).instantiate()
+	root.add_child(title)
+	await create_timer(0.8).timeout
+	await shot("sandbox_title")
+	title.queue_free()
 	var menu := (load("res://scenes/sandbox.tscn") as PackedScene).instantiate() as SandboxScreen
 	root.add_child(menu)
 	await create_timer(0.5).timeout

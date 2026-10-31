@@ -136,6 +136,11 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
 - **`RunScreen`** (`scenes/run.tscn`) only displays `MapRun` and forwards clicks. Its
   "Stub: clear / miss" buttons show only with `debug_table_stubs` on in a debug build.
 
+<a id="sandbox"></a>**Sandbox (dev only, Systems Dev):** jump straight into one event for testing and screenshots.
+- `SandboxPreset` (`scripts/core/map/sandbox_preset.gd`): event (`table` / `elite` / `boss` / `shop`), floor 1-3, boss id, seed. `build(RunData)` returns a `MapRun` already on that screen via `MapRun.sandbox_floor()` + `enter_for_sandbox()`, with the starting 5-die bag and the real table_goals_v1 target from `make_goal`. An unknown event `push_error`s and opens a regular Table; an unknown boss keeps the seeded boss. `boss_ids(data, floor)` lists the floor's `boss_cheats`.
+- `SandboxScreen` (`scenes/sandbox.tscn`, `scripts/map/sandbox_screen.gd`): the picker menu; Launch opens `RunScreen` with `preset_run` (stub clear/miss on). Release gate: `SandboxScreen.enabled(OS.is_debug_build())`. In a release build the scene goes to the title, the title shows no SANDBOX button, and `--sandbox=` flags are ignored. The title adds the button with one line, `SandboxScreen.title_hook(self, menu)`.
+- CLI (user args after `--`): `--sandbox=<table|elite|boss|shop>`, `--boss=<rule id>`, `--floor=<1-3>`, `--seed=<N>`. At normal boot the title jumps to the sandbox once (`godot --path . -- --sandbox=boss --boss=pit_boss`); you can also run `res://scenes/sandbox.tscn` directly. Shots: `tools/capture_sandbox.gd`. Tests: `tests/test_sandbox.gd`.
+
 ## Data files
 
 | File | Class | Holds |

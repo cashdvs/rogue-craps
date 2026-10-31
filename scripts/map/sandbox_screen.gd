@@ -7,6 +7,10 @@ extends Control
 
 const RUN_SCENE := "res://scenes/run.tscn"
 const TITLE_SCENE := "res://scenes/title.tscn"
+const SCENE := "res://scenes/sandbox.tscn"
+
+## The --sandbox= boot jump runs once per launch (not on every title return).
+static var _boot_done: bool = false
 
 var run_data: RunData
 var event_pick: OptionButton
@@ -17,9 +21,29 @@ var seed_edit: LineEdit
 var run_screen: RunScreen
 
 
+## The release gate: the sandbox (menu, title button, --sandbox= flags)
+## exists only in debug builds. Pass OS.is_debug_build().
+static func enabled(is_debug: bool) -> bool:
+	if not is_debug:
+		return false
+	return true
+
+
+## Where the sandbox scene goes on open: "" = stay (debug), else the title.
+static func entry_redirect(is_debug: bool) -> String:
+	return "" if enabled(is_debug) else TITLE_SCENE
+
+
+## Scene the title should jump to at boot for these args ("" = none):
+## the sandbox when --sandbox= is given in a debug build, never in release.
+static func boot_target(is_debug: bool, args: PackedStringArray) -> String:
+	return SCENE if enabled(is_debug) and SandboxPreset.from_args(args) != null else ""
+
+
 func _ready() -> void:
-	if not OS.is_debug_build():
-		get_tree().change_scene_to_file.call_deferred(TITLE_SCENE)
+	var to := entry_redirect(OS.is_debug_build())
+	if to != "":
+		get_tree().change_scene_to_file.call_deferred(to)
 		return
 	run_data = load("res://resources/map/bonfire_run.tres") as RunData
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -53,8 +77,24 @@ func _ready() -> void:
 	go.pressed.connect(func() -> void: launch(current_preset()))
 	box.add_child(go)
 	var p := SandboxPreset.from_args(OS.get_cmdline_user_args())
-	if p != null:
+	if p != null and enabled(OS.is_debug_build()):
 		launch.call_deferred(p)
+
+
+## Title screen hook (debug builds only): a SANDBOX button in `menu`, and
+## on normal boot with --sandbox=... jump straight in, once per launch.
+static func title_hook(title: Control, menu: Container, is_debug: bool = OS.is_debug_build()) -> void:
+	if not enabled(is_debug):
+		return
+	var b := OptionsPanel.menu_button("SANDBOX", Palette.FELT_DARK)
+	b.name = "SandboxButton"
+	b.pressed.connect(func() -> void: title.get_tree().change_scene_to_file(SCENE))
+	var c := CenterContainer.new()
+	c.add_child(b)
+	menu.add_child(c)
+	if not _boot_done and boot_target(is_debug, OS.get_cmdline_user_args()) != "":
+		_boot_done = true
+		title.get_tree().change_scene_to_file.call_deferred(SCENE)
 
 
 func _row(box: VBoxContainer, title: String, items: Array) -> OptionButton:
@@ -91,6 +131,7 @@ func current_preset() -> SandboxPreset:
 
 ## Open the run screen on the preset's event.
 func launch(p: SandboxPreset) -> void:
+	print("sandbox: %s floor %d boss '%s' seed %d" % [p.event, p.floor_num, p.boss_id, p.seed_value])
 	run_screen = (load(RUN_SCENE) as PackedScene).instantiate() as RunScreen
 	run_screen.preset_run = p.build(run_data)
 	run_screen.debug_table_stubs = true
