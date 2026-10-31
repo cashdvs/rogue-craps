@@ -58,13 +58,8 @@ def build_model(arm, mobile):
         b.tube([((sx * 0.15, 0, 0.42), 0.04), ((sx * 0.17, 0.002, 0.27), 0.038), ((sx * 0.185, 0.008, 0.16), 0.036)], "sm_suit", "upper_arm_" + s, seg=S(10))
         b.tube([((sx * 0.185, 0.008, 0.17), 0.037), ((sx * 0.192, 0.002, 0.03), 0.035), ((sx * 0.198, 0, -0.05), 0.034)], "sm_suit", "forearm_" + s, seg=S(10))
         b.tube([((sx * 0.198, 0, -0.04), 0.03), ((sx * 0.199, 0, -0.065), 0.03)], "sm_shirt", "forearm_" + s, seg=S(8))  # cuff
-        H = "hand_" + s
-        b.tube([((sx * 0.2, 0, -0.07), 0.022), ((sx * 0.2, 0, -0.105), 0.024)], "sm_skin", H, seg=S(8))
-        b.tube([((sx * 0.2, 0.0, -0.095), 0.028), ((sx * 0.2, -0.002, -0.135), 0.038), ((sx * 0.2, -0.004, -0.17), 0.035)], "sm_skin", H, seg=S(10), flat=0.5, flat_axis=(1, 0, 0))
-        b.tube([((sx * 0.192, -0.03, -0.11), 0.012), ((sx * 0.182, -0.05, -0.14), 0.011), ((sx * 0.176, -0.064, -0.162), 0.009), ((sx * 0.174, -0.068, -0.17), 0.004)], "sm_skin", "thumb_" + s, seg=S(6))
-        b.tube([((sx * 0.2, -0.028, -0.168), 0.011), ((sx * 0.199, -0.031, -0.21), 0.01), ((sx * 0.197, -0.033, -0.245), 0.008), ((sx * 0.196, -0.034, -0.255), 0.003)], "sm_skin", "index_" + s, seg=S(6))
-        for dy, ln in ((-0.004, 0.09), (0.016, 0.085), (0.034, 0.07)):
-            b.tube([((sx * 0.2, dy, -0.17), 0.011), ((sx * 0.199, dy, -0.17 - ln * 0.6), 0.01), ((sx * 0.197, dy + 0.002, -0.17 - ln * 0.95), 0.008), ((sx * 0.196, dy + 0.002, -0.17 - ln), 0.003)], "sm_skin", "fingers_" + s, seg=S(6))
+        # relaxed hand (shared builder, natural-hands pass): sculpted finger curl, opposed thumb
+        bs.build_hand(b, s, "sm_skin", S, wrist_r=0.022, palm_r=0.034, fr=0.0104, tip=0.0032)
     ob_body = b.finish(arm)
 
     h = P("StraightMan_Head")

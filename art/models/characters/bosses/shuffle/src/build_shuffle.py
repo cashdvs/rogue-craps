@@ -53,13 +53,8 @@ def build_model(arm, mobile):
         body.tube([((sx * 0.155, 0.002, 0.31), 0.038), ((sx * 0.17, 0.006, 0.16), 0.034)], "shuffle_glove", "upper_arm_" + s, seg=S(10))
         body.tube([((sx * 0.17, 0.006, 0.17), 0.034), ((sx * 0.172, 0.006, 0.13), 0.032)], "shuffle_glove", "forearm_" + s, seg=S(10))
         body.tube([((sx * 0.172, 0.006, 0.15), 0.032), ((sx * 0.185, 0.002, 0.03), 0.03), ((sx * 0.198, 0, -0.06), 0.022)], "shuffle_glove", "forearm_" + s, seg=S(10))
-        H = "hand_" + s
-        body.tube([((sx * 0.2, 0, -0.07), 0.019), ((sx * 0.2, 0, -0.10), 0.022)], "shuffle_glove", H, seg=S(8))
-        body.tube([((sx * 0.2, 0.0, -0.095), 0.025), ((sx * 0.2, -0.002, -0.13), 0.036), ((sx * 0.2, -0.004, -0.16), 0.033)], "shuffle_glove", H, seg=S(10), flat=0.45, flat_axis=(1, 0, 0))
-        body.tube([((sx * 0.194, -0.024, -0.11), 0.011), ((sx * 0.186, -0.042, -0.14), 0.009), ((sx * 0.18, -0.054, -0.16), 0.004)], "shuffle_glove", "thumb_" + s, seg=S(6))
-        body.tube([((sx * 0.2, -0.02, -0.158), 0.009), ((sx * 0.199, -0.022, -0.21), 0.008), ((sx * 0.198, -0.023, -0.245), 0.003)], "shuffle_glove", "index_" + s, seg=S(6))
-        for dy, ln in ((-0.002, 0.09), (0.014, 0.085), (0.028, 0.07)):  # long slim fingers
-            body.tube([((sx * 0.2, dy, -0.16), 0.009), ((sx * 0.199, dy, -0.16 - ln * 0.7), 0.008), ((sx * 0.198, dy, -0.16 - ln), 0.003)], "shuffle_glove", "fingers_" + s, seg=S(6))
+        # relaxed hand (shared builder, natural-hands pass): sculpted finger curl, opposed thumb
+        bs.build_hand(body, s, "shuffle_glove", S, k=0.96, wrist_r=0.02, palm_r=0.032, fr=0.0092, tip=0.0034)
     ob_body = body.finish(arm)
 
     head = P("Shuffle_Head")
