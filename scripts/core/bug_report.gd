@@ -14,10 +14,10 @@ const SAVED := "Screenshot saved, attach it: %s"  # bug_report_saved
 const NO_MAIL := "No mail app: report copied, email it to %s"  # bug_report_no_mail
 const TOAST_SECS := 6.0
 
-## Opens a URL, returns an Error (tests swap it for a fake).
-static var opener: Callable = func(url: String) -> int: return OS.shell_open(url)
-## Copies text to the clipboard (tests swap it for a fake).
-static var clipboard: Callable = func(text: String) -> void: DisplayServer.clipboard_set(text)
+## Test seams: opener(url) -> Error and clipboard(text). Unset (default) =
+## OS.shell_open / DisplayServer.clipboard_set; tests set fakes, then reset.
+static var opener: Callable
+static var clipboard: Callable
 
 static var _run: WeakRef
 
@@ -105,9 +105,14 @@ static func report(layer: CanvasLayer) -> String:
 ## address, subject and body through `clipboard` and toasts NO_MAIL on
 ## [param node]. Returns the opener's Error.
 static func send(node: Node, subject: String, body: String) -> int:
-	var err := int(opener.call(build_mailto(subject, body)))
+	var url := build_mailto(subject, body)
+	var err := int(opener.call(url)) if opener.is_valid() else OS.shell_open(url)
 	if err != OK:
-		clipboard.call("To: %s\nSubject: %s\n\n%s" % [TO, subject, body])
+		var copy := "To: %s\nSubject: %s\n\n%s" % [TO, subject, body]
+		if clipboard.is_valid():
+			clipboard.call(copy)
+		else:
+			DisplayServer.clipboard_set(copy)
 		if node != null:
 			toast(node, NO_MAIL % TO)
 	return err

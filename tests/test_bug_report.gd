@@ -74,6 +74,10 @@ func _run() -> void:
 	for l in toasts:
 		hit = hit or (l as Label).text == "No mail app: report copied, email it to tinyanvilgames@mail.grokbot.com"
 	check(hit, "fail: no-mail toast shown")
+	BugReport.opener = Callable()
+	BugReport.clipboard = Callable()
+	for l in toasts:
+		l.get_parent().queue_free()
 	pm.queue_free()
 	await process_frame
 	print("test_bug_report: %d passed, %d failed" % [_passed, _failed])
