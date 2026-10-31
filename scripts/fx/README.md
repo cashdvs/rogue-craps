@@ -206,8 +206,8 @@ one_floor_v1). `RunScreen.refresh()` attaches it after `_panel(...)` when
 
 | Step | Time | Shows |
 |---|---|---|
-| wait | 0.20 s | `Embers left: 0 x10 = +0`, `Final score: {points banked}` |
-| Embers line | 0.60 s (ease-out) | `Embers left: {n} x10 = +{pts}` counts up |
+| wait | 0.20 s | `Embers left: 0 x{mult} = +0`, `Final score: {points banked}` |
+| Embers line | 0.60 s (ease-out) | `Embers left: {n} x{mult} = +{pts}` counts up |
 | gap | 0.15 s | Embers line holds |
 | Final score | 0.60 s (ease-out) | `Final score: {n}` ticks up to `RunSummary.final_score(run)` |
 

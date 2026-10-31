@@ -101,7 +101,7 @@ func _test_hook() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/map/run_screen.gd")
 	_check(src.contains("RunCompleteCountup.attach(_panel_box, run, _panel_box.get_child(3), _panel_box.get_child(4))"), "hook: RunScreen attaches the count-up on RUN COMPLETE")
 	var lines := ["Points banked: 1", "Embers left: 7 x10 = +70", "Final score: 71"]
-	_check(RunSummary.text("run_complete_embers", {"n": 7, "pts": 70}) == lines[1], "hook: Embers row text matches RunSummary")
+	_check(RunSummary.embers_line(7, 70, 10) == lines[1], "hook: Embers row text matches RunSummary")
 
 
 func _test_attach_real_run() -> void:
@@ -117,6 +117,7 @@ func _test_attach_real_run() -> void:
 	while not c.done:
 		c.advance(1.0 / 60.0)
 	_check(t.text == RunSummary.text("run_complete_total", {"n": RunSummary.final_score(run)}), "attach: real MapRun ends on RunSummary.final_score")
+	_check(e.text == "Embers left: 9 x%d = +%d" % [run.data.ember_score_mult, RunSummary.ember_points(run)], "attach: rendered Embers line is 'Embers left: 9 x{mult} = +{pts}'")
 	_check(e.text == RunSummary.complete_lines(run)[1], "attach: Embers line ends on RunSummary's row")
 	c.queue_free()
 

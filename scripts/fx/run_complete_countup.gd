@@ -1,5 +1,5 @@
 ## RUN COMPLETE count-up (one_floor_v1, #225 screen): the Embers line counts
-## up ("Embers left: {n} x10 = +{pts}"), then the Final score ticks up from the
+## up ("Embers left: {n} x{mult} = +{pts}"), then the Final score ticks up from the
 ## points banked. Both lines use the Ember UI colour (Palette.EMBER, #E8622A)
 ## with no glow: glow is for dice only. Reduced motion jumps straight to the
 ## final values; any tap, click or key press finishes it instantly.
@@ -24,7 +24,7 @@ var embers_label: Label
 var total_label: Label
 var reduced_motion: bool = false
 var embers: int = 0
-var mult: int = 10
+var mult: int = 0
 ## Embers line target points (RunSummary.ember_points).
 var ember_pts: int = 0
 ## Final score shown before the tick-up (points banked).

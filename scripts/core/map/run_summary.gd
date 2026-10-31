@@ -53,7 +53,7 @@ const TEXT: Dictionary[String, String] = {
 	"run_complete_title": "RUN COMPLETE",
 	"run_complete_reason": "You beat {boss}, and the run is yours.",
 	"run_complete_points": "Points banked: {n}",
-	"run_complete_embers": "Embers left: {n} x10 = +{pts}",
+	"run_complete_embers": "Embers left: {n} x{mult} = +{pts}",
 	"run_complete_total": "Final score: {n}",
 	"run_complete_new": "New Run",
 	"run_complete_menu": "Main Menu",
@@ -67,10 +67,10 @@ static func text(id: String, args: Dictionary = {}) -> String:
 	return TEXT.get(id, "").format(args)
 
 
-## run_complete_embers row for [param n] Embers worth [param pts], with the
-## row's "x10" swapped for the real [param mult].
+## run_complete_embers row for [param n] Embers worth [param pts] at the
+## ember multiplier [param mult] (RunData.ember_score_mult).
 static func embers_line(n: int, pts: int, mult: int) -> String:
-	return text("run_complete_embers", {"n": n, "pts": pts}).replace("x10", "x%d" % mult)
+	return text("run_complete_embers", {"n": n, "mult": mult, "pts": pts})
 
 
 ## Score from Embers left: RunData.ember_score_mult x Embers.

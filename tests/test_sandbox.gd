@@ -6,7 +6,7 @@ extends SceneTree
 
 const S := MapRun.Screen
 const NT := MapGenData.NodeType
-const TARGETS := [[300, 400, 700], [1000, 1300, 2500], [2500, 3000, 3500]]
+const TARGETS := [[350, 500, 1600], [1000, 1300, 2500], [2500, 3000, 3500]]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -95,7 +95,7 @@ func _initialize() -> void:
 	# Unknown event: push_error + visible fallback to a regular table.
 	var bad := SandboxPreset.from_args(PackedStringArray(["--sandbox=nope"]))
 	var br := bad.build(data)
-	_check(bad.event == &"table" and br.screen == S.TABLE and br.table_type == NT.TABLE and br.goal.target == 300, "unknown --sandbox=: falls back to a regular table")
+	_check(bad.event == &"table" and br.screen == S.TABLE and br.table_type == NT.TABLE and br.goal.target == 350, "unknown --sandbox=: falls back to a regular table")
 	var title := (load("res://scenes/title.tscn") as PackedScene).instantiate() as Control
 	root.add_child(title)
 	await process_frame
