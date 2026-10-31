@@ -105,7 +105,9 @@ func _test_hook() -> void:
 
 
 func _test_attach_real_run() -> void:
-	var data := load("res://resources/map/bonfire_run.tres") as RunData
+	var shared := load("res://resources/map/bonfire_run.tres") as RunData
+	var data := shared.duplicate() as RunData
+	data.ember_score_mult = 7
 	var run := MapRun.new(data, 4242)
 	run.progress.embers = 9
 	run.run_points = 777
@@ -119,6 +121,9 @@ func _test_attach_real_run() -> void:
 	_check(t.text == RunSummary.text("run_complete_total", {"n": RunSummary.final_score(run)}), "attach: real MapRun ends on RunSummary.final_score")
 	_check(e.text == "Embers left: 9 x%d = +%d" % [run.data.ember_score_mult, RunSummary.ember_points(run)], "attach: rendered Embers line is 'Embers left: 9 x{mult} = +{pts}'")
 	_check(e.text == RunSummary.complete_lines(run)[1], "attach: Embers line ends on RunSummary's row")
+	_check(e.text.contains("x7") and e.text.contains("+63"), "attach: mult 7 shows x7 and +63 (9 Embers x 7)")
+	_check(c.final_total == 777 + 63 and t.text == "Final score: 840", "attach: Final score includes the +63")
+	_check(shared.ember_score_mult == 10, "attach: shared bonfire_run.tres data not mutated")
 	c.queue_free()
 
 
