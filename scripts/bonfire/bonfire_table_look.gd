@@ -19,7 +19,7 @@ func table_die(d: DieVisual) -> TableDie:
 
 
 ## Shows a TableDie on a die: its face values (pips) and a cheap decal per
-## modded face: Hellfire red-orange rim + glowing pips, Wild rainbow rim +
+## modded face: Hellfire red-orange rim + glowing pips, Wild brass/cream rim +
 ## gold pips, Twin a double outline, Blank plain bone over the pips.
 func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	if td == null:
@@ -95,7 +95,7 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 			_decal_frame(root, n, u, v, lift, e * 0.88, e * 0.08, c)
 			_tint_pips(d, n, HELLFIRE_COLOR)
 		FaceModData.Effect.WILD:
-			_decal_frame(root, n, u, v, lift, e * 0.88, e * 0.08, RAINBOW)
+			_wild_frame(root, n, u, v, lift, e * 0.88, e * 0.08)
 			_tint_pips(d, n, WILD_COLOR)
 		FaceModData.Effect.TWIN:
 			var c: Array[Color] = [TWIN_COLOR, TWIN_COLOR, TWIN_COLOR, TWIN_COLOR]
@@ -156,6 +156,15 @@ func _decal_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float,
 	_decal_quad(root, n, u, v, lift, thick, size, Vector2(o, 0), cols[1], true)
 	_decal_quad(root, n, u, v, lift, size, thick, Vector2(0, -o), cols[2], true)
 	_decal_quad(root, n, u, v, lift, thick, size, Vector2(-o, 0), cols[3], true)
+
+
+## The Wild rim: the same frame, brass / cream strips, then a dark square
+## tick over each corner (a hair higher, so it sits on top of the strips).
+func _wild_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float, size: float, thick: float) -> void:
+	_decal_frame(root, n, u, v, lift, size, thick, WILD_FRAME)
+	var o := (size - thick) * 0.5
+	for c: Vector2 in [Vector2(-o, o), Vector2(o, o), Vector2(o, -o), Vector2(-o, -o)]:
+		_decal_quad(root, n, u, v, lift + 0.0002, thick, thick, c, WILD_TICK, true)
 
 
 ## A Cracked die shatters: burst, gone for the rest of the table.
