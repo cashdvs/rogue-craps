@@ -134,6 +134,16 @@ func _run() -> void:
 	check(s.run.forfeit(), "forfeit the target table")
 	misses = log.filter(func(e: Array) -> bool: return e[0] == &"goal_missed")
 	check(misses.size() == 1 and int(misses[0][1]) == 5, "forfeit: goal_missed(5) (%s)" % str(misses))
+	# 4b) A new run lets go of the old one: one listener, no stale miss.
+	var old := s.run
+	s.new_run(9)
+	await wait_bet(s)
+	log.clear()
+	var hooked := old.table_event.get_connections().filter(func(c: Dictionary) -> bool: return c["callable"].get_object() == s.events)
+	check(hooked.is_empty(), "new_run disconnects the old run (%d left)" % hooked.size())
+	check(s.run.table_event.get_connections().filter(func(c: Dictionary) -> bool: return c["callable"].get_object() == s.events).size() == 1, "exactly one listener on the new run")
+	old.table_event.emit(&"table_end", {"state": BonfireRun.State.FAILED})
+	check(not names().has(&"goal_missed"), "the old run's table_end sends no goal_missed")
 	s.queue_free()
 	# 5) A bounty table that runs out of hands is not a goal miss.
 	s = await make_table(sv, bounty_goal(1))

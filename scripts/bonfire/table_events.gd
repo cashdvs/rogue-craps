@@ -113,14 +113,26 @@ func _init() -> void:
 	name = "TableEvents"
 
 
+## The run watch_goal listens to (null before the first run).
+var _goal_run: BonfireRun = null
+
+
 ## Sends goal_missed when this run's target table ends without reaching its
-## goal. Bonfire3D calls it once for each new run. (The run decides the end
-## and the Soul it costs; this only passes the news on.)
+## goal. Bonfire3D calls it once for each new run; it lets go of the previous
+## run first, so an old run can never send a stale miss (and no listener
+## piles up). (The run decides the end and the Soul; this passes it on.)
 func watch_goal(run: BonfireRun) -> void:
-	run.table_event.connect(func(kind: StringName, data: Dictionary) -> void:
-		if kind != &"table_end" or run.goal.target <= 0:
-			return
-		# FAILED, or RUN_OVER because the miss took the last Soul.
-		var lost := int(run.table_summary.get("timeout_soul", 0))
-		if data.get("state") == BonfireRun.State.FAILED or lost > 0:
-			goal_missed.emit(lost))
+	if _goal_run != null and _goal_run.table_event.is_connected(_on_goal_event):
+		_goal_run.table_event.disconnect(_on_goal_event)
+	_goal_run = run
+	run.table_event.connect(_on_goal_event)
+
+
+## The watched run's table_event: a target table that ended without its goal.
+func _on_goal_event(kind: StringName, data: Dictionary) -> void:
+	if kind != &"table_end" or _goal_run.goal.target <= 0:
+		return
+	# FAILED, or RUN_OVER because the miss took the last Soul.
+	var lost := int(_goal_run.table_summary.get("timeout_soul", 0))
+	if data.get("state") == BonfireRun.State.FAILED or lost > 0:
+		goal_missed.emit(lost)
