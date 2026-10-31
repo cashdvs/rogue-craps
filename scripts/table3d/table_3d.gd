@@ -199,6 +199,7 @@ func _ready() -> void:
 	add_child(LightingLayersFx.new())
 	add_child(SelectionDimFx.new())
 	add_child(HotHandPulseFx.new())
+	add_child(GoalFx.new())  # goal reached / missed plate cue (#229)
 	_build_world()
 	_build_hud()
 	_build_end_screen()
