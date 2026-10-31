@@ -138,6 +138,9 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	thrown.emit(velocity.length())
 	_set_why("")
 	await _throw_dice(slots, velocity, release_pos)
+	# #204: on a phone in landscape, settled dice slide into the rows that
+	# sit clear of the goal plate and the bottom bar.
+	last_nudge = _phone_landscape() and PhoneFrame.clamp_rest(throw_dice, tuning.die_size)
 	if run.is_over():
 		_end_sequence_after_forfeit()
 		return

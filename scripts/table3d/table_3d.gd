@@ -198,6 +198,7 @@ func _ready() -> void:
 	add_child(NerveSpentFx.new())
 	add_child(LightingLayersFx.new())
 	add_child(SelectionDimFx.new())
+	add_child(HotHandPulseFx.new())
 	add_child(GoalFx.new())  # goal reached / missed plate cue (#229); Godot Dev OK pending
 	_build_world()
 	_build_hud()

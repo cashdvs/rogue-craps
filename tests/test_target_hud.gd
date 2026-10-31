@@ -223,7 +223,20 @@ func _check_phone() -> void:
 	check(p.target_value.label_settings.font_size >= 24 * u - 0.5, "phone TARGET number >= 24 pt")
 	var dr := _dealer_rect(s)
 	check(dr.has_area() and not r.intersects(dr), "phone plate clear of the dealer (%s vs %s)" % [r, dr])
-	check(r.end.y <= 138 * u, "phone plate ends above the dice rest zone y138 (%.1f pt)" % (r.end.y / u))
+	# AD ruling (Oct 31): the rest band is measured from the LIVE HUD rects,
+	# 24 pt under the plate's bottom edge and 24 pt over the bottom bar's top.
+	var band := PhoneFrame.band(s)
+	var bar := h.bottom_bar.get_global_rect()
+	check(h.bottom_bar.visible and absf(bar.end.y - 1080) < 1.5, "phone bottom bar along the bottom edge (%s)" % bar)
+	check(absf(band.x - (r.end.y + 24 * u)) < 1.0, "phone rest band starts 24 pt under the live plate bottom (%.1f vs %.1f pt)" % [band.x / u, r.end.y / u + 24])
+	check(absf(band.y - (bar.position.y - 24 * u)) < 1.0, "phone rest band ends 24 pt over the live bottom bar (%.1f vs %.1f pt)" % [band.y / u, bar.position.y / u - 24])
+	# Move both live rects 10 pt: the band must follow them (not fixed y values).
+	p.position.y += 10 * u
+	h.bottom_bar.position.y -= 10 * u
+	var moved := PhoneFrame.band(s)
+	check(absf(moved.x - band.x - 10 * u) < 1.0 and absf(band.y - moved.y - 10 * u) < 1.0, "phone rest band follows the live plate and bar (%s -> %s)" % [band / u, moved / u])
+	p.position.y -= 10 * u
+	h.bottom_bar.position.y += 10 * u
 	check(not h.checklist_panel.visible, "phone: no bounty cards")
 	h.goal_state.set_for_test(300, 0, h.goal_state.hands_left, null, 2)
 	await _frames(2)

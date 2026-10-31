@@ -67,6 +67,12 @@ static func text(id: String, args: Dictionary = {}) -> String:
 	return TEXT.get(id, "").format(args)
 
 
+## run_complete_embers row for [param n] Embers worth [param pts] at the
+## ember multiplier [param mult] (RunData.ember_score_mult).
+static func embers_line(n: int, pts: int, mult: int) -> String:
+	return text("run_complete_embers", {"n": n, "mult": mult, "pts": pts})
+
+
 ## Score from Embers left: RunData.ember_score_mult x Embers.
 static func ember_points(run: MapRun) -> int:
 	return run.progress.embers * run.data.ember_score_mult
@@ -82,7 +88,7 @@ static func complete_lines(run: MapRun) -> Array[String]:
 	var best := String(run.best_combo).capitalize() if run.best_combo != &"" else "None"
 	return [
 		text("run_complete_points", {"n": run.run_points}),
-		text("run_complete_embers", {"n": run.progress.embers, "mult": run.data.ember_score_mult, "pts": ember_points(run)}),
+		embers_line(run.progress.embers, ember_points(run), run.data.ember_score_mult),
 		text("run_complete_total", {"n": final_score(run)}),
 		"Tables cleared: %d" % run.tables_cleared,
 		"Souls left: %d" % run.progress.soul,

@@ -18,7 +18,9 @@ var t: BonfireTuning
 func _initialize() -> void:
 	# The sandbox table_1 is a real F1 target table now; this suite tests bounties.
 	var sandbox_tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	sandbox_tuning.table_goal = load("res://tests/fixtures/bounty_table_1.tres") as TableGoal
+	sandbox_tuning.table_goal = preload("res://tests/bounty_fixture.gd").goal(self)
+	if sandbox_tuning.table_goal == null:
+		return  # fixture missing: goal() printed why and quits
 	set_meta(&"sandbox_tuning", sandbox_tuning)  # keep it cached so every load sees the fixture
 	_run.call_deferred()
 
@@ -101,7 +103,7 @@ func _scene() -> void:
 	check(s.bhud.find_child("ComboPanel", true, false) == null, "the side combo panel is gone")
 	check(s.felt_combos != null and s.felt_combos.labels.size() == 9, "9 combo slots on the felt (%d)" % (s.felt_combos.labels.size() if s.felt_combos else -1))
 	var tl: Label3D = s.felt_combos.labels.get(&"trips")
-	check(tl != null and tl.text == "Lv1 30x3" and not tl.shaded and is_equal_approx(tl.pixel_size, 0.0005), "Trips slot reads 'Lv1 30x3' (%s)" % (tl.text if tl else "none"))
+	check(tl != null and tl.text == "30x3" and not tl.shaded and is_equal_approx(tl.pixel_size, 0.0005), "Trips slot reads '30x3', no Lv1 without a seal (%s)" % (tl.text if tl else "none"))
 	check(is_equal_approx(tl.scale.y, 1.40) and is_equal_approx(tl.rotation_degrees.x, -90.0), "landscape slot: flat, x1.40 stretch")
 	var fm := s.table.felt_material as ShaderMaterial
 	check(bool(fm.get_shader_parameter("use_overlay")) and fm.get_shader_parameter("overlay_tex") != null and is_equal_approx(float(fm.get_shader_parameter("overlay_emission")), 0.35), "the print is on the felt with 0.35 emission")
@@ -259,23 +261,10 @@ func _felt_portrait() -> void:
 	await process_frame
 	var fc := s.felt_combos
 	check(fc.portrait, "portrait: the felt table swaps to the portrait block")
-	var lbl: Label3D = fc.labels.get(&"trips")
-	check(lbl != null and is_equal_approx(lbl.scale.y, 1.10 * fc.port_scale) and lbl.font_size == 88, "portrait slots: font 88, x1.10 (x%.2f fit)" % fc.port_scale)
-	var view := Vector2(1920, 4155)
-	var inside := true
-	for id in fc.labels:
-		var l: Label3D = fc.labels[id]
-		var half := fc.text_width(l) * l.scale.x * 0.5
-		for dz: float in [-half, half]:
-			var sp := s.camera.cam.unproject_position(l.global_position + Vector3(0, 0, dz))
-			if sp.x < 0.0 or sp.x > view.x or sp.y < 0.0 or sp.y > view.y:
-				inside = false
-				print("portrait slot off screen: %s %s" % [id, sp])
-	check(inside and fc.port_scale >= 0.6, "portrait: every slot is on screen (block x%.2f, shift %.3f m)" % [fc.port_scale, fc.port_shift_z])
-	var near := s.camera.cam.unproject_position(Vector3(-0.9, 0, 0))
-	var far := s.camera.cam.unproject_position(Vector3(0.9, 0, 0))
-	print("portrait felt: near(-X) y=%.0f far(+X) y=%.0f flipped=%s" % [near.y, far.y, fc.portrait_flipped])
-	check((near.y > far.y) == not fc.portrait_flipped, "the block sits at the screen-bottom end (near %.0f far %.0f flipped %s)" % [near.y, far.y, fc.portrait_flipped])
+	# #204: the felt print is off on phone portrait (no slots, no overlay).
+	var fm := s.table.felt_material as ShaderMaterial
+	check(fc.off and fc.labels.is_empty(), "portrait: felt combo slots are off (#204) (%d left)" % fc.labels.size())
+	check(fm == null or not bool(fm.get_shader_parameter("use_overlay")), "portrait: felt print overlay is off (#204)")
 	check(not s.bhud.checklist_panel.visible and s.bhud.target_plate.visible, "portrait: cards hidden, goal plate shown (Target HUD v2.1)")
 	sv.queue_free()
 	await process_frame

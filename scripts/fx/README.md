@@ -147,7 +147,7 @@ and a few tiny spark dots that **fall** sideways (never rise above the die).
 | Call | Used by | Look |
 |---|---|---|
 | `apply(d, tier)` / `clear(d)` | score count-up | tier glow 0..3: amber → orange → gold → near-white (`TIER_COLORS`); pips stay ink |
-| `hot_hand_pulse(d, fx_root, reduced)` | `BonfireJuice.hot_hand` | 0.25 s full-ember pulse + 6 spark dots (glow only; sound is TableAudio's `hot_hand`) |
+| `hot_hand_pulse(d, fx_root, reduced)` | `BonfireJuice.hot_hand` | 0.15 s outline ignite at the Hot Hand pulse peak + tier-3 glow (emission 0.3) + 6 spark dots (glow only; sound is TableAudio's `hot_hand`) |
 | `ember_trail(d, fx_root, seconds)` | `fly_start` / `fly_stop` | short spark-dot trail (fades in ~0.3 s) behind dice flying back |
 | `sparks(parent, at, amount, life)` | tier glow | small falling dots |
 
@@ -197,6 +197,43 @@ Boss-dealer FX for Ashmouth "Smiles": an ash puff out of the firebox door at 0.1
 - **Art rules:** greys only, no fire, no violet/cyan/red; soft 10-12 cm clouds of a procedural radial soft-dot texture that grow 1.5x; every burst under 0.6 s; must read at 48 px.
 - **Renderer / motion:** GPUParticles3D on Forward+, CPUParticles3D otherwise. Reduced motion (~1/3 the dots) follows the game setting, read live from the nearest ancestor's `is_reduced_motion()` (Table3D) or `reduced_motion` (Bonfire3D, Dealer3D); the `@export reduced_motion` forces it on.
 - Tests: `tests/test_fx_ashmouth_puffs.gd`. Capture: `tools/capture_ashmouth_puffs.gd` (Vulkan Forward+, `phone=844x390`; needs the local Ashmouth assets).
+
+## RunCompleteCountup
+
+`run_complete_countup.gd` animates two rows of the RUN COMPLETE panel (#225,
+one_floor_v1). `RunScreen.refresh()` attaches it after `_panel(...)` when
+`run.end_reason == &"complete"` (one hook, panel rows 3 and 4).
+
+| Step | Time | Shows |
+|---|---|---|
+| wait | 0.20 s | `Embers left: 0 x{mult} = +0`, `Final score: {points banked}` |
+| Embers line | 0.60 s (ease-out) | `Embers left: {n} x{mult} = +{pts}` counts up |
+| gap | 0.15 s | Embers line holds |
+| Final score | 0.60 s (ease-out) | `Final score: {n}` ticks up to `RunSummary.final_score(run)` |
+
+- Colour: both rows use `Palette.EMBER` (#E8622A), no glow (glow is dice only).
+- Reduced motion (`TuningData.reduced_motion`, `poc_tuning.tres`): final values at once.
+- Skip: any tap, click, key or pad press finishes instantly (`finish()`).
+- No scoring math here: targets are `RunSummary.ember_points` / `final_score`; text comes from `RunSummary.embers_line()` / `text()` (strings_v1 rows).
+- Strip: `tools/capture_run_complete_countup.gd` (Forward+/Vulkan).
+
+## Hot Hand pulse (`hot_hand_pulse_fx.gd`)
+
+`HotHandPulseFx` (child of Table3D, one line after `SelectionDimFx`) holds the Hot Hand
+look for the rest of a HOT hand: it starts on `events.hot_hand` and stops on `banked`, `bust`,
+`table_started` or `table_cleared`. While on, every lit die's ember hull outline
+(`DieVisual.hull_outline`, `shaders/3d/die_hull_outline.gdshader`) breathes (AD spec):
+
+- width 1.0-1.7x the base 0.010 m (peak 0.017 m) on a 0.9 s sine (`0.5 - 0.5 cos`, low at t = 0, peak at 0.45 s);
+- colour #E8622A -> #FFA13A on screen, in step with the width (the shader draws `color * (1 + emission)`, so the uniform is pre-divided by 1.3);
+- ignite: on start the outline jumps to the peak for 0.15 s (`IGNITE_TIME`, also `DieGlow.hot_hand_pulse`), then the sine carries on from its peak;
+- outline emission held at 0.3 (no emission pulse);
+- reduced motion: a static 1.25x outline at the midpoint colour; no scale pulse at all (the optional 1.04x is left out so the die transform stays the sim's).
+
+Outline uniforms only: the die body is never tinted, no particles, no fire. Dimmed and plain dice are
+skipped; stop puts width back to 0.010 m and re-applies the die's own outline state.
+`DieGlow.hot_hand_pulse` no longer flares body emission 1.6 -> 1.0: it keeps the tier-3 glow (emission 0.3), the sparks, and the one-shot outline ignite beat (none under reduced motion).
+Tests: `tests/test_hot_hand_pulse.gd`. Capture: `tools/capture_hot_hand_pulse.gd` (Vulkan Forward+ only).
 
 ## Goal reached / missed (`goal_fx.gd`)
 
