@@ -16,6 +16,7 @@ func _initialize() -> void:
 	_test_reduced_motion()
 	_test_skip()
 	_test_hook()
+	_test_attach_real_run()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -26,7 +27,7 @@ func _make(reduced: bool) -> Array:
 	var c := RunCompleteCountup.new()
 	root.add_child(c)
 	c.set_process(false)
-	c.setup(e, t, 7, 10, 1234, reduced)
+	c.setup(e, t, 7, 10, 70, 1234, 1304, reduced)
 	return [c, e, t]
 
 
@@ -101,6 +102,23 @@ func _test_hook() -> void:
 	_check(src.contains("RunCompleteCountup.attach(_panel_box, run, _panel_box.get_child(3), _panel_box.get_child(4))"), "hook: RunScreen attaches the count-up on RUN COMPLETE")
 	var lines := ["Points banked: 1", "Embers left: 7 x10 = +70", "Final score: 71"]
 	_check(RunSummary.text("run_complete_embers", {"n": 7, "pts": 70}) == lines[1], "hook: Embers row text matches RunSummary")
+
+
+func _test_attach_real_run() -> void:
+	var data := load("res://resources/map/bonfire_run.tres") as RunData
+	var run := MapRun.new(data, 4242)
+	run.progress.embers = 9
+	run.run_points = 777
+	var e := Label.new()
+	var t := Label.new()
+	var c := RunCompleteCountup.attach(root, run, e, t, false)
+	c.set_process(false)
+	_check(c.final_total == RunSummary.final_score(run) and c.ember_pts == RunSummary.ember_points(run), "attach: targets come from RunSummary")
+	while not c.done:
+		c.advance(1.0 / 60.0)
+	_check(t.text == RunSummary.text("run_complete_total", {"n": RunSummary.final_score(run)}), "attach: real MapRun ends on RunSummary.final_score")
+	_check(e.text == RunSummary.complete_lines(run)[1], "attach: Embers line ends on RunSummary's row")
+	c.queue_free()
 
 
 func _check(ok: bool, label: String) -> void:

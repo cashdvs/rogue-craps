@@ -46,7 +46,7 @@ func _run() -> void:
 	var c := RunCompleteCountup.new()
 	root.add_child(c)
 	c.set_process(false)
-	c.setup(e, t, 7, 10, 1234, false)
+	c.setup(e, t, 7, 10, 70, 1234, 1304, false)
 	var shots: Array[Image] = []
 	var at := 0.0
 	for i in TIMES.size():

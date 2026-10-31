@@ -25,7 +25,12 @@ var total_label: Label
 var reduced_motion: bool = false
 var embers: int = 0
 var mult: int = 10
-var points: int = 0
+## Embers line target points (RunSummary.ember_points).
+var ember_pts: int = 0
+## Final score shown before the tick-up (points banked).
+var start_total: int = 0
+## Final score target (RunSummary.final_score).
+var final_total: int = 0
 var elapsed: float = 0.0
 var done: bool = false
 ## Which line is moving: &"wait", &"embers", &"total" or &"done" (for tests).
@@ -38,7 +43,8 @@ var _t: float = 0.0
 ## [param total_lbl] for [param run] (RunSummary rows). Returns the node.
 static func attach(parent: Node, run: MapRun, embers_lbl: Label, total_lbl: Label, reduced: bool = default_reduced_motion()) -> RunCompleteCountup:
 	var c := RunCompleteCountup.new()
-	c.setup(embers_lbl, total_lbl, run.progress.embers, run.data.ember_score_mult, run.run_points, reduced)
+	c.setup(embers_lbl, total_lbl, run.progress.embers, run.data.ember_score_mult, RunSummary.ember_points(run),
+		run.run_points, RunSummary.final_score(run), reduced)
 	parent.add_child(c)
 	return c
 
@@ -49,13 +55,17 @@ static func default_reduced_motion() -> bool:
 	return t != null and t.reduced_motion
 
 
-## Bind the labels and values; shows the start frame (or the end if reduced).
-func setup(embers_lbl: Label, total_lbl: Label, embers_left: int, score_mult: int, points_banked: int, reduced: bool) -> void:
+## Bind the labels and the values to land on (no scoring here: [param pts] and
+## [param final] come from RunSummary); shows the start frame, or the end if
+## [param reduced]. The Final score ticks from [param from_total] to [param final].
+func setup(embers_lbl: Label, total_lbl: Label, embers_left: int, score_mult: int, pts: int, from_total: int, final: int, reduced: bool) -> void:
 	embers_label = embers_lbl
 	total_label = total_lbl
 	embers = embers_left
 	mult = score_mult
-	points = points_banked
+	ember_pts = pts
+	start_total = from_total
+	final_total = final
 	reduced_motion = reduced
 	for l: Label in [embers_label, total_label]:
 		if l != null:
@@ -104,16 +114,20 @@ func shown_embers() -> int:
 
 ## Final score currently shown.
 func shown_total() -> int:
-	return points + _ease_int(embers * mult, _t)
+	return start_total + _ease_int(final_total - start_total, _t)
+
+
+## Embers points currently shown on the Embers line.
+func shown_ember_pts() -> int:
+	return _ease_int(ember_pts, _e)
 
 
 
 func _show(e: float, t: float) -> void:
 	_e = e
 	_t = t
-	var n := shown_embers()
 	if embers_label != null:
-		embers_label.text = RunSummary.text("run_complete_embers", {"n": n, "pts": n * mult}).replace("x10", "x%d" % mult)
+		embers_label.text = RunSummary.embers_line(shown_embers(), shown_ember_pts(), mult)
 	if total_label != null:
 		total_label.text = RunSummary.text("run_complete_total", {"n": shown_total()})
 

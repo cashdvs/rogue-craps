@@ -209,10 +209,10 @@ one_floor_v1). `RunScreen.refresh()` attaches it after `_panel(...)` when
 | wait | 0.20 s | `Embers left: 0 x10 = +0`, `Final score: {points banked}` |
 | Embers line | 0.60 s (ease-out) | `Embers left: {n} x10 = +{pts}` counts up |
 | gap | 0.15 s | Embers line holds |
-| Final score | 0.60 s (ease-out) | `Final score: {n}` ticks up to points + Embers x mult |
+| Final score | 0.60 s (ease-out) | `Final score: {n}` ticks up to `RunSummary.final_score(run)` |
 
 - Colour: both rows use `Palette.EMBER` (#E8622A), no glow (glow is dice only).
 - Reduced motion (`TuningData.reduced_motion`, `poc_tuning.tres`): final values at once.
 - Skip: any tap, click, key or pad press finishes instantly (`finish()`).
-- Text comes from `RunSummary.text()` (strings_v1 rows), so copy stays verbatim.
+- No scoring math here: targets are `RunSummary.ember_points` / `final_score`; text comes from `RunSummary.embers_line()` / `text()` (strings_v1 rows).
 - Strip: `tools/capture_run_complete_countup.gd` (Forward+/Vulkan).
