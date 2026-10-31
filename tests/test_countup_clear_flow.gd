@@ -21,9 +21,10 @@ func check(cond: bool, what: String) -> void:
 		print("FAIL  ", what)
 
 
-func make_table() -> Bonfire3D:
+## 3 dice by default, so potting the trips is a Hot Hand (the only rethrow).
+func make_table(count: int = 3) -> Bonfire3D:
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var st := TableSetup.sandbox(t, 5)
+	var st := TableSetup.sandbox(t, count)
 	st.table_seed = 5
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
@@ -61,7 +62,7 @@ func lines(s: Bonfire3D) -> String:
 ## Pots TRIPS and checks the old preview, notes and risk are showing, so the
 ## checks after rethrow / bank / leave / new run start from a stale line.
 func pot_with_preview(s: Bonfire3D, what: String) -> void:
-	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	await throw_and_pot(s, [3, 3, 3] as Array[int], 3)
 	await process_frame
 	check(s.bhud.throw_label.text.begins_with("TRIPS") and s.bhud.risk_label.text != "", "%s: preview and risk shown first (%s)" % [what, lines(s)])
 
@@ -91,7 +92,7 @@ func rethrow_flow() -> void:
 	check(lines(s) == "||", "rethrow: no stale line under the Pot (%s)" % lines(s))
 	await settle(s)
 	# The next throw: picking it must not show the old TRIPS! / total.
-	s.rig_faces([5, 2] as Array[int])
+	s.rig_faces([5, 2, 6] as Array[int])
 	s.quick_throw()
 	await s.sequence_finished
 	await settle(s)
@@ -116,7 +117,7 @@ func bank_flow() -> void:
 
 func forfeit_flow() -> void:
 	var s := await make_table()
-	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	await throw_and_pot(s, [3, 3, 3] as Array[int], 3)
 	s.throw_again()
 	check(s.forfeit(), "forfeit mid-count-up")
 	await create_timer(0.4).timeout
@@ -128,7 +129,7 @@ func forfeit_flow() -> void:
 
 func new_run_flow() -> void:
 	var s := await make_table()
-	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	await throw_and_pot(s, [3, 3, 3] as Array[int], 3)
 	s.throw_again()
 	s.new_run(7)
 	check(s.bhud.throw_label.text.begins_with("Grab") and s.bhud.notes_label.text == "" and s.bhud.risk_label.text == "", "new run: no stale line under the Pot (%s)" % lines(s))
@@ -143,7 +144,7 @@ func new_run_flow() -> void:
 ## shows no line under the Pot; _after_hand() clears it.
 func hand_end_flow() -> void:
 	var s := await make_table()
-	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	await throw_and_pot(s, [3, 3, 3] as Array[int], 3)
 	var during_reset: Array[String] = []
 	var watch := func() -> void:
 		if s.phase == Table3D.Phase.RESET:
@@ -161,7 +162,7 @@ func hand_end_flow() -> void:
 ## no real preview is up; the test writes old score lines into the labels
 ## and leave()'s HUD refresh must rewrite all three.
 func leave_flow() -> void:
-	var s := await make_table()
+	var s := await make_table(5)
 	for hand in [[[1, 2, 3, 6, 6], 3], [[4, 4, 4, 2, 6], 3], [[2, 2, 6, 6, 3], 4]]:
 		for k in 600:
 			if s.phase == Table3D.Phase.BET:
@@ -176,7 +177,7 @@ func leave_flow() -> void:
 	check(s.can_leave_now(), "leave: table cleared, Leave is live")
 	s.bhud.throw_label.text = "TRIPS: (30+9) x3 = 117"
 	s.bhud.notes_label.text = "Hot Hand +1"
-	s.bhud.risk_label.text = "2 cold dice: 1 in 3 chance nothing lights"
+	s.bhud.risk_label.text = "Hot Hand, all 3 dice: 1 in 3 chance nothing lights"
 	check(s.leave(), "leave")
 	check(lines(s) == "||", "leave: no stale line under the Pot (%s)" % lines(s))
 	s.queue_free()
@@ -191,7 +192,7 @@ func leave_flow() -> void:
 ## real count-up to reach that branch.
 func still_counting_flow() -> void:
 	var s := await make_table()
-	await throw_and_pot(s, [3, 3, 3, 2, 4] as Array[int], 3)
+	await throw_and_pot(s, [3, 3, 3] as Array[int], 3)
 	check(s.throw_again(), "still counting: rethrow")
 	check(s.bhud.countup.is_playing(), "still counting: the rethrow's count-up runs")
 	s.thrown.emit(1000.0)

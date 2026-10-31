@@ -98,7 +98,8 @@ func _run() -> void:
 	s.pick_die(1)
 	s.pick_die(2)
 	await process_frame
-	check(not h.throw_button.disabled and not h.bank_button.disabled and h.action_reason.text == "" and h.throw_button.tooltip_text == "", "(d) a combo potted: both work, no reason")
+	check(h.throw_button.disabled and not h.bank_button.disabled and h.action_reason.text == "Bank it: only a Hot Hand throws again.",
+		"(d) a combo potted, dice left: BANK works, THROW says bank it ('%s')" % h.action_reason.text)
 	var why := BonfireHud.action_reasons(s.run, false)
 	check(why["throw"] == "" and why["bank"] == "", "(d) busy (rolling / counting): no reason shown")
 	s.queue_free()

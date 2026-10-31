@@ -26,10 +26,11 @@ func check(cond: bool, what: String) -> void:
 		print("FAIL  ", what)
 
 
-## A run-mode table whose only bounty is the Triple (easy to clear).
+## A run-mode table whose only bounty is the Triple (easy to clear). 3 dice,
+## so a Hot Hand rethrow can bust (5 plain dice always light a pair).
 func _make_table() -> Bonfire3D:
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var setup := TableSetup.sandbox(t, 5)
+	var setup := TableSetup.sandbox(t, 3)
 	setup.run_mode = true
 	var goal := t.table_goal.duplicate() as TableGoal
 	goal.required = goal.required.slice(0, 1)
@@ -52,7 +53,7 @@ func _throw(s: Bonfire3D, faces: Array[int]) -> void:
 
 ## Bank 4-4-4 for the Triple: the table clears and stays open.
 func _clear(s: Bonfire3D) -> void:
-	await _throw(s, [4, 4, 4, 2, 6] as Array[int])
+	await _throw(s, [4, 4, 4] as Array[int])
 	s.pick_die(0)
 	s.pick_die(1)
 	s.pick_die(2)
@@ -79,10 +80,11 @@ func _forfeit_mid_throw() -> void:
 	await _clear(s)
 	check(r.cleared and not r.is_over(), "the table is cleared and still open")
 	check(s.can_forfeit_now() and not s.pause_menu.forfeit_button.disabled, "between hands: FORFEIT is live")
-	# Pot the 3s, then throw 2-4-6 again: a bust.
-	await _throw(s, [3, 3, 4, 6, 6] as Array[int])
+	# Pot all three 3s (Hot Hand), then throw 2-4-6: a bust.
+	await _throw(s, [3, 3, 3] as Array[int])
 	s.pick_die(0)
 	s.pick_die(1)
+	s.pick_die(2)
 	var soul := r.soul
 	var seen := {}
 	# The moment the dice settle (the bust is visible, not applied yet),
@@ -90,16 +92,16 @@ func _forfeit_mid_throw() -> void:
 	s.dice_landed.connect(func(_v: Array[int]) -> void:
 		seen["button_off"] = s.pause_menu.forfeit_button.disabled
 		seen["forfeit"] = s.forfeit(), CONNECT_ONE_SHOT)
-	# THROW AGAIN commits the pot and puts the 3 cold dice back in the hand;
-	# then they're thrown (rigged 2-4-6).
-	check(s.throw_again(), "THROW AGAIN: the 3 cold dice go back to the hand")
+	# THROW AGAIN (Hot Hand) commits the pot and puts all 3 dice back in the
+	# hand; then they're thrown (rigged 2-4-6).
+	check(s.throw_again(), "THROW AGAIN: Hot Hand, all 3 dice go back to the hand")
 	for k in 300:
 		if s.can_throw() == "" and not s.hand_moving():
 			break
 		await process_frame
 	s.rig_faces([2, 4, 6] as Array[int])
-	check(s.quick_throw(), "throw the 3 cold dice")
-	# The cold dice hop back to the hand first, then fly.
+	check(s.quick_throw(), "throw the 3 dice")
+	# The dice hop back to the hand first, then fly.
 	for k in 300:
 		if s.phase != Table3D.Phase.BET:
 			break

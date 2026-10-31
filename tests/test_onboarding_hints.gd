@@ -35,57 +35,46 @@ func _seed_data() -> void:
 		check(f.size() == int(e["dice"]) and not BonfireScoring.lit_indices(f, t).is_empty(), "seed H%d T%d %s lights something (never a bust)" % [e["hand"], e["throw"], str(f)])
 
 
-## Seeded hand 1, potting the obvious run: 2-3-4, then 1-1 -> Hot Hand, then
-## the first unclaimed, not-pending bounty (Triple), then seeding stops.
+## Seeded hand 1: 2-3-4 4 6. No cold rethrow now, so potting the run and
+## pressing THROW banks it; the hand-1 throw-2/3 seeds (cold-dice throws)
+## never come up, and hand 2 is seeded.
 func _seeded_run_run3() -> void:
 	var s := await make_table()
 	check(s.bhud.tutorial.active, "Table 1 + tutorial: the tutorial runs")
 	var f := await throw(s)
 	check(f == [2, 3, 4, 4, 6] and s.seeded_throws == [true], "H1 T1 seeded 2 3 4 4 6 (%s)" % str(f))
 	pick_faces(s, [2, 3, 4])
-	check(s.throw_again(), "pot the run")
-	await wait_bet(s)
+	var hands := s.run.hands_left
+	check(s.throw_again(), "THROW with cold dice left: banks the run")
 	f = await throw(s)
-	check(f == [1, 1], "H1 T2 (2 dice) seeded 1 1 (%s)" % str(f))
-	pick_faces(s, [1, 1])
-	check(s.throw_again() and s.run.hot_hands == 1, "pot the Pair: every die scored, Hot Hand")
-	await wait_bet(s)
-	f = await throw(s)
-	check(f == [3, 3, 3, 2, 6], "H1 T3: Run of 3 is pending, so the Triple seed (%s)" % str(f))
-	pick_faces(s, [3, 3, 3])
-	check(s.throw_again(), "pot the Trips")
-	await wait_bet(s)
-	await throw(s)
-	check(s.seeded_throws == [true, true, true, false] and not s.onboarding.seeding, "H1 T4 has no seed: unseeded, seeding stops (%s)" % str(s.seeded_throws))
+	check(s.run.hands_left == hands - 1 and s.run.throws_this_hand == 1, "the run banked: hand 2's first throw (hands %d)" % s.run.hands_left)
+	check(f == [1, 1, 3, 3, 5] and s.seeded_throws == [true, true], "H2 T1 seeded 1 1 3 3 5 (%s)" % str(f))
 	s.queue_free()
 	await process_frame
 
 
-## The other branch: pot 4-4, then 1-1-1 -> Hot Hand; hand 2 is not seeded.
+## A Hot Hand in hand 1 (a rigged 1-1-1-1-1, every die potted): hand 2 is
+## not seeded.
 func _seeded_run_pair44() -> void:
 	var s := await make_table()
-	await throw(s)
-	pick_faces(s, [4, 4])
-	s.throw_again()
+	await throw(s, [1, 1, 1, 1, 1] as Array[int])
+	pick_faces(s, [1, 1, 1, 1, 1])
+	check(s.run.is_hot(), "every die potted: Hot Hand")
+	check(s.throw_again() and s.run.hot_hands == 1, "THROW: the Hot Hand throws again")
 	await wait_bet(s)
-	var f := await throw(s)
-	check(f == [1, 1, 1], "H1 T2 (3 dice) seeded 1 1 1 (%s)" % str(f))
-	pick_faces(s, [1, 1, 1])
-	check(s.throw_again() and s.run.hot_hands == 1, "pot the Trips: Hot Hand")
-	await wait_bet(s)
-	f = await throw(s)
-	check(f == [2, 2, 5, 5, 6], "H1 T3: Triple pending, so the Two Pair seed (%s)" % str(f))
-	pick_faces(s, [2, 2, 5, 5])
+	await throw(s, [2, 2, 3, 3, 6] as Array[int])
+	pick_faces(s, [2, 2, 3, 3])
 	await s.bank()
 	await wait_bet(s)
 	await throw(s)
-	check(s.seeded_throws.size() == 4 and not s.seeded_throws[3], "hand 1 had a Hot Hand: hand 2 is not seeded (%s)" % str(s.seeded_throws))
+	check(s.seeded_throws.size() == 3 and not s.seeded_throws[2], "hand 1 had a Hot Hand: hand 2 is not seeded (%s)" % str(s.seeded_throws))
 	s.queue_free()
 	await process_frame
 
 
-## No Hot Hand in hand 1: hand 2 is seeded (1 1 3 3 5, then 5 -> Hot Hand);
-## hand 3 never is (seeding ends with hand 2).
+## No Hot Hand in hand 1: hand 2 is seeded (1 1 3 3 5); its throw-2 seed
+## (the lone 5) needs a cold rethrow, so it never comes up: THROW banks,
+## and hand 3 is unseeded (seeding ends with hand 2).
 func _stop_hand2_end() -> void:
 	var s := await make_table()
 	await throw(s)
@@ -95,16 +84,9 @@ func _stop_hand2_end() -> void:
 	var f := await throw(s)
 	check(f == [1, 1, 3, 3, 5], "H2 T1 seeded 1 1 3 3 5 (%s)" % str(f))
 	pick_faces(s, [1, 1, 3, 3])
-	s.throw_again()
-	await wait_bet(s)
-	f = await throw(s)
-	check(f == [5], "H2 T2 seeded 5 (%s)" % str(f))
-	pick_faces(s, [5])
-	check(s.run.can_continue(), "the 5 pots")
-	await s.bank()
-	await wait_bet(s)
+	check(s.throw_again(), "THROW with the 5 left: banks the Two Pair")
 	await throw(s)
-	check(s.seeded_throws == [true, true, true, false] and not s.onboarding.seeding, "hand 3: unseeded, seeding over (%s)" % str(s.seeded_throws))
+	check(s.seeded_throws == [true, true, false] and not s.onboarding.seeding, "hand 3: unseeded, seeding over (%s)" % str(s.seeded_throws))
 	s.queue_free()
 	await process_frame
 

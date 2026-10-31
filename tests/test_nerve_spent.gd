@@ -23,9 +23,9 @@ func check(cond: bool, what: String) -> void:
 
 
 ## A sandbox table with fast, snapping dice; nerve_spent is recorded.
-func make_table() -> Bonfire3D:
+func make_table(count: int = 5) -> Bonfire3D:
 	var tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var st := TableSetup.sandbox(tuning, 5)
+	var st := TableSetup.sandbox(tuning, count)
 	st.table_seed = 5
 	st.starting_soul = 9
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
@@ -102,7 +102,7 @@ func no_nudge_no_fire() -> void:
 	s.pick_die(0)
 	s.pick_die(1)
 	s.pick_die(2)
-	check(s.throw_again(), "rethrow without a nudge")
+	check(s.throw_again(), "THROW (banks: not hot) without a nudge")
 	await process_frame
 	check(spent.is_empty(), "no pending nudge: no nerve_spent (%s)" % str(spent))
 	await done(s)
@@ -122,11 +122,12 @@ func undo_no_fire() -> void:
 
 ## The bust-rescue: the saving nudge is spent when its die is potted.
 func rescue_save_fires() -> void:
-	var s := await make_table()
-	await throw_faces(s, [3, 3, 1, 1, 6] as Array[int])
-	s.pick_die(0)
-	s.pick_die(1)
-	check(s.throw_again(), "rethrow the cold dice")
+	# 3 dice: a Hot Hand rethrow is the only way to a bust (no cold rethrow).
+	var s := await make_table(3)
+	await throw_faces(s, [3, 3, 3] as Array[int])
+	for k in 3:
+		s.pick_die(k)
+	check(s.throw_again(), "Hot Hand: rethrow all 3")
 	await process_frame
 	await throw_faces(s, [2, 4, 6] as Array[int])
 	check(s.run.bust_pending, "the bust waits for a rescue")

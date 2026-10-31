@@ -48,11 +48,11 @@ func clear_table(r: BonfireRun) -> int:
 	return r.points
 
 
-## A hand that pots a pair of 3s, then rethrows 2-4-6 (nothing lights): bust.
+## A hand that pots all five 3s (Hot Hand), then throws 2-4-6 (nothing lights): bust.
 func bust_hand(r: BonfireRun) -> void:
-	r.set_throw([3, 3, 2, 4, 6] as Array[int])
-	r.toggle(0)
-	r.toggle(1)
+	r.set_throw([3, 3, 3, 3, 3] as Array[int])
+	for i in 5:
+		r.toggle(i)
 	r.rethrow()
 	check(not r.set_throw([2, 4, 6] as Array[int]) and r.last_result.get("kind") == &"bust", "2-4-6 lights nothing: bust")
 
@@ -142,12 +142,12 @@ func _run() -> void:
 	# Leave is refused mid-hand (after a throw, or after a rethrow).
 	r = new_run()
 	clear_table(r)
-	r.set_throw([3, 3, 2, 4, 6] as Array[int])
+	r.set_throw([3, 3, 3, 3, 3] as Array[int])
 	check(not r.can_leave(), "mid-hand (dice landed): can't leave")
-	r.toggle(0)
-	r.toggle(1)
+	for i in 5:
+		r.toggle(i)
 	r.rethrow()
-	check(r.state == BonfireRun.State.AIM and not r.can_leave(), "mid-hand (cold dice to rethrow): can't leave")
+	check(r.state == BonfireRun.State.AIM and not r.can_leave(), "mid-hand (Hot Hand to throw): can't leave")
 
 	await _scene()
 	print("test_leave_table: %d passed, %d failed" % [_passed, _failed])

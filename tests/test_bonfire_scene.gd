@@ -147,7 +147,7 @@ func _run() -> void:
 
 	await _count_up_after_settle(s)
 
-	# A scripted table: trips, a bust, a Hot Hand, then the clearing bank.
+	# A scripted table: trips banked, a Hot Hand, then the clearing bank.
 	s.new_run(5)
 	r = s.run
 	await create_timer(0.3).timeout
@@ -165,13 +165,13 @@ func _run() -> void:
 	check(s.bhud.throw_label.text == "TRIPS: (30+12) x3 = 126", "live pot preview (%s)" % s.bhud.throw_label.text)
 	await create_timer(0.3).timeout
 	check(s.throw_dice[2].global_position.distance_to(s.pot_slot(2)) < 0.01, "potted dice sit on the rail pot")
-	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "throw again: 2 cold dice back in the hand")
-	check(s.bhud.bounty_rows[&"triple"].text.begins_with("[?]"), "Triple pending in the checklist")
-	await create_timer(0.3).timeout
-	var soul := r.soul
-	res = await throw_faces(s, [2, 6] as Array[int])
-	check((res[1] as Array).is_empty() and r.soul == soul - t.bust_soul_loss and not r.is_ticked(t.table_goal.required[0]), "2-6 = bust: -Soul, the pending Triple is lost")
-	check(r.hands_left == 4 and s.dice.size() == 5 and s.bhud.bounty_rows[&"triple"].text.begins_with("[ ]"), "fresh hand of 5 after the bust")
+	check(s.bhud.bounty_rows[&"triple"].text.begins_with("[ ]"), "Triple open in the checklist before the bank")
+	# No cold rethrow: THROW with 2 dice left banks the trips.
+	check(s.throw_again() and r.hands_left == 4, "not a Hot Hand: THROW banks the Triple")
+	while s.phase != Table3D.Phase.BET or s.hand_moving() or s.dice.size() != 5:
+		await process_frame
+	check(r.is_ticked(t.table_goal.required[0]) and s.dice.size() == 5 and s.bhud.bounty_rows[&"triple"].text.begins_with("[x]"), "Triple ticked, fresh hand of 5")
+	# (A bust needs 3 dice or fewer: covered on 3-die tables in test_table_events / test_portrait_goal_hud.)
 	res = await throw_faces(s, [3, 3, 3, 5, 5] as Array[int])
 	for i in 5:
 		s.pick_die(i)
@@ -222,7 +222,7 @@ func _count_up_after_settle(s: Bonfire3D) -> void:
 	for d in s.all_dice:
 		d.rest.disconnect(on_rest)
 	check(s.pick_die(0) and s.pick_die(1) and s.pick_die(2), "pot the 4-4-4")
-	check(s.throw_again() and s.bhud.countup.is_playing(), "committing the pot starts the count-up")
+	check(s.throw_again() and s.bhud.countup.is_playing(), "THROW banks the pot and starts the count-up")
 	var cu := s.bhud.countup
 	var start_ms: int = cu._start_ms
 	check(rest_ms > release_ms and start_ms >= rest_ms, "count-up starts after the dice rest (release +%d ms, rest +%d ms, count-up +%d ms)" % [0, rest_ms - release_ms, start_ms - release_ms])

@@ -189,25 +189,21 @@ func _scene() -> void:
 	check(refused == [4] and s.bhud.callout_label.text == "doesn't score" and s.bhud.callout_label.modulate.a > 0.9, "'doesn't score' callout")
 	await create_timer(0.4).timeout
 	check(d2.position.distance_to(before) < 0.001, "the refused die bounces back to where it was")
-	# Pot preview + rethrow risk.
+	# Pot preview; no rethrow risk (cold dice don't throw again).
 	s.pick_die(0)
 	s.pick_die(1)
 	s.pick_die(2)
 	s._refresh_hud()
 	check(s.bhud.throw_label.text == "TRIPS: (30+12) x3 = 126", "pot preview (%s)" % s.bhud.throw_label.text)
-	check(s.bhud.risk_label.text == "2 cold dice: 1 in 3 chance nothing lights", "rethrow risk (%s)" % s.bhud.risk_label.text)
+	check(s.bhud.risk_label.text == "", "no cold rethrow: no risk line with dice left (%s)" % s.bhud.risk_label.text)
 	check(s.bhud.card_header.text == "Claim all 3 bounties · 5 hands left", "card header (%s)" % s.bhud.card_header.text)
 	check(s.bhud.points_label.text == "points 0 → +0 Embers", "points as income (%s)" % s.bhud.points_label.text)
-	# Throw the 2 cold dice: the prompt in AIM says the same.
-	check(s.throw_again(), "throw the 2 cold dice")
-	await wait_bet(s)
-	s._refresh_hud()
-	# Bounty card: the potted Triple is pending (ghost), then the claimed seal.
+	# Bounty card: the potted Triple banks straight to the claimed seal.
 	var card: BountyCard = s.bhud.bounty_cards[&"triple"]
-	check(card.state == "pending" and card.ghost.visible and card.pending_label.visible and card.pending_label.text == "Pending: bank to claim it.", "Triple card PENDING · bank to lock (%s)" % card.state)
-	check(s.bhud.throw_label.text == "2 cold dice: 1 in 3 chance nothing lights", "AIM prompt with the risk (%s)" % s.bhud.throw_label.text)
-	await throw_faces(s, [1, 5] as Array[int])
-	s.pick_die(0)
+	# (A pot only goes pending when a Hot Hand commits it; this one banks.)
+	check(card.state == "open", "Triple card still open before the bank (%s)" % card.state)
+	# THROW can't take the 2 cold dice: it says to bank. Bank the Triple.
+	check(s.bhud.throw_button.disabled and s.bhud.action_reason.text == "Bank it: only a Hot Hand throws again.", "THROW with cold dice left: bank it (%s)" % s.bhud.action_reason.text)
 	await s.bank()
 	await wait_bet(s)
 	check(card.state == "claimed" and card.seal.visible and s.bhud.has_stamp(&"triple"), "banked: the CLAIMED seal")

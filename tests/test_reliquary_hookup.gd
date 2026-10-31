@@ -40,7 +40,7 @@ func deltas(r: SoulReliquaryHookup) -> Array[String]:
 func _run() -> void:
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
-	s.setup = TableSetup.sandbox(t, 5)
+	s.setup = TableSetup.sandbox(t, 3)  # 3 dice: a Hot Hand rethrow can bust
 	s.setup.nerve_uses = 0  # a plain bust, no Nerve rescue pause
 	s.test_speed = 10.0
 	root.add_child(s)
@@ -57,16 +57,16 @@ func _run() -> void:
 	check(plate.size.x > 4.0 and plate.size.y > 2.0, "plate is on screen (%s)" % plate)
 	check(s.onboarding == null or s.onboarding.anchor_rect(&"soul", {}) == plate, "onboarding 'soul' arrow points at the plate")
 
-	# Real path: pot trips, then a bust loses Soul.
+	# Real path: pot trips (Hot Hand), then a bust loses Soul.
 	await create_timer(0.3).timeout
-	await throw_faces(s, [4, 4, 4, 5, 2] as Array[int])
+	await throw_faces(s, [4, 4, 4] as Array[int])
 	await s.sequence_finished
 	s.pick_die(0); s.pick_die(1); s.pick_die(2)
-	check(s.throw_again(), "pot the 4-4-4 and throw again")
+	check(s.throw_again(), "pot the 4-4-4 and throw all 3 again (Hot Hand)")
 	await s.bhud.countup.finished
 	await create_timer(0.3).timeout
 	var before := run.soul
-	await throw_faces(s, [2, 6] as Array[int])
+	await throw_faces(s, [2, 4, 6] as Array[int])
 	await s.sequence_finished
 	await process_frame
 	check(run.soul < before, "the bust cost Soul (%d -> %d)" % [before, run.soul])

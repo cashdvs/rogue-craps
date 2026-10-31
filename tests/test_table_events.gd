@@ -76,7 +76,7 @@ func _run() -> void:
 	sv.size = Vector2i(1920, 1080)
 	sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(sv)
-	var st := TableSetup.sandbox(t, 5)
+	var st := TableSetup.sandbox(t, 3)  # 3 dice: a Hot Hand rethrow can bust
 	st.table_seed = 5
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
@@ -106,32 +106,32 @@ func _run() -> void:
 		fx.call("unbind")
 	var played: Array = []
 	s.sfx.played.connect(func(e: StringName) -> void: played.append(e))
-	# Hand 1: throw 4-4-4-5-2, a refused pick, pot the Triple (rethrow).
-	await throw_faces(s, [4, 4, 4, 5, 2] as Array[int])
-	check(not s.pick_die(4), "the cold 2 is refused")
+	# Hand 1: throw 4-4-4, pot the Triple (every die: Hot Hand, rethrow).
+	await throw_faces(s, [4, 4, 4] as Array[int])
 	for i in 3:
 		s.pick_die(i)
-	check(s.throw_again(), "pot the Triple")
+	check(s.throw_again(), "pot the Triple: Hot Hand")
 	await wait_bet(s)
-	# Throw the 2 cold dice: 5-5, pot the Pair by banking.
-	await throw_faces(s, [5, 5] as Array[int])
+	# Throw all 3 again: 5-5-2, a refused pick, pot the Pair by banking.
+	await throw_faces(s, [5, 5, 2] as Array[int])
+	check(not s.pick_die(2), "the cold 2 is refused")
 	s.pick_die(0)
 	s.pick_die(1)
 	await s.bank()
 	await wait_bet(s)
-	# Hand 2: pot the Triple again, then the 2 cold dice burn (2-3).
-	await throw_faces(s, [4, 4, 4, 5, 2] as Array[int])
+	# Hand 2: pot the Triple again (Hot Hand), then all 3 dice burn (2-4-6).
+	await throw_faces(s, [4, 4, 4] as Array[int])
 	for i in 3:
 		s.pick_die(i)
-	check(s.throw_again(), "hand 2: pot the Triple")
+	check(s.throw_again(), "hand 2: pot the Triple: Hot Hand")
 	await wait_bet(s)
-	await throw_faces(s, [2, 3] as Array[int])
+	await throw_faces(s, [2, 4, 6] as Array[int])
 	for k in 60:
 		await process_frame
 	var order := main_order()
-	var want: Array[StringName] = [&"dice_thrown", &"dice_settled", &"triggers_resolved", &"no_score", &"combo_potted", &"triggers_resolved",
-		&"dice_thrown", &"dice_settled", &"triggers_resolved", &"combo_potted", &"triggers_resolved", &"banked", &"bounty_claimed",
-		&"dice_thrown", &"dice_settled", &"triggers_resolved", &"combo_potted", &"triggers_resolved",
+	var want: Array[StringName] = [&"dice_thrown", &"dice_settled", &"triggers_resolved", &"combo_potted", &"triggers_resolved", &"hot_hand_fly", &"hot_hand",
+		&"dice_thrown", &"dice_settled", &"triggers_resolved", &"no_score", &"combo_potted", &"triggers_resolved", &"banked", &"bounty_claimed",
+		&"dice_thrown", &"dice_settled", &"triggers_resolved", &"combo_potted", &"triggers_resolved", &"hot_hand_fly", &"hot_hand",
 		&"dice_thrown", &"dice_settled", &"triggers_resolved", &"bust"]
 	check(order == want, "signal order: pot, bank, bust (%s)" % str(order))
 	# Payloads.
@@ -147,21 +147,21 @@ func _run() -> void:
 		if e[0] == &"die_lit_changed" and e[2]:
 			lit_ids.append(e[1])
 	lit_ids.sort()
-	check(lit_ids == [0, 1, 2, 3], "the 4-4-4-5 light (handful ids %s), the 2 stays off" % str(lit_ids))
+	check(lit_ids == [0, 1, 2], "the 4-4-4 light (handful ids %s)" % str(lit_ids))
 	var p2 := first(&"combo_potted", p1 + 1)
-	check(p2 >= 0 and log[p2][1] == &"pair" and log[p2][2] == [3, 4], "bank pots the Pair: the 2 cold dice keep their handful ids 3, 4 (%s)" % str(log[p2] if p2 >= 0 else []))
+	check(p2 >= 0 and log[p2][1] == &"pair" and log[p2][2] == [0, 1], "bank pots the Pair: the Hot Hand dice keep their handful ids 0, 1 (%s)" % str(log[p2] if p2 >= 0 else []))
 	var bk := first(&"banked")
 	check(bk >= 0 and p2 >= 0 and int(log[bk][1]) == 126 + int(log[p2][3]), "banked(points) = Triple 126 + the Pair (%s)" % str(log[bk] if bk >= 0 else []))
 	var cl := first(&"bounty_claimed")
 	check(cl >= 0 and log[cl][1] == &"triple", "bounty_claimed(triple)")
 	var bu := first(&"bust")
-	check(bu >= 0 and int(log[bu][1]) == t.bust_soul_loss and log[bu][2] == [3, 4], "bust(soul_loss = %d, the 2 busted dice 3, 4) (%s)" % [t.bust_soul_loss, str(log[bu] if bu >= 0 else [])])
+	check(bu >= 0 and int(log[bu][1]) == t.bust_soul_loss and log[bu][2] == [0, 1, 2], "bust(soul_loss = %d, the 3 busted dice 0, 1, 2) (%s)" % [t.bust_soul_loss, str(log[bu] if bu >= 0 else [])])
 	# selection_changed (empty: not picking) may sit between them.
 	var tb := bu - 1
 	while tb > 0 and log[tb][0] == &"selection_changed":
 		tb -= 1
 	var tr_bust: Array = log[tb][1] if bu > 0 and log[tb][0] == &"triggers_resolved" else []
-	check(tr_bust.size() == 1 and tr_bust[0]["stage"] == &"lit" and tr_bust[0]["row_id"] == &"bust" and tr_bust[0]["ctx"]["die_ids"] == [3, 4],
+	check(tr_bust.size() == 1 and tr_bust[0]["stage"] == &"lit" and tr_bust[0]["row_id"] == &"bust" and tr_bust[0]["ctx"]["die_ids"] == [0, 1, 2],
 		"the bust throw's triggers: one lit-check entry, bust (%s)" % str(tr_bust))
 	var plain_scoring := log.filter(func(e: Array) -> bool: return e[0] == &"triggers_resolved" and not (e[1] as Array).is_empty())
 	check(plain_scoring.size() == 1, "plain dice: only the bust has triggers (%d lists)" % plain_scoring.size())

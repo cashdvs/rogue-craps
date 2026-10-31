@@ -58,15 +58,14 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	mult_label.text = ("+%d mult" % run.mult_bonus()) if run.mult_bonus() > 0 else ""
 	bank_button.disabled = not (can_act and run.can_continue())
 	if picking:
-		# No cold rethrow: the throw button is only there for a Hot Hand.
-		throw_button.visible = run.is_hot()
 		throw_button.disabled = not (can_act and run.rethrow_block_reason() == "")
 		throw_button.text = "Hot Hand: throw all %d dice" % run.dice_count
 	else:
-		throw_button.visible = true
 		throw_button.disabled = not can_act
 		throw_button.text = "Throw %d dice" % run.cold
 	var why := action_reasons(run, can_act)
+	if picking and can_act and why["throw"] == "":
+		why["throw"] = run.rethrow_block_reason()  # no cold rethrow: "Bank it: only a Hot Hand throws again."
 	throw_button.tooltip_text = why["throw"]
 	bank_button.tooltip_text = why["bank"]
 	# The caption names the first greyed-out button's reason while picking.
