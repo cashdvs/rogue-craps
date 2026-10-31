@@ -64,7 +64,7 @@ func _check_text() -> void:
 	check(TargetPlate.status_text(300, 299, 2) != "PASSED · 2 hands left", "target - 1 is not passed")
 	check(TargetPlate.status_text(300, 340, 1) == "PASSED · 1 hand left", "goal_passed_one_hand")
 	# The plate's words are TableGoalStrings' (main, #213) plus its own BOSS / SEALS.
-	check(TargetPlate.BOSS_TAG == "BOSS" and TargetPlate.SEALS_CHIP % 4 == "SEALS · 4", "plate BOSS tag and SEALS chip words")
+	check(TableGoalStrings.BOSS_TAG == "BOSS" and TableGoalStrings.seals(4) == "SEALS · 4", "plate BOSS tag and SEALS chip words")
 	check(TableGoalStrings.MISS % 2 == "Missed: -2 Soul" and TableGoalStrings.OVER % "40" == "+40", "miss / over words from TableGoalStrings")
 
 
@@ -128,12 +128,26 @@ func _check_pc() -> void:
 	p.show_miss(-1)
 	# Boss: a small brass BOSS tag left of TARGET (no red); hidden otherwise.
 	check(not p.boss_tag.visible, "no BOSS tag on a normal table")
-	# (Banked moves too: main's set_for_test only emits `changed` when a
-	# number changes, not for is_boss alone.)
-	g.set_for_test(123456, 12401, 2, null, 4, true)
+	# Only is_boss flips (no number moves): is_boss_changed shows the tag.
+	g.set_for_test(123456, 12400, 2, null, 4, true)
 	await _frames(1)
 	check(p.boss_tag.visible and p.boss_tag.text == "BOSS" and p.boss_tag.label_settings.font_color == Palette.BRASS_HI, "boss: brass BOSS tag")
 	check(p.boss_tag.get_index() < p.target_label.get_index() and p.boss_tag.get_parent() == p.target_label.get_parent(), "BOSS sits left of TARGET")
+	g.set_for_test(123456, 12400, 2, null, 4)
+	await _frames(1)
+	check(not p.boss_tag.visible and p.banked_value.text == "12,400", "flipping only is_boss back hides the BOSS tag")
+	# A plate bound to a goal that is already a boss shows the tag at once.
+	g.set_for_test(123456, 12400, 2, null, 4, true)
+	var p2 := TargetPlate.new()
+	root.add_child(p2)
+	p2.bind(g)
+	check(p2.boss_tag.visible, "bind() to a boss goal shows BOSS straight away")
+	p2.bind(null)
+	check(not p2.boss_tag.visible, "unbound: no BOSS tag")
+	g.set_for_test(123456, 12400, 2, null, 4)
+	g.set_for_test(123456, 12400, 2, null, 4, true)
+	check(not p2.boss_tag.visible, "unbinding stops the old goal's boss flips")
+	p2.queue_free()
 	g.set_for_test(123456, 12400, 2, null, 4)
 	# text_scale grows text (not padding or chips): AD PC x1.4.
 	p.text_scale = 1.4
