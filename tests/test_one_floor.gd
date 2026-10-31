@@ -94,6 +94,13 @@ func _test_run_complete(data: RunData) -> void:
 	var lines := RunSummary.lines(run)
 	_check(lines[0] == "Points banked: %d" % run.run_points and lines[2] == "Final score: %d" % RunSummary.final_score(run), "screen: run_complete rows")
 	_check(lines[1] == "Embers left: %d x10 = +%d" % [run.progress.embers, 10 * run.progress.embers], "screen: Embers x10 row")
+	_check(RunSummary.reason_line(run) == "You beat %s, and the run is yours." % run.boss_name(), "screen: run_complete_reason by id")
+	_check(MapKey.LINES[MapGenData.NodeType.BOSS] == "Boss: beat the cheat to win the run.", "map key: map_key_boss row")
+	var md := FileAccess.get_file_as_string("res://design/strings_v1.md")
+	var ok := true
+	for id in RunSummary.TEXT:
+		ok = ok and md.contains("| %s | (new) | %s |" % [id, RunSummary.TEXT[id]])
+	_check(ok, "strings: RunSummary.TEXT matches design/strings_v1.md verbatim")
 
 
 func _check(ok: bool, label: String) -> void:
