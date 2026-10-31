@@ -7,29 +7,15 @@
 ##     40-60% over it, so the hue stays (no pale tint); a d6 has none;
 ##   - rendered (not headless), a cold d4 is about 0.45 bright, like the d6,
 ##     and a lit d4 keeps its body hue;
-##   - its camera-facing value tag never covers HUD text (the felt seal row
-##     "Lv1 120x12", combo strip, 2D labels), even parked right under the
-##     seal row, and is >= 24 px tall on a phone (844x390);
+##   - its camera-facing value tag never covers HUD text (a felt combo
+##     slot, combo strip, 2D labels), even parked right under a combo
+##     slot, and is >= 24 px tall on a phone (844x390);
 ##   - nor sits on another die (QA: on phone it covered the next d6's pips):
 ##     a d6 parked right beside / below the d4, on PC and phone;
-##   - QA's crowded phone case (mid-hand, Nerve showing): all 4 plain spots
-##     blocked (QA saw combo strip, 'Nerve ready', a d6, a card title; the
-##     Target HUD and #204 moved those, so parked d6s stand in for them): the tag still shows (a slid / corner spot),
-##     on no text, and >= 4 px clear of every other die.
+##   - QA's crowded phone case lives in tests/test_d4_crowded.gd.
 ##   godot --headless --path . --script res://tests/test_d4_readable.gd
 ##   (brightness part: xvfb-run -a godot --path . --rendering-method gl_compatibility --script ...)
-extends SceneTree
-
-var _passed: int = 0
-var _failed: int = 0
-
-
-func check(cond: bool, what: String) -> void:
-	if cond:
-		_passed += 1
-	else:
-		_failed += 1
-		print("FAIL  ", what)
+extends "res://tests/d4_readable_base.gd"
 
 
 func _initialize() -> void:
@@ -53,41 +39,8 @@ func _run() -> void:
 	await _check_tag(m[1], _die(m[1], &"d4"), 390.0, "phone 844x390")
 	(m[0] as Node).queue_free()
 	await process_frame
-	m = await _make(Vector2i(2337, 1080), 1)
-	(m[1] as Bonfire3D).fit_phone(Vector2(844, 390))
-	await _check_crowded(m[1])
-	(m[0] as Node).queue_free()
-	await process_frame
 	print("test_d4_readable: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
-
-
-## The real scene in a SubViewport; the last of 5 sandbox dice is a Gallows d4.
-func _make(canvas: Vector2i, nerve: int = 0) -> Array:
-	var sv := SubViewport.new()
-	sv.size = canvas
-	sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	root.add_child(sv)
-	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var st := TableSetup.sandbox(t, 5)
-	st.nerve_uses = nerve
-	st.dice[st.dice.size() - 1] = TableDie.new(DiceIds.DIE_GALLOWS, "Gallows", DiceIds.shape_of(DiceIds.DIE_GALLOWS))
-	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
-	s.setup = st
-	s.tutorial_override = 0
-	s.bonfire_seed = 5
-	s.test_speed = 10.0
-	sv.add_child(s)
-	await process_frame
-	await process_frame
-	return [sv, s]
-
-
-func _die(s: Bonfire3D, shape: StringName) -> DieVisual:
-	for d: DieVisual in s.all_dice:
-		if d.shape == shape:
-			return d
-	return null
 
 
 func _energy(d: DieVisual) -> float:
@@ -127,60 +80,6 @@ func _check_glow(d4: DieVisual) -> void:
 	check(is_zero_approx(_energy(d4)), "no glow comes back after scoring clears (%.2f)" % _energy(d4))
 
 
-## Every piece of text on screen, worked out here (not with HudTextRects).
-func _text_rects(s: Bonfire3D) -> Array:
-	var out := []
-	var cam := s.camera.cam
-	for n in s.get_viewport().find_children("*", "Control", true, false):
-		var c := n as Control
-		var txt := str(c.get("text")).strip_edges()
-		if (c is Label or c is Button) and txt != "" and c.is_visible_in_tree() and _seen(c):
-			out.append([c.get_global_rect(), txt])
-	for n in s.get_viewport().find_children("*", "Label3D", true, false):
-		var l := n as Label3D
-		if l.is_visible_in_tree() and l.text.strip_edges() != "" and not l is D4ValueTag:
-			var ab := l.get_aabb()
-			var r := Rect2(cam.unproject_position(l.global_transform * ab.get_endpoint(0)), Vector2.ZERO)
-			for i in 8:
-				r = r.expand(cam.unproject_position(l.global_transform * ab.get_endpoint(i)))
-			out.append([r, l.text])
-	return out
-
-
-## False when [param c] or a parent is faded out (the hidden count-up "x").
-func _seen(c: CanvasItem) -> bool:
-	var n: Node = c
-	while n is CanvasItem:
-		if (n as CanvasItem).modulate.a <= 0.05 or (n as CanvasItem).self_modulate.a <= 0.05:
-			return false
-		n = n.get_parent()
-	return true
-
-
-## Tag rect from its font, worked out here: font px x pixel size x the
-## camera's px per metre at 1 m (KEEP_HEIGHT: view height / 2 tan(fov/2)).
-func _tag_rect(s: Bonfire3D, tag: Label3D) -> Rect2:
-	var cam := s.camera.cam
-	var view_h := s.get_viewport().get_visible_rect().size.y
-	var h := tag.font_size * tag.pixel_size * view_h / (2.0 * tan(deg_to_rad(cam.fov) * 0.5))
-	var sz := Vector2(h * 0.62 * maxi(tag.text.length(), 1) + 0.25 * h, h)
-	return Rect2(cam.unproject_position(tag.global_position) - sz * 0.5, sz)
-
-
-func _tag_clear(s: Bonfire3D, tag: Label3D, label: String) -> void:
-	for k in 20:  # the tag re-reads the HUD every 15 frames
-		await process_frame
-	if not tag.visible:
-		check(true, "%s: tag hidden (no clear spot)" % label)
-		return
-	var r := _tag_rect(s, tag)
-	var hits := []
-	for t in _text_rects(s):
-		if (t[0] as Rect2).intersects(r):
-			hits.append(t[1])
-	check(hits.is_empty(), "%s: tag %s covers no HUD text %s" % [label, str(r), str(hits)])
-
-
 func _check_tag(s: Bonfire3D, d4: DieVisual, screen_h: float, label: String) -> void:
 	var tag := d4.get_node_or_null("D4ValueTag") as Label3D
 	check(tag != null and tag.billboard == BaseMaterial3D.BILLBOARD_ENABLED and not tag.shaded,
@@ -208,16 +107,6 @@ func _check_tag(s: Bonfire3D, d4: DieVisual, screen_h: float, label: String) -> 
 		d4.global_position = Vector3(seal.global_position.x, d4.global_position.y, seal.global_position.z + 0.05)
 		await _tag_clear(s, tag, label + " under the seal row")
 	await _check_neighbours(s, d4, tag, label)
-
-
-## Screen rect of a die's body mesh, worked out here (not the game's die_rect).
-func _body_rect(cam: Camera3D, d: DieVisual) -> Rect2:
-	var body := d.faces.get_node("Body") as MeshInstance3D
-	var ab := body.get_aabb()
-	var r := Rect2(cam.unproject_position(body.global_transform * ab.position), Vector2.ZERO)
-	for i in 8:
-		r = r.expand(cam.unproject_position(body.global_transform * ab.get_endpoint(i)))
-	return r
 
 
 ## Parks d6s right next to the d4 (left, right, below, left + below) and
@@ -255,119 +144,6 @@ func _check_neighbours(s: Bonfire3D, d4: DieVisual, tag: Label3D, label: String)
 				hits.append(d.name)
 		check(hits.is_empty(), "%s d6 %s: tag %s on no other die %s" % [label, name, str(r), str(hits)])
 	check(shown >= 2, "%s: tag still shows beside parked d6s (%d of 4)" % [label, shown])
-
-
-## Is screen rect [param r] on screen but on one of [param rects]?
-func _blocked(r: Rect2, rects: Array, view: Rect2) -> bool:
-	return view.encloses(r) and rects.any(func(q: Rect2) -> bool: return q.intersects(r))
-
-
-## [param scan]: walks the felt for the first d4 spot (the d6 0.12 m to its
-## left) where all 4 plain tag spots are blocked, and parks both there.
-## Not [param scan]: just re-checks the spot they are on now.
-## Target HUD v2.1: the bounty-card titles are gone, so a 2nd d6 [param up]
-## parked above the d4 can stand in for the text that blocked the top spot,
-## and (the Target plate moved, #204 drops the felt combo strip) a 3rd d6
-## [param dn] below it for the combo strip; [param rt] (null: none) on the
-## right when 'Nerve ready' isn't beside it.
-func _park_crowded(s: Bonfire3D, d4: DieVisual, nb: DieVisual, up: DieVisual, dn: DieVisual, rt: DieVisual, size: Vector2, scan: bool) -> bool:
-	var cam := s.camera.cam
-	var view := s.get_viewport().get_visible_rect()
-	var texts: Array = _text_rects(s).map(func(t: Array) -> Rect2: return t[0])
-	var y := d4.global_position.y
-	var h := size * 0.5
-	var spot := func(p: Vector2) -> Rect2: return Rect2(p - h, size)
-	var z := -0.4 if scan else d4.global_position.z
-	while z <= 0.5:
-		var x := -0.8 if scan else d4.global_position.x
-		while x <= 0.8:
-			d4.global_position = Vector3(x, y, z)
-			nb.global_position = Vector3(x - 0.12, y, z)
-			up.global_position = Vector3(x, y, z - 0.12)
-			dn.global_position = Vector3(x, y, z + 0.12)
-			if rt != null:
-				rt.global_position = Vector3(x + 0.12, y, z)
-			var dr := RulesPlaqueDodge.die_rect(cam, d4)  # the die box the tag hugs
-			var c := dr.get_center()
-			if not texts.any(func(q: Rect2) -> bool: return q.intersects(dr.grow(4))) \
-					and _blocked(spot.call(Vector2(c.x, dr.end.y + 4 + h.y)), texts + [RulesPlaqueDodge.die_rect(cam, dn)], view) \
-					and _blocked(spot.call(Vector2(dr.end.x + 4 + h.x, c.y)), texts + ([RulesPlaqueDodge.die_rect(cam, rt)] if rt != null else []), view) \
-					and _blocked(spot.call(Vector2(dr.position.x - 4 - h.x, c.y)), [RulesPlaqueDodge.die_rect(cam, nb)], view) \
-					and _blocked(spot.call(Vector2(c.x, dr.position.y - 4 - h.y)), texts + [RulesPlaqueDodge.die_rect(cam, up)], view):
-				return true
-			if not scan:
-				return false
-			x += 0.01
-		z += 0.01
-	return false
-
-
-## QA #198 phone layout: mid-hand with Nerve showing, a d6 just left of the
-## d4. Scans the felt for a d4 spot where all 4 plain tag spots (below,
-## right, left, above; worked out here) are blocked as QA saw (left by the
-## d6, the other 3 by HUD text), parks it there and checks the tag.
-func _check_crowded(s: Bonfire3D) -> void:
-	for k in 600:
-		if s.phase == Table3D.Phase.BET and s.run.state == BonfireRun.State.AIM and not s.hand_moving():
-			break
-		await process_frame
-	s.quick_throw()
-	await s.sequence_finished
-	s.nerve_ui.refresh()
-	for k in 20:
-		await process_frame
-	var d4 := _die(s, &"d4")
-	var tag := d4.get_node("D4ValueTag") as Label3D
-	var cam := s.camera.cam
-	var view := s.get_viewport().get_visible_rect()
-	check(s.nerve_ui.pip_box.is_visible_in_tree(), "crowded: Nerve showing mid-hand")
-	var nb: DieVisual = null
-	var up: DieVisual = null
-	var dn: DieVisual = null
-	var rt: DieVisual = null
-	for d: DieVisual in s.all_dice:
-		if d != d4 and nb == null:
-			nb = d
-		elif d != d4 and d != nb and up == null:
-			up = d
-		elif d != d4 and d != nb and d != up and dn == null:
-			dn = d
-		elif d != d4 and d != nb and d != up and d != dn and rt == null:
-			rt = d
-	var far := Vector3(0.0, d4.global_position.y, -5.0)
-	for d: DieVisual in s.all_dice:  # clear the felt but for the d4 + its neighbour
-		if d != d4 and d != nb and d != up and d != dn and d != rt:
-			d.global_position = far
-	var found := false
-	for tries in 6:  # the Nerve UI moves off dice, so rescan until it settles
-		found = _park_crowded(s, d4, nb, up, dn, rt, _tag_rect(s, tag).size, true)
-		for k in 20:  # the tag re-reads the HUD every 15 frames
-			await process_frame
-		if found and _park_crowded(s, d4, nb, up, dn, rt, _tag_rect(s, tag).size, false):
-			break
-		found = false
-	check(found, "crowded: QA's layout (all 4 plain spots blocked) found on the phone felt")
-	if not found:
-		return
-	print("crowded: d4 at ", d4.global_position)
-	check(tag.visible, "crowded: tag still shows with all 4 plain spots blocked")
-	if not tag.visible:
-		return
-	var r := _tag_rect(s, tag)
-	var hits := []
-	for t in _text_rects(s):
-		if (t[0] as Rect2).intersects(r):
-			hits.append(t[1])
-	check(hits.is_empty(), "crowded: tag %s covers no HUD text %s" % [str(r), str(hits)])
-	var nr := RulesPlaqueDodge.die_rect(cam, nb)
-	check(not nr.grow(4).intersects(r), "crowded: tag %s >= 4 px clear of the d6 %s" % [str(r), str(nr)])
-	var ur := RulesPlaqueDodge.die_rect(cam, up)
-	check(not ur.grow(4).intersects(r), "crowded: tag %s >= 4 px clear of the d6 above %s" % [str(r), str(ur)])
-	var dnr := RulesPlaqueDodge.die_rect(cam, dn)
-	check(not dnr.grow(4).intersects(r), "crowded: tag %s >= 4 px clear of the d6 below %s" % [str(r), str(dnr)])
-	if rt != null:
-		check(not RulesPlaqueDodge.die_rect(cam, rt).grow(4).intersects(r), "crowded: tag >= 4 px clear of the d6 right")
-	check(view.encloses(r), "crowded: tag on screen")
 
 
 ## Rendered check (skipped headless): cold d4 ~ d6 at ~0.45, lit keeps its hue.
