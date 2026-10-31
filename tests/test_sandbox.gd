@@ -84,6 +84,12 @@ func _initialize() -> void:
 	_check(off_menu.event_pick == null, "dev_tools=false: the sandbox scene builds no menu (redirects to the title)")
 	off_menu.queue_free()
 	await process_frame
+	var nokey := off.get_base_dir().path_join("version_nokey.cfg")
+	var nf := FileAccess.open(nokey, FileAccess.WRITE)
+	nf.store_string("[version]\nmajor_minor=\"0.1\"\npatch=2\nsha=\"dev\"\n")
+	nf.close()
+	Version.load_file(nokey)
+	_check(not Version.dev_tools(), "version.cfg without dev_tools: Version.dev_tools() is false")
 	Version.load_file()
 	DirAccess.remove_absolute(off)
 	# Unknown event: push_error + visible fallback to a regular table.
