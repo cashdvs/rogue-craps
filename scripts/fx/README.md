@@ -197,3 +197,20 @@ Boss-dealer FX for Ashmouth "Smiles": an ash puff out of the firebox door at 0.1
 - **Art rules:** greys only, no fire, no violet/cyan/red; soft 10-12 cm clouds of a procedural radial soft-dot texture that grow 1.5x; every burst under 0.6 s; must read at 48 px.
 - **Renderer / motion:** GPUParticles3D on Forward+, CPUParticles3D otherwise. Reduced motion (~1/3 the dots) follows the game setting, read live from the nearest ancestor's `is_reduced_motion()` (Table3D) or `reduced_motion` (Bonfire3D, Dealer3D); the `@export reduced_motion` forces it on.
 - Tests: `tests/test_fx_ashmouth_puffs.gd`. Capture: `tools/capture_ashmouth_puffs.gd` (Vulkan Forward+, `phone=844x390`; needs the local Ashmouth assets).
+
+## Hot Hand pulse (`hot_hand_pulse_fx.gd`)
+
+`HotHandPulseFx` (child of Table3D, one line after `SelectionDimFx`) holds the Hot Hand
+look for the rest of a HOT hand: it starts on `events.hot_hand` and stops on `banked`, `bust`,
+`table_started` or `table_cleared`. While on, every lit die's ember hull outline
+(`DieVisual.hull_outline`, `shaders/3d/die_hull_outline.gdshader`) breathes (AD spec):
+
+- width 1.0-1.5x the base 0.010 m on a 0.9 s sine (`0.5 - 0.5 cos`, low at t = 0, peak at 0.45 s);
+- colour #E8622A -> #FFA13A in step with the width;
+- outline emission held at 0.3 (no emission pulse);
+- reduced motion: a static 1.25x outline at the midpoint colour; no scale pulse at all (the optional 1.04x is left out so the die transform stays the sim's).
+
+Outline uniforms only: the die body is never tinted, no particles, no fire. Dimmed and plain dice are
+skipped; stop puts width back to 0.010 m and re-applies the die's own outline state.
+The separate one-shot "ignite" (`DieGlow.hot_hand_pulse`, table above) is unchanged.
+Tests: `tests/test_hot_hand_pulse.gd`. Capture: `tools/capture_hot_hand_pulse.gd` (Vulkan Forward+ only).
