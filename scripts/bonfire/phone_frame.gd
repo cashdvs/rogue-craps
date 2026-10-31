@@ -1,14 +1,16 @@
 ## Phone landscape (844x390) camera for #204: the home pitch, 1.2x closer (AD)
 ## than BonfireTuning.cam_phone_landscape_distance, with the pivot slid along
-## the felt so the dice rest band sits centred between the Target plate
-## (ends at y138 pt) and the phone bottom bar (PhoneBottomBar, 44 pt tall).
+## the felt so the dice rest band sits centred between the Target plate and
+## the phone bottom bar (PhoneBottomBar, 44 pt tall). The band is measured
+## from the LIVE HUD rects (AD ruling, Oct 31), not from fixed y values.
 class_name PhoneFrame
 extends RefCounted
 
 ## How much closer than the old whole-felt phone framing (AD: 1.2x).
 const CLOSER := 1.2
-## Bottom of the Target plate on phone (pt).
-const PLATE_BOTTOM_PT := 138.0
+## Fallback only: bottom of the Target plate on phone (pt), used when the
+## HUD isn't built yet (no live rect to measure).
+const FALLBACK_PLATE_BOTTOM_PT := 138.0
 ## Clear gap kept between the resting dice and the HUD (AD: 24 pt).
 const GAP_PT := 24.0
 ## Screen-edge safe area for the throw zone and pot row (AD: 16 pt).
@@ -47,10 +49,24 @@ static func fit_landscape(t: BonfireTableLayout) -> float:
 	return smallest
 
 
-## The free band for resting dice, screen px (top, bottom).
+## The free band for resting dice, screen px (top, bottom): from GAP_PT
+## below the live Target plate's bottom edge to GAP_PT above the live bottom
+## bar's top edge. If the HUD isn't there yet, falls back to the spec values.
 static func band(t: BonfireTableLayout) -> Vector2:
 	var pt := t.get_viewport().get_visible_rect().size.y / SCREEN_PT
-	return Vector2(PLATE_BOTTOM_PT + GAP_PT, SCREEN_PT - PhoneBottomBar.HEIGHT_PT - GAP_PT) * pt
+	var top := (FALLBACK_PLATE_BOTTOM_PT + GAP_PT) * pt
+	var bottom := (SCREEN_PT - PhoneBottomBar.HEIGHT_PT - GAP_PT) * pt
+	var h := t.bhud
+	if h == null:
+		return Vector2(top, bottom)
+	# Live rects: only trust them once the HUD is laid out for phone landscape.
+	var plate := h.target_plate
+	if plate != null and plate.is_visible_in_tree() and plate.size.y > 0.0:
+		top = plate.get_global_rect().end.y + GAP_PT * pt
+	var bar := h.bottom_bar
+	if bar.is_inside_tree() and bar.visible and bar.size.y > 0.0:
+		bottom = bar.get_global_rect().position.y - GAP_PT * pt
+	return Vector2(top, bottom)
 
 
 ## Screen y span (top, bottom px) of the resting dice, current camera.

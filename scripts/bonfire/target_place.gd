@@ -3,7 +3,8 @@
 ##   PC 1600x900:     AD Oct 30: plate x1.4 (w756, text x1.4, pad 16, chips
 ##                    24), top-centre at y24; SEALS just under its left end.
 ##   Phone 844x390:   plate w388 (46%), right-aligned (16) at y40, clear of the dealer
-##                    and the dice rest zone (y >= 138); SEALS in the bottom bar.
+##                    and the dice rest band (PhoneFrame.band: 24 pt under this plate's live
+##                    bottom edge); SEALS in the bottom bar.
 ##   Portrait 390:    plate at (12, 36) pt, scale 0.8, SEALS under it (AD OK:
 ##                    left-aligned, stops short of the pot row on the right).
 ## The HUD's design canvas is 1920 wide, so on PC 1 spec px = 1.2 design px;

@@ -266,7 +266,7 @@ func _fit_landscape_felt() -> void:
 	felt_combos.set_land_fit(k, sx)
 
 
-## Phone landscape: PhoneFrame's closer framing (#204: 1.41x, dice resting
+## Phone landscape: PhoneFrame's closer framing (#204: 1.2x, dice resting
 ## between the Target plate and the bottom bar). Returns the smallest die (px).
 ## True on a phone held sideways (fit_phone got a wide screen).
 func _phone_landscape() -> bool:
