@@ -74,6 +74,7 @@ func _initialize() -> void:
 	_specials()
 	_outcome()
 	_no_cold_rethrow()
+	_full_pot()
 	print("test_bonfire_rules: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -483,6 +484,40 @@ func _no_cold_rethrow() -> void:
 		check(r.is_hot() and r.rethrow_block_reason() == "", "%d dice, all potted: Hot Hand may rethrow" % n)
 		var res := r.rethrow()
 		check(res.get("hot", false) and r.cold == n and r.hot_hands == 1 and r.state == BonfireRun.State.AIM, "%d dice: the Hot Hand throws all %d again" % [n, n])
+
+
+## hot_hand_cap_v1: a full pot (POT_CAP = 5) is a Hot Hand on a 6-7-die bag.
+func _full_pot() -> void:
+	for c in [[5, 5, true], [5, 4, false], [6, 5, true], [7, 5, true], [6, 4, false]]:
+		var n: int = c[0]
+		var k: int = c[1]
+		var r := run_with([], [], null, n)
+		var faces: Array[int] = []
+		for i in n:
+			faces.append(1 if i < k else 2 + i % 2)
+		r.set_throw(faces)
+		var idx: Array = []
+		for i in k:
+			idx.append(i)
+		pot(r, idx)
+		check(r.is_hot() == c[2], "%d-die bag, pot %d: Hot Hand %s" % [n, k, c[2]])
+		if c[2]:
+			r.kindling_armed = true
+			var want: int = r.throw_points()
+			var res := r.rethrow()
+			check(res.get("hot", false) and r.cold == n and r.hot_hands == 1, "%d-die bag, full pot: all %d throw again" % [n, n])
+			check(r.kindling_armed, "%d-die bag: Kindling still guards the full-pot Hot Hand throw" % n)
+			check(r.pot == want, "%d-die bag: the pot keeps the previewed %d" % [n, want])
+			r.set_throw(faces)
+			pot(r, [0])
+			var pv: int = r.pot + r.throw_points()
+			check(int(r.bank().get("gain", -1)) == pv, "%d-die bag: banked = preview after a full-pot Hot Hand" % n)
+		else:
+			check(r.rethrow().is_empty(), "%d-die bag, pot %d: no rethrow" % [n, k])
+	var nh := run_with([rule(&"cold_hands")], [], null, 6)
+	nh.set_throw([1, 1, 1, 1, 1, 2] as Array[int])
+	pot(nh, [0, 1, 2, 3, 4])
+	check(nh.rethrow_block_reason() == "No Hot Hand at this table: bank it.", "6-die bag on a no-Hot-Hand table: a full pot still banks")
 
 
 func _outcome() -> void:
