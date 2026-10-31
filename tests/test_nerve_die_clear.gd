@@ -102,7 +102,10 @@ func _check_cards(s: Bonfire3D, label: String) -> void:
 	for c: Control in s.bhud.bounty_cards.values():
 		if c.is_visible_in_tree():
 			cards.append(c)
-	check(not cards.is_empty(), "%s: bounty cards showing" % label)
+	# Target HUD v2.1 hides the old cards: the goal plate (+ SEALS) blocks instead.
+	check(cards.is_empty() == s.bhud.target_plate.is_visible_in_tree(), "%s: bounty cards or the goal plate showing" % label)
+	if s.bhud.target_plate.is_visible_in_tree():
+		cards.append(s.bhud.target_plate)
 	for p: Control in [s.nerve_ui.pip_box, s.nerve_ui.rescue_panel]:
 		var hits := []
 		for c: Control in cards:

@@ -79,7 +79,7 @@ func _pair_gain() -> int:
 
 
 func _test_data() -> void:
-	var want := [[300, 400, 700, 14], [1000, 1300, 2500, 16], [2500, 3000, 3500, 18]]
+	var want := [[350, 500, 1600, 14], [1000, 1300, 2500, 16], [2500, 3000, 3500, 18]]
 	for f in 3:
 		var fd: FloorData = _data.floors[f]
 		_check([fd.target_table, fd.target_elite, fd.target_boss, fd.clear_embers] == want[f] and fd.miss_soul == 5,
@@ -233,7 +233,7 @@ func _test_state() -> void:
 	_enter(run, NT.TABLE)
 	var r := BonfireRun.new(_tuning, run.goal, 30, 5)
 	var gs := TableGoalState.watch(r, run)
-	_check(gs.target == 300 and gs.banked == 0 and gs.hands_left == r.hands_left and not gs.is_boss and gs.seals == 0
+	_check(gs.target == 350 and gs.banked == 0 and gs.hands_left == r.hands_left and not gs.is_boss and gs.seals == 0
 		and gs.bounties.is_empty() and gs.debuff == null, "state: initial fields")
 	var got := {"banked": [], "hands": [], "changed": 0, "seals": [], "target": 0}
 	gs.banked_changed.connect(func(v: int) -> void: got["banked"].append(v))
@@ -257,9 +257,9 @@ func _test_state() -> void:
 	_check(gs.seals == 1 and got["seals"] == [1], "state: taking a Seal -> seals 1, seals_changed (%s)" % [got["seals"]])
 	_enter(run, NT.BOSS)
 	var bs := TableGoalState.watch(BonfireRun.new(_tuning, run.goal, 30, 5))
-	_check(bs.is_boss and bs.target == 700 and bs.seals == 0, "state: boss table, no map run -> seals 0")
+	_check(bs.is_boss and bs.target == 1600 and bs.seals == 0, "state: boss table, no map run -> seals 0")
 	var ms := TableGoalState.watch(run)
-	_check(ms.map_run == run and ms.run == null and ms.is_boss and ms.target == 700 and ms.banked == 0
+	_check(ms.map_run == run and ms.run == null and ms.is_boss and ms.target == 1600 and ms.banked == 0
 		and ms.hands_left == run.goal.hands and ms.seals == 1, "state: watch(map_run) alone -> map goal, seals, banked 0")
 	var both := TableGoalState.watch(run, bs.run)
 	_check(both.run == bs.run and both.map_run == run, "state: watch(map_run, run) in either order")
@@ -279,6 +279,20 @@ func _test_state() -> void:
 	_check(ts.debuff == dbf and seam["n"] == 2 and seam["sig"].back() == ["d", dbf], "seam: a debuff change emits debuff_changed")
 	ts.set_for_test(300, 120, 3, dbf, 2, true)
 	_check(seam["n"] == 2, "seam: no change -> no signals")
+	var boss_sig: Array = []
+	ts.is_boss_changed.connect(func(v: bool) -> void: boss_sig.append(v))
+	ts.set_for_test(300, 120, 3, dbf, 2, false)
+	_check(not ts.is_boss and boss_sig == [false] and seam["n"] == 3, "seam: only is_boss changes -> is_boss_changed + changed (%s, %d)" % [boss_sig, seam["n"]])
+	_check(TableGoalStrings.BOSS_TAG == "BOSS" and TableGoalStrings.seals(3) == "SEALS · 3", "strings: BOSS tag and SEALS chip")
+	var bl := RunRuleData.new()
+	bl.id = &"bloodletter"
+	_check(TableGoalStrings.preview_miss(5) == "Miss: -5 Soul" and TableGoalStrings.preview_miss(5, [bl]) == "Miss: -10 Soul",
+		"strings: preview miss doubles under the Bloodletter")
+	for rl: Array in [[], [bl]]:
+		var cr := BonfireRun.new(_tuning, run.goal, 30, 5)
+		cr.set_rules(TableRules.build(rl))
+		_check(TableGoalStrings.miss_cost(5, rl) == cr.soul_cost(5, &"timeout"),
+			"strings: preview miss cost == the run's real timeout charge (%d rules)" % rl.size())
 	var br := BonfireRun.new(_tuning, run.goal, 30, 5)
 	_check(not br.bounties_count(), "rules: a target table counts no bounties (no cards to tick)")
 	_check(TableGoalStrings.num(1234567) == "1,234,567" and TableGoalStrings.num(300) == "300"

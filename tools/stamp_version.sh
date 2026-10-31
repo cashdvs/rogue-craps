@@ -10,11 +10,13 @@
 #     `trap ... EXIT`, so the tree is clean again on success AND on failure.
 #     The script exits with the export command's status.
 # Usage:
-#   tools/stamp_version.sh [--no-sha] -- <export command...>
+#   tools/stamp_version.sh [--no-sha] [--public] -- <export command...>
 #     e.g. tools/stamp_version.sh -- godot --headless --export-release "Android" \
 #            build/DiceOfTheDamned-0.1.2-Android.apk
-#   tools/stamp_version.sh [--no-sha] --stamp-only
+#   tools/stamp_version.sh [--no-sha] [--public] --stamp-only
 #     stamps and leaves the files stamped: only for a throwaway copy/CI checkout.
+#   --public: public release, writes dev_tools=false (no sandbox); beta
+#     review builds omit it and keep version.cfg's dev_tools=true.
 # STAMP_DIR / STAMP_SHA override the tree and the sha (tests).
 set -euo pipefail
 DIR="${STAMP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
@@ -22,10 +24,12 @@ CFG="$DIR/version.cfg"
 PRESETS="$DIR/export_presets.cfg"
 FILES=("$CFG" "$PRESETS" "$DIR/project.godot")
 use_sha=1
+public=0
 stamp_only=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--no-sha) use_sha=0; shift ;;
+		--public) public=1; shift ;;
 		--stamp-only) stamp_only=1; shift ;;
 		--) shift; break ;;
 		*) echo "stamp_version: unknown option $1 (export command goes after --)" >&2; exit 2 ;;
@@ -55,6 +59,9 @@ if [ $stamp_only -eq 0 ]; then
 	trap restore EXIT
 fi
 sed -i "s/^sha=.*/sha=\"$sha\"/" "$CFG"
+if [ $public -eq 1 ]; then
+	if grep -q "^dev_tools=" "$CFG"; then sed -i "s/^dev_tools=.*/dev_tools=false/" "$CFG"; else echo "dev_tools=false" >> "$CFG"; fi
+fi
 sed -i "s/^version\/code=.*/version\/code=$code/; s/^version\/name=.*/version\/name=\"$ver\"/" "$PRESETS"
 sed -i "s/^application\/file_version=.*/application\/file_version=\"$ver.0\"/; s/^application\/product_version=.*/application\/product_version=\"$ver.0\"/" "$PRESETS"
 sed -i "s/^config\/version=.*/config\/version=\"$ver\"/" "$DIR/project.godot"

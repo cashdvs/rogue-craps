@@ -276,7 +276,7 @@ func _felt_portrait() -> void:
 	var far := s.camera.cam.unproject_position(Vector3(0.9, 0, 0))
 	print("portrait felt: near(-X) y=%.0f far(+X) y=%.0f flipped=%s" % [near.y, far.y, fc.portrait_flipped])
 	check((near.y > far.y) == not fc.portrait_flipped, "the block sits at the screen-bottom end (near %.0f far %.0f flipped %s)" % [near.y, far.y, fc.portrait_flipped])
-	check(not s.bhud.checklist_panel.visible and s.bhud.portrait_goal.visible, "portrait: cards hidden, goal readout shown")
+	check(not s.bhud.checklist_panel.visible and s.bhud.target_plate.visible, "portrait: cards hidden, goal plate shown (Target HUD v2.1)")
 	sv.queue_free()
 	await process_frame
 

@@ -109,14 +109,14 @@ static func _type_nodes(data: MapGenData, m: RunMap, rng: RandomNumberGenerator)
 	var weights := PackedFloat32Array()
 	for t in NT.size():
 		weights.append(data.weight_of(t) if t != NT.BOSS else 0.0)
+	_type_pre_boss(data, m)
 	for r in data.rows:
+		if data.forced_pre_boss(r):
+			continue
 		for n in m.row_nodes(r):
 			n.type = data.fallback_type
 			if r == 0:
 				n.type = data.first_row_type
-				continue
-			if data.rest_before_boss and r == data.rows - 1:
-				n.type = NT.REST
 				continue
 			for i in data.max_type_tries:
 				var t: int = rng.rand_weighted(weights)
@@ -125,10 +125,28 @@ static func _type_nodes(data: MapGenData, m: RunMap, rng: RandomNumberGenerator)
 					break
 
 
+## The forced row before the boss: all Rest, or (pre_boss_mix) even ids
+## Shop and odd ids Rest, fixed so the row has at least one of each. Typed
+## first, so the row below sees it in the no-repeat checks.
+static func _type_pre_boss(data: MapGenData, m: RunMap) -> void:
+	var row: Array = m.row_nodes(data.rows - 1)
+	if not data.forced_pre_boss(data.rows - 1) or row.is_empty():
+		return
+	for n: MapNode in row:
+		n.type = NT.REST if not data.pre_boss_mix or n.id % 2 == 1 else NT.SHOP
+	if data.pre_boss_mix and row.size() > 1:
+		row.sort_custom(func(a: MapNode, b: MapNode) -> bool: return a.id < b.id)
+		var types: Array = row.map(func(n: MapNode) -> int: return n.type)
+		if not types.has(NT.SHOP):
+			row[0].type = NT.SHOP
+		elif not types.has(NT.REST):
+			row[-1].type = NT.REST
+
+
 ## Does type `t` obey the local rules at node `n`? Checks both neighbours,
 ## so it also works when a repair retypes a node after its children.
 static func allowed(data: MapGenData, m: RunMap, n: MapNode, t: int) -> bool:
-	if t == NT.BOSS or n.row == 0 or (data.rest_before_boss and n.row == data.rows - 1):
+	if t == NT.BOSS or n.row == 0 or data.forced_pre_boss(n.row):
 		return false
 	if t == NT.ELITE and n.row < data.elite_min_row:
 		return false
@@ -141,8 +159,8 @@ static func allowed(data: MapGenData, m: RunMap, n: MapNode, t: int) -> bool:
 			var o: MapNode = m.node(id)
 			if o.type == t and o.id != m.boss_id:
 				return false
-			# The forced pre-boss Rest row counts even before it's typed.
-			if t == NT.REST and data.rest_before_boss and o.row == data.rows - 1:
+			# The forced pre-boss row counts even before it's typed.
+			if t == NT.REST and data.rest_before_boss and not data.pre_boss_mix and o.row == data.rows - 1:
 				return false
 	return true
 
@@ -217,6 +235,10 @@ static func violations(data: MapGenData, m: RunMap) -> Array[String]:
 		out.append("a path has no Shop in the guarantee rows")
 	if count_type(m, NT.ELITE) < data.min_elites:
 		out.append("fewer than %d Elites" % data.min_elites)
+	if data.pre_boss_mix:
+		var types: Array = m.row_nodes(data.rows - 1).map(func(n: MapNode) -> int: return n.type)
+		if not (types.has(NT.SHOP) and types.has(NT.REST)):
+			out.append("the pre-boss row lacks a Shop or a Rest")
 	for n: MapNode in m.nodes.values():
 		if n.next.size() > data.max_links and n.id != m.boss_id and n.row < data.rows - 1:
 			out.append("node %d links to more than %d" % [n.id, data.max_links])

@@ -40,5 +40,7 @@ don't change); the old version is in git history.
 | `no_score.wav` | new: a non-scoring die's soft bounce | `BonfireSynth._no_score` |
 | `trigger_<row>.wav` | new (mod trigger cues): one cue per trigger FX spec row, plus `trigger_generic`, `trigger_cluster` and the `trigger_flavor_<flavour>` layers; baked by `tools/bake_sfx.gd` like the rest (`ModTriggerSynth.bake_all()`) | `ModTriggerSynth.make` (recipes: `ModTriggerRecipes.build`) |
 | `nerve_nudge.wav`, `nerve_nudge_01..03.wav` | new (Nerve nudge): a brass dial detent click + soft C6 ping + wooden tick, 3 takes | `SfxSynth._dial_tick` |
+| `table_goal_reached.wav` | new (table goals): target reached, bone bells climbing A minor into a held A5 + E6 over a wooden knock, 1.1 s | `TableGoalSynth._reached` |
+| `table_goal_missed.wav` | new (table goals): table missed (costs 5 Soul), the Soul ring gliding down under a low D2 toll and a drawn-out breath, 1.5 s | `TableGoalSynth._missed` |
 
 **Removed (Oct 25):** `crowd_low.wav`, `crowd_mid.wav`, `crowd_high.wav` (the looping ambience bed) were deleted by request; nothing loops any more. The crowd one-shot recipes (`CrowdStemSynth._crowd`, `_roar`) still feed `stinger_pillar` and the mod-trigger gasps.

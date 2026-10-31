@@ -23,6 +23,8 @@ const NT := MapGenData.NodeType
 @export var debug_table_stubs: bool = false
 ## -1 = a random run each launch.
 @export var run_seed: int = -1
+## Dev sandbox: a prebuilt run (SandboxPreset) to show instead of a new one.
+var preset_run: MapRun
 
 var run: MapRun
 var map_view: MapView
@@ -102,7 +104,8 @@ func _ready() -> void:
 func new_run(seed_value: int) -> void:
 	if seed_value < 0:
 		seed_value = randi()
-	run = MapRun.new(run_data, seed_value)
+	run = preset_run if preset_run != null else MapRun.new(run_data, seed_value)
+	preset_run = null
 	run.screen_changed.connect(func(_s: S) -> void: refresh())
 	run.progress.changed.connect(_refresh_bar)
 	# Opens by itself once per profile (RunProfile), then only via Key / K.
@@ -177,7 +180,9 @@ func refresh() -> void:
 		S.RUN_WON, S.RUN_OVER:
 			var lines: Array = [RunSummary.reason_line(run)]
 			lines.append_array(RunSummary.lines(run))
-			_panel(RunSummary.title(run), lines, [["New run", func() -> void: new_run(-1)], ["Quit to title", quit_to_title]])
+			var done := run.end_reason == &"complete"
+			_panel(RunSummary.title(run), lines, [[RunSummary.RUN_COMPLETE_NEW if done else "New run", func() -> void: new_run(-1)],
+				[RunSummary.RUN_COMPLETE_MENU if done else "Quit to title", quit_to_title]])
 
 
 func _refresh_bar() -> void:
@@ -223,7 +228,7 @@ func _show_table() -> void:
 	var g := run.goal
 	# Target table preview (table_goals_v1 PR1 §3.1).
 	var lines: Array = [TableGoalStrings.preview(g.target, run.rules[0].display_name if not run.rules.is_empty() else ""),
-		"Hands: %d" % g.hands, TableGoalStrings.PREVIEW_MISS % g.miss_soul]
+		"Hands: %d" % g.hands, TableGoalStrings.preview_miss(g.miss_soul, run.rules)]
 	for r in run.rules:
 		lines.append("%s: %s - %s" % ["Cheat" if r.kind == RunRuleData.Kind.CHEAT else "Twist", r.display_name, r.text(g.hands)])
 	if run.table_type == NT.BOSS:
