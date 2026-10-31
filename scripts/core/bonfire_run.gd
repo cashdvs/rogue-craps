@@ -147,7 +147,9 @@ func can_join(i: int) -> bool:
 func rethrow_block_reason() -> String:
 	if not can_continue():
 		return "Pot at least one lit die first."
-	if is_hot() and not hot_hand_allowed():
+	if not is_hot():
+		return "Bank it: only a Hot Hand throws again."
+	if not hot_hand_allowed():
 		return "No Hot Hand at this table: bank it."
 	return ""
 
@@ -179,22 +181,19 @@ func _add_pending(faces: Array) -> void:
 		pending[id] = int(pending.get(id, 0)) + 1
 
 
-## Pot this throw's combo and throw the rest. {} if not allowed, else
-## {"hot": bool, "cold": n}.
+## Hot Hand only (no cold rethrow): pot every die and throw them all again.
+## {} if not allowed, else {"hot": true, "cold": dice_count}.
 func rethrow() -> Dictionary:
 	if rethrow_block_reason() != "":
 		return {}
 	_commit_pot()
-	cold -= potted.size()
-	var hot := cold <= 0
-	if hot:
-		cold = dice_count
-		hot_hands += 1
+	cold = dice_count
+	hot_hands += 1
 	throw_faces.clear()
 	throw_mods.clear()
 	potted.clear()
 	state = State.AIM
-	return {"hot": hot, "cold": cold}
+	return {"hot": true, "cold": cold}
 
 
 ## Bank: the pot goes to points, pending ticks become real. Returns the

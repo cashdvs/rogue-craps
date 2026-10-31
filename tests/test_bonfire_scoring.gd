@@ -73,31 +73,36 @@ func _initialize() -> void:
 	check(not r.toggle(3), "adding the 5 to 4-4-4 is refused")
 	check(r.toggle(2) and r.selection()["combo"] == &"pair", "unpotting one 4 leaves a legal pair")
 	r.toggle(2)
-	r.rethrow()
-	check(r.pot == 126 and r.cold == 2 and r.pending.has(&"triple"), "rethrow: pot 126, 2 cold dice, Triple pending")
-	check(not r.is_ticked(t.table_goal.required[0]) and r.is_pending(t.table_goal.required[0]), "ticks are pending until bank")
-	r.set_throw([5, 5] as Array[int])
-	r.toggle(0)
-	r.toggle(1)
-	check(r.is_hot(), "potting the last dice = Hot Hand")
+	check(r.rethrow().is_empty() and r.rethrow_block_reason() == "Bank it: only a Hot Hand throws again." and r.cold == 5, "no cold rethrow: a partial pot can't throw again")
+	check(not r.is_ticked(t.table_goal.required[0]), "ticks are pending until bank")
+	var b := r.bank()
+	check(b["kind"] == &"bank" and r.points == 126 and r.hands_left == 4 and r.is_ticked(t.table_goal.required[0]), "bank adds the pot to points and ticks Triple")
+	# Hot Hand: every die potted throws all 5 again at +1 mult.
+	r.set_throw([5, 5, 5, 5, 5] as Array[int])
+	for i in 5:
+		r.toggle(i)
+	check(r.is_hot(), "potting every die = Hot Hand")
+	var hot_pot := r.throw_points()
 	var rt := r.rethrow()
-	check(rt["hot"] and r.cold == 5 and r.mult_bonus() == 1 and r.pot == 126 + 40, "Hot Hand: all 5 back, +1 mult")
+	check(rt["hot"] and r.cold == 5 and r.mult_bonus() == 1 and r.pot == hot_pot, "Hot Hand: all 5 back, +1 mult")
 	r.set_throw([2, 3, 4, 1, 1] as Array[int])
 	r.toggle(0); r.toggle(1); r.toggle(2)
 	check(r.throw_points() == (20 + 9) * 3, "run of 3 after a Hot Hand scores x(2+1)")
-	var b := r.bank()
-	check(b["kind"] == &"bank" and r.points == 126 + 40 + 87 and r.hands_left == 4, "bank adds the pot to points")
-	check(r.is_ticked(t.table_goal.required[0]) and r.is_ticked(t.table_goal.required[1]) and not r.is_ticked(t.table_goal.required[2]), "bank ticks Triple and Run of 3")
+	b = r.bank()
+	check(r.points == 126 + hot_pot + 87 and r.hands_left == 3, "bank adds the Hot Hand pot to points")
+	check(r.is_ticked(t.table_goal.required[1]) and not r.is_ticked(t.table_goal.required[2]), "bank ticks Run of 3")
 	check(r.mult_bonus() == 0 and r.pot == 0, "Hot Hand bonus resets on bank")
-	# Bust loses pending ticks.
-	r.set_throw([2, 2, 6, 6, 1] as Array[int])
-	r.toggle(0); r.toggle(1); r.toggle(2); r.toggle(3)
-	check(r.selection()["combo"] == &"two_pair", "two pair potted")
+	# Bust loses the pot and pending ticks (only a Hot Hand throws again).
+	r.set_throw([2, 2, 6, 6, 2] as Array[int])
+	for i in 5:
+		r.toggle(i)
+	check(r.is_hot() and r.selection()["combo"] != &"", "2-2-2-6-6 all potted: Hot Hand")
+	var lost := r.throw_points()
 	r.rethrow()
-	check(r.pending.has(&"two_pairs"), "Two Pairs pending")
+	check(not r.pending.is_empty(), "ticks pending through the Hot Hand")
 	var soul := r.soul
-	check(not r.set_throw([2] as Array[int]), "nothing lit = bust")
-	check(r.soul == soul - 1 and not r.is_ticked(t.table_goal.required[2]) and r.pending.is_empty() and r.last_result["lost_pot"] == 108, "bust: -1 Soul, pot and pending ticks lost")
+	check(not r.set_throw([2, 4, 6] as Array[int]), "nothing lit = bust")
+	check(r.soul == soul - 1 and r.pending.is_empty() and r.last_result["lost_pot"] == lost, "bust: -1 Soul, pot and pending ticks lost")
 	# Clear the moment all required are banked: +10 Embers locked in, the
 	# table stays open (points turn into Embers when it ends).
 	r.set_throw([3, 3, 3, 5, 5] as Array[int])
@@ -105,9 +110,9 @@ func _initialize() -> void:
 		r.toggle(i)
 	b = r.bank()
 	check(r.cleared and not r.is_over() and b["cleared_now"] and b["ticked"].has(&"two_pairs") and b["bonus_embers"] == 5, "Full House pot banks Two Pairs (clear, table stays open) + bonus Full House")
-	var total_pts := 126 + 40 + 87 + (40 + 19) * 5
+	var total_pts := 126 + hot_pot + 87 + (40 + 19) * 5
 	check(r.points == total_pts and r.embers == 5 + 10, "clear: bonus 5 + clear 10 locked in (%d)" % r.embers)
-	check(r.leave() and r.state == BonfireRun.State.CLEARED and r.embers == 5 + 10 + total_pts / 100, "Leave: Embers = bonus 5 + clear 10 + points/100 (%d)" % r.embers)
+	check(r.leave() and r.state == BonfireRun.State.CLEARED and r.embers == 5 + 10 + BonfireRunState.points_to_embers(t, total_pts), "Leave: Embers = bonus 5 + clear 10 + points to Embers (capped) (%d)" % r.embers)
 	# Timeout: -3 Soul per unticked required.
 	var f := BonfireRun.new(t)
 	for i in 5:

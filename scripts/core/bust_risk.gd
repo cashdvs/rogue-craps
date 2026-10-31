@@ -259,11 +259,11 @@ static func odds_text(p: float) -> String:
 
 ## The rethrow prompt (strings_v1, the TH5 wording): "2 cold dice: 1 in 3
 ## chance nothing lights". Can't bust: "2 cold dice: they can't bust".
-static func prompt(n: int, risk: Dictionary, hot: bool = false) -> String:
+static func prompt(n: int, risk: Dictionary) -> String:
 	var odds := String(risk.get("text", ""))
-	var what := ("Hot Hand, all %d dice" % n) if hot else ("%d cold %s" % [n, "die" if n == 1 else "dice"])
+	var what := "Hot Hand, all %d dice" % n
 	if odds == "no":
-		return "%s: %s can't bust" % [what, "it" if n == 1 else "they"]
+		return "%s: they can't bust" % what
 	if odds == "a sure":
 		return "%s: a sure bust" % what
 	return "%s: %s chance nothing lights" % [what, odds]

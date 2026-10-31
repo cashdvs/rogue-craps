@@ -80,9 +80,9 @@ func _text() -> void:
 	check(BustRisk.odds_text(7.0 / 54.0) == "13%", "7/54 reads '13%'")
 	check(BustRisk.odds_text(0.0) == "no", "0 reads 'no' (chance)")
 	check(BustRisk.odds_text(0.004) == "<1%", "tiny reads '<1%'")
-	check(BustRisk.prompt(2, risk(plain(2))) == "2 cold dice: 1 in 3 chance nothing lights", "the TH5 wording")
-	check(BustRisk.prompt(1, risk(plain(1))) == "1 cold die: 2 in 3 chance nothing lights", "1 die: singular")
-	check(BustRisk.prompt(5, risk(plain(5)), true) == "Hot Hand, all 5 dice: they can't bust", "Hot Hand prompt")
+	# No cold rethrow: the prompt is only ever the Hot Hand one.
+	check(BustRisk.prompt(2, risk(plain(2))) == "Hot Hand, all 2 dice: 1 in 3 chance nothing lights", "the TH5 wording")
+	check(BustRisk.prompt(5, risk(plain(5))) == "Hot Hand, all 5 dice: they can't bust", "Hot Hand prompt")
 
 
 func _weights_and_mods() -> void:

@@ -51,16 +51,19 @@ func refresh(run: BonfireRun, can_act: bool) -> void:
 	elif run.forfeited or run.is_over():
 		throw_label.text = ""
 	elif rethrow_prompt != "":
-		# Cold dice waiting to be thrown again: say how risky it is.
+		# A Hot Hand waiting to be thrown: say how risky it is.
 		throw_label.text = rethrow_prompt
 	else:
 		throw_label.text = "Grab the %d dice and flick them." % run.cold
 	mult_label.text = ("+%d mult" % run.mult_bonus()) if run.mult_bonus() > 0 else ""
 	bank_button.disabled = not (can_act and run.can_continue())
 	if picking:
+		# No cold rethrow: the throw button is only there for a Hot Hand.
+		throw_button.visible = run.is_hot()
 		throw_button.disabled = not (can_act and run.rethrow_block_reason() == "")
-		throw_button.text = "Hot Hand: throw all %d dice" % run.dice_count if run.is_hot() else "Rethrow %d cold dice" % (run.throw_faces.size() - run.potted.size())
+		throw_button.text = "Hot Hand: throw all %d dice" % run.dice_count
 	else:
+		throw_button.visible = true
 		throw_button.disabled = not can_act
 		throw_button.text = "Throw %d dice" % run.cold
 	var why := action_reasons(run, can_act)

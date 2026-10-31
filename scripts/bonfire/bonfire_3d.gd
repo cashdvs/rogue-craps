@@ -62,7 +62,7 @@ func _ready() -> void:
 	stack.visible = false
 	info_box.visible = false
 	puck.visible = false
-	help_label.text = "Grab the dice and flick (Space: quick throw). Click lit dice to pot ONE combo.\nB: Bank   Space: throw the rest   T: speed 1x/2x/Instant   R: reduced motion"
+	help_label.text = "Grab the dice and flick (Space: quick throw). Click lit dice to pot ONE combo.\nB: Bank   Space: Hot Hand throw, else bank   T: speed 1x/2x/Instant   R: reduced motion"
 	(table.felt_material as ShaderMaterial).set_shader_parameter("use_overlay", false)
 	all_dice = dice.duplicate()
 	for i in all_dice.size():

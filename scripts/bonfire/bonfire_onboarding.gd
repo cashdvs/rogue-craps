@@ -213,8 +213,7 @@ func on_selection() -> void:
 		var k := t.next_throw_size()
 		return run.state == BonfireRun.State.PICK and run.can_continue() and k >= 1 and k <= 3 and not run.is_hot()
 	if small.call():
-		t.rethrow_prompt()
-		hint(&"th5_risk", {"n": t.next_throw_size(), "odds": BustRisk.odds_text(t.bust_chance())}, small)
+		hint(&"th5_risk", {}, small)
 
 
 ## HB3: the bonus card is on screen and TH1 has been dismissed (or no
