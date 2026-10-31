@@ -1,7 +1,11 @@
 ## Headless test: the Bellows d6 per-face shade (#215). Guards the face_shade values on
 ## bellows_body.tres / bellows_pip.tres, the raised body albedo, and a material-level contrast
 ## check (top vs side value, pip vs body WCAG contrast) using the shader's own face_shade formula.
-## Fails if face_shade is set back to 0.
+## Fails if face_shade is set back to 0. Also renders it for real: launches
+## tests/support/face_shade_render.gd in a child Godot on the opengl3 (Compatibility) renderer
+## (the runner's --headless has no GPU), which draws a cube with bellows_body.tres as shipped and
+## with face_shade = 0, and checks the side face is darker only with face_shade on. Deleting the
+## face_shade branch in toon_noir.gdshader fails this. Needs a display (DISPLAY is set on the box).
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_bellows_face_shade.gd
@@ -60,5 +64,34 @@ func _init() -> void:
 	var cs := _contrast(body_side, pip_side)
 	_check(ct >= 3.0, "pip/body contrast top >= 3:1 (%.2f)" % ct)
 	_check(cs >= 3.0, "pip/body contrast side >= 3:1 (%.2f)" % cs)
+	_render_check()
 	print("=== %d passed, %d failed ===" % [_pass, _fail])
 	quit(0 if _fail == 0 else 1)
+
+
+func _lum3(v: Array) -> float:
+	return 0.2126 * float(v[0]) + 0.7152 * float(v[1]) + 0.0722 * float(v[2])
+
+
+func _render_check() -> void:
+	var out: Array = []
+	var args := ["--rendering-driver", "opengl3", "--path", ProjectSettings.globalize_path("res://"),
+		"--script", "res://tests/support/face_shade_render.gd"]
+	OS.execute(OS.get_executable_path(), args, out, true)
+	var r = null
+	for line in "\n".join(out).split("\n"):
+		if line.begins_with("FS_RESULT "):
+			r = JSON.parse_string(line.trim_prefix("FS_RESULT "))
+	_check(r is Dictionary, "render helper ran on a real renderer (needs DISPLAY)")
+	if not r is Dictionary:
+		return
+	_check(r["driver"] == "opengl3", "rendered with opengl3 (%s)" % r["driver"])
+	var top_on := _lum3(r["top_on"])
+	var top_off := _lum3(r["top_off"])
+	var side_on := _lum3(r["side_on"])
+	var side_off := _lum3(r["side_off"])
+	_check(top_off > 0.1, "render is lit (top %.3f)" % top_off)
+	var side_drop := 1.0 - side_on / maxf(side_off, 0.0001)
+	_check(side_drop >= 0.15, "rendered side face >= 15%% darker with face_shade than without (%.1f%%)" % (side_drop * 100))
+	_check(absf(top_on - top_off) < 0.02, "rendered top face unchanged by face_shade (%.3f vs %.3f)" % [top_on, top_off])
+	_check(1.0 - side_on / maxf(top_on, 0.0001) >= 0.15, "rendered side darker than top (%.3f vs %.3f)" % [side_on, top_on])
