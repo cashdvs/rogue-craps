@@ -180,6 +180,8 @@ func refresh() -> void:
 			var done := run.end_reason == &"complete"
 			_panel(RunSummary.title(run), lines, [[RunSummary.RUN_COMPLETE_NEW if done else "New run", func() -> void: new_run(-1)],
 				[RunSummary.RUN_COMPLETE_MENU if done else "Quit to title", quit_to_title]])
+			if done:  # VFX Dev: Embers / Final score count-up (rows 3, 4 of the panel)
+				RunCompleteCountup.attach(_panel_box, run, _panel_box.get_child(3), _panel_box.get_child(4))
 
 
 func _refresh_bar() -> void:
