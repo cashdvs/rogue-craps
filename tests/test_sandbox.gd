@@ -49,20 +49,40 @@ func _initialize() -> void:
 	menu.queue_free()
 	await process_frame
 	_check(guard.end(), "profile: the real user://profile.cfg is untouched")
-	# Release gate: a non-debug launch goes to the title and ignores --sandbox=.
+	# Gate (version.cfg dev_tools): off = title, no button, --sandbox= ignored.
 	var boot := PackedStringArray(["--sandbox=boss", "--boss=pit_boss"])
-	_check(SandboxScreen.enabled(true) and not SandboxScreen.enabled(false), "gate: enabled only in debug")
-	_check(SandboxScreen.entry_redirect(false) == SandboxScreen.TITLE_SCENE, "release: sandbox scene goes to the title")
-	_check(SandboxScreen.entry_redirect(true) == "", "debug: sandbox scene stays")
-	_check(SandboxScreen.boot_target(false, boot) == "", "release: boot ignores --sandbox=")
-	_check(SandboxScreen.boot_target(true, boot) == SandboxScreen.SCENE, "debug: boot --sandbox= opens the sandbox")
-	_check(SandboxScreen.boot_target(true, PackedStringArray()) == "", "debug: no flag, no boot jump")
+	_check(SandboxScreen.enabled(true) and not SandboxScreen.enabled(false), "gate: enabled only with the flag")
+	_check(SandboxScreen.entry_redirect(false) == SandboxScreen.TITLE_SCENE, "flag off: sandbox scene goes to the title")
+	_check(SandboxScreen.entry_redirect(true) == "", "flag on: sandbox scene stays")
+	_check(SandboxScreen.boot_target(false, boot) == "", "flag off: boot ignores --sandbox=")
+	_check(SandboxScreen.boot_target(true, boot) == SandboxScreen.SCENE, "flag on: boot --sandbox= opens the sandbox")
+	_check(SandboxScreen.boot_target(true, PackedStringArray()) == "", "flag on: no flag, no boot jump")
 	var rel_menu := VBoxContainer.new()
 	var rel_title := Control.new()
 	SandboxScreen.title_hook(rel_title, rel_menu, false)
-	_check(rel_menu.get_child_count() == 0 and not SandboxScreen._boot_done, "release: no title button, no boot jump")
+	_check(rel_menu.get_child_count() == 0 and not SandboxScreen._boot_done, "flag off: no title button, no boot jump")
 	rel_menu.free()
 	rel_title.free()
+	_check(Version.dev_tools(), "repo version.cfg: dev_tools on")
+	var off := "user://sandbox_off_version.cfg"
+	var f := FileAccess.open(off, FileAccess.WRITE)
+	f.store_string("[version]\nmajor_minor=\"0.1\"\npatch=2\nsha=\"dev\"\ndev_tools=false\n")
+	f.close()
+	Version.load_file(off)
+	_check(not Version.dev_tools() and SandboxScreen.boot_target(Version.dev_tools(), boot) == "", "dev_tools=false: --sandbox= ignored at boot")
+	var off_title := (load("res://scenes/title.tscn") as PackedScene).instantiate() as Control
+	root.add_child(off_title)
+	await process_frame
+	_check(off_title.find_child("SandboxButton", true, false) == null and not SandboxScreen._boot_done, "dev_tools=false: title has no SANDBOX button, no jump")
+	off_title.queue_free()
+	var off_menu: SandboxScreen = (load("res://scenes/sandbox.tscn") as PackedScene).instantiate()
+	root.add_child(off_menu)
+	await process_frame
+	_check(off_menu.event_pick == null, "dev_tools=false: the sandbox scene builds no menu (redirects to the title)")
+	off_menu.queue_free()
+	await process_frame
+	Version.load_file()
+	DirAccess.remove_absolute(off)
 	# Unknown event: push_error + visible fallback to a regular table.
 	var bad := SandboxPreset.from_args(PackedStringArray(["--sandbox=nope"]))
 	var br := bad.build(data)

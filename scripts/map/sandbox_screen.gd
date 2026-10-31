@@ -1,6 +1,6 @@
 ## Dev sandbox launcher: pick an event, floor, boss and seed, then jump in
-## (RunScreen with a SandboxPreset run). Debug builds only; a release build
-## goes straight to the title. Scriptable for QA / art screenshots:
+## (RunScreen with a SandboxPreset run). Only with dev tools on (version.cfg
+## dev_tools); otherwise it goes straight to the title. Scriptable for QA / art screenshots:
 ##   godot --path . res://scenes/sandbox.tscn -- --sandbox=boss --boss=pit_boss --floor=2 --seed=123
 class_name SandboxScreen
 extends Control
@@ -21,27 +21,28 @@ var seed_edit: LineEdit
 var run_screen: RunScreen
 
 
-## The release gate: the sandbox (menu, title button, --sandbox= flags)
-## exists only in debug builds. Pass OS.is_debug_build().
-static func enabled(is_debug: bool) -> bool:
-	if not is_debug:
+## The gate: the sandbox (menu, title button, --sandbox= flags) exists only
+## when dev tools are on. Pass Version.dev_tools() (version.cfg dev_tools:
+## on for beta review builds, off for public releases).
+static func enabled(flag: bool) -> bool:
+	if not flag:
 		return false
 	return true
 
 
-## Where the sandbox scene goes on open: "" = stay (debug), else the title.
-static func entry_redirect(is_debug: bool) -> String:
-	return "" if enabled(is_debug) else TITLE_SCENE
+## Where the sandbox scene goes on open: "" = stay (dev tools on), else the title.
+static func entry_redirect(flag: bool) -> String:
+	return "" if enabled(flag) else TITLE_SCENE
 
 
 ## Scene the title should jump to at boot for these args ("" = none):
-## the sandbox when --sandbox= is given in a debug build, never in release.
-static func boot_target(is_debug: bool, args: PackedStringArray) -> String:
-	return SCENE if enabled(is_debug) and SandboxPreset.from_args(args) != null else ""
+## the sandbox when --sandbox= is given with dev tools on, never when off.
+static func boot_target(flag: bool, args: PackedStringArray) -> String:
+	return SCENE if enabled(flag) and SandboxPreset.from_args(args) != null else ""
 
 
 func _ready() -> void:
-	var to := entry_redirect(OS.is_debug_build())
+	var to := entry_redirect(Version.dev_tools())
 	if to != "":
 		get_tree().change_scene_to_file.call_deferred(to)
 		return
@@ -77,14 +78,14 @@ func _ready() -> void:
 	go.pressed.connect(func() -> void: launch(current_preset()))
 	box.add_child(go)
 	var p := SandboxPreset.from_args(OS.get_cmdline_user_args())
-	if p != null and enabled(OS.is_debug_build()):
+	if p != null and enabled(Version.dev_tools()):
 		launch.call_deferred(p)
 
 
-## Title screen hook (debug builds only): a SANDBOX button in `menu`, and
+## Title screen hook (dev tools on only): a SANDBOX button in `menu`, and
 ## on normal boot with --sandbox=... jump straight in, once per launch.
-static func title_hook(title: Control, menu: Container, is_debug: bool = OS.is_debug_build()) -> void:
-	if not enabled(is_debug):
+static func title_hook(title: Control, menu: Container, flag: bool = Version.dev_tools()) -> void:
+	if not enabled(flag):
 		return
 	var b := OptionsPanel.menu_button("SANDBOX", Palette.FELT_DARK)
 	b.name = "SandboxButton"
@@ -92,7 +93,7 @@ static func title_hook(title: Control, menu: Container, is_debug: bool = OS.is_d
 	var c := CenterContainer.new()
 	c.add_child(b)
 	menu.add_child(c)
-	if not _boot_done and boot_target(is_debug, OS.get_cmdline_user_args()) != "":
+	if not _boot_done and boot_target(flag, OS.get_cmdline_user_args()) != "":
 		_boot_done = true
 		title.get_tree().change_scene_to_file.call_deferred(SCENE)
 

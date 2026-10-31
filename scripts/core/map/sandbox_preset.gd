@@ -1,7 +1,7 @@
 ## Dev sandbox (Cash, Oct 31): build a MapRun that opens straight on one
 ## event (shop, Table, Elite, Boss) of a chosen floor, with the run's
 ## starting 5-die bag and the real table_goals_v1 target from FloorData.
-## Pure logic; SandboxScreen and tests call it. Debug builds only.
+## Pure logic; SandboxScreen and tests call it. Gated by SandboxScreen.enabled().
 class_name SandboxPreset
 extends RefCounted
 
