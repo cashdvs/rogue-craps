@@ -24,6 +24,10 @@ func pts(faces: Array) -> int:
 
 
 func _initialize() -> void:
+	# The sandbox table_1 is a real F1 target table now; this suite tests bounties.
+	var sandbox_tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
+	sandbox_tuning.table_goal = load("res://tests/fixtures/bounty_table_1.tres") as TableGoal
+	set_meta(&"sandbox_tuning", sandbox_tuning)  # keep it cached so every load sees the fixture
 	t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	check(t != null and t.combos.size() == 10 and t.table_goal != null, "tuning loads with 10 combos and Table 1")
 	# Each combo: (base + faces) x mult.
