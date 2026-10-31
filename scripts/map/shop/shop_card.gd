@@ -10,6 +10,8 @@ const BRASS := Color("#C9A24A")
 const DARK := Color("#141210")
 const RED := Color("#FF2E3E")
 const GREY := Color("#AAA08C")
+## The smallest the card title shrinks to, as a share of its normal size.
+const TITLE_MIN := 0.6
 const HOVER_DELAY := 0.15  # PC: seconds of hover before the card opens.
 ## Card width in spec px, and the text scale, per ShopScreen.Layout.
 const WIDTH := {ShopScreen.Layout.PC: 380.0, ShopScreen.Layout.LANDSCAPE: 330.0, ShopScreen.Layout.PORTRAIT: 366.0}
@@ -120,7 +122,6 @@ func _title_row(o: ShopOffer) -> void:
 	var name_text := ShopCardStrings.get_text("shop_card_soul_name") if o.kind == ShopOffer.Kind.SOUL else o.display_name
 	var title := RunTheme.label(name_text, _px(32), CREAM, true)
 	title.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title.clip_text = true
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(title)
 	if o.rare:
@@ -128,6 +129,25 @@ func _title_row(o: ShopOffer) -> void:
 	var tag := PriceTag.new()
 	tag.setup(o.price_text(), o.affordable(shop.screen.run.progress.embers), _px(32), shop.k * TEXT_SCALE[shop.layout])
 	row.add_child(tag)
+	_fit_title(title, row)
+
+## Shrinks the title's font (never under TITLE_MIN of its size) so the whole name fits beside the chip and price.
+func _fit_title(title: Label, row: HBoxContainer) -> void:
+	var room := title_room(row)
+	var font: Font = title.get_theme_font("font")
+	var px := title.get_theme_font_size("font_size")
+	var floor_px := maxi(8, int(px * TITLE_MIN))
+	while px > floor_px and font.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x > room:
+		px -= 1
+	title.add_theme_font_size_override("font_size", px)
+
+## The width the title may use: the card's inner width less the chip, price and gaps.
+func title_room(row: HBoxContainer) -> float:
+	var used := 0.0
+	for c in row.get_children():
+		if c is Control and c != row.get_child(0):
+			used += (c as Control).get_combined_minimum_size().x + row.get_theme_constant("separation")
+	return (WIDTH[shop.layout] - 32.0) * shop.k - used
 
 ## Lines 2-4 by item type (shop_cards_v1 §3) as [text, colour]; adds strip / token.
 func _body(o: ShopOffer) -> Array:
