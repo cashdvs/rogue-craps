@@ -12,7 +12,7 @@ const LINES := {
 	MapGenData.NodeType.EVENT: "Event: a stranger offers a deal; pick one choice.",
 	MapGenData.NodeType.SHOP: "Shop: spend Embers on dice, face mods and Seals.",
 	MapGenData.NodeType.REST: "Rest: heal Soul, carve a free face mod, or level a Seal.",
-	MapGenData.NodeType.BOSS: "Boss: beat the cheat to win a contract piece.",
+	MapGenData.NodeType.BOSS: "Boss: beat the cheat to win the run.",
 }
 const FOOTER := ["Move up a linked path; you can't go back.", "You get one re-sit; miss the boss twice and the run ends."]
 

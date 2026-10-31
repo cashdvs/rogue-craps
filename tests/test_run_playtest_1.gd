@@ -15,6 +15,7 @@ var _data: RunData
 
 func _initialize() -> void:
 	_data = load("res://resources/map/bonfire_run.tres") as RunData
+	_data.floors_in_run = 0  # these suites play the full 3-floor run
 	_test_m3_boss_resit()
 	_test_m3_soul_and_won()
 	_test_m5_bonus()

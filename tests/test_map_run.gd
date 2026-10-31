@@ -17,6 +17,7 @@ var _data: RunData
 func _initialize() -> void:
 	print("=== Dice of the Damned: map run tests ===")
 	_data = load("res://resources/map/bonfire_run.tres") as RunData
+	_data.floors_in_run = 0  # these suites play the full 3-floor run
 	_test_goals()
 	_test_rewards()
 	_test_boss()

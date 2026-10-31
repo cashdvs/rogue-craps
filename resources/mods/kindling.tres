@@ -6,7 +6,7 @@
 script = ExtResource("1_6gril")
 id = &"kindling"
 display_name = "Kindling Face"
-description = "Pot it, and your next throw can't bust."
+description = "Pot it, and your next Hot Hand throw can't bust."
 details = "Used up by your next throw."
 effect = 9
 price = 6
