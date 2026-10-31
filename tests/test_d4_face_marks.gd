@@ -136,14 +136,14 @@ func _check_marks(d: DieVisual, shape: StringName, slots: int) -> void:
 	check(centres.size() == slots, "%s: every face got its mark (%d of %d)" % [shape, centres.size(), slots])
 
 
-## How many FaceMods children one mod draws (Twin: 8 strips, Wild: 4,
+## How many FaceMods children one mod draws (Twin: 8 strips, Wild: 4 strips + 4 corner ticks,
 ## Blank: 1 quad, a rare glyph: 1 mark node).
 func _pieces_of(m: FaceModData, shape: StringName) -> int:
 	if RareDieLook.MARKS.has(m.id):
 		return 1
 	if shape == &"d4" and m.effect == FaceModData.Effect.TWIN:
 		return 2  # the brass diamond and its dark outline
-	return {FaceModData.Effect.TWIN: 8, FaceModData.Effect.WILD: 4}.get(m.effect, 1)
+	return {FaceModData.Effect.TWIN: 8, FaceModData.Effect.WILD: 8}.get(m.effect, 1)
 
 
 ## Slot by slot (FaceMods children come in slot order): slot k's mark is on
