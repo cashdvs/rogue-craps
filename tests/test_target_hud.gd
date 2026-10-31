@@ -68,7 +68,7 @@ func _check_text() -> void:
 	check(TargetPlate.status_text(300, 299, 2) != "PASSED · 2 hands left", "target - 1 is not passed")
 	check(TargetPlate.status_text(300, 340, 1) == "PASSED · 1 hand left", "goal_passed_one_hand")
 	# The plate's words are TableGoalStrings' (main, #213) plus its own BOSS / SEALS.
-	check(TargetPlate.BOSS_TAG == "BOSS" and TargetPlate.SEALS_CHIP % 4 == "SEALS · 4", "plate BOSS tag and SEALS chip words")
+	check(TableGoalStrings.BOSS_TAG == "BOSS" and TableGoalStrings.seals(4) == "SEALS · 4", "plate BOSS tag and SEALS chip words")
 	check(TableGoalStrings.MISS % 2 == "Missed: -2 Soul" and TableGoalStrings.OVER % "40" == "+40", "miss / over words from TableGoalStrings")
 
 

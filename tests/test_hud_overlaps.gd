@@ -3,7 +3,9 @@
 ##   - the goal plate never covers the boss rules card (QA #231: MADAME
 ##     SHUFFLE showed under the plate on phone), also after the plate grows;
 ##   - the first-table controls text starts right of the "?" button, by its
-##     width + 8 px (#218: "...the dice and flick" was under the button).
+##     width + 8 px (#218: "...the dice and flick" was under the button);
+##   - the EMBERS / points lines never touch the plate (QA Oct 31: on phone
+##     "points ..." sat on the plate's top edge), >= 4 pt apart on phone.
 ## Checks use the live global rects.
 ##   godot --headless --path . --script res://tests/test_hud_overlaps.gd
 extends SceneTree
@@ -44,6 +46,7 @@ func _make(canvas: Vector2i, screen: Vector2) -> Array:
 	await _frames(2)
 	if screen != Vector2.ZERO:
 		s.fit_phone(screen)
+		s._refresh_hud()  # what the game does after a fit: turns on phone mode
 	await _frames(4)
 	return [sv, s]
 
@@ -59,6 +62,15 @@ func _check(canvas: Vector2i, screen: Vector2, tag: String) -> void:
 	check(rules.position.y >= plate.end.y + BonfireHud.RULES_GAP - 0.5 or rules.end.y <= plate.position.y,
 		"%s: rules card sits >= %d px under the plate (%.1f vs %.1f)" % [tag, BonfireHud.RULES_GAP, rules.position.y, plate.end.y])
 	check(rules.end.y <= h.get_viewport_rect().size.y and rules.end.x <= h.get_viewport_rect().size.x + 0.5, "%s: rules card stays on screen %s" % [tag, rules])
+	check(h.is_phone_land == (screen.x > screen.y), "%s: phone landscape mode is %s" % [tag, h.is_phone_land])
+	var gap := BonfireHud.EMBERS_GAP_PT * h.ui_pt_px if h.is_phone_land else 0.0
+	for l: Label in [h.coin_label, h.points_label]:
+		var r := l.get_global_rect()
+		check(not r.grow(gap - 0.5).intersects(plate), "%s: '%s' %s clear of the plate %s by >= %.0f px" % [tag, l.text, r, plate, gap])
+		check(not r.intersects(rules), "%s: '%s' clear of the rules card %s" % [tag, l.text, rules])
+		if h.is_phone_land:  # room above the plate here, so that's where they go
+			check(r.end.y <= plate.position.y - gap + 0.5 and r.end.x <= plate.end.x + 0.5, "%s: '%s' above the plate, right-aligned with it" % [tag, l.text])
+		check(r.position.y >= 0.0 and r.end.x <= h.get_viewport_rect().size.x + 0.5, "%s: '%s' on screen %s" % [tag, l.text, r])
 	# The plate grows (a taller goal row): the rules card follows it.
 	var grow := 30.0
 	h.target_plate.custom_minimum_size.y = h.target_plate.size.y + grow

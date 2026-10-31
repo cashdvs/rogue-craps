@@ -14,10 +14,6 @@ const CREAM := Palette.BONE
 const BAR_FULL := Color("#F0CC72")
 const MAX_CHIPS: int = 2
 const HOVER_S: float = 0.15
-## Plate words TableGoalStrings has no id for yet (strings_v1 "hud_boss_tag",
-## "hud_seals_chip"); kept here so the plate needs no other strings table.
-const BOSS_TAG := "BOSS"
-const SEALS_CHIP := "SEALS · %d"
 
 ## Design px per spec px (the HUD sets it: PC 1.2, phone = ui_pt_px).
 var unit: float = 1.2
@@ -43,6 +39,17 @@ var card_label := Label.new()
 var _hover := Timer.new()
 var _hover_chip: GoalIcon
 var _miss_soul: int = -1
+
+
+## The SEALS chip words: "SEALS · 3" (n >= 2, TableGoalStrings.seals) and
+## "SEAL · 1" for one Seal (hud_seals_chip_one, PM Oct 31). At 0 the chip is
+## hidden (see refresh), so the text never shows. TableGoalStrings has no
+## one-Seal string yet, so it lives here for now.
+const SEALS_CHIP_ONE := "SEAL · 1"
+
+
+static func seals_text(n: int) -> String:
+	return SEALS_CHIP_ONE if n == 1 else TableGoalStrings.seals(n)
 
 
 ## Thousands separators; above 99,999 one decimal plus k (12,400 stays; 123,456 -> "123.5k").
@@ -74,7 +81,7 @@ func _ready() -> void:
 	var row1 := HBoxContainer.new()
 	row1.alignment = BoxContainer.ALIGNMENT_BEGIN
 	v.add_child(row1)
-	boss_tag.text = BOSS_TAG
+	boss_tag.text = TableGoalStrings.BOSS_TAG  # "BOSS" (strings_v1 goal_boss_tag)
 	boss_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	boss_tag.visible = false
 	row1.add_child(boss_tag)
@@ -115,14 +122,23 @@ func _ready() -> void:
 	restyle()
 
 
-## Follow `g` (redraws on its `changed`).
+## Follow `g`: numbers redraw on its `changed`, the BOSS tag on its
+## `is_boss_changed` (so a boss flip alone always shows or hides it).
 func bind(g: TableGoalState) -> void:
 	if goal != null and goal.changed.is_connected(refresh):
 		goal.changed.disconnect(refresh)
+		goal.is_boss_changed.disconnect(_show_boss)
 	goal = g
 	if g != null:
 		g.changed.connect(refresh)
+		g.is_boss_changed.connect(_show_boss)
+	_show_boss(g != null and g.is_boss)
 	refresh()
+
+
+## Shows the small brass BOSS tag on a boss table, hides it otherwise.
+func _show_boss(on: bool) -> void:
+	boss_tag.visible = on
 
 
 ## Sizes and colours for the current `unit` (call after changing it).
@@ -174,7 +190,6 @@ func refresh() -> void:
 	target_value.text = fmt(target)
 	banked_value.text = fmt(banked)
 	line3_extra.visible = false
-	boss_tag.visible = g != null and g.is_boss
 	line3.label_settings.font_color = Color(CREAM, 0.6)
 	if _miss_soul >= 0:
 		var parts := (TableGoalStrings.MISS % _miss_soul).split(": ", true, 1)
@@ -191,7 +206,7 @@ func refresh() -> void:
 			line3_extra.visible = banked > target
 	_build_chips(g.bounties if g != null else [])
 	var seals := g.seals if g != null else 0
-	seals_chip.text = SEALS_CHIP % seals
+	seals_chip.text = seals_text(seals)
 	seals_chip.visible = visible and seals > 0  # no empty chip
 	bar.queue_redraw()
 
