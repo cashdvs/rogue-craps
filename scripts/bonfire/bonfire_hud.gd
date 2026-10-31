@@ -63,6 +63,26 @@ func _place_goal() -> void:
 	if bottom_bar.is_inside_tree():
 		bottom_bar.place(self)
 	_place_embers()
+	_place_pot()
+
+
+## Phone landscape: how far (pt) the pot block (pot, hint, notes, risk and
+## the mult tag) lifts so "Click lit dice to pot one combo." stops touching
+## the bottom bar's top edge (#218, AD polish).
+const POT_LIFT_PT := 8.0
+## Each pot-block label's design spot (taken once, before any lift).
+var _pot_home: Dictionary = {}
+
+
+## Lifts the pot block POT_LIFT_PT on phone landscape; puts it back elsewhere.
+func _place_pot() -> void:
+	if pot_label == null:
+		return
+	var lift := POT_LIFT_PT * ui_pt_px if is_phone_land and not is_portrait else 0.0
+	for l: Label in [pot_label, throw_label, notes_label, risk_label, mult_label]:
+		if not _pot_home.has(l):
+			_pot_home[l] = l.position
+		l.position = _pot_home[l] - Vector2(0.0, lift)
 
 
 ## Where the EMBERS / points lines sit (PC and portrait: the design spot).
