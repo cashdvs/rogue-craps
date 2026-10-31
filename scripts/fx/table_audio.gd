@@ -64,6 +64,8 @@ var calls: Array[String] = []
 var table: Node
 ## The #98 hook's flavour layers — ModTriggerSynth.FLAVORS keys on main.
 var _cleared_played: bool = false
+# The miss sting played for this table (reset on table_started / reset()).
+var _missed_played: bool = false
 var _crowd_set: bool = false
 
 
@@ -94,6 +96,7 @@ func bind(ev: Object, s: Node) -> int:
 	events = ev
 	sfx = s
 	_cleared_played = false
+	_missed_played = false
 	var n := 0
 	for sig: StringName in HOOKS:
 		if ev.has_signal(sig):
@@ -112,9 +115,11 @@ func unbind() -> void:
 	events = null
 
 
-## A new table on the same node (sandbox restart): TABLE CLEARED may play again.
+## A new table on the same node (sandbox restart): TABLE CLEARED and the
+## goal stings may play again.
 func reset() -> void:
 	_cleared_played = false
+	_missed_played = false
 
 
 # --- Handlers (payloads as agreed with Godot Dev) -------------------------------------
@@ -166,7 +171,12 @@ func _on_goal_reached() -> void:
 	cue(&"table_goal_reached", 0.0)
 
 
+## The table ran out of hands short of its target (soul_loss: the miss
+## Soul, unused for now): the miss sting, once per table.
 func _on_goal_missed(_soul_loss: int = 0) -> void:
+	if _missed_played:
+		return
+	_missed_played = true
 	cue(&"table_goal_missed", 0.0)
 
 

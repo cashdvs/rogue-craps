@@ -30,6 +30,8 @@ const LEVELS: Dictionary[StringName, float] = {
 static var _rng := RandomNumberGenerator.new()
 
 
+## Builds `event` (one of EVENTS) as a 16-bit mono AudioStreamWAV at its
+## LEVELS peak. Seeded by the event name, so every bake is identical.
 static func make(event: StringName) -> AudioStreamWAV:
 	_rng.seed = hash(event)
 	var s: PackedFloat32Array
@@ -54,6 +56,7 @@ static func bake_all() -> Dictionary[String, AudioStreamWAV]:
 
 # --- Recipes ------------------------------------------------------------------
 
+## A silent buffer `seconds` long at MIX_RATE.
 static func _buffer(seconds: float) -> PackedFloat32Array:
 	var buf := PackedFloat32Array()
 	buf.resize(int(seconds * MIX_RATE))
@@ -74,6 +77,7 @@ static func _bell(buf: PackedFloat32Array, start: float, freq: float, amp: float
 		buf[s0 + j] += v * att * amp
 
 
+## table_goal_reached: knock, A4 C5 E5 climb, held A5 + E6 bell (1.1 s).
 static func _reached() -> PackedFloat32Array:
 	var buf := _buffer(1.1)
 	# Wooden knock under the first note.
@@ -91,6 +95,7 @@ static func _reached() -> PackedFloat32Array:
 	return buf
 
 
+## table_goal_missed: D2 toll + thump, the Soul ring gliding down, breath (1.5 s).
 static func _missed() -> PackedFloat32Array:
 	var buf := _buffer(1.5)
 	# Low funeral toll (D2 bell, slow decay) with a thump.
@@ -111,6 +116,7 @@ static func _missed() -> PackedFloat32Array:
 	return buf
 
 
+## Linear fade over the last `seconds` of `buf` (no click at the end).
 static func _fade_out(buf: PackedFloat32Array, seconds: float) -> void:
 	var n := int(seconds * MIX_RATE)
 	for k in n:

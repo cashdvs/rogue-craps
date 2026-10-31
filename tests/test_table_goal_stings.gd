@@ -61,6 +61,11 @@ func _test_hooks() -> void:
 	sfx.log.clear()
 	ev.emit_signal("goal_missed", 5)
 	_check(sfx.log == ["table_goal_missed"], "goal_missed plays the miss sting: %s" % [sfx.log])
+	ev.emit_signal("goal_missed", 5)
+	_check(sfx.log == ["table_goal_missed"], "a second goal_missed on the same table stays silent: %s" % [sfx.log])
+	ev.emit_signal("table_started")
+	ev.emit_signal("goal_missed", 5)
+	_check(sfx.log == ["table_goal_missed", "table_goal_missed"], "table_started resets the miss guard: %s" % [sfx.log])
 	sfx.known = [&"table_cleared", &"soul_burn"]
 	sfx.log.clear()
 	a.reset()
