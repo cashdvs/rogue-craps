@@ -182,6 +182,7 @@ func _place_panels() -> void:
 	for b: Button in [rescue_nerve, rescue_bust]:
 		b.custom_minimum_size = Vector2(150, 52) * k
 	var gap := GAP * k
+	_dodge_rules(hud)
 	var above := _cards_rect(hud)
 	if hud.rules_panel != null and hud.rules_panel.is_visible_in_tree():
 		above = above.merge(hud.rules_panel.get_global_rect())  # QA: go under the rules plaque (Powder Barrel), not over it
@@ -191,6 +192,52 @@ func _place_panels() -> void:
 		c.global_position = Vector2(above.end.x - sz.x, above.end.y + gap)
 		var view := get_viewport_rect().size
 		c.global_position.x = clampf(c.global_position.x, gap, maxf(gap, view.x - gap - sz.x))
+		# PM / QA #198: never sit on a landed die (the phone d4 hid under
+		# "Nerve ready") or on other text (the combo strip's "Five of a Kind").
+		c.global_position = RulesPlaqueDodge.place(Rect2(c.global_position, sz), _blockers(hud), get_viewport_rect())
+
+
+## QA #201: moves the rules plaque off any thrown die it covers (phone
+## landscape, die near the right edge). Starts from the HUD's own spot each
+## frame: if the HUD moved the plaque since, that is the new home.
+func _dodge_rules(hud: BonfireHud) -> void:
+	var p := hud.rules_panel
+	if p == null or not p.is_visible_in_tree():
+		return
+	if not p.has_meta("dodged") or p.global_position != p.get_meta("dodged"):
+		p.set_meta("home", p.global_position)
+	var home: Vector2 = p.get_meta("home")
+	p.global_position = RulesPlaqueDodge.place(Rect2(home, p.get_global_rect().size), _dice_rects(), get_viewport_rect())
+	p.set_meta("dodged", p.global_position)
+
+
+## What the pip / rescue panels must not cover: the landed dice, every
+## other text on screen (HudTextRects, minus the Nerve UI's own labels), and
+## the HUD's panels as whole boxes: each bounty card (QA #198: the phone pip
+## sat on the FULL HOUSE card) and the rules plaque.
+func _blockers(hud: BonfireHud) -> Array[Rect2]:
+	var skip: Array[Node] = [self]
+	var out := _dice_rects()
+	var panels: Array = hud.bounty_cards.values()
+	panels.append(hud.rules_panel)
+	for c in panels:
+		if c is Control and is_instance_valid(c) and (c as Control).is_visible_in_tree():
+			skip.append(c)  # the whole card blocks, so its own labels need no rects
+			out.append((c as Control).get_global_rect())
+	out.append_array(HudTextRects.collect(get_viewport(), nerve.table.camera.cam, skip))
+	return out
+
+
+## Screen rects of the thrown dice in view (what the panels must not cover).
+func _dice_rects() -> Array[Rect2]:
+	var dice: Array[Rect2] = []
+	if nerve == null or nerve.table == null or nerve.table.camera == null:
+		return dice
+	var cam: Camera3D = nerve.table.camera.cam
+	for d: DieVisual in nerve.table.throw_dice:
+		if is_instance_valid(d) and d.is_visible_in_tree() and not cam.is_position_behind(d.global_position):
+			dice.append(RulesPlaqueDodge.die_rect(cam, d))
+	return dice
 
 
 ## The screen rect the Nerve controls go under: the bounty cards (PC,

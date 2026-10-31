@@ -161,6 +161,16 @@ func set_run_mode(on: bool) -> void:
 	continue_button.visible = on
 
 
+## The miss line of the end panel: target wording when the table has no
+## bounties (table_goals_v1 PR1), else the bounty count.
+func _miss_body(run: BonfireRun, sm: Dictionary, ember_line: String) -> String:
+	var soul_lost := int(sm.get("timeout_soul", 0))
+	if run.goal.required.is_empty():
+		return "%s · %s\n%s (Soul %d).\n%s" % [TableGoalStrings.target(run.goal.target),
+			TableGoalStrings.progress(run.goal.target, run.points, run.hands_left), TableGoalStrings.MISS % soul_lost, run.soul, ember_line]
+	return "%d bounties unclaimed: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), soul_lost, run.soul, ember_line]
+
+
 func show_end(run: BonfireRun) -> void:
 	var sm := run.table_summary
 	var ember_line := "%d points became %d Embers%s.  Embers %d." % [run.points, int(sm.get("points_embers", 0)),
@@ -172,17 +182,20 @@ func show_end(run: BonfireRun) -> void:
 			for b: BountyData in run.goal.bonus:
 				if run.is_ticked(b):
 					bonus.append("%s +%d" % [b.display_name, b.bonus_embers])
-			end_body.text = "You banked every bounty%s.\n%s\nSoul %d." % [
+			if run.goal.required.is_empty():  # target table (table_goals_v1 PR1)
+				end_body.text = "%s · %s\n%s\nSoul %d." % [TableGoalStrings.target(run.goal.target),
+					TableGoalStrings.progress(run.goal.target, run.points, run.hands_left), ember_line, run.soul]
+			else: end_body.text = "You banked every bounty%s.\n%s\nSoul %d." % [
 				(" (bonus: %s)" % ", ".join(bonus)) if not bonus.is_empty() else "", ember_line, run.soul]
 		_ when run.forfeited and run.state != BonfireRun.State.RUN_OVER:
 			end_title.text = "You left the table"
-			end_body.text = "%d bounties unclaimed: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
+			end_body.text = _miss_body(run, sm, ember_line)
 		BonfireRun.State.RUN_OVER:
 			end_title.text = "Out of Soul"
 			end_body.text = "Your Soul hit 0, so the run is over.\n%s" % ember_line
 		_:
 			end_title.text = "Out of hands"
-			end_body.text = "%d bounties unclaimed: -%d Soul (Soul %d).\n%s" % [run.unticked_required(), int(sm.get("timeout_soul", 0)), run.soul, ember_line]
+			end_body.text = _miss_body(run, sm, ember_line)
 	end_panel.visible = true
 	# A table can end mid-tutorial: the hint panel must not cover the end
 	# panel (#103 N6). stop() also drops the waiting hints, so dismiss()

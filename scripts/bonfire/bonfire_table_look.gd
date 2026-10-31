@@ -24,11 +24,25 @@ func table_die(d: DieVisual) -> TableDie:
 func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	if td == null:
 		return
+	apply_art_body(d, td.id)
 	if td.shape == &"coin":
 		d.make_coin()
-	elif td.faces != [1, 2, 3, 4, 5, 6]:
+	elif RareDieLook.is_rare(td.id):
+		# Rares: the Art Director's warm body tint (RareDieLook) over Bone.
+		d.set_look(RareDieLook.body_color(), Palette.PIT_BLACK, td.faces)
+		d.set_meta("rare_look", true)
+		RareDieLook.set_trim(d, true)
+	elif td.faces != [1, 2, 3, 4, 5, 6] or d.has_meta("rare_look"):
+		d.remove_meta("rare_look")
+		RareDieLook.set_trim(d, false)
 		# DieVisual.safe_labels pads / trims a mismatched face list to 6.
 		d.set_look(Palette.BONE, Palette.PIT_BLACK, td.faces)
+	place_face_mods(d, td)
+
+
+## (Re)builds the FaceMods decals for a die. Called again after
+## PolyBody.dress, so a d4 gets its marks on its real triangle faces.
+func place_face_mods(d: DieVisual, td: TableDie) -> void:
 	var old := d.faces.get_node_or_null("FaceMods")
 	if old != null:
 		old.free()
@@ -36,7 +50,7 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	root.name = "FaceMods"
 	d.faces.add_child(root)
 	# One decal per modded slot the mesh has (a coin: heads, tails).
-	for slot in range(1, mini(td.mods.size(), 2 if d.shape == &"coin" else 6) + 1):
+	for slot in range(1, mini(td.mods.size(), {&"coin": 2, &"d4": 4}.get(d.shape, 6)) + 1):
 		var m := td.mod_at(slot)
 		if m != null:
 			_add_mod_decal(root, d, d.mesh_face(slot), m)
@@ -45,13 +59,23 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> void:
 	var e := d.edge
 	var n := DieVisual.FACE_AXES[slot] as Vector3
-	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
-	u = (u - n * u.dot(n)).normalized()
-	var v := n.cross(u)
 	# Everything sits just above the pip tops (h + 0.01 e) so the die's ink
 	# outline pass can't swallow it; fills would hide the pips, so the
 	# coloured mods are a rim + tinted pips.
 	var lift := d.face_half(slot) + 0.014 * e
+	if d.shape == &"d4":
+		# A d4 face is a tilted triangle: use its real normal, sit flush on
+		# it (a hair above), and shrink the mark to fit inside the triangle.
+		var f := PolyBody.d4_face(d, slot)
+		n = f.normal
+		lift = f.dist + 0.002 * e
+		e = f.width
+	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
+	u = (u - n * u.dot(n)).normalized()
+	var v := n.cross(u)
+	# Rare mods (Fuse, Jackpot, Hex, Gilded, Step) get their own glyph mark.
+	if RareDieLook.add_mark(root, d, n, u, v, lift, m.id):
+		return
 	match m.effect:
 		FaceModData.Effect.MULT_FACTOR:
 			var c: Array[Color] = [HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR, HELLFIRE_COLOR]
@@ -187,6 +211,7 @@ func _set_lit(d: DieVisual, on: bool) -> void:
 	else:
 		_lights.erase(d)
 	d.set_glow_state(on, false)
+	RareDieLook.set_marks_lit(d, on)
 	if was != on and events != null:
 		events.die_lit_changed.emit(event_id(d), on)
 
@@ -197,6 +222,7 @@ func _set_cold(d: DieVisual) -> void:
 		events.die_lit_changed.emit(event_id(d), false)
 	_lights.erase(d)
 	d.set_glow_state(false, true)
+	RareDieLook.set_marks_lit(d, false)
 
 
 func _refuse(why: String) -> void:

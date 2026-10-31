@@ -85,7 +85,8 @@ func _test_effects() -> void:
 		r.rethrow()  # throw 1's pot is in the whole-hand factor too
 		_land(r, [6, 5], [fuse, null], boom)
 		_pot(r, [1])
-		var pot := r.pot + int(r.selection()["points"])
+		var sel := r.selection()  # shows the Fuse factor already; raw_points = before it
+		var pot := r.pot + int(sel.get("raw_points", sel["points"]))
 		var p0 := r.points
 		var g := int(r.bank()["gain"])
 		_check(g == int(pot * (2.0 if boom else 0.5)) and r.points - p0 == g, "fuse: %s whole hand %d -> %d" % [boom, pot, g])

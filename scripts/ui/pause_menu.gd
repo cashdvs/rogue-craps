@@ -33,6 +33,11 @@ func _init() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
+	var corner := Control.new()
+	corner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	corner.add_child(Version.make_label())
+	add_child(corner)
 	panel = PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", Palette.ink_box(Color(Palette.PIT_BLACK, 0.96), 16, 5, Palette.BRASS))
 	center.add_child(panel)

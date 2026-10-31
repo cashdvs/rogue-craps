@@ -237,8 +237,8 @@ func _apply_glow(lit: float, cold: float) -> void:
 	glow_cold = cold
 	body_material.set_shader_parameter("state_rim_energy", rim_energy_for(material) + 0.13 * glow_boost)
 	body_material.set_shader_parameter("lit_albedo_mix_max", 0.0 if material in NO_LIT_TINT_FAMILIES else LIT_ALBEDO_MIX_MAX)
-	body_material.set_shader_parameter("die_lit", lit)
-	body_material.set_shader_parameter("die_cold", cold)
+	for m in [body_material, body_material.next_pass]:  # next_pass: the d4 flat pass (PolyBody) follows too
+		if m is ShaderMaterial: m.set_shader_parameter("die_lit", lit); m.set_shader_parameter("die_cold", cold)
 	if pip_material == null:
 		return
 	# Cold pips are pulled 55% toward the (cold) body colour; lit pips keep their ink.
@@ -323,8 +323,10 @@ func set_look(body: Color, pip: Color, slot_labels: Array[int]) -> void:
 func shown_value() -> int:
 	if shape == &"coin":
 		return up_slot()
-	var i := up_value() - 1
-	return labels[i] if i >= 0 and i < labels.size() else up_value()
+	# A hull die reads its slot (d4 top point, d8 top face: 1..8).
+	var top := up_slot() if PolyDie.has_shape(shape) else up_value()
+	var i := top - 1
+	return labels[i] if i >= 0 and i < labels.size() else top
 
 
 ## The face SLOT on top: a d6 face 1..6 (FACE_AXES), a coin 1 (heads, +Y

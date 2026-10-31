@@ -17,6 +17,15 @@ extends RefCounted
 ## Visual / collider half-extent cap (PM ruling): no non-d6 die may reach
 ## further than this from its centre along any axis.
 const MAX_HALF_EXTENT: float = 0.050
+## Per-shape caps that differ from MAX_HALF_EXTENT (PM ruling, #198): the
+## d4 is a spiky pyramid with ~45% of a d6's footprint, so it may reach
+## 0.065 m to read at a glance. Every other shape keeps MAX_HALF_EXTENT.
+const SHAPE_HALF_EXTENT: Dictionary = {&"d4": 0.065}
+
+
+## The half-extent cap for one shape (see SHAPE_HALF_EXTENT).
+static func cap_for(shape: StringName) -> float:
+	return float(SHAPE_HALF_EXTENT.get(shape, MAX_HALF_EXTENT))
 ## Felt rolling resistance (1/s, DiceSim._poly_on_felt) on a hull die that is
 ## low on the felt and spinning slower than ROLL_DAMP_MAX_SPIN (rad/s).
 const FELT_ROLL_DAMP: float = 6.0
@@ -66,7 +75,47 @@ static func body_shape_for(td: TableDie) -> StringName:
 	return td.shape
 
 
+## A rare die's own art body (DiceIds.body_key: a rare's model, or its stand-in
+## until 3D Artist ships it), as res://art/models/dice/<key>.glb. Only d6
+## bodies for now: they keep the cube collider and face read, so the shaped
+## (d4 / d8 ...) meshes stay with the hull path above. "" = keep the cube.
+static func art_body_path(die_id: StringName) -> String:
+	if not DiceIds.is_die(die_id):
+		return ""
+	if not DiceIds.RARE_ART_BODIES.has(DiceIds.asset_key(die_id)):
+		return ""  # Rares only; the other dice keep the procedural cube.
+	var key := DiceIds.body_key(die_id)
+	if not String(key).ends_with("_d6"):
+		return ""
+	var p := "res://art/models/dice/%s.glb" % key
+	return p if ResourceLoader.exists(p) else ""
+
+
+## The first mesh in the art body's .glb (null if none).
+static func art_body_mesh(die_id: StringName) -> Mesh:
+	var p := art_body_path(die_id)
+	if p == "":
+		return null
+	var scene := load(p) as PackedScene
+	if scene == null:
+		return null
+	var inst := scene.instantiate()
+	var found: Mesh = null
+	for n in inst.find_children("*", "MeshInstance3D", true, false):
+		found = (n as MeshInstance3D).mesh
+		break
+	if found == null and inst is MeshInstance3D:
+		found = (inst as MeshInstance3D).mesh
+	inst.free()
+	return found
+
+
+## Collider points. Shapes the table dresses (PolyBody: d4, d8) use the PC
+## mesh's hull; the rest use the generated mobile-LOD hull.
 static func hull(shape: StringName) -> PackedVector3Array:
+	var pc := PolyBody.pc_hull(shape)
+	if pc.size() > 0:
+		return pc
 	return DieHullData.SHAPES[shape]["hull"]
 
 
