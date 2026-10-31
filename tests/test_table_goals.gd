@@ -288,6 +288,11 @@ func _test_state() -> void:
 	bl.id = &"bloodletter"
 	_check(TableGoalStrings.preview_miss(5) == "Miss: -5 Soul" and TableGoalStrings.preview_miss(5, [bl]) == "Miss: -10 Soul",
 		"strings: preview miss doubles under the Bloodletter")
+	for rl: Array in [[], [bl]]:
+		var cr := BonfireRun.new(_tuning, run.goal, 30, 5)
+		cr.set_rules(TableRules.build(rl))
+		_check(TableGoalStrings.miss_cost(5, rl) == cr.soul_cost(5, &"timeout"),
+			"strings: preview miss cost == the run's real timeout charge (%d rules)" % rl.size())
 	var br := BonfireRun.new(_tuning, run.goal, 30, 5)
 	_check(not br.bounties_count(), "rules: a target table counts no bounties (no cards to tick)")
 	_check(TableGoalStrings.num(1234567) == "1,234,567" and TableGoalStrings.num(300) == "300"

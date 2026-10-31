@@ -53,15 +53,14 @@ static func seals(n: int) -> String:
 
 
 ## The Soul a miss really costs at this table: `miss_soul` through each
-## table's rules (map RunRuleData or TableRule): the Bloodletter's
-## soul_cost_mult (default 2) doubles it, 5 -> 10.
+## rule's own soul_cost (the same TableRule handlers BonfireRun.soul_cost
+## charges with; the Bloodletter doubles it, 5 -> 10). Rules are TableRules
+## or map entries (RunRuleData), which are built through TableRules.make.
 static func miss_cost(miss_soul: int, rules: Array) -> int:
 	var c := miss_soul
 	for r in rules:
-		if r is TableRule:
-			c = (r as TableRule).soul_cost(null, c, &"timeout")
-		elif r is RunRuleData and (r as RunRuleData).id == &"bloodletter":
-			c *= int((r as RunRuleData).params.get("soul_cost_mult", 2))
+		var tr: TableRule = r if r is TableRule else TableRules.make(r)
+		c = tr.soul_cost(null, c, &"timeout")
 	return c
 
 
