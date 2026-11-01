@@ -94,6 +94,10 @@ static func pc_hull(shape: StringName) -> PackedVector3Array:
 			var k := body_scale(shape)
 			for i in pts.size():
 				pts[i] *= k
+			## Too many points for a cheap collider (the keg barrel's PC mesh has
+			## 84): use the generated mobile-LOD hull instead (12-72 budget).
+			if pts.size() > 72:
+				pts = DieHullData.SHAPES[shape]["hull"]
 		_hulls[shape] = pts
 	return _hulls[shape]
 
