@@ -75,6 +75,9 @@ var seal_steps: Dictionary = {}
 var free_rethrow: bool = false
 var free_rethrows_in_a_row: int = 0
 const MAX_FREE_RETHROWS: int = NonStdDice.MAX_FREE_RETHROWS
+## Most dice one pot can hold (no combo scores more than 5). A full pot is a
+## Hot Hand even when the bag throws more dice (hot_hand_cap_v1).
+const POT_CAP: int = 5
 ## TableDie (or null) per die of this throw.
 var throw_table_dice: Array = []
 ## The last landed throw (with the rules' face changes).
@@ -313,7 +316,7 @@ func can_continue() -> bool:
 
 ## Would potting the current selection empty the hand (a Hot Hand)?
 func is_hot() -> bool:
-	return can_continue() and potted.size() == throw_faces.size()
+	return can_continue() and potted.size() == mini(throw_faces.size(), POT_CAP)
 
 
 func is_ticked(b: BountyData) -> bool:

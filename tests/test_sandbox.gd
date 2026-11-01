@@ -6,7 +6,7 @@ extends SceneTree
 
 const S := MapRun.Screen
 const NT := MapGenData.NodeType
-const TARGETS := [[350, 500, 1600], [1000, 1300, 2500], [2500, 3000, 3500]]
+const TARGETS := [[350, 500, 2200], [1000, 1300, 2500], [2500, 3000, 3500]]
 
 var _passed: int = 0
 var _failed: int = 0

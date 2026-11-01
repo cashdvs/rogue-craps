@@ -51,7 +51,7 @@ func _test_f2_map_unchanged(m: MapGenData) -> void:
 
 
 func _test_targets(f: FloorData) -> void:
-	_check(f.target_table == 350 and f.target_elite == 500 and f.target_boss == 1600, "F1 targets are 350/500/1600")
+	_check(f.target_table == 350 and f.target_elite == 500 and f.target_boss == 2200, "F1 targets are 350/500/2200")
 
 
 func _test_run_complete(data: RunData) -> void:
