@@ -38,7 +38,11 @@ func _test_paths() -> void:
 		var p := PolyDie.art_body_path(id)
 		_check(p == "res://art/models/dice/%s.glb" % key and key.ends_with("_d6"), "%s: art body %s (body_key %s)" % [id, p, key])
 		_check(PolyDie.art_body_mesh(id) != null, "%s: its .glb has a mesh" % id)
-	for id: StringName in [&"gallows", &"beacon", &"bone", &"bellows", &"lantern", &"caltrop", &"nope"]:
+	# Shaped rares have an art body too, but it never swaps the cube mesh.
+	for id: StringName in {&"gallows": "caltrop_d4", &"beacon": "lantern_d8"}:
+		var want_p := "res://art/models/dice/%s.glb" % {&"gallows": "caltrop_d4", &"beacon": "lantern_d8"}[id]
+		_check(PolyDie.art_body_path(id) == want_p and PolyDie.art_body_mesh(id) == null, "%s: shaped art body %s, no cube swap" % [id, want_p])
+	for id: StringName in [&"bone", &"nope"]:
 		_check(PolyDie.art_body_path(id) == "", "%s: keeps the cube (no art body here)" % id)
 
 
@@ -78,7 +82,8 @@ func _test_table(id: StringName) -> void:
 	var body := d.faces.get_node("Body") as MeshInstance3D
 	var other := b.dice[0 if at != 0 else 1]
 	var cube := d.get_meta(&"cube_mesh", body.mesh) as Mesh
-	var art := PolyDie.art_body_path(id) != ""
+	# A d6 art body swaps the cube; a shaped one (d4 / d8) is PolyBody's.
+	var art := PolyDie.art_body_mesh(id) != null
 	if art:
 		_check(d.get_meta(&"art_body", &"") == DiceIds.body_key(id) and body.mesh != cube, "%s: spawns its %s body" % [id, DiceIds.body_key(id)])
 		var ext := body.mesh.get_aabb().size.x * body.scale.x
@@ -92,7 +97,7 @@ func _test_table(id: StringName) -> void:
 		small.free()
 		_check(body.material_override == d.body_material, "%s: keeps its toon material (lit / cold still work)" % id)
 	else:
-		# Gallows / Beacon: no body key; PolyBody dresses them as d4 / d8 (#198).
+		# Gallows / Beacon: a shaped art body; PolyBody dresses them as d4 / d8 (#198).
 		_check(d.get_meta(&"art_body", &"") == &"" and d.shape != &"d6" and body.mesh == PolyBody.mesh_for(d.shape), "%s: shaped rare gets its own shaped body" % id)
 	_check(other.get_meta(&"art_body", &"") == &"" and not (other.faces.get_node("Body") as MeshInstance3D).mesh.resource_path.contains(".glb"), "%s: the Bone die beside it keeps the cube" % id)
 	# Reapplying a plain die: a cube-bodied rare gets the cube back; a shaped

@@ -7,3 +7,14 @@
 render_priority = 0
 next_pass = ExtResource("2")
 shader = ExtResource("1")
+shader_parameter/albedo = Color(0.721569, 0.760784, 0.800000, 1)
+shader_parameter/shadow_color = Color(0.227451, 0.254902, 0.282353, 1)
+shader_parameter/steel_band = Color(0.549020, 0.592157, 0.623529, 1)
+shader_parameter/lamp_band = Color(0.933333, 0.949020, 0.960784, 1)
+shader_parameter/horizon_band = Color(0.227451, 0.254902, 0.282353, 1)
+shader_parameter/felt_band = Color(0.168627, 0.290196, 0.278431, 1)
+shader_parameter/reflect_energy = 0.3
+shader_parameter/lamp_energy = 1.0
+shader_parameter/light_gain = 0.6
+shader_parameter/spec_strength = 1.2
+shader_parameter/spec_size = 0.985

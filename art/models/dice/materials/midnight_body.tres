@@ -8,7 +8,7 @@
 render_priority = 0
 next_pass = ExtResource("2")
 shader = ExtResource("1")
-shader_parameter/albedo = Color(0.784314, 0.705882, 0.541176, 1)
+shader_parameter/albedo = Color(0.658824, 0.588235, 0.431373, 1)
 shader_parameter/shadow_color = Color(0.352941, 0.298039, 0.211765, 1)
 shader_parameter/mid_tint = 0.8
 shader_parameter/wrap = 0.35
@@ -20,3 +20,6 @@ shader_parameter/spec_strength = 0.2
 shader_parameter/use_overlay = true
 shader_parameter/overlay_tex = ExtResource("3")
 shader_parameter/overlay_tint = Color(1, 1, 1, 1)
+shader_parameter/rim_color = Color(0.788235, 0.635294, 0.290196, 1)
+shader_parameter/rim_strength = 0.25
+shader_parameter/rim_power = 3.0

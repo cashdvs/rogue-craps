@@ -28,10 +28,20 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	if td.shape == &"coin":
 		d.make_coin()
 	elif RareDieLook.is_rare(td.id):
-		# Rares: the Art Director's warm body tint (RareDieLook) over Bone.
+		DieArtMaterial.reset(d)
+		# Rares: the Art Director's warm body tint (RareDieLook) over Bone,
+		# with a thin brass rim so they don't read as plain Bone.
 		d.set_look(RareDieLook.body_color(), Palette.PIT_BLACK, td.faces)
+		for k in RARE_RIM:
+			d.body_material.set_shader_parameter(k, RARE_RIM[k])
+		d.set_meta(&"art_material", &"rare_rim")  # so DieArtMaterial.reset undoes it
 		d.set_meta("rare_look", true)
 		RareDieLook.set_trim(d, true)
+	elif DieArtMaterial.apply(d, td):
+		# A special die: its own authored body and pip materials.
+		if d.has_meta("rare_look"):
+			d.remove_meta("rare_look")
+			RareDieLook.set_trim(d, false)
 	elif td.faces != [1, 2, 3, 4, 5, 6] or d.has_meta("rare_look"):
 		d.remove_meta("rare_look")
 		RareDieLook.set_trim(d, false)
@@ -95,7 +105,7 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 			_decal_frame(root, n, u, v, lift, e * 0.88, e * 0.08, c)
 			_tint_pips(d, n, HELLFIRE_COLOR)
 		FaceModData.Effect.WILD:
-			_wild_frame(root, n, u, v, lift, e * 0.88, e * 0.104)
+			_wild_frame(root, n, u, v, lift, e * 0.88, e * 0.104, _red_body(d))
 			_tint_pips(d, n, WILD_COLOR)
 		FaceModData.Effect.TWIN:
 			var c: Array[Color] = [TWIN_COLOR, TWIN_COLOR, TWIN_COLOR, TWIN_COLOR]
@@ -160,11 +170,32 @@ func _decal_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float,
 
 ## The Wild rim: the same frame, brass / dark strips, then a brass square
 ## tick over each corner (a hair higher, so it sits on top of the strips).
-func _wild_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float, size: float, thick: float) -> void:
+func _wild_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float, size: float, thick: float, red := false) -> void:
 	_decal_frame(root, n, u, v, lift, size, thick, WILD_FRAME)
 	var o := (size - thick) * 0.5
+	# On a red body the brass ticks are 1.5x wide (AD, after #241).
+	var t := thick * (WILD_RED_TICK_MUL if red else 1.0)
 	for c: Vector2 in [Vector2(-o, o), Vector2(o, o), Vector2(o, -o), Vector2(-o, -o)]:
-		_decal_quad(root, n, u, v, lift + 0.0002, thick, thick, c, WILD_TICK, true)
+		_decal_quad(root, n, u, v, lift + 0.0002, t, t, c, WILD_TICK, true)
+	if not red:
+		return
+	# Dark strips vanish on a red body: a thin cream keyline round each one
+	# (a slightly bigger cream strip just under it).
+	var k := WILD_KEYLINE * size / 0.88  # 0.012 of the die edge (size = 0.88 e)
+	for i in 4:
+		if WILD_FRAME[i] != WILD_TICK:
+			var side := i % 2 == 1  # right / left strips stand upright
+			var w := (thick if side else size) + 2.0 * k
+			var h := (size if side else thick) + 2.0 * k
+			var at := Vector2(o if i == 1 else -o, 0.0) if side else Vector2(0.0, o if i == 0 else -o)
+			_decal_quad(root, n, u, v, lift - 0.0001, w, h, at, WILD_KEYLINE_COLOR, true)
+
+
+## True for a red-bodied die (Blood Pact, Hellfire): its Wild frame gets
+## cream keylines and wider ticks.
+func _red_body(d: DieVisual) -> bool:
+	var td := table_die(d)
+	return td != null and DiceIds.canonical(td.id) in WILD_RED_BODIES
 
 
 ## A Cracked die shatters: burst, gone for the rest of the table.

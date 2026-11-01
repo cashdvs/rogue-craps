@@ -6,14 +6,14 @@
 ## and up_slot() / face_rotation() read it from PolyDie's direction table
 ## (a d4 by its top POINT, a d8 by its top face, so Beacon's 7 and 8 show).
 ## The collider hull comes from the same PC mesh (pc_hull).
-## Only d4 and d8 for now; the other shaped dice stay on the cube until
-## their own pass. Body-key art loading (Table3D.apply_art_body) is separate
+## d4, d8 and the Powder Keg barrel (keg); the other shaped dice stay on
+## the cube until their own pass (they are not sold yet). Body-key art loading (Table3D.apply_art_body) is separate
 ## and untouched: a shaped die simply keeps its shape's own mesh.
 class_name PolyBody
 extends RefCounted
 
 ## Shapes this file dresses on the table.
-const TABLE_SHAPES: Array[StringName] = [&"d4", &"d8"]
+const TABLE_SHAPES: Array[StringName] = [&"d4", &"d8", &"keg"]
 
 
 ## Which shape [param td] gets on the table: d4 / d8 when its mesh is in

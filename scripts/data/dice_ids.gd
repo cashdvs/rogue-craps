@@ -173,6 +173,8 @@ const RARE_ART_BODIES: Dictionary = {
 	&"gallows_d4": &"caltrop_d4", &"beacon_d8": &"lantern_d8",
 	# rare_dice_v2 PR 2: Bone d6 until the barrel / gilt / coin-stamp materials ship.
 	&"barrel_d6": &"bone_d6", &"fortune_d6": &"bone_d6", &"usurer_d6": &"bone_d6",
+	# Extra Die: no model yet, so the Bone body (its look: materials/extra_body.tres).
+	&"extra_d6": &"bone_d6",
 }
 
 

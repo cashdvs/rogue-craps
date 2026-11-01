@@ -8,22 +8,22 @@
 shader_type spatial;
 render_mode specular_disabled, ambient_light_disabled;
 
-uniform vec4 albedo : source_color = vec4(0.102, 0.133, 0.149, 1.0);       // #1A2226 obsidian
-uniform vec4 shadow_color : source_color = vec4(0.055, 0.078, 0.078, 1.0); // Pit Black
-uniform vec4 lamp_band : source_color = vec4(0.91, 0.863, 0.753, 1.0);     // Bone #E8DCC0
-uniform vec4 steel_band : source_color = vec4(0.384, 0.420, 0.427, 1.0);   // #626B6D
-uniform vec4 horizon_band : source_color = vec4(0.055, 0.078, 0.078, 1.0); // Pit Black
-uniform vec4 felt_band : source_color = vec4(0.071, 0.227, 0.212, 1.0);    // Underfelt #123A36
+uniform vec4 albedo : source_color = vec4(0.722, 0.761, 0.800, 1.0);       // #B8C2CC cool chrome
+uniform vec4 shadow_color : source_color = vec4(0.227, 0.255, 0.282, 1.0); // gunmetal #3A4148
+uniform vec4 lamp_band : source_color = vec4(0.933, 0.949, 0.961, 1.0);     // cool lamp #EEF2F5
+uniform vec4 steel_band : source_color = vec4(0.549, 0.592, 0.624, 1.0);   // steel #8C979F
+uniform vec4 horizon_band : source_color = vec4(0.227, 0.255, 0.282, 1.0); // gunmetal #3A4148
+uniform vec4 felt_band : source_color = vec4(0.169, 0.290, 0.278, 1.0);    // felt #2B4A47
 uniform float lamp_lo = 0.72;    // reflection.y above this = the lamp
 uniform float steel_lo = 0.18;   // .. above this = steel sky
 uniform float horizon_lo = -0.18; // .. above this = ink horizon, below = felt
-uniform float reflect_energy = 0.55;
-uniform float lamp_energy = 1.1;  // the lamp band only; > 1 lets it catch bloom
+uniform float reflect_energy = 0.3; // glow cap: band * 0.3 stays <= 0.3
+uniform float lamp_energy = 1.0;  // the lamp band only; 1.0 = no bloom
 uniform float light_gain = 0.6;
 uniform float att_ref = 0.6;
 uniform float spec_size = 0.985;
 uniform vec4 spec_color : source_color = vec4(1.0, 0.965, 0.878, 1.0);
-uniform float spec_strength = 2.0;
+uniform float spec_strength = 1.2;
 
 void fragment() {
 	vec3 n = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);

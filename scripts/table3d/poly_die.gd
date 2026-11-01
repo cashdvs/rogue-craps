@@ -75,18 +75,18 @@ static func body_shape_for(td: TableDie) -> StringName:
 	return td.shape
 
 
-## A rare die's own art body (DiceIds.body_key: a rare's model, or its stand-in
-## until 3D Artist ships it), as res://art/models/dice/<key>.glb. Only d6
-## bodies for now: they keep the cube collider and face read, so the shaped
-## (d4 / d8 ...) meshes stay with the hull path above. "" = keep the cube.
+## A die's own art body (DiceIds.body_key: its model, or a stand-in until
+## 3D Artist ships it), as res://art/models/dice/<key>.glb; "" = none (Bone,
+## or no .glb). Only a d6 body swaps the cube mesh (art_body_mesh): shaped
+## ones (d4 / d8 ...) stay with the hull path above (PolyBody.dress).
 static func art_body_path(die_id: StringName) -> String:
 	if not DiceIds.is_die(die_id):
 		return ""
-	if not DiceIds.RARE_ART_BODIES.has(DiceIds.asset_key(die_id)):
-		return ""  # Rares only; the other dice keep the procedural cube.
-	var key := DiceIds.body_key(die_id)
-	if not String(key).ends_with("_d6"):
+	# Bone keeps the procedural cube; every other d6 (rare or bought
+	# special, e.g. Mirror) wears its built .glb body when one exists.
+	if DiceIds.canonical(die_id) == DiceIds.DIE_BONE:
 		return ""
+	var key := DiceIds.body_key(die_id)
 	var p := "res://art/models/dice/%s.glb" % key
 	return p if ResourceLoader.exists(p) else ""
 
@@ -94,7 +94,9 @@ static func art_body_path(die_id: StringName) -> String:
 ## The first mesh in the art body's .glb (null if none).
 static func art_body_mesh(die_id: StringName) -> Mesh:
 	var p := art_body_path(die_id)
-	if p == "":
+	# Only a d6 art body replaces the cube mesh here; a shaped one (Gallows'
+	# d4, Beacon's d8 ...) is put on by PolyBody.dress with its own hull.
+	if p == "" or not p.ends_with("_d6.glb"):
 		return null
 	var scene := load(p) as PackedScene
 	if scene == null:

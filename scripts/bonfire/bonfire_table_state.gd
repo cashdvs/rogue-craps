@@ -45,6 +45,14 @@ const TWIN_COLOR := Color("#2A1A10")
 ## turn, with small brass ticks over the 4 corners.
 const WILD_FRAME: Array[Color] = [Color("#C9A24A"), Color("#1E1712"), Color("#C9A24A"), Color("#1E1712")]
 const WILD_TICK := Color("#C9A24A")
+## Red-bodied dice: a cream keyline (0.012 e) round the dark Wild strips and
+## 1.5x ticks, so the frame still reads on the red body.
+const WILD_RED_BODIES: Array[StringName] = [&"blood_pact", &"hellfire"]
+const WILD_KEYLINE := 0.012
+const WILD_KEYLINE_COLOR := Color("#E8DCC0")
+const WILD_RED_TICK_MUL := 1.5
+## Rares on the Bone stand-in body: a thin brass rim (AD, Nov 1).
+const RARE_RIM := {"rim_color": Color("#C9A24A"), "rim_strength": 0.3, "rim_power": 2.5}
 ## Tint of a die whose face a rule changed (by rule id; others use the default).
 const CHANGE_TINT := {&"mirror": Color("#BFE3FF"), &"madame_shuffle": Color("#C060FF")}
 const CHANGE_TINT_DEFAULT := Color("#FFFFFF")
