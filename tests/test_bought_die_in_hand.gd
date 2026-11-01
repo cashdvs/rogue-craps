@@ -9,8 +9,8 @@
 ## Run: godot --headless --path . --script res://tests/test_bought_die_in_hand.gd
 extends SceneTree
 
-const LOOK_FIXED := false
-const SHAPES_FIXED := false
+const LOOK_FIXED := true
+const SHAPES_FIXED := true
 ## Every die the shop can sell (the 8 RunData.special_dice and the enabled
 ## shapes, shop and rare). last_breath (retired in #225) is not in RunData;
 ## ferryman, caltrop, lantern, tithe, midnight, verdict and knucklebone are
