@@ -22,6 +22,10 @@ Repo copy: only the rows the game loads by id from this file so far; the full ta
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_total | (new) | Final score: {n} | 3 |
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_new | (new) | New Run | 2 |
 | No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd + run_complete (one_floor_v1, Oct 31) | label | run_complete_menu | (new) | Main Menu | 2 |
+| No rethrow + run complete (one_floor_v1) | scripts/core/bonfire_run.gd (no cold rethrow, Oct 31) | label | bank_no_rethrow | (new) | Bank it: only a Hot Hand throws again. | 8 |
+| No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_3d.gd help line (no cold rethrow, Oct 31) | label | help_hot_hand | (new) | Space: Hot Hand throw, else bank | 6 |
+| No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd (no cold rethrow, Oct 31) | label | th4_choice | (new) | Pot one combo and the hand banks. | 7 |
+| No rethrow + run complete (one_floor_v1) | scripts/bonfire/bonfire_tutorial.gd (no cold rethrow, Oct 31) | label | th5_risk | (new) | Hot Hand throws every die again, but it can bust. | 10 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_seals_chip | (new) | SEALS · {n} | 2 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_seals_chip_one | (new) | SEAL · 1 | 2 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_boss_tag | (new) | BOSS | 1 |

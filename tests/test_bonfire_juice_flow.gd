@@ -147,13 +147,13 @@ func _count_up_tests(t: BonfireTuning) -> void:
 
 func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	var tag := "fallback" if fallback else "adapter"
-	var st := TableSetup.sandbox(t, 5)
+	var st := TableSetup.sandbox(t, 3)  # 3 dice: a Hot Hand rethrow can bust (no cold rethrow)
 	var s: Bonfire3D = await make_table(st, fallback)
 	var r := s.run
 	var j := s.juice
 	check(fallback == not j.has_art() or not fallback, "[%s] force_fallback disables art" % tag)
 	await create_timer(0.3).timeout
-	var res := await throw_faces(s, [4, 4, 4, 5, 2] as Array[int])
+	var res := await throw_faces(s, [4, 4, 4] as Array[int])
 	await s.sequence_finished
 	var cards := s.claimable_bounties()
 	check(cards.has(&"triple") and s.bhud.pulsing().has(&"triple"), "[%s] nothing selected: the Triple card pulses for the lit 4-4-4 (%s)" % [tag, str(cards)])
@@ -162,7 +162,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	s.pick_die(1); s.pick_die(2)
 	check(s.bhud.pulsing() == [&"triple"], "[%s] selected 4-4-4 pulses the Triple card (%s)" % [tag, str(s.bhud.pulsing())])
 	j.calls.clear()
-	check(s.throw_again() and s.dice.size() == 2 and r.pot == 126, "[%s] throw again stays synchronous" % tag)
+	check(s.throw_again() and s.dice.size() == 3 and r.pot == 126, "[%s] Hot Hand throw again stays synchronous" % tag)
 	check(s.bhud.countup.is_playing(), "[%s] committing the pot starts the count-up" % tag)
 	check(r.pot == 126 and s.bhud.pot_label.text == "Pot 0", "[%s] HUD pot holds until the count-up lands; state is already 126 (%s)" % [tag, s.bhud.pot_label.text])
 	await s.bhud.countup.finished
@@ -181,7 +181,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	for b in s._pot_bodies:
 		if not (b.get_child(0) as CollisionShape3D).disabled:
 			solid += 1
-	check(solid == s.pot_dice.size() and solid == 3, "[%s] one solid collider per potted die (%d)" % [tag, solid])
+	check(solid == s.pot_dice.size(), "[%s] one solid collider per potted die (%d; the Hot Hand took all 3 back)" % [tag, solid])
 	check(s.bhud.countup.total_label.text == "126" and s.bhud.countup.banner_label.text == "TRIPS!", "[%s] count-up lands on 126 with the Trips banner" % tag)
 	check(has_prefix(j.calls, "fb:lift") or has_prefix(j.calls, "art:lift"), "[%s] dice lift (%s)" % [tag, str(j.calls)])
 	check(has_prefix(j.calls, "fx:glow_") and not has_prefix(j.calls, "fb:fire") and not has_prefix(j.calls, "art:fire"), "[%s] the pot GLOWS (no fire on dice) (%s)" % [tag, str(j.calls)])
@@ -190,7 +190,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	# Bust: snuff, ash, flask crack, the pending Triple stamp crumbles.
 	check(s.bhud.has_pending_stamp(&"triple"), "[%s] pending stamp on the Triple card" % tag)
 	j.calls.clear()
-	res = await throw_faces(s, [2, 6] as Array[int])
+	res = await throw_faces(s, [2, 4, 6] as Array[int])
 	await process_frame
 	check((res[1] as Array).is_empty() and (has_prefix(j.calls, "fb:ash") or has_prefix(j.calls, "art:ash")), "[%s] bust: dice ash over (%s)" % [tag, str(j.calls)])
 	check(j.calls.has("sfx:bust") or j.calls.has("sfx:seven_out(fb)"), "[%s] bust sound" % tag)
@@ -199,19 +199,19 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	await create_timer(0.3).timeout
 	check(j.calls.has("sfx:soul_flask_crack") or j.calls.has("sfx:soul_burn(fb)"), "[%s] Soul flask crack sound after the bust (%s)" % [tag, str(j.calls)])
 	# Hot Hand: all dice glow, banner, fly back with ember trails.
-	res = await throw_faces(s, [3, 3, 3, 5, 5] as Array[int])
+	res = await throw_faces(s, [3, 3, 3] as Array[int])
 	await s.sequence_finished
-	for i in 5:
+	for i in 3:
 		s.pick_die(i)
 	j.calls.clear()
-	check(s.throw_again() and s.dice.size() == 5 and s.pot_dice.is_empty(), "[%s] Hot Hand still scoops all 5 back at once" % tag)
+	check(s.throw_again() and s.dice.size() == 3 and s.pot_dice.is_empty(), "[%s] Hot Hand still scoops all 3 back at once" % tag)
 	await s.bhud.countup.finished
 	await process_frame
 	check(j.calls.has("fx:hot_hand_glow") and j.calls.has("fx:ember_trail") and not has_prefix(j.calls, "art:fire_trail"), "[%s] Hot Hand glow pulse + ember trail, no fire (%s)" % [tag, str(j.calls)])
 	check(s.bhud.result_label.text.begins_with("Hot Hand"), "[%s] Hot Hand banner (%s)" % [tag, s.bhud.result_label.text])
 	await create_timer(0.6).timeout
 	# Bank: count-up, embers flow, CLAIMED stamps.
-	res = await throw_faces(s, [1, 2, 3, 6, 6] as Array[int])
+	res = await throw_faces(s, [1, 2, 3] as Array[int])
 	await s.sequence_finished
 	s.pick_die(0); s.pick_die(1); s.pick_die(2)
 	j.calls.clear()
@@ -223,7 +223,7 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	check(bank_state.size() == 1 and int(bank_state[0][0]) > pts_before and str(bank_state[0][1]).begins_with("points %d " % pts_before),
 		"[%s] bank: points stay at %d on the HUD while the count-up plays (state already %s)" % [tag, pts_before, str(bank_state)])
 	check(s.bhud.points_label.text.begins_with("points %d " % r.points) and s.bhud.coin_label.text == "EMBERS %d" % ((s.setup.run_embers if s.setup != null else 0) + r.embers), "[%s] bank: points + Embers land after the count-up (EMBERS = run balance + table payout)" % tag)
-	check(b["kind"] == &"bank" and r.cleared, "[%s] bank clears the table" % tag)
+	check(b["kind"] == &"bank" and not (b["ticked"] as Array).is_empty(), "[%s] bank ticks bounties (3 dice can't make Two Pairs, so no clear here; see test_bonfire_scene)" % tag)
 	check(s.bhud.has_stamp(&"two_pairs") or s.bhud.has_stamp(&"run_three") or not (b["ticked"] as Array).is_empty() and s.bhud.has_stamp(b["ticked"][0]), "[%s] claimed bounty gets the CLAIMED stamp (%s)" % [tag, str(b["ticked"])])
 	check(j.calls.has("sfx:bank") or j.calls.has("sfx:chip_collect(fb)"), "[%s] bank sound (%s)" % [tag, str(j.calls)])
 	# A click fast-forwards a running count-up.
@@ -244,13 +244,15 @@ func _scene_tests(t: BonfireTuning, fallback: bool) -> void:
 	s.test_speed = 10.0
 	# Instant: no hold at all.
 	await create_timer(0.3).timeout
-	await throw_faces(s, [3, 3, 1] as Array[int])
+	while s.phase != Table3D.Phase.BET or s.hand_moving():
+		await process_frame
+	await throw_faces(s, [3, 3, 1, 2, 6] as Array[int])
 	await s.sequence_finished
 	s.set_speed_mode(2)
 	s.pick_die(0); s.pick_die(1)
-	var pot_now := s.run.pot
-	s.throw_again()
-	check(s.bhud.display_hold.is_empty() and s.bhud.pot_label.text == "Pot %d" % s.run.pot and s.run.pot > pot_now, "[%s] Instant: HUD numbers update immediately (%s)" % [tag, s.bhud.pot_label.text])
+	var pts_now := s.run.points
+	s.throw_again()  # not hot: banks
+	check(s.bhud.display_hold.is_empty() and s.bhud.points_label.text.begins_with("points %d " % s.run.points) and s.run.points > pts_now, "[%s] Instant: HUD numbers update immediately (%s)" % [tag, s.bhud.pot_label.text])
 	s.set_speed_mode(0)
 	s.queue_free()
 	await process_frame

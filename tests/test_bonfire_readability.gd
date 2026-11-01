@@ -49,12 +49,12 @@ func wait_bet(s: Bonfire3D) -> void:
 		await process_frame
 
 
-func make_table(size := Vector2i(1920, 1080)) -> Array:
+func make_table(size := Vector2i(1920, 1080), count := 5) -> Array:
 	var sv := SubViewport.new()
 	sv.size = size
 	sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(sv)
-	var st := TableSetup.sandbox(t, 5)
+	var st := TableSetup.sandbox(t, count)
 	st.table_seed = 5
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
@@ -70,6 +70,7 @@ func _run() -> void:
 	t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	_pure()
 	await _scene()
+	await _pending_card()
 	await _felt_portrait()
 	await _debug_overlay()
 	print("test_bonfire_readability: %d passed, %d failed" % [_passed, _failed])
@@ -195,25 +196,21 @@ func _scene() -> void:
 	check(refused == [4] and s.bhud.callout_label.text == "doesn't score" and s.bhud.callout_label.modulate.a > 0.9, "'doesn't score' callout")
 	await create_timer(0.4).timeout
 	check(d2.position.distance_to(before) < 0.001, "the refused die bounces back to where it was")
-	# Pot preview + rethrow risk.
+	# Pot preview; no rethrow risk (cold dice don't throw again).
 	s.pick_die(0)
 	s.pick_die(1)
 	s.pick_die(2)
 	s._refresh_hud()
 	check(s.bhud.throw_label.text == "TRIPS: (30+12) x3 = 126", "pot preview (%s)" % s.bhud.throw_label.text)
-	check(s.bhud.risk_label.text == "2 cold dice: 1 in 3 chance nothing lights", "rethrow risk (%s)" % s.bhud.risk_label.text)
+	check(s.bhud.risk_label.text == "", "no cold rethrow: no risk line with dice left (%s)" % s.bhud.risk_label.text)
 	check(s.bhud.card_header.text == "Claim all 3 bounties · 5 hands left", "card header (%s)" % s.bhud.card_header.text)
 	check(s.bhud.points_label.text == "points 0 → +0 Embers", "points as income (%s)" % s.bhud.points_label.text)
-	# Throw the 2 cold dice: the prompt in AIM says the same.
-	check(s.throw_again(), "throw the 2 cold dice")
-	await wait_bet(s)
-	s._refresh_hud()
-	# Bounty card: the potted Triple is pending (ghost), then the claimed seal.
+	# Bounty card: the potted Triple banks straight to the claimed seal.
 	var card: BountyCard = s.bhud.bounty_cards[&"triple"]
-	check(card.state == "pending" and card.ghost.visible and card.pending_label.visible and card.pending_label.text == "Pending: bank to claim it.", "Triple card PENDING · bank to lock (%s)" % card.state)
-	check(s.bhud.throw_label.text == "2 cold dice: 1 in 3 chance nothing lights", "AIM prompt with the risk (%s)" % s.bhud.throw_label.text)
-	await throw_faces(s, [1, 5] as Array[int])
-	s.pick_die(0)
+	# (A pot only goes pending when a Hot Hand commits it; this one banks.)
+	check(card.state == "open", "Triple card still open before the bank (%s)" % card.state)
+	# THROW can't take the 2 cold dice: it says to bank. Bank the Triple.
+	check(s.bhud.throw_button.disabled and s.bhud.action_reason.text == "Bank it: only a Hot Hand throws again.", "THROW with cold dice left: bank it (%s)" % s.bhud.action_reason.text)
 	await s.bank()
 	await wait_bet(s)
 	check(card.state == "claimed" and card.seal.visible and s.bhud.has_stamp(&"triple"), "banked: the CLAIMED seal")
@@ -250,6 +247,26 @@ func j_clear(s: Bonfire3D) -> void:
 
 ## Phone portrait swaps the print and the slots to the portrait block, with
 ## the near-rail end of the felt at the bottom of the screen.
+## The pending bounty card: a Hot Hand commits the pot (the only way a pot
+## rides into another throw), so the Triple shows PENDING · bank to claim it,
+## and the AIM prompt carries the Hot Hand risk.
+func _pending_card() -> void:
+	var made: Array = await make_table(Vector2i(1920, 1080), 3)
+	var sv: SubViewport = made[0]
+	var s: Bonfire3D = made[1]
+	await throw_faces(s, [4, 4, 4] as Array[int])
+	for i in 3:
+		s.pick_die(i)
+	check(s.throw_again(), "3-die table: pot the 4-4-4, Hot Hand throws again")
+	await wait_bet(s)
+	s._refresh_hud()
+	var card: BountyCard = s.bhud.bounty_cards[&"triple"]
+	check(card.state == "pending" and card.ghost.visible and card.pending_label.visible and card.pending_label.text == "Pending: bank to claim it.", "Triple card PENDING · bank to lock (%s)" % card.state)
+	check(s.bhud.throw_label.text.begins_with("Hot Hand, all 3 dice: "), "AIM prompt with the Hot Hand risk (%s)" % s.bhud.throw_label.text)
+	sv.queue_free()
+	await process_frame
+
+
 func _felt_portrait() -> void:
 	var made: Array = await make_table(Vector2i(1920, 4155))
 	var sv: SubViewport = made[0]

@@ -1,6 +1,6 @@
 ## How likely the next throw is to burn (bust: nothing lights), worked out
-## EXACTLY by trying every way the cold dice can land (design section 4:
-## "Throw 2 cold dice: 1 in 3 burns").
+## EXACTLY by trying every way the thrown dice can land (shown for a Hot
+## Hand, the only rethrow).
 ##
 ## For each die we list its faces with their roll chance (TableDie.weights,
 ## uniform if empty), so Heavy weights, face mods (Blank, Wild, Step...),
@@ -257,11 +257,11 @@ static func odds_text(p: float) -> String:
 	return "%d%%" % roundi(p * 100.0)
 
 
-## The rethrow prompt (strings_v1, the TH5 wording): "2 cold dice: 1 in 3
-## chance nothing lights". Can't bust: "2 cold dice: they can't bust".
-static func prompt(n: int, risk: Dictionary, hot: bool = false) -> String:
+## The Hot Hand prompt (the only rethrow): "Hot Hand, all 3 dice: 1 in 3
+## chance nothing lights". One die: "Hot Hand, 1 die: it can't bust".
+static func prompt(n: int, risk: Dictionary) -> String:
 	var odds := String(risk.get("text", ""))
-	var what := ("Hot Hand, all %d dice" % n) if hot else ("%d cold %s" % [n, "die" if n == 1 else "dice"])
+	var what := "Hot Hand, 1 die" if n == 1 else "Hot Hand, all %d dice" % n
 	if odds == "no":
 		return "%s: %s can't bust" % [what, "it" if n == 1 else "they"]
 	if odds == "a sure":

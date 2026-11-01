@@ -27,7 +27,7 @@ func _run() -> void:
 	var sv := SubViewport.new()
 	sv.size = Vector2i(1920, 1080)
 	root.add_child(sv)
-	var st := TableSetup.sandbox(t, 5)
+	var st := TableSetup.sandbox(t, 3)  # 3 dice: potting the trips is a Hot Hand
 	st.table_seed = 5
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
@@ -62,8 +62,8 @@ func _run() -> void:
 	h.risk_label.text = "y"
 	h.clear_score_text()
 	check(h.throw_label.text == "" and h.notes_label.text == "" and h.risk_label.text == "", "clear_score_text empties the lines")
-	# Pick a TRIPS, then rethrow: during the count-up the line is empty.
-	s.rig_faces([3, 3, 3, 2, 4] as Array[int])
+	# Pick a TRIPS (every die: Hot Hand), then rethrow: during the count-up the line is empty.
+	s.rig_faces([3, 3, 3] as Array[int])
 	s.quick_throw()
 	await s.throw_resolved
 	await s.sequence_finished

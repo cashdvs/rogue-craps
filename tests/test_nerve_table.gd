@@ -31,9 +31,9 @@ func throw_faces(s: Bonfire3D, faces: Array[int]) -> void:
 	await s.sequence_finished
 
 
-func make_table(fourth: TableDie = null, hints: int = -1) -> Bonfire3D:
+func make_table(fourth: TableDie = null, hints: int = -1, count: int = 5) -> Bonfire3D:
 	var tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var st := TableSetup.sandbox(tuning, 5)
+	var st := TableSetup.sandbox(tuning, count)
 	st.table_seed = 5
 	st.starting_soul = 9
 	if fourth != null:
@@ -124,19 +124,20 @@ func nudge_flow() -> void:
 	await process_frame
 
 
-## Pot the 3s, rethrow [2, 4, 5]: nothing lights, but 2 -> 3 makes a run.
+## On a 3-die table: pot 3-3-3 (Hot Hand), throw [2, 4, 6]: nothing lights,
+## but a nudge makes a combo.
 func to_rescue(s: Bonfire3D) -> void:
-	await throw_faces(s, [3, 3, 1, 1, 6] as Array[int])
-	s.pick_die(0)
-	s.pick_die(1)
-	check(s.throw_again(), "rethrow the cold dice")
+	await throw_faces(s, [3, 3, 3] as Array[int])
+	for i in 3:
+		s.pick_die(i)
+	check(s.throw_again(), "Hot Hand: throw all 3 dice")
 	await process_frame
 	await throw_faces(s, [2, 4, 6] as Array[int])
 	await process_frame
 
 
 func rescue_save() -> void:
-	var s := await make_table()
+	var s := await make_table(null, -1, 3)
 	var soul := s.run.soul
 	await to_rescue(s)
 	check(s.run.bust_pending and s.run.soul == soul and not s.run.is_over(), "nothing lit + a nudge would light: the bust waits")
@@ -152,7 +153,7 @@ func rescue_save() -> void:
 
 
 func rescue_bust() -> void:
-	var s := await make_table()
+	var s := await make_table(null, -1, 3)
 	var soul := s.run.soul
 	await to_rescue(s)
 	s.nerve.take_bust()
@@ -243,7 +244,7 @@ func drag_flow() -> void:
 
 ## PM Oct 20: HN1 on the first rescue a profile sees, then only the prompt.
 func hn1_once() -> void:
-	var s := await make_table(null, 1)
+	var s := await make_table(null, 1, 3)
 	await to_rescue(s)
 	var tut := s.bhud.tutorial
 	check(s.run.bust_pending and tut.current == &"hn1_nerve" and tut.label.text == NerveText.get_text("HN1"), "first rescue: HN1 shows (%s)" % tut.current)

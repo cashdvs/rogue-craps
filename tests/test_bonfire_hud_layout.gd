@@ -36,17 +36,17 @@ func _run() -> void:
 		check(l.position.x >= 520.0 and l.size.x <= 880.0, "%s at x %d, width %d" % [l.name, l.position.x, l.size.x])
 	var col := h.throw_button.get_parent() as Control
 	check(col.position.x + col.size.x <= 520.0, "the button column ends left of x 520 (%s)" % str(col.position.x + col.size.x))
-	# Pick a valid pot with dice left to rethrow: the risk line shows and
+	# Pot every die (a Hot Hand to throw): the risk line shows and
 	# the status line steps aside; nothing picked: the status line is back.
 	for k in 600:
 		if s.phase == Table3D.Phase.BET and s.run.state == BonfireRun.State.AIM and not s.hand_moving():
 			break
 		await process_frame
-	s.rig_faces([4, 4, 4, 5, 2] as Array[int])
+	s.rig_faces([4, 4, 4, 4, 4] as Array[int])  # all potted: a Hot Hand, so the risk line shows
 	s.quick_throw()
 	await s.throw_resolved
 	await s.sequence_finished
-	for i in 3:
+	for i in 5:
 		s.pick_die(i)
 	await process_frame
 	check(h.risk_label.text != "" and not s.why_label.visible, "risk line up: the status line is hidden (%s)" % h.risk_label.text)

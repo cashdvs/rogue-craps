@@ -156,8 +156,8 @@ func _f1_pick_under_buttons() -> void:
 	s.pick_die(1)
 	await _idle(s)
 	var hands: int = s.run.hands_left
-	check(s.run.state == BonfireRun.State.PICK and s.run.can_continue() and not s.bhud.bank_button.disabled and not s.bhud.throw_button.disabled,
-		"F1 setup: a pair of 5s potted, THROW and BANK live")
+	check(s.run.state == BonfireRun.State.PICK and s.run.can_continue() and not s.bhud.bank_button.disabled,
+		"F1 setup: a pair of 5s potted, BANK live")
 	# A burning die under THROW: the click pots it (trips now).
 	var p := s.camera.cam.unproject_position(s.throw_dice[2].global_position)
 	_button_over(s, s.bhud.throw_button, p)

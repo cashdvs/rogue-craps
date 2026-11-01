@@ -18,7 +18,7 @@ signal shown_hint(id: StringName)
 ## The seen counts changed (the table saves them).
 signal seen_changed(seen: Dictionary)
 
-## Text: {pot} = Click / Tap, {n} = cold dice, {odds} = "1 in 3".
+## Text: {pot} = Click / Tap, {n} = dice thrown, {odds} = "1 in 3".
 ## "touch": the mobile text, when it differs. "anchor": what it points at
 ## (the table resolves it to a screen rect). "dismiss": the actions that
 ## close it (&"any" = the next one). "timeout": seconds. "max": times per
@@ -31,8 +31,8 @@ const HINTS := {
 	&"th2_pot": {"text": "{pot} glowing dice to pot one combo.", "anchor": &"lit_dice", "dismiss": [&"valid_selection"], "tutorial": true},
 	&"th2b_nofit": {"text": "That die doesn't fit this combo.", "anchor": &"refused_die", "dismiss": [&"any"], "timeout": 2.5, "max": 3, "tutorial": true},
 	&"th3_pending": {"text": "This combo claims that bounty. Bank to lock it.", "anchor": &"pulsing_card", "dismiss": [&"bank", &"rethrow"], "tutorial": true},
-	&"th4_choice": {"text": "Bank keeps your points. Or throw the cold dice again.", "anchor": &"buttons", "dismiss": [&"bank", &"rethrow"], "tutorial": true},
-	&"th5_risk": {"text": "{n} cold dice: {odds} chance nothing lights.", "anchor": &"risk", "dismiss": [&"bank", &"rethrow"], "tutorial": true},
+	&"th4_choice": {"text": "Pot one combo and the hand banks.", "anchor": &"buttons", "dismiss": [&"bank", &"rethrow"], "tutorial": true},
+	&"th5_risk": {"text": "Hot Hand throws every die again, but it can bust.", "anchor": &"risk", "dismiss": [&"bank", &"rethrow"], "tutorial": true},
 	&"th6_hot": {"text": "Every die scored! All {all} come back, plus {mult} mult.", "anchor": &"mult", "dismiss": [&"thrown"], "timeout": 4.0, "tutorial": true},
 	&"th7_claimed": {"text": "Claimed! Claim every card to clear the table.", "anchor": &"stamped_card", "timeout": 4.0, "tutorial": true},
 	&"th8_points": {"text": "Points turn into Embers after the table. Spend them in shops.", "anchor": &"embers", "timeout": 4.0, "tutorial": true},

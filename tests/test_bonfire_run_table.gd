@@ -48,6 +48,13 @@ func make_table(st: TableSetup) -> Bonfire3D:
 	return s
 
 
+func _wait_bet7(s: Bonfire3D) -> void:
+	for k in 200:
+		if s.phase == Table3D.Phase.BET and s.dice.size() == 7:
+			return
+		await process_frame
+
+
 func _run() -> void:
 	var H := load("res://resources/mods/hellfire.tres") as FaceModData
 	var W := load("res://resources/mods/wild.tres") as FaceModData
@@ -119,31 +126,29 @@ func _run() -> void:
 	check(not s.pick_die(3), "the Blank can't be potted")
 	check(s.pick_die(1), "add the Wild (quads of 4s)")
 	check(r.selection()["combo"] == &"quads", "Wild makes quads")
-	check(s.throw_again(), "pot and gather the 3 cold dice")
-	check(s.dice.size() == 3 and r.cold == 3, "3 cold dice left")
-	res = await throw_slots(s, [2, 1, 5] as Array[int])  # Twin 2, Blank, odd slot 5 (=5)
-	check(res[0] == [2, 1, 5] and res[1] == [0, 2], "Twin 2 and the 5 light, the Blank doesn't")
-	check(s.pick_die(0), "pot the Twin 2")
-	check(r.potted == [0] and r.selection()["combo"] == &"pair", "a Twin 2 alone pots as a pair")
+	# No cold rethrow: 5 of 7 potted, so THROW banks the quads.
+	var pts0 := r.points
+	check(s.throw_again() and r.hands_left == 2, "not a Hot Hand: THROW banks the hand")
+	await _wait_bet7(s)
+	check(r.points > pts0, "the quads banked")
+	# Hand 2: Twin 2, Blank, odd slot 5 (=5) among plain values.
+	res = await throw_slots(s, [3, 4, 2, 1, 5, 6, 6] as Array[int])
+	check(res[0] == [3, 4, 2, 1, 5, 6, 6] and (res[1] as Array).has(2) and (res[1] as Array).has(4) and not (res[1] as Array).has(3), "Twin 2 and the 5 light, the Blank doesn't")
+	check(s.pick_die(2), "pot the Twin 2")
+	check(r.selection()["combo"] == &"pair", "a Twin 2 alone pots as a pair")
 	var bk: Dictionary = await s.bank()
-	check(int(bk.get("gain", 0)) > 0 and r.hands_left == 2, "bank the hand")
-	for k in 200:
-		if s.phase == Table3D.Phase.BET and s.dice.size() == 7:
-			break
-		await process_frame
+	check(int(bk.get("gain", 0)) > 0 and r.hands_left == 1, "bank the hand")
+	await _wait_bet7(s)
 
-	# Hot Hand with 7 dice: five 4s, then the last two as a pair.
-	res = await throw_slots(s, [4, 6, 4, 4, 1, 4, 4] as Array[int])
-	for i in [0, 2, 3, 5, 6]:
+	# Hand 3, the 7-die Hot Hand check under the no-cold-rethrow rule: a pot
+	# holds at most 5 dice, so 5 of 7 potted isn't Hot and THROW is blocked
+	# (6-7-die bags and the pot cap: Game Designer ruling pending). Then
+	# forfeit mid-hand.
+	res = await throw_slots(s, [5, 6, 5, 5, 5, 5, 5] as Array[int])
+	for i in [1, 0, 2, 3, 4, 5]:
 		s.pick_die(i)
-	check(r.selection()["combo"] == &"five_kind", "five 4s (one Hellfire) = five of a kind")
-	check(not r.is_hot(), "5 of 7 potted isn't a Hot Hand")
-	check(s.throw_again() and r.cold == 2, "2 cold dice")
-	res = await throw_slots(s, [6, 5] as Array[int])  # Wild + odd 5
-	s.pick_die(0)
-	s.pick_die(1)
-	check(r.selection()["combo"] == &"pair" and r.is_hot(), "Wild + 5 pair pots the last 2: Hot Hand with 7 dice")
-	check(s.throw_again() and r.cold == 7 and s.dice.size() == 7 and r.hot_hands == 1, "Hot Hand scoops all 7 back")
+	check(r.potted.size() == 5 and not r.is_hot(), "5 of 7 potted (the most one combo holds) isn't a Hot Hand")
+	check(r.rethrow_block_reason() != "", "7 dice: THROW is blocked (%s)" % r.rethrow_block_reason())
 
 	# Forfeit from the pause menu (confirm step), outcome, finished once.
 	for k in 120:

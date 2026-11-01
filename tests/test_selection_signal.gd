@@ -75,25 +75,25 @@ func _run() -> void:
 ## bust and after a bank (glows must switch off).
 func not_picking() -> void:
 	await process_frame
-	var s := await make_table()
+	var s := await make_table(3)
 	var r := s.run
-	# Pot the trips, rethrow, then 2-6: a bust (no Nerve, so no rescue).
-	s.rig_faces([3, 3, 3, 2, 6] as Array[int])
+	# 3 dice: pot the trips (Hot Hand), rethrow all 3, then 2-4-6: a bust (no Nerve, so no rescue).
+	s.rig_faces([3, 3, 3] as Array[int])
 	s.quick_throw()
 	await s.sequence_finished
 	s.pick_die(0)
 	s.pick_die(1)
 	s.pick_die(2)
-	check(s.throw_again(), "rethrow the 2 and the 6")
+	check(s.throw_again(), "Hot Hand: rethrow all 3")
 	sent.clear()
-	s.rig_faces([2, 6] as Array[int])
+	s.rig_faces([2, 4, 6] as Array[int])
 	s.quick_throw()
 	await s.sequence_finished
-	check(r.state != BonfireRun.State.PICK, "2-6 busts")
+	check(r.state != BonfireRun.State.PICK, "2-4-6 busts")
 	check(not sent.is_empty() and sent.back()[0].is_empty() and sent.back()[1].is_empty(), "bust sends empty arrays (%s)" % str(sent))
 	# A fresh hand: pot the trips and bank.
 	await create_timer(0.5).timeout
-	s.rig_faces([3, 3, 3, 2, 6] as Array[int])
+	s.rig_faces([3, 3, 3] as Array[int])
 	s.quick_throw()
 	await s.sequence_finished
 	s.pick_die(0)
@@ -112,9 +112,9 @@ func not_picking() -> void:
 	s.queue_free()
 
 
-func make_table() -> Bonfire3D:
+func make_table(count: int = 5) -> Bonfire3D:
 	var tuning := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
-	var st := TableSetup.sandbox(tuning, 5)
+	var st := TableSetup.sandbox(tuning, count)
 	st.table_seed = 5
 	st.nerve_uses = 0
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D

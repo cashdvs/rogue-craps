@@ -54,13 +54,13 @@ func check(cond: bool, what: String) -> void:
 
 
 ## The Bonfire scene inside a SubViewport of the given canvas size.
-func _make(canvas: Vector2i) -> Array:
+func _make(canvas: Vector2i, count: int = 5) -> Array:
 	var sv := SubViewport.new()
 	sv.size = canvas
 	root.add_child(sv)
 	var t := load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
-	s.setup = TableSetup.sandbox(t, 5)
+	s.setup = TableSetup.sandbox(t, count)
 	s.setup.nerve_uses = 0  # these checks expect a plain bust (no Nerve rescue pause)
 	s.tutorial_override = 0
 	s.bonfire_seed = 5
@@ -228,19 +228,31 @@ func _feedback(s: Bonfire3D, g: PortraitGoalHud) -> void:
 	_banner_clear(s, g, "Banked")
 	await create_timer(1.8).timeout
 	check(not g.has_stamp(&"triple") and (g.rows[&"triple"] as Label).text.begins_with("[x]"), "the stamp fades; the row stays claimed")
-	# Hand 2: two pairs pending, then the last die busts.
-	await _throw(s, [2, 2, 5, 5, 3] as Array[int])
-	for i in 4:
-		s.pick_die(i)
-	check(s.throw_again(), "throw the last die")
-	s._refresh_hud()
-	check((g.rows[&"two_pairs"] as Label).text.begins_with("[?]"), "Two Pairs row pending (%s)" % (g.rows[&"two_pairs"] as Label).text)
-	await create_timer(0.3).timeout
-	await _throw(s, [6] as Array[int])
+	# Hand 2: a pending row, then a bust. Only a Hot Hand throws again, and
+	# 5 plain dice always light something, so the bust runs on a 3-die
+	# portrait table: pot 1-2-3 (Run of 3 pending), throw 2-4-6.
+	var made: Array = await _make(Vector2i(int(round(PHONE.x / SCALE)), int(round(PHONE.y / SCALE))), 3)
+	(made[0] as SubViewport).own_world_3d = true  # keep its dice out of the 5-die table's physics
+	var s3: Bonfire3D = made[1]
+	s3.camera.cam.current = true
+	s3.fit_phone(PHONE)
+	s3.camera.snap_home()
 	await process_frame
-	check(g.lost_flashed.has(&"two_pairs"), "bust: the pending Two Pairs row flashes as lost")
-	check((g.rows[&"two_pairs"] as Label).text.begins_with("[ ]"), "bust: Two Pairs back to [ ]")
-	_banner_clear(s, g, "BUST")
+	var g3 := s3.bhud.portrait_goal
+	await _throw(s3, [1, 2, 3] as Array[int])
+	for i in 3:
+		s3.pick_die(i)
+	check(s3.throw_again(), "Hot Hand: throw all 3 dice")
+	s3._refresh_hud()
+	check((g3.rows[&"run3"] as Label).text.begins_with("[?]"), "Run of 3 row pending (%s)" % (g3.rows[&"run3"] as Label).text)
+	await create_timer(0.3).timeout
+	await _throw(s3, [2, 4, 6] as Array[int])
+	await process_frame
+	check(g3.lost_flashed.has(&"run3"), "bust: the pending Run of 3 row flashes as lost")
+	check((g3.rows[&"run3"] as Label).text.begins_with("[ ]"), "bust: Run of 3 back to [ ]")
+	_banner_clear(s3, g3, "BUST")
+	(made[0] as Node).queue_free()
+	await process_frame
 
 
 ## The bank / bust banner reads: showing, the right text, not under the readout.

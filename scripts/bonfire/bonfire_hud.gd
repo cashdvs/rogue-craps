@@ -1,7 +1,6 @@
 ## Bonfire HUD (plain Controls, 1920x1080 design space): Embers / points,
 ## hands left, the bounty cards, the hand's pot with the live pot preview
-## "TRIPS: (30+12) x3 = 126", the rethrow risk "Throw 2 cold dice: 1 in 3
-## burns", BANK / THROW and the end screen (how_bonfire_plays.md section 4).
+## "TRIPS: (30+12) x3 = 126", the Hot Hand bust risk, BANK / THROW and the end screen (how_bonfire_plays.md section 4).
 ## The combo table is printed on the felt (FeltComboTable), not here.
 class_name BonfireHud
 extends BonfireHudGoal
