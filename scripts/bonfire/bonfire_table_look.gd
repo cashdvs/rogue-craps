@@ -19,7 +19,7 @@ func table_die(d: DieVisual) -> TableDie:
 
 
 ## Shows a TableDie on a die: its face values (pips) and a cheap decal per
-## modded face: Hellfire red-orange rim + glowing pips, Wild rainbow rim +
+## modded face: Hellfire red-orange rim + glowing pips, Wild brass/dark rim +
 ## gold pips, Twin a double outline, Blank plain bone over the pips.
 func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	if td == null:
@@ -50,31 +50,44 @@ func place_face_mods(d: DieVisual, td: TableDie) -> void:
 	root.name = "FaceMods"
 	d.faces.add_child(root)
 	# One decal per modded slot the mesh has (a coin: heads, tails).
-	for slot in range(1, mini(td.mods.size(), {&"coin": 2, &"d4": 4}.get(d.shape, 6)) + 1):
+	for slot in range(1, mini(td.mods.size(), {&"coin": 2, &"d4": 4, &"d8": 8}.get(d.shape, 6)) + 1):
 		var m := td.mod_at(slot)
 		if m != null:
-			_add_mod_decal(root, d, d.mesh_face(slot), m)
+			_add_mod_decal(root, d, slot if PolyBody.has_face_spots(d) else d.mesh_face(slot), m)
 
 
 func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> void:
 	var e := d.edge
-	var n := DieVisual.FACE_AXES[slot] as Vector3
 	# Everything sits just above the pip tops (h + 0.01 e) so the die's ink
 	# outline pass can't swallow it; fills would hide the pips, so the
 	# coloured mods are a rim + tinted pips.
-	var lift := d.face_half(slot) + 0.014 * e
-	if d.shape == &"d4":
-		# A d4 face is a tilted triangle: use its real normal, sit flush on
-		# it (a hair above), and shrink the mark to fit inside the triangle.
-		var f := PolyBody.d4_face(d, slot)
+	var n: Vector3
+	var lift: float
+	_at = Vector3.ZERO
+	if PolyBody.has_face_spots(d):
+		# A d4 / d8 face is a tilted triangle: use its real normal, sit flush
+		# on it (a hair above), and shrink the mark to fit inside it.
+		var f := PolyBody.face_spot(d, slot)
 		n = f.normal
 		lift = f.dist + 0.002 * e
 		e = f.width
+		_at = f.at
+	else:
+		n = DieVisual.FACE_AXES[slot] as Vector3
+		lift = d.face_half(slot) + 0.014 * e
 	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
 	u = (u - n * u.dot(n)).normalized()
 	var v := n.cross(u)
+	# The d4 Twin and d8 rare glyphs go around the printed face art.
+	if d.shape == &"d4" and m.effect == FaceModData.Effect.TWIN and not RareDieLook.MARKS.has(m.id):
+		PolyFaceMarks.twin_diamond(root, d, slot)
+		return
+	if d.shape == &"d8" and PolyFaceMarks.rare_on_d8(root, d, slot, m.id):
+		return
 	# Rare mods (Fuse, Jackpot, Hex, Gilded, Step) get their own glyph mark.
 	if RareDieLook.add_mark(root, d, n, u, v, lift, m.id):
+		if PolyBody.has_face_spots(d):
+			_fit_rare_mark(root.get_child(-1) as Node3D, d, e)
 		return
 	match m.effect:
 		FaceModData.Effect.MULT_FACTOR:
@@ -82,7 +95,7 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 			_decal_frame(root, n, u, v, lift, e * 0.88, e * 0.08, c)
 			_tint_pips(d, n, HELLFIRE_COLOR)
 		FaceModData.Effect.WILD:
-			_decal_frame(root, n, u, v, lift, e * 0.88, e * 0.08, RAINBOW)
+			_wild_frame(root, n, u, v, lift, e * 0.88, e * 0.104)
 			_tint_pips(d, n, WILD_COLOR)
 		FaceModData.Effect.TWIN:
 			var c: Array[Color] = [TWIN_COLOR, TWIN_COLOR, TWIN_COLOR, TWIN_COLOR]
@@ -120,8 +133,20 @@ func _decal_quad(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float, 
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mi.transform = Transform3D(Basis(u, v, n), n * lift + u * off.x + v * off.y)
+	mi.transform = Transform3D(Basis(u, v, n), _at + n * lift + u * off.x + v * off.y)
 	root.add_child(mi)
+
+
+## In-plane centre of the mark being placed (zero on a cube; set per d4/d8 face).
+var _at := Vector3.ZERO
+
+
+## A rare glyph mark is sized for a cube face: shrink it to [param w] wide
+## and slide it to this d4/d8 face's spot.
+func _fit_rare_mark(mark: Node3D, d: DieVisual, w: float) -> void:
+	var dia: float = d.edge * float(mark.get_meta("size", 1.0))
+	var k := minf(1.0, w / maxf(dia, 0.0001))
+	mark.transform = Transform3D(mark.transform.basis.scaled_local(Vector3(k, k, 1)), _at + mark.transform.basis.z.normalized() * mark.transform.origin.dot(mark.transform.basis.z.normalized()))
 
 
 ## A square outline (4 strips, one colour each) of outer size `size`.
@@ -131,6 +156,15 @@ func _decal_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float,
 	_decal_quad(root, n, u, v, lift, thick, size, Vector2(o, 0), cols[1], true)
 	_decal_quad(root, n, u, v, lift, size, thick, Vector2(0, -o), cols[2], true)
 	_decal_quad(root, n, u, v, lift, thick, size, Vector2(-o, 0), cols[3], true)
+
+
+## The Wild rim: the same frame, brass / dark strips, then a brass square
+## tick over each corner (a hair higher, so it sits on top of the strips).
+func _wild_frame(root: Node3D, n: Vector3, u: Vector3, v: Vector3, lift: float, size: float, thick: float) -> void:
+	_decal_frame(root, n, u, v, lift, size, thick, WILD_FRAME)
+	var o := (size - thick) * 0.5
+	for c: Vector2 in [Vector2(-o, o), Vector2(o, o), Vector2(o, -o), Vector2(-o, -o)]:
+		_decal_quad(root, n, u, v, lift + 0.0002, thick, thick, c, WILD_TICK, true)
 
 
 ## A Cracked die shatters: burst, gone for the rest of the table.
