@@ -1,9 +1,11 @@
 ## Headless test: AD proof pass A (Nov 1) for Twin Flame, Blood Pact, Coven.
-##   - Twin Flame: charcoal #2A2420 / shadow #14100D, ember #E8622A pips,
+##   - Twin Flame: charcoal #2A2420 / shadow #14100D, light ember #FFB866 pips,
 ##     1.3x brass #C9A24A outline;
-##   - Blood Pact: wine #8A3A3A / shadow #3A1616, cream pips, 1.3x dark ink
+##   - Blood Pact: wine #6E2A2A / shadow #2E1212, cream pips, 1.3x dark ink
 ##     #1A1210 outline, still a Wild red body;
 ##   - Coven: #8C7CD6 / shadow #3A3266, dark #1A1622 pips, 1.3x cream outline;
+##   - Twin Flame and Blood Pact pips read >= 3.5:1 against the body under
+##     the table's warm-red lamp (#FFB070), WCAG on the lit albedos (AD fix);
 ##   - none of them glows (pip emission stays <= 0.3).
 ##   godot --headless --path . --script res://tests/test_proof_dice_look_a.gd
 extends SceneTree
@@ -58,10 +60,29 @@ func _look(id: StringName, body: String, shadow: String, pip: String, ink: Strin
 	check(em == null or float(em) <= 0.3, "%s pips do not glow" % id)
 
 
+## WCAG luminance of colour [param c] lit by the table lamp (#FFB070).
+func _lit_lum(c: Color) -> float:
+	var l := c.srgb_to_linear()
+	var k := Color("#FFB070").srgb_to_linear()
+	return 0.2126 * l.r * k.r + 0.7152 * l.g * k.g + 0.0722 * l.b * k.b
+
+
+## Pip-to-body contrast of the spawned die [param id] under the lamp.
+func _contrast(id: StringName) -> float:
+	var d: DieVisual = await _die(id)
+	var a := _lit_lum(d.body_material.get_shader_parameter("albedo"))
+	var b := _lit_lum(d._pip_color)
+	return (maxf(a, b) + 0.05) / (minf(a, b) + 0.05)
+
+
 func _run() -> void:
-	await _look(&"twin_flame", "#2A2420", "#14100D", "#E8622A", "#C9A24A")
-	await _look(&"blood_pact", "#8A3A3A", "#3A1616", "#E8DCC0", "#1A1210")
+	await _look(&"twin_flame", "#2A2420", "#14100D", "#FFB866", "#C9A24A")
+	await _look(&"blood_pact", "#6E2A2A", "#2E1212", "#E8DCC0", "#1A1210")
 	await _look(&"coven", "#8C7CD6", "#3A3266", "#1A1622", "#E8DCC0")
+	for id: StringName in [&"twin_flame", &"blood_pact"]:
+		var cr: float = await _contrast(id)
+		print("%s pip/body contrast under the lamp: %.2f" % [id, cr])
+		check(cr >= 3.5, "%s pips >= 3.5:1 on the body (%.2f)" % [id, cr])
 	check(&"blood_pact" in BonfireTableState.WILD_RED_BODIES, "Blood Pact keeps its Wild red-body keyline")
 	print("test_proof_dice_look_a: %d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
