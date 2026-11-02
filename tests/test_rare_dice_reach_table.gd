@@ -89,12 +89,20 @@ func _test_rare(id: StringName) -> void:
 func _check_look(b: Bonfire3D, at: int, id: StringName, sh: DieShape) -> void:
 	var d := b.dice[at]
 	var body: Color = d.body_material.get_shader_parameter("albedo")
-	_check(body.is_equal_approx(RareDieLook.body_color()), "%s: body is the rare tint (%s)" % [id, body.to_html(false)])
+	## A rare with its own authored body (Beacon, AD proof pass) uses that
+	## instead of the shared rare tint, and a cream keyline instead of the trim.
+	var own := DieArtMaterial.body_path(id)
+	var look: Color = (load(own) as ShaderMaterial).get_shader_parameter("albedo") if own != "" else RareDieLook.body_color()
+	_check(body.is_equal_approx(look), "%s: body is its rare look (%s)" % [id, body.to_html(false)])
 	var bone := b.dice[0 if at != 0 else 1]
 	var bone_body: Color = bone.body_material.get_shader_parameter("albedo")
 	var dist := Vector3(body.r - bone_body.r, body.g - bone_body.g, body.b - bone_body.b).length()
 	_check(dist > 0.05, "%s: visibly distinct from the Bone die beside it (%.3f)" % [id, dist])
-	_check(d.faces.get_node("Body").has_node("RareTrim") and not bone.faces.get_node("Body").has_node("RareTrim"), "%s: brass bevel trim on the rare only" % id)
+	if own != "":
+		var ink := d.body_material.next_pass as ShaderMaterial
+		_check(ink != null and (ink.get_shader_parameter("color") as Color).is_equal_approx(DieArtMaterial.EDGE_INK[DiceIds.canonical(id)]), "%s: its own keyline ink" % id)
+	else:
+		_check(d.faces.get_node("Body").has_node("RareTrim") and not bone.faces.get_node("Body").has_node("RareTrim"), "%s: brass bevel trim on the rare only" % id)
 	var fm := d.faces.get_node_or_null("FaceMods")
 	var want := 0
 	var have := 0

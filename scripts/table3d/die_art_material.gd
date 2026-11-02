@@ -15,7 +15,11 @@ extends RefCounted
 const DIR := "res://art/models/dice/materials/"
 const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 ## Dice whose edge outline is drawn 1.5x wide, in this colour.
-const EDGE_INK := {&"mirror": Color("#3A4148"), &"cracked": Color("#2A2420")}
+## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
+const EDGE_INK := {
+	&"mirror": Color("#3A4148"), &"cracked": Color("#2A2420"),
+	&"extra": Color("#C9A24A"), &"beacon": Color("#E8DCC0"), &"bellows": Color("#E8DCC0"),
+}
 const EDGE_WIDTH_MUL := 1.5
 
 

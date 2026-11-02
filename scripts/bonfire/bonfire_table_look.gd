@@ -27,7 +27,9 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 	apply_art_body(d, td.id)
 	if td.shape == &"coin":
 		d.make_coin()
-	elif RareDieLook.is_rare(td.id):
+	elif RareDieLook.is_rare(td.id) and DieArtMaterial.body_path(td.id) == "":
+		## A rare with its own authored body (Beacon) skips this generic tint
+		## and takes the DieArtMaterial branch below instead.
 		DieArtMaterial.reset(d)
 		# Rares: the Art Director's warm body tint (RareDieLook) over Bone,
 		# with a thin brass rim so they don't read as plain Bone.

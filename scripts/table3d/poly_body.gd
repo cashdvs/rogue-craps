@@ -124,6 +124,11 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	if art != null and art.get_shader_parameter("overlay_tex") != null:
 		for k in ["use_overlay", "overlay_tex", "overlay_tint"]:
 			d.body_material.set_shader_parameter(k, art.get_shader_parameter(k))
+	## The die's own authored body may recolour those numbers (Beacon: dark ink).
+	var own_path := DieArtMaterial.body_path(td.id)
+	var own: ShaderMaterial = load(own_path) if own_path != "" else null
+	if own != null and own.get_shader_parameter("overlay_tint") != null:
+		d.body_material.set_shader_parameter("overlay_tint", own.get_shader_parameter("overlay_tint"))
 	for k in SHAPE_SHADE.get(s, {}):
 		d.body_material.set_shader_parameter(k, SHAPE_SHADE[s][k])
 	# The cube's pips go (the art prints the numbers). FaceMods marks and a
