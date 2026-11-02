@@ -21,5 +21,6 @@ shader_parameter/rim_color = Color(0.909804, 0.862745, 0.752941, 1)
 shader_parameter/rim_strength = 0.35
 shader_parameter/rim_power = 2.5
 shader_parameter/use_overlay = true
+shader_parameter/ink_from_tint = true
 shader_parameter/overlay_tex = ExtResource("3")
-shader_parameter/overlay_tint = Color(0.164706, 0.109804, 0.086275, 1)
+shader_parameter/overlay_tint = Color(0.117647, 0.090196, 0.070588, 1)

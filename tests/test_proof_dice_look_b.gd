@@ -78,6 +78,11 @@ func _lamp_contrast(a: Color, b: Color) -> float:
 	return (maxf(ya, yb) + 0.05) / (minf(ya, yb) + 0.05)
 
 
+func src_has_ink_mode() -> bool:
+	var c := (load("res://shaders/3d/toon_noir.gdshader") as Shader).code
+	return c.find("if (ink_from_tint) { ink.rgb = overlay_tint.rgb; }") != -1
+
+
 func _run() -> void:
 	## AD add-on: Blood Pact wears a 1.3x brass keyline (Wild strips kept).
 	await _ink(&"blood_pact", "#C9A24A", 1.3)
@@ -105,16 +110,32 @@ func _run() -> void:
 	## Ossuary: 1.5x dark ink outline; Fortune: 1.3x brass keyline + the brass trim.
 	await _ink(&"ossuary", "#16130F", 1.5)
 	await _ink(&"fortune", "#C9A24A", 1.3)
+	## AD Nov 1 10:45 PM: Barrel takes whichever pip (cream / dark) reaches 3.5:1;
+	## Ossuary #8A857C with dark pips (printed: the AD's pair lands just under 3.5).
+	var bc := _lamp_contrast(Color("#7A5534"), Color("#E8DCC0"))
+	var bd := _lamp_contrast(Color("#7A5534"), Color("#16130F"))
+	print("barrel pips under the lamp: cream %.2f, dark %.2f" % [bc, bd])
+	check(bc >= 3.5 and bc > bd, "barrel: cream pips >= 3.5:1 (%.2f)" % bc)
+	print("ossuary dark pips under the lamp: %.2f" % _lamp_contrast(Color("#8A857C"), Color("#16130F")))
+	## Beacon: numerals printed in dark #1E1712 itself (not the sheet's cream), >= 4.5:1.
+	var bn: DieVisual = await _die(&"beacon")
+	var tint: Variant = bn.body_material.get_shader_parameter("overlay_tint")
+	check(_near(tint, Color("#1E1712")), "beacon numerals #1E1712")
+	check(bn.body_material.get_shader_parameter("ink_from_tint") == true, "beacon numerals use the tint colour")
+	var nc := _lamp_contrast(bn.body_material.get_shader_parameter("albedo"), tint)
+	print("beacon numerals under the lamp: %.2f" % nc)
+	check(nc >= 4.5, "beacon numerals >= 4.5:1 (%.2f)" % nc)
+	check(src_has_ink_mode(), "toon_noir can print numbers in the tint colour")
 	for id in [&"mirror", &"powder_keg"]:
 		await _ink(id, "#E8DCC0", 1.2)
 	await _ink(&"usurer", "#C9A24A", 1.3)
-	var os: DieVisual = await _rare(&"ossuary", "#6E6A62", "#E8DCC0")
+	var os: DieVisual = await _rare(&"ossuary", "#8A857C", "#16130F")
 	check(os.faces.get_node("Body").get_node_or_null("HoopBands") == null, "Ossuary: no hoops")
 	var fo: DieVisual = await _rare(&"fortune", "#C9A24A", "#1A1210")
 	check(fo.faces.get_node("Body").has_node("RareTrim"), "Fortune: brass rare trim")
 	check(not os.faces.get_node("Body").has_node("RareTrim"), "Ossuary: no rare trim")
 	await _rare(&"usurer", "#1E1A18", "#E8DCC0")
-	var br: DieVisual = await _rare(&"barrel", "#7A5534", "#1A1210")
+	var br: DieVisual = await _rare(&"barrel", "#7A5534", "#E8DCC0")
 	var hoops := br.faces.get_node("Body").get_node_or_null("HoopBands")
 	check(hoops != null and hoops.get_child_count() == 2, "Barrel: two hoop bands")
 	if hoops != null and hoops.get_child_count() == 2:

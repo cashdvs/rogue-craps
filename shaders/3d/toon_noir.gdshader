@@ -38,6 +38,8 @@ uniform float roughness = 0.8;
 uniform bool use_overlay = false;
 uniform sampler2D overlay_tex : source_color, filter_linear_mipmap, hint_default_transparent; // not anisotropic: it speckled the Beacon d8 numbers (QA, PR 248)
 uniform vec4 overlay_tint : source_color = vec4(0.91, 0.86, 0.75, 0.85);
+// On: print the numbers in overlay_tint's own colour, not the sheet's cream (Beacon: dark ink, AD Nov 1).
+uniform bool ink_from_tint = false;
 // Emission of the overlay print, x its colour (the Bonfire combo table: 0.35,
 // so the print reads in the lamp's falloff). 0 = off.
 uniform float overlay_emission = 0.0;
@@ -116,6 +118,7 @@ void fragment() {
 		vec2 ouv = overlay_pivot + (UV - overlay_pivot - overlay_shift) / max(overlay_scale, 0.01);
 		vec4 ink = texture(overlay_tex, ouv);
 		ink.a *= step(0.0, ouv.x) * step(ouv.x, 1.0) * step(0.0, ouv.y) * step(ouv.y, 1.0);
+		if (ink_from_tint) { ink.rgb = overlay_tint.rgb; }
 		col = mix(col, ink.rgb, ink.a * overlay_tint.a);
 		overlay_emit = ink.rgb * ink.a * overlay_tint.a * overlay_emission;
 	}
