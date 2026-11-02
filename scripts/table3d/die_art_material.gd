@@ -18,7 +18,7 @@ const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 ## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
 const EDGE_INK := {
 	&"mirror": Color("#E8DCC0"), &"cracked": Color("#2A2420"),
-	&"wanderer": Color("#16130F"), &"ossuary": Color("#16130F"), &"fortune": Color("#C9A24A"), &"powder_keg": Color("#E8DCC0"), &"usurer": Color("#C9A24A"),
+	&"wanderer": Color("#16130F"), &"ossuary": Color("#E8DCC0"), &"fortune": Color("#C9A24A"), &"powder_keg": Color("#E8DCC0"), &"usurer": Color("#C9A24A"),
 	&"extra": Color("#C9A24A"), &"beacon": Color("#E8DCC0"), &"bellows": Color("#E8DCC0"),
 	&"twin_flame": Color("#C9A24A"), &"blood_pact": Color("#C9A24A"), &"coven": Color("#E8DCC0"),
 }
@@ -29,10 +29,13 @@ const EDGE_MUL := {
 	&"beacon": 1.3, &"bellows": 1.3, &"fortune": 1.3,
 	## Wanderer: a thin dark ink line (stock width) instead of the cream keyline (AD, Nov 1 10:05 PM).
 	&"wanderer": 1.0,
-	&"mirror": 1.2, &"powder_keg": 1.2,
+	&"mirror": 1.2, &"ossuary": 1.2, &"powder_keg": 1.2,
 }
 ## Authored rares that still wear the brass bevel RareTrim at full strength (Fortune).
 const TRIM_DICE: Array[StringName] = [&"fortune"]
+## Dice with unlit bone-cream #E8DCC0 corner caps, 15% of the edge per corner (Ossuary, AD Nov 1).
+const CAP_DICE: Array[StringName] = [&"ossuary"]
+const CAP_COLOR := Color("#E8DCC0")
 ## Dice that wear two brass hoop bands round their sides (Barrel).
 const HOOP_DICE: Array[StringName] = [&"barrel"]
 const HOOP_MAT := DIR + "barrel_hoop.tres"  # flat brass #C9A24A, like the brass keylines
@@ -65,6 +68,7 @@ static func reset(d: DieVisual) -> void:
 		return
 	DieCrackInk.clear(d)
 	_set_hoops(d, false)
+	_set_caps(d, false)
 	var base := d.get_meta(&"base_material") as ShaderMaterial
 	var vals: Dictionary = d.get_meta(&"base_values")
 	for k in vals:
@@ -117,6 +121,7 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 		d.body_material.next_pass = o
 	DieCrackInk.apply(d)  # Cracked: its seams in dark ink
 	_set_hoops(d, c in HOOP_DICE)
+	_set_caps(d, c in CAP_DICE)
 	RareDieLook.set_trim(d, c in TRIM_DICE)  ## the same trim the plain rares wear
 	d.set_meta(&"art_material", c)
 	return true
@@ -171,3 +176,43 @@ void fragment() {
 	ALBEDO = color.rgb;
 }"""
 	return _hoop_sh
+
+
+## Adds (or removes) the corner caps: a 1.5%-bigger copy of the body mesh
+## that only draws where a point is near a corner on all three axes
+## (within 15% of the edge of it), in flat unlit cream. Cheap: one mesh.
+static func _set_caps(d: DieVisual, on: bool) -> void:
+	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
+	var old := body.get_node_or_null("CornerCaps") if body != null else null
+	if old != null:
+		old.free()
+	if not on or body == null or body.mesh == null:
+		return
+	var box := body.mesh.get_aabb()
+	var sh := Shader.new()
+	sh.code = """shader_type spatial;
+render_mode unshaded;
+uniform vec4 color : source_color;
+uniform vec3 mid;
+uniform vec3 half_size;
+uniform float cap;
+varying vec3 lp;
+void vertex() { lp = VERTEX; }
+void fragment() {
+	vec3 q = abs(lp - mid) / half_size;  // 1.0 = on the face
+	if (min(q.x, min(q.y, q.z)) < 1.0 - cap) { discard; }
+	ALBEDO = color.rgb;
+}"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	m.set_shader_parameter("color", CAP_COLOR)
+	m.set_shader_parameter("mid", box.get_center())
+	m.set_shader_parameter("half_size", box.size * 0.5)
+	m.set_shader_parameter("cap", 0.30)  # 15% of the edge = 30% of the half edge
+	var mi := MeshInstance3D.new()
+	mi.name = "CornerCaps"
+	mi.mesh = body.mesh
+	mi.scale = Vector3.ONE * 1.015
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(mi)

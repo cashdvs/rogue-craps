@@ -108,7 +108,7 @@ func _run() -> void:
 	await _ink(&"wanderer", "#16130F", 1.0)
 	await _ink(&"bellows", "#E8DCC0", 1.3)
 	## Ossuary: 1.5x dark ink outline; Fortune: 1.3x brass keyline + the brass trim.
-	await _ink(&"ossuary", "#16130F", 1.5)
+	await _ink(&"ossuary", "#E8DCC0", 1.2)
 	await _ink(&"fortune", "#C9A24A", 1.3)
 	## AD Nov 1 10:45 PM: Barrel takes whichever pip (cream / dark) reaches 3.5:1;
 	## Ossuary #8A857C with dark pips (printed: the AD's pair lands just under 3.5).
@@ -116,7 +116,10 @@ func _run() -> void:
 	var bd := _lamp_contrast(Color("#7A5534"), Color("#16130F"))
 	print("barrel pips under the lamp: cream %.2f, dark %.2f" % [bc, bd])
 	check(bc >= 3.5 and bc > bd, "barrel: cream pips >= 3.5:1 (%.2f)" % bc)
-	print("ossuary dark pips under the lamp: %.2f" % _lamp_contrast(Color("#8A857C"), Color("#16130F")))
+	## Ossuary (AD final): cream pips, 3.48:1 accepted as an art exception (>= 3.4 guard).
+	var oc := _lamp_contrast(Color("#6E6A62"), Color("#E8DCC0"))
+	print("ossuary cream pips under the lamp: %.2f" % oc)
+	check(oc >= 3.4, "ossuary pips >= 3.4:1 art exception (%.2f)" % oc)
 	## Beacon: numerals printed in dark #1E1712 itself (not the sheet's cream), >= 4.5:1.
 	var bn: DieVisual = await _die(&"beacon")
 	var tint: Variant = bn.body_material.get_shader_parameter("overlay_tint")
@@ -129,11 +132,19 @@ func _run() -> void:
 	for id in [&"mirror", &"powder_keg"]:
 		await _ink(id, "#E8DCC0", 1.2)
 	await _ink(&"usurer", "#C9A24A", 1.3)
-	var os: DieVisual = await _rare(&"ossuary", "#8A857C", "#16130F")
+	var os: DieVisual = await _rare(&"ossuary", "#6E6A62", "#E8DCC0")
 	check(os.faces.get_node("Body").get_node_or_null("HoopBands") == null, "Ossuary: no hoops")
 	var fo: DieVisual = await _rare(&"fortune", "#C9A24A", "#1A1210")
 	check(fo.faces.get_node("Body").has_node("RareTrim"), "Fortune: brass rare trim")
 	check(not os.faces.get_node("Body").has_node("RareTrim"), "Ossuary: no rare trim")
+	var caps := os.faces.get_node("Body").get_node_or_null("CornerCaps") as MeshInstance3D
+	check(caps != null, "Ossuary: corner caps")
+	if caps != null:
+		var cm := caps.material_override as ShaderMaterial
+		check(_near(cm.get_shader_parameter("color"), Color("#E8DCC0")), "Ossuary caps bone-cream")
+		check(cm.shader.code.find("unshaded") != -1 and cm.shader.code.find("EMISSION") == -1, "Ossuary caps unlit, no glow")
+		check(is_equal_approx(float(cm.get_shader_parameter("cap")), 0.30), "Ossuary caps 15% of the edge")
+	check(fo.faces.get_node("Body").get_node_or_null("CornerCaps") == null, "Fortune: no caps")
 	await _rare(&"usurer", "#1E1A18", "#E8DCC0")
 	var br: DieVisual = await _rare(&"barrel", "#7A5534", "#E8DCC0")
 	var hoops := br.faces.get_node("Body").get_node_or_null("HoopBands")
