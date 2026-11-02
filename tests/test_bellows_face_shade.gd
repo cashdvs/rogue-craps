@@ -16,7 +16,7 @@ extends SceneTree
 
 const BODY := "res://art/models/dice/materials/bellows_body.tres"
 const PIP := "res://art/models/dice/materials/bellows_pip.tres"
-const BODY_ALBEDO := Color(0.850980, 0.823529, 0.741176, 1)
+const BODY_ALBEDO := Color("#6B4A38")  # AD proof pass
 
 var _pass := 0
 var _fail := 0
@@ -54,7 +54,7 @@ func _init() -> void:
 	var bfs := float(body.get_shader_parameter("face_shade"))
 	var pfs := float(pip.get_shader_parameter("face_shade"))
 	_check(is_equal_approx(bfs, 0.22), "body face_shade 0.22 (got %s)" % bfs)
-	_check(is_equal_approx(pfs, 0.6), "pip face_shade 0.6 (got %s)" % pfs)
+	_check(is_equal_approx(pfs, 0.22), "pip face_shade 0.22, cream pips shade with the body (got %s)" % pfs)
 	var ba: Color = body.get_shader_parameter("albedo")
 	_check(ba.is_equal_approx(BODY_ALBEDO), "body albedo %s" % ba)
 	var pa: Color = pip.get_shader_parameter("albedo")

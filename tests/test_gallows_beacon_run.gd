@@ -65,7 +65,9 @@ func _test(id: StringName, shape: StringName, glb: String) -> void:
 	var d: DieVisual = b.dice[at]
 	var body := d.faces.get_node("Body") as MeshInstance3D
 	_check(d.shape == shape and body.mesh.resource_path.begins_with("res://art/models/dice/%s.glb" % glb), "%s: a %s body on the run path, not a cube (%s %s)" % [id, shape, d.shape, body.mesh.resource_path])
-	_check(body.material_override == d.body_material and (d.body_material.get_shader_parameter("albedo") as Color).is_equal_approx(RareDieLook.body_color()), "%s: keeps the rare tint" % id)
+	var own := DieArtMaterial.body_path(id)
+	var want: Color = (load(own) as ShaderMaterial).get_shader_parameter("albedo") if own != "" else RareDieLook.body_color()
+	_check(body.material_override == d.body_material and (d.body_material.get_shader_parameter("albedo") as Color).is_equal_approx(want), "%s: keeps its rare look" % id)
 	var art := body.mesh.surface_get_material(0) as ShaderMaterial
 	_check(d.body_material.get_shader_parameter("use_overlay") == true and d.body_material.get_shader_parameter("overlay_tex") == art.get_shader_parameter("overlay_tex"), "%s: shows the art's printed numbers" % id)
 	_check(d.faces.get_node_or_null("FaceMods") != null, "%s: keeps its FaceMods marks node" % id)
