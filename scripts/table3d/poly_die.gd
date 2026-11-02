@@ -84,7 +84,8 @@ static func art_body_path(die_id: StringName) -> String:
 		return ""
 	# Bone keeps the procedural cube; every other d6 (rare or bought
 	# special, e.g. Mirror) wears its built .glb body when one exists.
-	if DiceIds.canonical(die_id) == DiceIds.DIE_BONE:
+	## Bellows too, since the AD dropped its slats (Nov 1): the plain rounded cube.
+	if DiceIds.canonical(die_id) in [DiceIds.DIE_BONE, DiceIds.DIE_BELLOWS]:
 		return ""
 	var key := DiceIds.body_key(die_id)
 	var p := "res://art/models/dice/%s.glb" % key

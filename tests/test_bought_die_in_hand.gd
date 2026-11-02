@@ -136,7 +136,9 @@ func _test_die(id: StringName) -> void:
 		_check(b.dice[at].shape == want, "%s: spawned on the %s body (%s)" % [id, want, b.dice[at].shape])
 		if LOOK_FIXED:
 			var alb: Color = b.dice[at].body_material.get_shader_parameter("albedo")
-			_check(PolyDie.art_body_path(id) != "" and not alb.is_equal_approx(Palette.BONE),
+			## Bellows lost its slatted art body (AD, Nov 1): its own material instead.
+			var art_ok := PolyDie.art_body_path(id) != "" or (id == &"bellows" and DieArtMaterial.body_path(id) != "")
+			_check(art_ok and not alb.is_equal_approx(Palette.BONE),
 				"%s: has its own look, not Bone (art '%s', albedo %s)" % [id, PolyDie.art_body_path(id), alb])
 		b.quick_throw()
 		await b.sequence_finished

@@ -5,7 +5,7 @@
 ##     own toon material, so the lit / cold glow still works on it.
 ##   - Any other shader (the Mirror's toon_mirror): that material is used
 ##     as is (a copy), with the die's ink outline under it.
-##   - Mirror and Cracked also get a 1.5x outline in their own edge colour.
+##   - Dice in EDGE_INK get a wider outline (EDGE_MUL, else 1.5x) in their own colour.
 ##   - Dice with crack grooves (Cracked) get DieCrackInk's dark seams.
 ## Called from BonfireTableLook.apply_die_look; reset() first puts back the
 ## plain look, so one DieVisual can show a different die later.
@@ -17,12 +17,21 @@ const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 ## Dice whose edge outline is drawn 1.5x wide, in this colour.
 ## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
 const EDGE_INK := {
-	&"mirror": Color("#3A4148"), &"cracked": Color("#2A2420"),
+	&"mirror": Color("#E8DCC0"), &"cracked": Color("#2A2420"),
+	&"wanderer": Color("#E8DCC0"), &"powder_keg": Color("#E8DCC0"), &"usurer": Color("#C9A24A"),
 	&"extra": Color("#C9A24A"), &"beacon": Color("#E8DCC0"), &"bellows": Color("#E8DCC0"),
-	&"twin_flame": Color("#C9A24A"), &"blood_pact": Color("#1A1210"), &"coven": Color("#E8DCC0"),
+	&"twin_flame": Color("#C9A24A"), &"blood_pact": Color("#C9A24A"), &"coven": Color("#E8DCC0"),
 }
 ## Dice whose outline is a thinner multiple than EDGE_WIDTH_MUL (AD, Nov 1).
-const EDGE_MUL := {&"twin_flame": 1.3, &"blood_pact": 1.3, &"coven": 1.3}
+## Beacon / Bellows went 1.5x -> 1.3x: the thinner shell stops the jagged slivers.
+const EDGE_MUL := {
+	&"twin_flame": 1.3, &"blood_pact": 1.3, &"coven": 1.3, &"usurer": 1.3,
+	&"beacon": 1.3, &"bellows": 1.3,
+	&"mirror": 1.2, &"wanderer": 1.2, &"powder_keg": 1.2,
+}
+## Dice that wear two brass hoop bands round their sides (Barrel).
+const HOOP_DICE: Array[StringName] = [&"barrel"]
+const HOOP_MAT := DIR + "barrel_hoop.tres"  # flat brass #C9A24A, like the brass keylines
 const EDGE_WIDTH_MUL := 1.5
 
 
@@ -51,6 +60,7 @@ static func reset(d: DieVisual) -> void:
 	if not d.has_meta(&"art_material"):
 		return
 	DieCrackInk.clear(d)
+	_set_hoops(d, false)
 	var base := d.get_meta(&"base_material") as ShaderMaterial
 	var vals: Dictionary = d.get_meta(&"base_values")
 	for k in vals:
@@ -102,5 +112,29 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 		o.set_shader_parameter("color", EDGE_INK[c])
 		d.body_material.next_pass = o
 	DieCrackInk.apply(d)  # Cracked: its seams in dark ink
+	_set_hoops(d, c in HOOP_DICE)
 	d.set_meta(&"art_material", c)
 	return true
+
+
+## Adds (or removes) two thin brass bands round the die's four side faces,
+## near the top and bottom edges, clear of the pips (like barrel hoops).
+static func _set_hoops(d: DieVisual, on: bool) -> void:
+	var old := d.faces.get_node_or_null("HoopBands")
+	if old != null:
+		old.free()
+	if not on:
+		return
+	var root := Node3D.new()
+	root.name = "HoopBands"
+	var mat := load(HOOP_MAT) as Material
+	for y in [-0.38, 0.38]:
+		var band := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		## Just proud of the faces (1.03x) and 0.14 edge tall.
+		box.size = Vector3(1.03, 0.14, 1.03) * d.edge
+		band.mesh = box
+		band.material_override = mat
+		band.position.y = y * d.edge
+		root.add_child(band)
+	d.faces.add_child(root)

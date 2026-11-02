@@ -36,7 +36,7 @@ uniform float roughness = 0.8;
 
 // Felt extras: print overlay (alpha = ink), grime noise, flash/scorch pulses.
 uniform bool use_overlay = false;
-uniform sampler2D overlay_tex : source_color, filter_linear_mipmap_anisotropic, hint_default_transparent;
+uniform sampler2D overlay_tex : source_color, filter_linear_mipmap, hint_default_transparent; // not anisotropic: it speckled the Beacon d8 numbers (QA, PR 248)
 uniform vec4 overlay_tint : source_color = vec4(0.91, 0.86, 0.75, 0.85);
 // Emission of the overlay print, x its colour (the Bonfire combo table: 0.35,
 // so the print reads in the lamp's falloff). 0 = off.

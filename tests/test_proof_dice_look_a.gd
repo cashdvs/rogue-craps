@@ -1,8 +1,8 @@
 ## Headless test: AD proof pass A (Nov 1) for Twin Flame, Blood Pact, Coven.
 ##   - Twin Flame: charcoal #2A2420 / shadow #14100D, light ember #FFB866 pips,
 ##     1.3x brass #C9A24A outline;
-##   - Blood Pact: wine #6E2A2A / shadow #2E1212, cream pips, 1.3x dark ink
-##     #1A1210 outline, still a Wild red body;
+##   - Blood Pact: wine #6E2A2A / shadow #2E1212, cream pips, 1.3x brass
+##     #C9A24A keyline (pass B), still a Wild red body;
 ##   - Coven: #8C7CD6 / shadow #3A3266, dark #1A1622 pips, 1.3x cream outline;
 ##   - Twin Flame and Blood Pact pips read >= 3.5:1 against the body under
 ##     the table's warm-red lamp (#FFB070), WCAG on the lit albedos (AD fix);
@@ -77,7 +77,7 @@ func _contrast(id: StringName) -> float:
 
 func _run() -> void:
 	await _look(&"twin_flame", "#2A2420", "#14100D", "#FFB866", "#C9A24A")
-	await _look(&"blood_pact", "#6E2A2A", "#2E1212", "#E8DCC0", "#1A1210")
+	await _look(&"blood_pact", "#6E2A2A", "#2E1212", "#E8DCC0", "#C9A24A")
 	await _look(&"coven", "#8C7CD6", "#3A3266", "#1A1622", "#E8DCC0")
 	for id: StringName in [&"twin_flame", &"blood_pact"]:
 		var cr: float = await _contrast(id)

@@ -5,7 +5,7 @@
 ##     not Bone (#E8DCC0): the albedo and shader of its own .tres;
 ##   - a d6 special with a built <die>_d6.glb wears that body;
 ##   - the Mirror uses the toon_mirror chrome (#B8C2CC body, #1A2226 pips,
-##     reflect 0.3, a 1.5x gunmetal #3A4148 outline);
+##     reflect 0.3, a 1.2x cream #E8DCC0 keyline, AD Nov 1);
 ##   - Knucklebone / Midnight get a brass #C9A24A rim (0.25, power 3);
 ##   - rares get a brass rim (0.3, power 2.5) on their tint;
 ##   - Blood Pact's Wild gets cream #E8DCC0 keylines and 1.5x ticks, Bone's
@@ -69,7 +69,10 @@ func _run() -> void:
 		check(body.material_override == d.body_material, "%s: the body shows that material" % id)
 		# A d6 special with a built .glb wears that body, not the plain cube.
 		var glb := "res://art/models/dice/%s_d6.glb" % id
-		if DiceIds.shape_of(id) == &"d6" and ResourceLoader.exists(glb):
+		## Bellows dropped its slatted body (AD, Nov 1): it is the plain cube.
+		if id == DiceIds.DIE_BELLOWS:
+			check(body.mesh == d.get_meta(&"cube_mesh"), "bellows: plain cube, no slats")
+		elif DiceIds.shape_of(id) == &"d6" and ResourceLoader.exists(glb):
 			check(body.mesh != null and body.mesh.resource_path.begins_with(glb), "%s: wears %s" % [id, glb])
 		if id == DiceIds.DIE_MIRROR:
 			_check_mirror(d)
@@ -79,9 +82,10 @@ func _run() -> void:
 		await process_frame
 	check(specials >= 12, "found the special dice (%d)" % specials)
 	# A rare on the Bone stand-in: tint plus a brass rim.
-	var r := _table(DiceIds.DIE_OSSUARY)
+	## Ossuary has its own ash body since AD Nov 1; Gallows is still a stand-in.
+	var r := _table(DiceIds.DIE_GALLOWS)
 	await process_frame
-	_check_rim(r.all_dice[0], 0.3, 2.5, "ossuary")
+	_check_rim(r.all_dice[0], 0.3, 2.5, "gallows")
 	r.queue_free()
 	await process_frame
 	# Wild: keylines + wide ticks only on the red body.
@@ -123,8 +127,8 @@ func _check_mirror(d: DieVisual) -> void:
 	check(is_equal_approx(m.get_shader_parameter("reflect_energy"), 0.3), "mirror: reflect 0.3")
 	check(d.pip_material != null and (d.pip_material.get_shader_parameter("albedo") as Color).is_equal_approx(Color("#1A2226")), "mirror: #1A2226 pips")
 	var o := m.next_pass as ShaderMaterial
-	check(o != null and (o.get_shader_parameter("color") as Color).is_equal_approx(Color("#3A4148")), "mirror: gunmetal outline")
-	check(o != null and is_equal_approx(o.get_shader_parameter("width"), 0.0042 * 1.5), "mirror: outline 1.5x")
+	check(o != null and (o.get_shader_parameter("color") as Color).is_equal_approx(Color("#E8DCC0")), "mirror: cream keyline")
+	check(o != null and is_equal_approx(o.get_shader_parameter("width"), 0.0042 * 1.2), "mirror: keyline 1.2x")
 
 
 func _check_rim(d: DieVisual, strength: float, power: float, what: String) -> void:

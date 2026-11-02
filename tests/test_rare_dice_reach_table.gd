@@ -99,8 +99,12 @@ func _check_look(b: Bonfire3D, at: int, id: StringName, sh: DieShape) -> void:
 	var dist := Vector3(body.r - bone_body.r, body.g - bone_body.g, body.b - bone_body.b).length()
 	_check(dist > 0.05, "%s: visibly distinct from the Bone die beside it (%.3f)" % [id, dist])
 	if own != "":
+		## AD proof pass B: authored rares without a keyline (Barrel, Fortune) keep the stock ink.
+		var stock: Color = (load("res://art/models/dice/materials/die_ink_outline.tres") as ShaderMaterial).get_shader_parameter("color")
+		var want_ink: Color = DieArtMaterial.EDGE_INK.get(DiceIds.canonical(id), stock)
 		var ink := d.body_material.next_pass as ShaderMaterial
-		_check(ink != null and (ink.get_shader_parameter("color") as Color).is_equal_approx(DieArtMaterial.EDGE_INK[DiceIds.canonical(id)]), "%s: its own keyline ink" % id)
+		_check(ink != null and (ink.get_shader_parameter("color") as Color).is_equal_approx(want_ink), "%s: its own keyline ink" % id)
+		_check(not d.faces.get_node("Body").has_node("RareTrim"), "%s: no generic rare trim over its own body" % id)
 	else:
 		_check(d.faces.get_node("Body").has_node("RareTrim") and not bone.faces.get_node("Body").has_node("RareTrim"), "%s: brass bevel trim on the rare only" % id)
 	var fm := d.faces.get_node_or_null("FaceMods")
