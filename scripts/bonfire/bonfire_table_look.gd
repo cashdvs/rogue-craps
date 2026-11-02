@@ -88,6 +88,14 @@ func _add_mod_decal(root: Node3D, d: DieVisual, slot: int, m: FaceModData) -> vo
 	var u := Vector3.UP if absf(n.y) < 0.5 else Vector3.RIGHT
 	u = (u - n * u.dot(n)).normalized()
 	var v := n.cross(u)
+	if d.shape == &"keg":
+		## The keg barrel is smaller than the d6 cube: sit the mark on the
+		## barrel's own surface and shrink it to fit, so it doesn't float.
+		var box := _body_box(d)
+		var c := box.get_center()
+		lift = absf((box.size * 0.5).dot(n.abs())) + c.dot(n) + 0.002 * d.edge
+		e = minf(e, minf(box.size.dot(u.abs()), box.size.dot(v.abs())) * 0.6)
+		_at = c - n * c.dot(n)
 	# The d4 Twin and d8 rare glyphs go around the printed face art.
 	if d.shape == &"d4" and m.effect == FaceModData.Effect.TWIN and not RareDieLook.MARKS.has(m.id):
 		PolyFaceMarks.twin_diamond(root, d, slot)
@@ -293,3 +301,9 @@ func _set_cold(d: DieVisual) -> void:
 func _refuse(why: String) -> void:
 	sfx.play(&"chip_refuse")
 	_set_why(why)
+
+
+## The Body mesh's box in die space (its scale applied).
+func _body_box(d: DieVisual) -> AABB:
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	return body.transform * body.mesh.get_aabb()
