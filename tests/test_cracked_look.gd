@@ -3,6 +3,8 @@
 ##   - body #858A90, shadow #33363A, less light wrap than before (<= 0.2);
 ##   - a "CrackInk" child on its Body: #16130F, unshaded (no glow / light
 ##     lift), seams on all 6 faces, with a branch (2+ seam steps) on each;
+##   - an unshaded #E8DCC0 0.5-alpha chipped-edge line along each seam, on
+##     the side toward the top light;
 ##   - seam width 2x the modelled groove (SEAM 0.075 of the half edge);
 ##   - Bone gets no crack ink, and the ink goes when the die turns plain.
 ##   godot --headless --path . --script res://tests/test_cracked_look.gd
@@ -48,10 +50,28 @@ func _run() -> void:
 	var ink := body.get_node_or_null(NodePath(DieCrackInk.NODE)) as MeshInstance3D
 	check(ink != null, "Cracked has CrackInk")
 	if ink != null:
-		var im := ink.material_override as StandardMaterial3D
+		var im := ink.mesh.surface_get_material(0) as StandardMaterial3D
 		check(im != null and _near(im.albedo_color, Color("#16130F")), "ink #16130F")
 		check(im != null and im.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "ink unshaded")
 		check(ink.layers == body.layers, "ink on the body's render layers")
+		var cm: StandardMaterial3D = null
+		if ink.mesh.get_surface_count() > 1:
+			cm = ink.mesh.surface_get_material(1) as StandardMaterial3D
+		check(cm != null and _near(cm.albedo_color, Color("#E8DCC0")) and absf(cm.albedo_color.a - 0.5) < 0.01, "chip highlight #E8DCC0 at 0.5")
+		check(cm != null and cm.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED and cm.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA, "chip unshaded, see-through")
+		if ink.mesh.get_surface_count() > 1:
+			## One highlight quad per seam step, on the lit side of the seam.
+			var hv: PackedVector3Array = ink.mesh.surface_get_arrays(1)[Mesh.ARRAY_VERTEX]
+			var iv: PackedVector3Array = ink.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+			check(hv.size() == iv.size(), "a highlight along every seam step (%d / %d)" % [hv.size(), iv.size()])
+			var lit := 0
+			for t in range(0, hv.size(), 6):
+				var seam_c := (iv[t] + iv[t + 2]) * 0.5
+				var hi_c := (hv[t] + hv[t + 2]) * 0.5
+				var n := seam_c.abs().max_axis_index()
+				var toward := Vector3.UP if n != 1 else Vector3.FORWARD
+				lit += 1 if (hi_c - seam_c).dot(toward) >= -0.00001 else 0
+			check(lit == hv.size() / 6, "highlight on the side toward the light (%d / %d)" % [lit, hv.size() / 6])
 		var faces := DieCrackInk.per_face(ink.mesh as ArrayMesh)
 		for k in ["+x", "-x", "+y", "-y", "+z", "-z"]:
 			## 2 triangles per seam step; a branch needs 2+ steps.
