@@ -97,7 +97,7 @@ static func pc_hull(shape: StringName) -> PackedVector3Array:
 			## Too many points for a cheap collider (the keg barrel's PC mesh has
 			## 84): use the generated mobile-LOD hull instead (12-72 budget).
 			if pts.size() > 72:
-				pts = DieHullData.SHAPES[shape]["hull"]
+				pts = _fit_hull(DieHullData.SHAPES[shape]["hull"], mesh, k)
 		_hulls[shape] = pts
 	return _hulls[shape]
 
@@ -232,3 +232,16 @@ static func _far(pts: PackedVector3Array, n: Vector3) -> float:
 ## True for the shapes whose face-mod marks sit on real triangle faces.
 static func has_face_spots(d: DieVisual) -> bool:
 	return d.shape == &"d4" or d.shape == &"d8"
+
+
+## Scales a fallback hull (made from another LOD) so its box matches the
+## drawn body (mesh box x body_scale k), the way the PC hull is scaled.
+static func _fit_hull(src: PackedVector3Array, mesh: Mesh, k: float) -> PackedVector3Array:
+	var hb := AABB(src[0], Vector3.ZERO)
+	for p in src:
+		hb = hb.expand(p)
+	var want := mesh.get_aabb().size * k
+	var out := PackedVector3Array()
+	for p in src:
+		out.append(p * want.x / hb.size.x)
+	return out
