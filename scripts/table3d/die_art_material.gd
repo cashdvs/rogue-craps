@@ -19,7 +19,10 @@ const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 const EDGE_INK := {
 	&"mirror": Color("#3A4148"), &"cracked": Color("#2A2420"),
 	&"extra": Color("#C9A24A"), &"beacon": Color("#E8DCC0"), &"bellows": Color("#E8DCC0"),
+	&"twin_flame": Color("#C9A24A"), &"blood_pact": Color("#1A1210"), &"coven": Color("#E8DCC0"),
 }
+## Dice whose outline is a thinner multiple than EDGE_WIDTH_MUL (AD, Nov 1).
+const EDGE_MUL := {&"twin_flame": 1.3, &"blood_pact": 1.3, &"coven": 1.3}
 const EDGE_WIDTH_MUL := 1.5
 
 
@@ -95,7 +98,7 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 			body.material_override = m
 	if EDGE_INK.has(c) and d.body_material.next_pass is ShaderMaterial:
 		var o := (d.body_material.next_pass as ShaderMaterial).duplicate() as ShaderMaterial
-		o.set_shader_parameter("width", float(o.get_shader_parameter("width")) * EDGE_WIDTH_MUL)
+		o.set_shader_parameter("width", float(o.get_shader_parameter("width")) * float(EDGE_MUL.get(c, EDGE_WIDTH_MUL)))
 		o.set_shader_parameter("color", EDGE_INK[c])
 		d.body_material.next_pass = o
 	DieCrackInk.apply(d)  # Cracked: its seams in dark ink
