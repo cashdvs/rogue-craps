@@ -15,6 +15,10 @@ const PIP_CLEAR := 0.06
 ## A hair above the face, so the body never covers the ink.
 const LIFT := 0.004
 const INK := Color("#16130F")
+## Chipped-edge highlight: a thin light line on the seam side toward the
+## top light, about 1px wide at 48px (fraction of the half edge).
+const CHIP := Color(0.909804, 0.862745, 0.752941, 0.5)  # #E8DCC0 at 0.5
+const CHIP_W := 0.045
 
 static var _cache := {}
 
@@ -59,7 +63,16 @@ static func apply(d: DieVisual) -> bool:
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = INK
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mi.material_override = mat
+	mat.render_priority = 1
+	mi.mesh.surface_set_material(0, mat)
+	var chip := StandardMaterial3D.new()
+	## Unshaded and see-through: no glow and no light lift on the body.
+	chip.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	chip.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	chip.albedo_color = CHIP
+	chip.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if mi.mesh.get_surface_count() > 1:
+		mi.mesh.surface_set_material(1, chip)
 	body.add_child(mi)
 	return true
 
@@ -75,6 +88,8 @@ static func ink_mesh(mesh: Mesh, s: int) -> ArrayMesh:
 	rng.seed = 7013
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var hi := SurfaceTool.new()  # the chipped-edge highlight lines
+	hi.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for ax in 3:
 		for sg: float in [1.0, -1.0]:
 			var n := Vector3.ZERO
@@ -82,17 +97,46 @@ static func ink_mesh(mesh: Mesh, s: int) -> ArrayMesh:
 			var u := Vector3.ZERO
 			u[(ax + 1) % 3] = 1.0
 			var v := n.cross(u)
-			var side := rng.randi() % 4
-			var start := Vector2([0.78, -0.78, 0.0, 0.0][side], [0.0, 0.0, 0.78, -0.78][side])
-			start += Vector2(start.y, start.x).abs().normalized() * rng.randf_range(-0.4, 0.4)
-			var dir := -start.normalized()
-			var line := _walk(rng, start, dir, 6, 0.2)
-			var at := line[rng.randi_range(2, 3)]
-			var bdir := dir.rotated(rng.randf_range(0.6, 1.0) * (1.0 if rng.randf() < 0.5 else -1.0))
-			for path in [line, _walk(rng, at, bdir, 3, 0.17)]:
+			## Try a few cracks and keep the one that loses the fewest steps
+			## to pips, so the main line and its branch stay whole.
+			var best: Array = []
+			var lost := 999
+			for tries in 24:
+				var paths := _crack(rng)
+				var k := 0
+				for path: Array[Vector2] in paths:
+					for i in path.size() - 1:
+						k += 1 if _hits_pip(path[i], path[i + 1], n, u, v, half, pips) else 0
+				if k < lost:
+					lost = k
+					best = paths
+			for path: Array[Vector2] in best:
 				for i in path.size() - 1:
-					_seam(st, path[i], path[i + 1], n, u, v, half, pips)
-	return st.commit()
+					if not _hits_pip(path[i], path[i + 1], n, u, v, half, pips):
+						_seam(st, hi, path[i], path[i + 1], n, u, v, half)
+	var out := st.commit()
+	return hi.commit(out)
+
+
+## One crack: a main line in from a random edge, and a branch off it.
+static func _crack(rng: RandomNumberGenerator) -> Array:
+	var side := rng.randi() % 4
+	var start := Vector2([0.78, -0.78, 0.0, 0.0][side], [0.0, 0.0, 0.78, -0.78][side])
+	start += Vector2(start.y, start.x).abs().normalized() * rng.randf_range(-0.4, 0.4)
+	var dir := -start.normalized()
+	var line := _walk(rng, start, dir, 6, 0.2)
+	var bdir := dir.rotated(rng.randf_range(0.6, 1.0) * (1.0 if rng.randf() < 0.5 else -1.0))
+	return [line, _walk(rng, line[rng.randi_range(2, 3)], bdir, 3, 0.17)]
+
+
+## True when the step a-b (face coords) comes near a pip.
+static func _hits_pip(a: Vector2, b: Vector2, n: Vector3, u: Vector3, v: Vector3, half: float, pips: PackedVector3Array) -> bool:
+	var pa := (n * (1.0 + LIFT) + u * a.x + v * a.y) * half
+	var pb := (n * (1.0 + LIFT) + u * b.x + v * b.y) * half
+	for p in pips:
+		if p.dot(n) > 0.5 * half and Geometry3D.get_closest_point_to_segment(p, pa, pb).distance_to(p) < PIP_CLEAR * half:
+			return true
+	return false
 
 
 ## A jagged line: [param steps] steps of about [param len] from [param p].
@@ -105,19 +149,24 @@ static func _walk(rng: RandomNumberGenerator, p: Vector2, dir: Vector2, steps: i
 	return out
 
 
-## One seam step from a to b (face coords) as a thin quad, unless it
-## comes near a pip.
-static func _seam(st: SurfaceTool, a: Vector2, b: Vector2, n: Vector3, u: Vector3, v: Vector3, half: float, pips: PackedVector3Array) -> void:
-	var to3 := func(q: Vector2) -> Vector3: return (n * (1.0 + LIFT) + u * q.x + v * q.y) * half
-	var pa: Vector3 = to3.call(a)
-	var pb: Vector3 = to3.call(b)
-	for p in pips:
-		if p.dot(n) > 0.5 * half and Geometry3D.get_closest_point_to_segment(p, pa, pb).distance_to(p) < PIP_CLEAR * half:
-			return
+## One seam step from a to b (face coords) as a thin quad, plus its
+## chipped-edge highlight quad.
+static func _seam(st: SurfaceTool, hi: SurfaceTool, a: Vector2, b: Vector2, n: Vector3, u: Vector3, v: Vector3, half: float) -> void:
+	var pa := (n * (1.0 + LIFT) + u * a.x + v * a.y) * half
+	var pb := (n * (1.0 + LIFT) + u * b.x + v * b.y) * half
 	var side := (pb - pa).cross(n).normalized() * SEAM * half * 0.5
 	for q in [pa - side, pa + side, pb + side, pa - side, pb + side, pb - side]:
 		st.set_normal(n)
 		st.add_vertex(q)
+	## The highlight sits on the side toward the light: up on side faces,
+	## the back (-z) edge on the top / bottom faces.
+	var toward := Vector3.UP if absf(n.y) < 0.5 else Vector3.FORWARD
+	var out := side.normalized() * (1.0 if side.dot(toward) >= 0.0 else -1.0)
+	var o0 := out * SEAM * half * 0.5 + n * LIFT * half * 0.5
+	var o1 := o0 + out * CHIP_W * half
+	for q in [pa + o0, pa + o1, pb + o1, pa + o0, pb + o1, pb + o0]:
+		hi.set_normal(n)
+		hi.add_vertex(q)
 
 
 ## Points on the pip rims (the pip surface, at the face), to steer around.
