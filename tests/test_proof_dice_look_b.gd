@@ -108,7 +108,7 @@ func _run() -> void:
 	await _ink(&"wanderer", "#16130F", 1.0)
 	await _ink(&"bellows", "#E8DCC0", 1.3)
 	## Ossuary: 1.5x dark ink outline; Fortune: 1.3x brass keyline + the brass trim.
-	await _ink(&"ossuary", "#E8DCC0", 1.2)
+	await _ink(&"ossuary", "#16130F", 1.0)
 	await _ink(&"fortune", "#C9A24A", 1.3)
 	## AD Nov 1 10:45 PM: Barrel takes whichever pip (cream / dark) reaches 3.5:1;
 	## Ossuary #8A857C with dark pips (printed: the AD's pair lands just under 3.5).
@@ -143,7 +143,7 @@ func _run() -> void:
 		var cm := caps.material_override as ShaderMaterial
 		check(_near(cm.get_shader_parameter("color"), Color("#E8DCC0")), "Ossuary caps bone-cream")
 		check(cm.shader.code.find("unshaded") != -1 and cm.shader.code.find("EMISSION") == -1, "Ossuary caps unlit, no glow")
-		check(is_equal_approx(float(cm.get_shader_parameter("cap")), 0.30), "Ossuary caps 15% of the edge")
+		check(is_equal_approx(float(cm.get_shader_parameter("cap")), 0.50), "Ossuary caps 25% of the edge")
 	check(fo.faces.get_node("Body").get_node_or_null("CornerCaps") == null, "Fortune: no caps")
 	await _rare(&"usurer", "#1E1A18", "#E8DCC0")
 	var br: DieVisual = await _rare(&"barrel", "#7A5534", "#E8DCC0")

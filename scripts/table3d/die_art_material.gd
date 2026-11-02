@@ -18,7 +18,7 @@ const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 ## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
 const EDGE_INK := {
 	&"mirror": Color("#E8DCC0"), &"cracked": Color("#2A2420"),
-	&"wanderer": Color("#16130F"), &"ossuary": Color("#E8DCC0"), &"fortune": Color("#C9A24A"), &"powder_keg": Color("#E8DCC0"), &"usurer": Color("#C9A24A"),
+	&"wanderer": Color("#16130F"), &"ossuary": Color("#16130F"), &"fortune": Color("#C9A24A"), &"powder_keg": Color("#E8DCC0"), &"usurer": Color("#C9A24A"),
 	&"extra": Color("#C9A24A"), &"beacon": Color("#E8DCC0"), &"bellows": Color("#E8DCC0"),
 	&"twin_flame": Color("#C9A24A"), &"blood_pact": Color("#C9A24A"), &"coven": Color("#E8DCC0"),
 }
@@ -29,11 +29,11 @@ const EDGE_MUL := {
 	&"beacon": 1.3, &"bellows": 1.3, &"fortune": 1.3,
 	## Wanderer: a thin dark ink line (stock width) instead of the cream keyline (AD, Nov 1 10:05 PM).
 	&"wanderer": 1.0,
-	&"mirror": 1.2, &"ossuary": 1.2, &"powder_keg": 1.2,
+	&"mirror": 1.2, &"ossuary": 1.0, &"powder_keg": 1.2,
 }
 ## Authored rares that still wear the brass bevel RareTrim at full strength (Fortune).
 const TRIM_DICE: Array[StringName] = [&"fortune"]
-## Dice with unlit bone-cream #E8DCC0 corner caps, 15% of the edge per corner (Ossuary, AD Nov 1).
+## Dice with unlit bone-cream #E8DCC0 corner caps, 25% of the edge per corner (Ossuary, AD Nov 1).
 const CAP_DICE: Array[StringName] = [&"ossuary"]
 const CAP_COLOR := Color("#E8DCC0")
 ## Dice that wear two brass hoop bands round their sides (Barrel).
@@ -180,7 +180,7 @@ void fragment() {
 
 ## Adds (or removes) the corner caps: a 1.5%-bigger copy of the body mesh
 ## that only draws where a point is near a corner on all three axes
-## (within 15% of the edge of it), in flat unlit cream. Cheap: one mesh.
+## (within 25% of the edge of it), in flat unlit cream. Cheap: one mesh.
 static func _set_caps(d: DieVisual, on: bool) -> void:
 	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
 	var old := body.get_node_or_null("CornerCaps") if body != null else null
@@ -208,7 +208,7 @@ void fragment() {
 	m.set_shader_parameter("color", CAP_COLOR)
 	m.set_shader_parameter("mid", box.get_center())
 	m.set_shader_parameter("half_size", box.size * 0.5)
-	m.set_shader_parameter("cap", 0.30)  # 15% of the edge = 30% of the half edge
+	m.set_shader_parameter("cap", 0.50)  # 25% of the edge = 50% of the half edge
 	var mi := MeshInstance3D.new()
 	mi.name = "CornerCaps"
 	mi.mesh = body.mesh
