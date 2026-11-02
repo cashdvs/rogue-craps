@@ -1,0 +1,67 @@
+## Headless test: AD proof pass A (Nov 1) for Twin Flame, Blood Pact, Coven.
+##   - Twin Flame: charcoal #2A2420 / shadow #14100D, ember #E8622A pips,
+##     1.3x brass #C9A24A outline;
+##   - Blood Pact: wine #8A3A3A / shadow #3A1616, cream pips, 1.3x dark ink
+##     #1A1210 outline, still a Wild red body;
+##   - Coven: #8C7CD6 / shadow #3A3266, dark #1A1622 pips, 1.3x cream outline;
+##   - none of them glows (pip emission stays <= 0.3).
+##   godot --headless --path . --script res://tests/test_proof_dice_look_a.gd
+extends SceneTree
+
+var _passed: int = 0
+var _failed: int = 0
+
+
+func check(cond: bool, what: String) -> void:
+	if cond:
+		_passed += 1
+	else:
+		_failed += 1
+		print("FAIL  ", what)
+
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _near(a: Variant, b: Color) -> bool:
+	return a is Color and absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) < 0.01
+
+
+## Builds a table holding just die [param id] and returns its DieVisual
+## (dressed by the scene's own _ready, as in a real game).
+func _die(id: StringName) -> DieVisual:
+	var st := TableSetup.new()
+	st.dice.append(TableDie.new(id, String(id), DiceIds.shape_of(id)))
+	st.run_mode = false
+	st.table_seed = 3
+	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
+	s.setup = st
+	root.add_child(s)
+	await process_frame
+	await process_frame
+	return s.dice[0]
+
+
+## Checks die [param id]: body, shadow, pip colour and a 1.3x outline [param ink].
+func _look(id: StringName, body: String, shadow: String, pip: String, ink: String) -> void:
+	var d: DieVisual = await _die(id)
+	check(_near(d.body_material.get_shader_parameter("albedo"), Color(body)), "%s body %s" % [id, body])
+	check(_near(d.body_material.get_shader_parameter("shadow_color"), Color(shadow)), "%s shadow %s" % [id, shadow])
+	check(_near(d._pip_color, Color(pip)), "%s pips %s" % [id, pip])
+	var o := d.body_material.next_pass as ShaderMaterial
+	var base := load("res://art/models/dice/materials/die_ink_outline.tres") as ShaderMaterial
+	check(o != null and _near(o.get_shader_parameter("color"), Color(ink)), "%s outline %s" % [id, ink])
+	check(o != null and is_equal_approx(float(o.get_shader_parameter("width")), float(base.get_shader_parameter("width")) * 1.3), "%s outline 1.3x" % id)
+	var pm := load("res://art/models/dice/materials/%s_pip.tres" % id) as ShaderMaterial
+	var em: Variant = pm.get_shader_parameter("emission_energy")
+	check(em == null or float(em) <= 0.3, "%s pips do not glow" % id)
+
+
+func _run() -> void:
+	await _look(&"twin_flame", "#2A2420", "#14100D", "#E8622A", "#C9A24A")
+	await _look(&"blood_pact", "#8A3A3A", "#3A1616", "#E8DCC0", "#1A1210")
+	await _look(&"coven", "#8C7CD6", "#3A3266", "#1A1622", "#E8DCC0")
+	check(&"blood_pact" in BonfireTableState.WILD_RED_BODIES, "Blood Pact keeps its Wild red-body keyline")
+	print("test_proof_dice_look_a: %d passed, %d failed" % [_passed, _failed])
+	quit(1 if _failed > 0 else 0)
