@@ -41,9 +41,8 @@ func apply_die_look(d: DieVisual, td: TableDie) -> void:
 		RareDieLook.set_trim(d, true)
 	elif DieArtMaterial.apply(d, td):
 		# A special die: its own authored body and pip materials.
-		if d.has_meta("rare_look"):
-			d.remove_meta("rare_look")
-			RareDieLook.set_trim(d, false)
+		## (apply already set or cleared the brass trim: Fortune keeps it.)
+		d.remove_meta("rare_look")
 	elif td.faces != [1, 2, 3, 4, 5, 6] or d.has_meta("rare_look"):
 		d.remove_meta("rare_look")
 		RareDieLook.set_trim(d, false)

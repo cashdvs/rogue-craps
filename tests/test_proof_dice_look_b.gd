@@ -1,5 +1,6 @@
 ## Headless test: AD proof pass B (Nov 1).
-##   - Mirror / Wanderer / Powder Keg: 1.2x cream #E8DCC0 outline;
+##   - (Nov 1 10:05 PM AD calls: see the Wanderer / Ossuary / Fortune checks.)
+##   - Mirror / Powder Keg: 1.2x cream #E8DCC0 outline;
 ##   - Ossuary ash #9A948A, Fortune brass #C9A24A (dark pips), Barrel wood
 ##     #7A5534 with two brass HoopBands, Usurer obsidian #1E1A18 with cream
 ##     pips + 1.3x brass outline: authored bodies, no generic rare trim;
@@ -92,20 +93,37 @@ func _run() -> void:
 	check(cd >= 3.5 and cd > cc, "gilded: dark pips >= 3.5:1 (%.2f vs cream %.2f)" % [cd, cc])
 	var wd: DieVisual = await _die(&"wanderer")
 	check(_near(wd._pip_color, Color("#F2E6C8")), "wanderer keeps cream pips")
-	for id in [&"mirror", &"wanderer", &"powder_keg"]:
+	## AD Nov 1 10:05 PM: Wanderer slate-blue #5E7C9A, cream pips >= 3.5:1,
+	## a thin (1.0x) dark ink outline; Bellows keeps its 1.3x cream keyline.
+	var wb: Color = (load("res://art/models/dice/materials/wanderer_body.tres") as ShaderMaterial).get_shader_parameter("albedo")
+	check(_near(wb, Color("#5E7C9A")), "wanderer body #5E7C9A")
+	var wc := _lamp_contrast(wb, wd._pip_color)
+	print("wanderer cream pips under the lamp: %.2f" % wc)
+	check(wc >= 3.5, "wanderer pips >= 3.5:1 (%.2f)" % wc)
+	await _ink(&"wanderer", "#16130F", 1.0)
+	await _ink(&"bellows", "#E8DCC0", 1.3)
+	## Ossuary: 1.5x dark ink outline; Fortune: 1.3x brass keyline + the brass trim.
+	await _ink(&"ossuary", "#16130F", 1.5)
+	await _ink(&"fortune", "#C9A24A", 1.3)
+	for id in [&"mirror", &"powder_keg"]:
 		await _ink(id, "#E8DCC0", 1.2)
 	await _ink(&"usurer", "#C9A24A", 1.3)
-	var os: DieVisual = await _rare(&"ossuary", "#9A948A", "#1A1210")
-	check(os.faces.get_node_or_null("HoopBands") == null, "Ossuary: no hoops")
-	await _rare(&"fortune", "#C9A24A", "#1A1210")
+	var os: DieVisual = await _rare(&"ossuary", "#6E6A62", "#E8DCC0")
+	check(os.faces.get_node("Body").get_node_or_null("HoopBands") == null, "Ossuary: no hoops")
+	var fo: DieVisual = await _rare(&"fortune", "#C9A24A", "#1A1210")
+	check(fo.faces.get_node("Body").has_node("RareTrim"), "Fortune: brass rare trim")
+	check(not os.faces.get_node("Body").has_node("RareTrim"), "Ossuary: no rare trim")
 	await _rare(&"usurer", "#1E1A18", "#E8DCC0")
 	var br: DieVisual = await _rare(&"barrel", "#7A5534", "#1A1210")
-	var hoops := br.faces.get_node_or_null("HoopBands")
+	var hoops := br.faces.get_node("Body").get_node_or_null("HoopBands")
 	check(hoops != null and hoops.get_child_count() == 2, "Barrel: two hoop bands")
 	if hoops != null and hoops.get_child_count() == 2:
-		var m := (hoops.get_child(0) as MeshInstance3D).material_override as StandardMaterial3D
-		check(m != null and _near(m.albedo_color, Color("#C9A24A")), "Barrel hoops brass")
-		check(m != null and not m.emission_enabled, "Barrel hoops do not glow")
+		var hb := hoops.get_child(0) as MeshInstance3D
+		var m := hb.material_override as ShaderMaterial
+		check(m != null and _near(m.get_shader_parameter("color"), Color("#C9A24A")), "Barrel hoops brass")
+		check(m != null and m.shader.code.find("EMISSION") == -1, "Barrel hoops do not glow")
+		## QA PR 250: the hoops follow the body (its own mesh, just proud), not box bars.
+		check(hb.mesh == (br.faces.get_node("Body") as MeshInstance3D).mesh and hb.scale.x < 1.03, "Barrel hoops sit flush on the body")
 	var bl: DieVisual = await _die(&"bellows")
 	var bm := (bl.faces.get_node("Body") as MeshInstance3D).mesh
 	check(bm == bl.get_meta(&"cube_mesh"), "Bellows: plain cube, no slats")

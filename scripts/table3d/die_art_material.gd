@@ -18,7 +18,7 @@ const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 ## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
 const EDGE_INK := {
 	&"mirror": Color("#E8DCC0"), &"cracked": Color("#2A2420"),
-	&"wanderer": Color("#E8DCC0"), &"powder_keg": Color("#E8DCC0"), &"usurer": Color("#C9A24A"),
+	&"wanderer": Color("#16130F"), &"ossuary": Color("#16130F"), &"fortune": Color("#C9A24A"), &"powder_keg": Color("#E8DCC0"), &"usurer": Color("#C9A24A"),
 	&"extra": Color("#C9A24A"), &"beacon": Color("#E8DCC0"), &"bellows": Color("#E8DCC0"),
 	&"twin_flame": Color("#C9A24A"), &"blood_pact": Color("#C9A24A"), &"coven": Color("#E8DCC0"),
 }
@@ -26,9 +26,13 @@ const EDGE_INK := {
 ## Beacon / Bellows went 1.5x -> 1.3x: the thinner shell stops the jagged slivers.
 const EDGE_MUL := {
 	&"twin_flame": 1.3, &"blood_pact": 1.3, &"coven": 1.3, &"usurer": 1.3,
-	&"beacon": 1.3, &"bellows": 1.3,
-	&"mirror": 1.2, &"wanderer": 1.2, &"powder_keg": 1.2,
+	&"beacon": 1.3, &"bellows": 1.3, &"fortune": 1.3,
+	## Wanderer: a thin dark ink line (stock width) instead of the cream keyline (AD, Nov 1 10:05 PM).
+	&"wanderer": 1.0,
+	&"mirror": 1.2, &"powder_keg": 1.2,
 }
+## Authored rares that still wear the brass bevel RareTrim at full strength (Fortune).
+const TRIM_DICE: Array[StringName] = [&"fortune"]
 ## Dice that wear two brass hoop bands round their sides (Barrel).
 const HOOP_DICE: Array[StringName] = [&"barrel"]
 const HOOP_MAT := DIR + "barrel_hoop.tres"  # flat brass #C9A24A, like the brass keylines
@@ -113,28 +117,57 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 		d.body_material.next_pass = o
 	DieCrackInk.apply(d)  # Cracked: its seams in dark ink
 	_set_hoops(d, c in HOOP_DICE)
+	RareDieLook.set_trim(d, c in TRIM_DICE)  ## the same trim the plain rares wear
 	d.set_meta(&"art_material", c)
 	return true
 
 
 ## Adds (or removes) two thin brass bands round the die's four side faces,
 ## near the top and bottom edges, clear of the pips (like barrel hoops).
+## QA PR 250: box bands stuck out at the rounded corners (bars when the die
+## lay on its side), so each band is now a 1.5%-bigger copy of the body mesh
+## that only draws a thin strip: it follows the body's own curves, flush.
 static func _set_hoops(d: DieVisual, on: bool) -> void:
-	var old := d.faces.get_node_or_null("HoopBands")
+	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
+	var old := body.get_node_or_null("HoopBands") if body != null else null
 	if old != null:
 		old.free()
-	if not on:
+	if not on or body == null or body.mesh == null:
 		return
 	var root := Node3D.new()
 	root.name = "HoopBands"
-	var mat := load(HOOP_MAT) as Material
+	var brass: Color = (load(HOOP_MAT) as StandardMaterial3D).albedo_color
+	var h := body.mesh.get_aabb().size.y  # the body's height, in its own units
 	for y in [-0.38, 0.38]:
 		var band := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		## Just proud of the faces (1.03x) and 0.14 edge tall.
-		box.size = Vector3(1.03, 0.14, 1.03) * d.edge
-		band.mesh = box
-		band.material_override = mat
-		band.position.y = y * d.edge
+		band.mesh = body.mesh
+		band.scale = Vector3.ONE * 1.015
+		var m := ShaderMaterial.new()
+		m.shader = _hoop_shader()
+		m.set_shader_parameter("color", brass)
+		m.set_shader_parameter("y_at", y * h)
+		m.set_shader_parameter("half_h", 0.07 * h)  # 0.14 of the height tall
+		band.material_override = m
+		band.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(band)
-	d.faces.add_child(root)
+	body.add_child(root)
+
+
+static var _hoop_sh: Shader
+## Flat brass (unshaded, no emission), drawn only where the body point's
+## height is within half_h of y_at: a band on the side faces.
+static func _hoop_shader() -> Shader:
+	if _hoop_sh == null:
+		_hoop_sh = Shader.new()
+		_hoop_sh.code = """shader_type spatial;
+render_mode unshaded;
+uniform vec4 color : source_color;
+uniform float y_at;
+uniform float half_h;
+varying float ly;
+void vertex() { ly = VERTEX.y; }
+void fragment() {
+	if (abs(ly - y_at) > half_h) { discard; }
+	ALBEDO = color.rgb;
+}"""
+	return _hoop_sh

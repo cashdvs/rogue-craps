@@ -104,7 +104,9 @@ func _check_look(b: Bonfire3D, at: int, id: StringName, sh: DieShape) -> void:
 		var want_ink: Color = DieArtMaterial.EDGE_INK.get(DiceIds.canonical(id), stock)
 		var ink := d.body_material.next_pass as ShaderMaterial
 		_check(ink != null and (ink.get_shader_parameter("color") as Color).is_equal_approx(want_ink), "%s: its own keyline ink" % id)
-		_check(not d.faces.get_node("Body").has_node("RareTrim"), "%s: no generic rare trim over its own body" % id)
+		## AD Nov 1 10:05 PM: Fortune (TRIM_DICE) keeps the brass trim over its own body.
+		var want_trim: bool = DiceIds.canonical(id) in DieArtMaterial.TRIM_DICE
+		_check(d.faces.get_node("Body").has_node("RareTrim") == want_trim, "%s: brass trim only if in TRIM_DICE" % id)
 	else:
 		_check(d.faces.get_node("Body").has_node("RareTrim") and not bone.faces.get_node("Body").has_node("RareTrim"), "%s: brass bevel trim on the rare only" % id)
 	var fm := d.faces.get_node_or_null("FaceMods")
