@@ -6,6 +6,7 @@
 ##   - Any other shader (the Mirror's toon_mirror): that material is used
 ##     as is (a copy), with the die's ink outline under it.
 ##   - Mirror and Cracked also get a 1.5x outline in their own edge colour.
+##   - Dice with crack grooves (Cracked) get DieCrackInk's dark seams.
 ## Called from BonfireTableLook.apply_die_look; reset() first puts back the
 ## plain look, so one DieVisual can show a different die later.
 class_name DieArtMaterial
@@ -42,6 +43,7 @@ static func reset(d: DieVisual) -> void:
 		return
 	if not d.has_meta(&"art_material"):
 		return
+	DieCrackInk.clear(d)
 	var base := d.get_meta(&"base_material") as ShaderMaterial
 	var vals: Dictionary = d.get_meta(&"base_values")
 	for k in vals:
@@ -92,5 +94,6 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 		o.set_shader_parameter("width", float(o.get_shader_parameter("width")) * EDGE_WIDTH_MUL)
 		o.set_shader_parameter("color", EDGE_INK[c])
 		d.body_material.next_pass = o
+	DieCrackInk.apply(d)  # Cracked: its seams in dark ink
 	d.set_meta(&"art_material", c)
 	return true
