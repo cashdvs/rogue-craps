@@ -20,6 +20,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var run := load("res://resources/map/bonfire_run.tres") as RunData
+	run.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	var p := RunProgress.new(run)
 	check(p.add_die(&"powder_keg"), "keg: added")
 	var td: TableDie = p.shaped_table_die(p.dice.size() - 1)

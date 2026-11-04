@@ -16,6 +16,7 @@ var _ev: EventData
 
 func _initialize() -> void:
 	_run = load("res://resources/map/bonfire_run.tres") as RunData
+	_run.max_dice = 6  # bag5: the sell checks need a die past the fixed 5
 	_ev = load("res://tests/support/event_effects_demo.tres") as EventData
 	_test_data()
 	_test_max_soul()
@@ -90,31 +91,46 @@ func _test_max_soul() -> void:
 
 
 func _test_give_die() -> void:
+	# bag5_sacrifice_v1: room in the bag -> the die joins; a full bag swaps
+	# out the picked die in place (no refund, its mods go with it).
 	var p := RunProgress.new(_run)
 	var n := p.dice.size()
-	_apply(&"mirror", p)
-	_check(p.dice.size() == n + 1 and p.dice[n].special_id == DiceIds.DIE_MIRROR, "give die: a Mirror Die joins the bag")
+	_check(EventApplier.picks_needed(_ch(&"mirror")) == 1, "give die: asks for a die to give up")
+	_apply(&"mirror", p, [Vector2i(0, 0)])
+	_check(p.dice.size() == n + 1 and p.dice[n].special_id == DiceIds.DIE_MIRROR, "give die: with room, a Mirror Die joins the bag")
 	var b := RunProgress.new(_run)
-	_apply(&"bone", b)
+	_apply(&"bone", b, [Vector2i(0, 0)])
 	_check(b.dice.size() == n + 1 and b.dice[n].special_id == &"" and b.dice[n].shape == DiceIds.DIE_BONE and b.die_name(n) == "Bone",
 		"give die: an empty die id gives a plain Bone")
-	_check(p.dice.size() == _run.max_dice, "give die: bag now full (%d)" % _run.max_dice)
-	_check(EventApplier.why_not(_ch(&"mirror"), p) == "Your bag is full (%d dice)." % _run.max_dice, "give die: full bag greys the choice")
-	var lines := _apply(&"mirror", p)
-	_check(lines[0].begins_with("refused") and p.dice.size() == _run.max_dice, "give die: refused on a full bag, nothing changes")
+	_check(p.dice.size() == _run.max_dice and EventApplier.why_not(_ch(&"mirror"), p) == "", "give die: a full bag doesn't grey the choice")
+	p.set_face(2, 0, &"wild")
+	var old_id := p.dice[2].id
+	var lines := _apply(&"mirror", p, [Vector2i(2, 0)])
+	_check(p.dice.size() == _run.max_dice and p.dice[2].special_id == DiceIds.DIE_MIRROR and p.dice[2].id != old_id and p.dice[2].modded_faces().is_empty()
+		and lines[0].contains("for Bone"), "give die: a full bag swaps the picked die in place; its carved face goes with it (%s)" % [lines])
+	_check(_apply(&"mirror", p, [Vector2i(9, 0)])[0].begins_with("refused"), "give die: a bad die pick is refused")
 	var q := RunProgress.new(_run)
 	var keg := EventChoiceData.new()
 	var e := EventEffectData.new()
 	e.kind = EventEffectData.Kind.GIVE_DIE
 	e.die = DiceIds.DIE_POWDER_KEG
 	keg.effects.assign([e])
-	EventApplier.apply(keg, q, RandomNumberGenerator.new())
+	EventApplier.apply(keg, q, RandomNumberGenerator.new(), [Vector2i(0, 0)])
 	_check(q.dice[q.dice.size() - 1].shape == DiceIds.DIE_POWDER_KEG and q.dice[q.dice.size() - 1].faces[4] == &"twin", "give die: a shaped die arrives with its pre-carved faces")
+	var five := RunProgress.new(_five())
+	_check(EventApplier.is_hidden(_ch(&"sell"), five), "bag5: a sell-a-die choice is hidden at the fixed 5")
+
+
+## The real bag: fixed at 5.
+func _five() -> RunData:
+	var d := _run.duplicate() as RunData
+	d.max_dice = 5
+	return d
 
 
 func _test_sell_die() -> void:
 	var p := RunProgress.new(_run)
-	_check(EventApplier.why_not(_ch(&"sell"), p) == "You need 6+ dice to give one up." and _apply(&"sell", p, [Vector2i(0, 0)])[0].begins_with("refused"),
+	_check(EventApplier.why_not(_ch(&"sell"), p) != "" and _apply(&"sell", p, [Vector2i(0, 0)])[0].begins_with("refused"),
 		"sell die: at the starting bag size the choice is greyed")
 	p.add_die(DiceIds.DIE_MIRROR)
 	var e0 := p.embers

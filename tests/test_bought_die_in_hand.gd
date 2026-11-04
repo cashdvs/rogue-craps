@@ -32,6 +32,7 @@ var _data: RunData
 
 func _initialize() -> void:
 	_data = load("res://resources/map/bonfire_run.tres") as RunData
+	_data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	var sellable: Array[StringName] = []
 	for d in _data.special_dice:
 		sellable.append(d.id)

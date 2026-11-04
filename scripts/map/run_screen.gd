@@ -282,9 +282,7 @@ func _show_reward() -> void:
 	if not run.dice_options.is_empty():
 		lines.append("Elite spoils: take one special die.")
 		for i in run.dice_options.size():
-			buttons.append(["Take the %s (%s)" % [run.dice_options[i].display_name, run.dice_options[i].description], func() -> void:
-				run.take_die(i)
-				_show_reward(), not run.progress.can_add_die()])
+			buttons.append(["Take the %s (%s)" % [run.dice_options[i].display_name, run.dice_options[i].description], func() -> void: _take_die(i)])
 	for i in run.seal_options.size():
 		var id := run.seal_options[i]
 		var txt: String = ("%s (rare Seal)" % String(id).capitalize()) if run.is_rare_seal(id) \
@@ -293,6 +291,20 @@ func _show_reward() -> void:
 			not _seal_possible(id)])
 	buttons.append(["Skip (+%d Embers)" % run_data.seal_skip_embers, func() -> void: run.take_seal(-1)])
 	_panel("Seal Reward", lines, buttons)
+
+
+## Elite die with a full bag (bag5_sacrifice_v1 §2): pick a die to give up,
+## then confirm the swap; Cancel goes back to the reward.
+func _take_die(i: int) -> void:
+	if run.progress.can_add_die():
+		run.take_die(i)
+		_show_reward()
+		return
+	var T := ShopSideCard.SWAP_TEXT
+	_pick(T.shop_swap_pick, func(at: Vector2i) -> void:
+		_panel("Swap", ShopSideCard.swap_lines(run.progress, at.x, run.dice_options[i].display_name),
+			[[T.shop_swap_btn, func() -> void: run.take_die(i, at.x); _show_reward()], [T.shop_swap_cancel, _show_reward]]),
+		func(_at: Vector2i) -> bool: return true)
 
 
 func _show_rest() -> void:

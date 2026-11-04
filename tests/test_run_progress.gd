@@ -16,6 +16,7 @@ var _run: RunData
 func _initialize() -> void:
 	print("=== Dice of the Damned: run progress tests ===")
 	_run = load("res://resources/map/bonfire_run.tres") as RunData
+	_run.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	_test_basics()
 	_test_face_mods()
 	_test_seals()
@@ -41,7 +42,7 @@ func _test_basics() -> void:
 	_check(p.soul == 35 and p.max_soul == 35 and p.embers == 0 and p.dice.size() == 5, "start: Soul 35/35, 0 Embers, 5 dice")
 	_check(p.change_soul(5) == 0 and p.change_soul(-10) == -10 and p.soul == 25, "soul: clamped to max")
 	_check(p.change_embers(-3) == 0 and p.change_embers(7) == 7, "embers: never below 0")
-	_check(p.add_die(&"coven") and not p.add_die(&"extra") and p.dice.size() == _run.max_dice and _run.max_dice == 6, "dice: max 6 (economy v1 P2)")
+	_check(p.add_die(&"coven") and not p.add_die(&"extra") and p.dice.size() == _run.max_dice and _run.max_dice == 6, "dice: the cap is max_dice (6 in this roomy fixture)")
 	var ended: Array[bool] = [false]
 	p.run_ended.connect(func() -> void: ended[0] = true)
 	_check(p.change_soul(-99) == -25 and p.is_over() and ended[0], "soul: 0 ends the run")

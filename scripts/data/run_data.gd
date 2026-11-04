@@ -17,10 +17,10 @@ extends Resource
 @export var max_soul: int = 35
 @export var starting_soul: int = 35
 @export var starting_embers: int = 0
-## Handful: 5 dice to start, max 6 (economy_balance_v1 P2; was 7). Every bag-full
-## check (shop, Elite reward, event give_die, "Your dice" panel) reads max_dice.
+## Handful: 5 dice, fixed (bag5_sacrifice_v1; was max 6). With a full bag every
+## die grant (shop, Elite reward, event GIVE_DIE) is a swap: RunProgress.swap_die.
 @export var starting_dice: int = 5
-@export var max_dice: int = 6
+@export var max_dice: int = 5
 
 @export_group("Pools (build content v0.3)")
 ## Events the map's Event nodes draw from (no repeats until all are seen).

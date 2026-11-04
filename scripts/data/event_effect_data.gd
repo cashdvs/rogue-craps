@@ -7,10 +7,10 @@ enum Kind { SOUL, EMBERS, ADD_FACE_MOD, REMOVE_FACE_MOD, SEAL_LEVEL,
 ## MAX_SOUL: max Soul +/- amount (never below 1). A raise heals the same
 ##   amount; a cut trims Soul to the new max.
 ## GIVE_DIE: add `die` (a special-die or shape id; &"" = a plain Bone) to
-##   the bag. Greyed out when the bag is full.
+##   the bag; a full bag swaps out a die the player picks (bag5_sacrifice_v1).
 ## SELL_DIE: give up one die (PICKED: the player picks any face of it;
 ##   RANDOM: a random one) for its normal sell value + amount Embers.
-##   Greyed out when the bag is at the starting size.
+##   Hidden when the bag is at the starting size.
 ## FREE_SHOP_REROLL: amount free shop rerolls, kept until used (they stack
 ##   and don't raise the reroll price).
 ## NEXT_TABLE_TWIST: `rule` is added to the next regular Table (never an
@@ -38,4 +38,4 @@ enum Target { PICKED, RANDOM_OTHER_SAME_DIE, RANDOM }
 
 
 func needs_pick() -> bool:
-	return target == Target.PICKED and kind in [Kind.ADD_FACE_MOD, Kind.REMOVE_FACE_MOD, Kind.SELL_DIE]
+	return kind == Kind.GIVE_DIE or target == Target.PICKED and kind in [Kind.ADD_FACE_MOD, Kind.REMOVE_FACE_MOD, Kind.SELL_DIE]

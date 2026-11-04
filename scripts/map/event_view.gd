@@ -99,7 +99,7 @@ func _on_choice(i: int) -> void:
 			continue
 		var picker := DicePanel.new()
 		var verb: String = "Pick a face mod to give up." if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
-			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else "Pick a face for the %s" % e.mod.display_name)
+			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else ShopSideCard.SWAP_TEXT.shop_swap_pick if e.kind == EventEffectData.Kind.GIVE_DIE else "Pick a face for the %s" % e.mod.display_name)
 		picker.build(_progress, {"prompt": verb, "seals": false, "allowed": func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks)})
 		_clear()
 		_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
@@ -118,7 +118,7 @@ func _on_choice(i: int) -> void:
 func _pick_allowed(e: EventEffectData, at: Vector2i, picks: Array[Vector2i]) -> bool:
 	if not EventApplier.pick_ok(e, _progress, at) or picks.has(at):
 		return false
-	if e.kind == EventEffectData.Kind.SELL_DIE:
+	if e.kind in [EventEffectData.Kind.SELL_DIE, EventEffectData.Kind.GIVE_DIE]:
 		for q in picks:
 			if q.x == at.x:
 				return false

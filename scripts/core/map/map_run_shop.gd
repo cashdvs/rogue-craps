@@ -184,11 +184,15 @@ func shop_reroll() -> bool:
 	return true
 
 
-## Buy die offer i (bag not full, affordable).
-func buy_die(i: int) -> bool:
-	if i < 0 or i >= shop_dice.size() or shop_dice[i] == null or not progress.can_add_die() or not _pay(die_price(i)):
+## Buy die offer i (affordable). A full bag swaps: give up die `give_up_i`
+## (bag5_sacrifice_v1 §1; no refund, its carved faces go with it).
+func buy_die(i: int, give_up_i: int = -1) -> bool:
+	if i < 0 or i >= shop_dice.size() or shop_dice[i] == null or die_price(i) > progress.embers:
 		return false
-	progress.add_die(shop_dice[i].id)
+	if not progress.can_add_die() and (give_up_i < 0 or give_up_i >= progress.dice.size()):
+		return false
+	_pay(die_price(i))
+	progress.gain_die(shop_dice[i].id, give_up_i)
 	shop_dice[i] = null
 	return true
 

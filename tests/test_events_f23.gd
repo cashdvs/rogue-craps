@@ -108,13 +108,13 @@ func _test_resolve() -> void:
 func _test_picks() -> void:
 	(_run.shapes.filter(func(s: DieShape) -> bool: return s.id == DiceIds.DIE_LANTERN)[0] as DieShape).enabled = true
 	var p := _rich()
-	EventApplier.apply(_events[&"gravedigger"].choices[1], p, RandomNumberGenerator.new())
+	EventApplier.apply(_events[&"gravedigger"].choices[1], p, RandomNumberGenerator.new(), [Vector2i(4, 0)])
 	_check(p.dice.back().shape == DiceIds.DIE_LANTERN and p.dice.back().faces.size() == 8, "dice: Gravedigger gives a Lantern d8")
 	p = _rich()
-	EventApplier.apply(_events[&"fence"].choices[1], p, RandomNumberGenerator.new())
+	EventApplier.apply(_events[&"fence"].choices[1], p, RandomNumberGenerator.new(), [Vector2i(4, 0)])
 	_check(p.dice.back().special_id == DiceIds.DIE_CRACKED, "dice: the Fence sells a Cracked Die")
 	p = _rich()
-	EventApplier.apply(_events[&"back_room"].choices[0], p, RandomNumberGenerator.new())
+	EventApplier.apply(_events[&"back_room"].choices[0], p, RandomNumberGenerator.new(), [Vector2i(4, 0)])
 	_check(p.dice.back().special_id == DiceIds.DIE_COVEN and p.embers == 30, "dice: the Back Room sells a Coven Die for 20")
 	p = _rich()
 	var max0 := p.max_soul
@@ -133,7 +133,7 @@ func _test_picks() -> void:
 	var full := RunProgress.new(_run)
 	while full.can_add_die():
 		full.add_die(DiceIds.DIE_BONE)
-	_check(not EventPicker.worth_offering(_events[&"gravedigger"], full, true), "skip: the Gravedigger is skipped with a full bag")
+	_check(EventPicker.worth_offering(_events[&"gravedigger"], full, true), "bag5: the Gravedigger is offered with a full bag (a swap)")
 
 
 ## id -> per choice [Embers, Soul, max Soul, dice, free rerolls, {seal: levels}]

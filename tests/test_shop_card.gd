@@ -16,6 +16,7 @@ func _initialize() -> void:
 	root.add_child(scene)
 	await process_frame
 	run = scene.run
+	run.data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	ss = scene.shop_screen
 	_open_shop_with_rare()
 	_test_strings()
@@ -223,7 +224,7 @@ func _test_blocker_order() -> void:
 		d.faces.fill(&"wild")
 	run.progress.embers = 0
 	_show(Vector2i(390, 844), true)
-	_check(_blocker(_item(ShopOffer.Kind.DIE, 0)) == &"shop_card_bag_full", "die: bag full beats can't afford")
+	_check(_blocker(_item(ShopOffer.Kind.DIE, 0)) == &"shop_card_cant_afford", "bag5: a full bag never blocks a die (it's a swap)")
 	_check(_blocker(_item(ShopOffer.Kind.MOD, 0)) == &"shop_card_no_free_face", "mod: no free face beats can't afford")
 	_check(_blocker(_item(ShopOffer.Kind.RARE_SEAL)) == &"shop_card_cant_afford", "Seal: can't afford beats not usable")
 	var red := ss.card.action

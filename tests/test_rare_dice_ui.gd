@@ -67,6 +67,7 @@ func _test_shop_tag() -> void:
 
 func _test_locked_tooltip() -> void:
 	var data := load("res://resources/map/bonfire_run.tres") as RunData
+	data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	for id in RARES:
 		var p := RunProgress.new(data)
 		_check(p.add_die(id), "%s added" % id)
@@ -101,6 +102,7 @@ func _test_locked_tooltip() -> void:
 ## rare, and a common die's preset (Powder Keg's twin), aren't flagged.
 func _test_not_locked() -> void:
 	var data := load("res://resources/map/bonfire_run.tres") as RunData
+	data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	var p := RunProgress.new(data)
 	p.add_die(&"pyre")
 	var d := p.dice.size() - 1

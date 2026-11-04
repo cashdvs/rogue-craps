@@ -28,6 +28,8 @@ static func is_hidden(choice: EventChoiceData, p: RunProgress) -> bool:
 			var sh := p.shape_data(e.die)
 			if sh != null and not sh.enabled:
 				return true
+		elif e.kind == K.SELL_DIE and not p.can_lose_die():
+			return true  # bag5_sacrifice_v1 §2: no dead "give one up" option at 5 dice.
 	return false
 
 
@@ -46,8 +48,6 @@ static func why_not(choice: EventChoiceData, p: RunProgress, table_ahead: bool =
 			return "No blank face left to carve."
 		elif e.kind == K.MAX_SOUL and e.amount < 0 and p.max_soul + e.amount < 1:
 			return "Not enough max Soul."
-		elif e.kind == K.GIVE_DIE and not p.can_add_die():
-			return "Your bag is full (%d dice)." % p.data.max_dice
 		elif e.kind == K.SELL_DIE and not p.can_lose_die():
 			return "You need %d+ dice to give one up." % (p.data.starting_dice + 1)
 		elif e.kind == K.NEXT_TABLE_TWIST and not table_ahead:
@@ -95,7 +95,7 @@ static func picks_needed(choice: EventChoiceData) -> int:
 ## it (Blank can be carved over); REMOVE: a face holding a real mod that
 ## isn't a rare's locked pre-carved face.
 static func pick_ok(e: EventEffectData, p: RunProgress, pick: Vector2i) -> bool:
-	if e.kind == K.SELL_DIE:
+	if e.kind == K.SELL_DIE or e.kind == K.GIVE_DIE:
 		return pick.x >= 0 and pick.x < p.dice.size() and pick.y >= 0 and pick.y < p.dice[pick.x].faces.size()
 	if e.kind == K.REMOVE_FACE_MOD:
 		return p.removable_faces().has(pick)
@@ -118,7 +118,7 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 		if e.needs_pick():
 			if k >= picks.size() or not pick_ok(e, p, picks[k]):
 				return ["refused: pick a valid face"]
-			var key := [e.kind, picks[k] if e.kind != K.SELL_DIE else Vector2i(picks[k].x, 0)]
+			var key := [e.kind, picks[k] if e.kind not in [K.SELL_DIE, K.GIVE_DIE] else Vector2i(picks[k].x, 0)]
 			if used.has(key):
 				return ["refused: pick a different face for each"]
 			used[key] = true
@@ -134,9 +134,13 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 				lines.append("Embers %+d" % p.change_embers(e.amount))
 			K.MAX_SOUL:
 				lines.append("Max Soul %+d (%d)" % [p.change_max_soul(e.amount), p.max_soul])
-			K.GIVE_DIE:
-				if p.add_die(e.die if e.die != &"" else DiceIds.DIE_BONE):
-					lines.append("gained %s" % p.die_name(p.dice.size() - 1))
+			K.GIVE_DIE:  # A full bag swaps out the picked die (bag5_sacrifice_v1 §2).
+				var give_up: int = picks[next_pick].x
+				next_pick += 1
+				var gone := p.die_name(give_up) if not p.can_add_die() else ""
+				if p.gain_die(e.die if e.die != &"" else DiceIds.DIE_BONE, give_up):
+					var at := give_up if gone != "" else p.dice.size() - 1
+					lines.append("gained %s" % p.die_name(at) + (" for %s" % gone if gone != "" else ""))
 				else:
 					lines.append("bag full")
 			K.SELL_DIE:

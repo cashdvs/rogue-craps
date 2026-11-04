@@ -21,6 +21,7 @@ func _initialize() -> void:
 	root.add_child(scene)
 	await process_frame
 	run = scene.run
+	run.data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	ss = scene.shop_screen
 	run.screen = MapRun.Screen.SHOP
 	run.progress.embers = 100

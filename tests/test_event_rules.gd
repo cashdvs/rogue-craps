@@ -110,7 +110,7 @@ func _test_only_leave() -> void:
 	var full := RunProgress.new(_run)
 	while full.can_add_die():
 		full.add_die(DiceIds.DIE_BONE)
-	_check(not EventPicker.worth_offering(gd, full, true), "leave-only: Gravedigger with a full bag isn't offered")
+	_check(EventPicker.worth_offering(gd, full, true), "bag5: Gravedigger with a full bag is offered (a swap)")
 	_check(EventPicker.worth_offering(gd, RunProgress.new(_run), true), "leave-only: Gravedigger with room is offered")
 	_check(EventPicker.is_leave(_altar.choices[2]) and not EventPicker.is_leave(_altar.choices[0]), "leave-only: Leave = the choice with no effects")
 	var other := _event(&"other")
@@ -244,7 +244,7 @@ func test_hidden() -> void:
 	var full := RunProgress.new(_run)
 	while full.can_add_die():
 		full.add_die(DiceIds.DIE_BONE)
-	_check(not EventPicker.worth_offering(gd, full, true), "hidden: with a full bag, only Leave is left, so it's skipped")
+	_check(EventPicker.worth_offering(gd, full, true), "bag5: with a full bag the Bone option is a swap, so it's offered")
 	var lone := EventData.new()
 	lone.id = &"lone"
 	lone.choices = [gd.choices[1], gd.choices[2]] as Array[EventChoiceData]

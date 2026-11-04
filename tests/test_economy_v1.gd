@@ -136,33 +136,32 @@ func _give_choice(die: StringName) -> EventChoiceData:
 
 
 func _test_bag_cap() -> void:
-	_check(_data.max_dice == 6, "P2 data: max_dice 6 (bonfire_run.tres)")
-	_check(RunData.new().max_dice == 6, "P2 code: RunData.max_dice defaults to 6, not just the .tres")
+	# bag5_sacrifice_v1: the bag is fixed at 5; every die grant is a swap.
+	_check(_data.max_dice == 5, "P2 data: max_dice 5 (bonfire_run.tres)")
+	_check(RunData.new().max_dice == 5, "P2 code: RunData.max_dice defaults to 5, not just the .tres")
 	var give := _give_choice(&"mirror")
 	var p := RunProgress.new(_data)
-	_check(EventApplier.why_not(give, p) == "" and p.add_die(&"coven"), "P2: room for a 6th die")
-	_check(not p.can_add_die() and not p.add_die(&"extra") and p.dice.size() == 6, "P2: no 7th die")
-	_check(EventApplier.why_not(give, p) == "Your bag is full (6 dice).", "P2: event give_die greys out at 6")
+	_check(not p.can_add_die() and not p.add_die(&"extra") and p.dice.size() == 5, "P2: no 6th die")
+	_check(EventApplier.why_not(give, p) == "" and EventApplier.picks_needed(give) == 1, "P2: event give_die is open at 5 and asks for a die to give up")
 	var run := MapRun.new(_data, 4)
-	run.progress.add_die(&"coven")
 	_check(_enter(run, NT.SHOP), "shop: entered")
 	run.progress.embers = 500
-	_check(not run.buy_die(0) and run.progress.embers == 500 and run.progress.dice.size() == 6, "P2: the shop won't sell a 7th die")
+	_check(not run.buy_die(0) and run.progress.embers == 500 and run.progress.dice.size() == 5, "P2: a shop buy without a die to give up is refused")
 	run.screen = MapRun.Screen.REWARD
 	run.dice_options = [_data.special_dice[0]] as Array[SpecialDieData]
-	_check(not run.take_die(0) and run.progress.dice.size() == 6, "P2: an Elite die reward is refused on a full bag")
-	# Nothing hard-codes the cap: a 7-die RunData allows a 7th everywhere.
+	_check(not run.take_die(0) and run.progress.dice.size() == 5, "P2: an Elite die reward without a die to give up is refused")
+	# Nothing hard-codes the cap: a 7-die RunData allows a 6th and 7th.
 	var roomy := _data.duplicate() as RunData
 	roomy.max_dice = 7
 	var q := RunProgress.new(roomy)
 	q.add_die(&"coven")
-	_check(EventApplier.why_not(give, q) == "" and q.add_die(&"extra") and q.dice.size() == 7, "P2: the cap is max_dice, not a constant")
+	_check(q.add_die(&"extra") and q.dice.size() == 7, "P2: the cap is max_dice, not a constant")
 	var panel := DicePanel.new()
 	panel.build(p, {})
 	var titled := false
 	for l in panel.find_children("*", "Label", true, false):
-		titled = titled or (l as Label).text == "Your dice · 6/6"
-	_check(titled, "P2: the Your dice panel reads 6/6")
+		titled = titled or (l as Label).text == "Your dice · 5/5"
+	_check(titled, "P2: the Your dice panel reads 5/5")
 	panel.free()
 
 
@@ -253,10 +252,10 @@ func _test_floor_prices() -> void:
 	run.progress.embers = 22
 	_check(not run.buy_die(0) and run.progress.embers == 22, "P5: 22 Embers can't buy a 23-Ember Mirror on Floor 2")
 	run.progress.embers = 100
-	_check(run.buy_die(0) and run.progress.embers == 77, "P5: the Mirror charges its Floor 2 price (23)")
+	_check(run.buy_die(0, 4) and run.progress.embers == 77, "P5: the Mirror charges its Floor 2 price (23)")
 	_check(run.cheapest_mod_price(0) == 18 and run.mod_price_range(0) == Vector2i(18, 18) and run.buy_mod(0, Vector2i(0, 0)) and run.progress.embers == 59,
 		"P5: Wild shows and charges 18 on Floor 2")
-	_check(run.progress.sell_value(5) == 9, "P5: sell values don't scale (Mirror sells for 9)")
+	_check(run.progress.sell_value(4) == 9, "P5: sell values don't scale (Mirror sells for 9)")
 	_check(run.buy_soul() and run.progress.embers == 44 and run.soul_price() == 20, "P5: Soul Draught 15, then (12 + 4) x 1.25 = 20")
 	var tk: EventData = null
 	for ev in _data.events:

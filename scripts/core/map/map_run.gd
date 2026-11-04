@@ -233,9 +233,10 @@ func _roll_rewards() -> void:
 
 
 
-## Elite reward: take special die i (one only; then the Seal pick).
-func take_die(i: int) -> bool:
-	if screen != Screen.REWARD or i < 0 or i >= dice_options.size() or not progress.add_die(dice_options[i].id):
+## Elite reward: take special die i (one only; then the Seal pick). A full
+## bag swaps out die `give_up_i` (bag5_sacrifice_v1 §2).
+func take_die(i: int, give_up_i: int = -1) -> bool:
+	if screen != Screen.REWARD or i < 0 or i >= dice_options.size() or not progress.gain_die(dice_options[i].id, give_up_i):
 		return false
 	dice_options.clear()
 	return true
