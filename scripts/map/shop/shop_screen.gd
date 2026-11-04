@@ -271,7 +271,7 @@ func _on_reroll_pressed() -> void:
 		screen.refresh()
 
 
-## The bag row: "YOUR DICE n/5", the sell or swap hint, and max_dice slots of
+## The bag row: "YOUR DICE · 5", the sell or swap hint, and max_dice slots of
 ## `px` design px from top `y`. Sell mode lifts the row 10 spec px.
 func _add_bag(y: float, px: float) -> void:
 	var p := screen.run.progress
@@ -280,14 +280,15 @@ func _add_bag(y: float, px: float) -> void:
 	var x := (40 if layout == Layout.PC else 16) * k
 	var gap := (10 if layout == Layout.PC else 8) * k
 	var label_px := int((20 if layout == Layout.PC else 14) * k)
-	bag_label = RunTheme.label("YOUR DICE  %d/%d" % [p.dice.size(), p.data.max_dice], label_px, CREAM)
+	bag_label = RunTheme.label(ShopSideCard.SWAP_TEXT.hud_dice_count.replace("{n}", str(p.dice.size())), label_px, CREAM)
 	bag_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	bag_label.position = Vector2(x, y - label_px * 1.5)
 	add_child(bag_label)
 	var hint := ShopSideCard.SWAP_TEXT.shop_swap_pick if swap_offer >= 0 else ShopCardStrings.get_text("shop_hint_pick_sell")
 	sell_hint = RunTheme.label(hint, label_px, BRASS)
 	sell_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
-	sell_hint.position = Vector2(x + bag_label.get_combined_minimum_size().x + 16 * k, bag_label.position.y)
+	var lw := bag_label.get_theme_font(&"font").get_string_size(bag_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label_px).x
+	sell_hint.position = Vector2(x + lw + 24 * k, bag_label.position.y)
 	sell_hint.visible = selling or swap_offer >= 0
 	add_child(sell_hint)
 	for i in p.data.max_dice:  # 5 (bag5_sacrifice_v1)

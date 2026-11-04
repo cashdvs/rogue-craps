@@ -16,6 +16,7 @@ func _initialize() -> void:
 	_test_shop_swap()
 	_test_elite_swap()
 	_test_event_swap()
+	_test_no_extra()
 	_check((load("res://resources/map/floor_1.tres") as FloorData).target_boss == 1400, "F1 boss target is 1400")
 	print("=== test_bag5_swap: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -89,3 +90,12 @@ func _test_event_swap() -> void:
 	s.kind = EventEffectData.Kind.SELL_DIE
 	sell.effects.assign([s])
 	_check(EventApplier.is_hidden(sell, p), "event: selling a die is hidden at 5")
+
+
+func _test_no_extra() -> void:
+	var seen := false
+	for seed in 40:
+		var run := MapRun.new(_data, seed)
+		for d in run._dice_offers(RandomNumberGenerator.new(), 20):
+			seen = seen or d.id == DiceIds.DIE_EXTRA
+	_check(not seen, "pools: the plain Extra die is never offered (shop or Elite)")

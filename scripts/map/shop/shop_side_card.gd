@@ -5,7 +5,7 @@
 class_name ShopSideCard
 extends ShopCard
 
-## bag5_sacrifice_v1 §6 swap strings (proposed; not yet in strings_v1).
+## bag5_sacrifice_v1 §6 swap strings (design/strings_v1.md, "Bag of 5" rows).
 const SWAP_TEXT: Dictionary[String, String] = {
 	"shop_swap_pick": "Give up which die?",
 	"shop_swap_confirm": "Swap {old} for {new}?",
@@ -13,6 +13,8 @@ const SWAP_TEXT: Dictionary[String, String] = {
 	"shop_swap_cancel": "CANCEL",
 	"shop_swap_mods_warn": "Its carved faces go with it.",
 	"shop_swap_no_refund": "No refund: it's gone for the run.",
+	"reward_keep_dice": "Keep my dice",
+	"hud_dice_count": "YOUR DICE · {n}",
 }
 
 ## The bag slot whose sell card is open (null = none).

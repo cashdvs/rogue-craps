@@ -92,7 +92,7 @@ func _test_bag_row() -> void:
 		_check(ss.bag[4].die_i == 4 and ss.bag[4].icon != null, "%s: slot 5 shows die 5" % win)
 		_check(ss.bag[5].die_i == -1 and ss.bag[5].mouse_filter == Control.MOUSE_FILTER_IGNORE, "%s: slot 6 is empty" % win)
 		_check(ss.bag[1].position.x > ss.bag[0].position.x + ss.bag[0].size.x, "%s: slots sit side by side" % win)
-		_check(ss.bag_label.text == "YOUR DICE  5/6", "%s: bag label counts dice" % win)
+		_check(ss.bag_label.text == "YOUR DICE · 5", "%s: bag label counts dice" % win)
 	_show(PC)
 	var last := ss.bag[5]
 	_check(ss.sell_button.position.x > last.position.x + last.size.x, "PC: Sell / Swap sits right of the bag")

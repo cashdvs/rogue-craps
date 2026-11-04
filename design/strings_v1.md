@@ -40,3 +40,11 @@ Repo copy: only the rows the game loads by id from this file so far; the full ta
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | hud_nerve | (new) | Nerve {n} | 2 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_hint | (new) | Bank points to reach the target. | 6 |
 | HUD table goal (PR1) | not in data (design/table_goals_v1.md + handoff/table_goals_v1_pr1.md, DECIDED PM Oct 30, FINAL) | label | goal_miss | (new) | Missed: -{s} Soul | 3 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | shop_swap_pick | (new) | Give up which die? | 4 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | shop_swap_confirm | (new) | Swap {old} for {new}? | 4 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | shop_swap_btn | (new) | SWAP | 1 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | shop_swap_cancel | (new) | CANCEL | 1 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | shop_swap_mods_warn | (new) | Its carved faces go with it. | 6 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | shop_swap_no_refund | (new) | No refund: it's gone for the run. | 7 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | reward_keep_dice | (new) | Keep my dice | 3 |
+| Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | hud_dice_count | (new) | YOUR DICE · {n} | 3 |

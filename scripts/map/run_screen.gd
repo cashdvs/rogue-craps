@@ -283,6 +283,7 @@ func _show_reward() -> void:
 		lines.append("Elite spoils: take one special die.")
 		for i in run.dice_options.size():
 			buttons.append(["Take the %s (%s)" % [run.dice_options[i].display_name, run.dice_options[i].description], func() -> void: _take_die(i)])
+		buttons.append([ShopSideCard.SWAP_TEXT.reward_keep_dice, func() -> void: run.dice_options.clear(); _show_reward()])
 	for i in run.seal_options.size():
 		var id := run.seal_options[i]
 		var txt: String = ("%s (rare Seal)" % String(id).capitalize()) if run.is_rare_seal(id) \

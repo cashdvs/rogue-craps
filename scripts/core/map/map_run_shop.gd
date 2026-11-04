@@ -40,7 +40,7 @@ func rest_seal(combo: StringName) -> bool:
 func _dice_offers(rng: RandomNumberGenerator, n: int) -> Array[SpecialDieData]:
 	var specials: Array[SpecialDieData] = []
 	for d in data.special_dice:
-		if not d.is_rare():
+		if not d.is_rare() and d.id != DiceIds.DIE_EXTRA:  # bag5 §2: a plain die is a pointless swap
 			specials.append(d)
 	var shapes: Array[SpecialDieData] = []
 	for s in data.shapes:
