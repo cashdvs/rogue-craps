@@ -36,6 +36,9 @@ uniform float cold_desat = 0.75;
 uniform vec3 cold_warm_grey = vec3(1.00, 0.96, 0.90);
 uniform float lit_albedo_mix_max = 0.35;
 uniform float cold_lift = 1.0;
+uniform float die_frost = 0.0;
+uniform vec3 frost_tint = vec3(0.72, 0.88, 1.30);
+uniform float frost_dim = 1.0;
 void fragment() {
 	vec3 col = albedo.rgb;
 	if (use_overlay) {
@@ -49,6 +52,8 @@ void fragment() {
 	vec3 cold_col = mix(col, luma * cold_warm_grey, cold_desat) * cold_albedo_mul;
 	col = mix(col, col * lit_albedo_mul, min(die_lit, lit_albedo_mix_max));
 	col = mix(col, cold_col, cold_k) * mix(1.0, cold_lift, cold_k);
+	float frost_k = die_frost * (1.0 - die_lit);
+	col = mix(col, dot(col, vec3(0.299, 0.587, 0.114)) * frost_tint * frost_dim, frost_k);
 	ALBEDO = col;
 	ALPHA = mix_amount;
 }

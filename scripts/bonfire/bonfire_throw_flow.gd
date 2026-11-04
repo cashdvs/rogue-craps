@@ -208,7 +208,9 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 			else:
 				_set_cold(throw_dice[i])
 		sfx.play(&"rim_hit", 0.8, -6.0)
-		_set_why("%d lit. Click dice into the pot: one combo per throw." % lit.size())
+		## A rule-dark face (Cold Sixes) says so first: "Cold Sixes: 6s can't score."
+		var cold_note := ColdRuleText.note_for(run, values)
+		_set_why(("%s " % cold_note if cold_note != "" else "") + "%d lit. Click dice into the pot: one combo per throw." % lit.size())
 		phase = Phase.BET
 		onboarding.on_lit_settle()
 	else:
