@@ -244,7 +244,9 @@ func pick_die(i: int) -> bool:
 		bhud.tutorial.on_action(&"refused")
 		# Just-in-time or never: it doesn't wait behind another hint.
 		onboarding.on_refused(i)
-		_set_why("That die doesn't score with this combo (a pot is exactly ONE combo).")
+		## A die a rule keeps dark names the rule instead: "Cold Sixes: 6s can't score."
+		var cold_note := ColdRuleText.note_for(run, [run.throw_faces[i]])
+		_set_why(cold_note if cold_note != "" else "That die doesn't score with this combo (a pot is exactly ONE combo).")
 		return false
 	sfx.play(&"chip_place", 1.1, -3.0)
 	nerve.on_potted()

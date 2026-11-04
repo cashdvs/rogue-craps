@@ -285,6 +285,7 @@ func _set_lit(d: DieVisual, on: bool) -> void:
 	else:
 		_lights.erase(d)
 	d.set_glow_state(on, false)
+	FrostLook.set_frost(d, false)
 	RareDieLook.set_marks_lit(d, on)
 	if was != on and events != null:
 		events.die_lit_changed.emit(event_id(d), on)
@@ -296,6 +297,10 @@ func _set_cold(d: DieVisual) -> void:
 		events.die_lit_changed.emit(event_id(d), false)
 	_lights.erase(d)
 	d.set_glow_state(false, true)
+	## A die a table rule keeps dark (Cold Sixes) also gets the frost.
+	var i := throw_dice.find(d)
+	var v := run.throw_faces[i] if run != null and i >= 0 and i < run.throw_faces.size() else 0
+	FrostLook.set_frost(d, ColdRuleText.blocker(run, v) != null)
 	RareDieLook.set_marks_lit(d, false)
 
 
