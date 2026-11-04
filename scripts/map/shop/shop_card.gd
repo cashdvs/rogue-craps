@@ -53,7 +53,7 @@ func close() -> void:
 	item = null
 	visible = false
 
-## Why `o` can't be bought, as a strings id ("" = it can). Order: bag full > no free face > can't afford > Seal not usable.
+## Why `o` can't be bought, as a strings id ("" = it can). Order: no free face > can't afford > Seal not usable.
 static func blocker(o: ShopOffer, screen: RunScreen) -> StringName:
 	var run := screen.run
 	if o.kind == ShopOffer.Kind.MOD and o.price_lo < 0:

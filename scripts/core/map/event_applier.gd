@@ -142,7 +142,7 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 					var at := give_up if gone != "" else p.dice.size() - 1
 					lines.append("gained %s" % p.die_name(at) + (" for %s" % gone if gone != "" else ""))
 				else:
-					lines.append("bag full")
+					lines.append("refused: no die to give up")  # bag5: a full bag swaps; only a bad pick lands here
 			K.SELL_DIE:
 				var d: int = -1
 				if e.needs_pick():

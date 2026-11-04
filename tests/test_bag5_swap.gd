@@ -17,6 +17,8 @@ func _initialize() -> void:
 	_test_elite_swap()
 	_test_event_swap()
 	_test_no_extra()
+	_test_swap_lines()
+	await _test_event_confirm()
 	_check((load("res://resources/map/floor_1.tres") as FloorData).target_boss == 1400, "F1 boss target is 1400")
 	print("=== test_bag5_swap: %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -99,3 +101,60 @@ func _test_no_extra() -> void:
 		for d in run._dice_offers(RandomNumberGenerator.new(), 20):
 			seen = seen or d.id == DiceIds.DIE_EXTRA
 	_check(not seen, "pools: the plain Extra die is never offered (shop or Elite)")
+
+
+func _test_swap_lines() -> void:
+	var p := RunProgress.new(_data)
+	var T := ShopSideCard.SWAP_TEXT
+	var plain := ShopSideCard.swap_lines(p, 0, "Mirror Die")
+	_check(plain[0] == "Swap Bone for Mirror Die?" and plain.has(T.shop_swap_no_refund) and not plain.has(T.shop_swap_mods_warn),
+		"swap_lines: a plain die warns no refund only (%s)" % [plain])
+	p.set_face(0, 2, &"wild")
+	var carved := ShopSideCard.swap_lines(p, 0, "Mirror Die")
+	_check(carved.has(T.shop_swap_no_refund) and carved.has(T.shop_swap_mods_warn), "swap_lines: a carved die adds the carved-faces warning")
+
+
+func _button(v: Node, text: String) -> Button:
+	for b in v.find_children("*", "Button", true, false):
+		if (b as Button).text == text:
+			return b
+	return null
+
+
+## The event GIVE_DIE path asks SWAP/CANCEL after the pick, like the shop.
+func _test_event_confirm() -> void:
+	var p := RunProgress.new(_data)
+	p.set_face(2, 0, &"wild")
+	var ch := EventChoiceData.new()
+	var e := EventEffectData.new()
+	e.kind = EventEffectData.Kind.GIVE_DIE
+	e.die = DiceIds.DIE_MIRROR
+	ch.effects.assign([e])
+	var ev := EventData.new()
+	ev.title = "Test"
+	ev.choices.assign([ch])
+	var view := EventView.new()
+	root.add_child(view)
+	await process_frame
+	var got: Array = []
+	view.choice_made.connect(func(i: int, picks: Array[Vector2i]) -> void: got.append(picks))
+	var before := p.dice.map(func(d: RunDie) -> StringName: return d.id)
+	for ok: bool in [false, true]:
+		view.show_event(ev, p)
+		view._on_choice(0)
+		var dp: Array = view.find_children("*", "DicePanel", true, false)
+		(dp[0] as DicePanel).picked.emit(Vector2i(2, 0))
+		await process_frame
+		var lines: Array[String] = []
+		for l in view.find_children("*", "Label", true, false):
+			lines.append((l as Label).text)
+		_check(lines.has(ShopSideCard.SWAP_TEXT.shop_swap_no_refund) and lines.has(ShopSideCard.SWAP_TEXT.shop_swap_mods_warn),
+			"event: the confirm shows both warnings for a carved die")
+		_button(view, ShopSideCard.SWAP_TEXT.shop_swap_btn if ok else ShopSideCard.SWAP_TEXT.shop_swap_cancel).pressed.emit()
+		await process_frame
+		if not ok:
+			_check(got.is_empty() and p.dice.map(func(d: RunDie) -> StringName: return d.id) == before, "event: CANCEL emits nothing and leaves the bag")
+	_check(got.size() == 1 and got[0] == [Vector2i(2, 0)], "event: SWAP emits the choice with the pick (%s)" % [got])
+	EventApplier.apply(ch, p, RandomNumberGenerator.new(), got[0])
+	_check(p.dice.size() == 5 and p.dice[2].special_id == DiceIds.DIE_MIRROR and p.dice[2].id != before[2], "event: the swap lands in the same slot")
+	view.queue_free()

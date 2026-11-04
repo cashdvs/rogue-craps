@@ -87,7 +87,7 @@ func _test_bag_row() -> void:
 	for win: Vector2i in [PC, LANDSCAPE, PORTRAIT]:
 		_show(win)
 		var want: float = {PC: 110.0, LANDSCAPE: 40.0, PORTRAIT: 50.0}[win]
-		_check(ss.bag.size() == 6, "%s: six bag slots" % win)
+		_check(ss.bag.size() == run.data.max_dice, "%s: one bag slot per max_dice (6 in this fixture; 5 in the game)" % win)
 		_check(absf(ss.bag[0].size.x / ss.k - want) < 0.5, "%s: slot is %.1f spec px (want %.0f)" % [win, ss.bag[0].size.x / ss.k, want])
 		_check(ss.bag[4].die_i == 4 and ss.bag[4].icon != null, "%s: slot 5 shows die 5" % win)
 		_check(ss.bag[5].die_i == -1 and ss.bag[5].mouse_filter == Control.MOUSE_FILTER_IGNORE, "%s: slot 6 is empty" % win)
