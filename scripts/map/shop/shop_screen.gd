@@ -31,8 +31,6 @@ const LAYOUTS := {
 const PC_BUTTONS := [Vector2(180, 50), Vector2(210, 50), Vector2(190, 50)]
 ## Price numerals (spec px): 28 everywhere, so >= 24 real px on phones.
 const NUM_PX := 28
-## Slots in the bag row (RunData.max_dice is 6).
-const BAG_SLOTS := 6
 ## Tests: pretend the window is this many real pixels (0 = the real window).
 var window_override := Vector2i.ZERO
 
@@ -57,6 +55,9 @@ var bag: Array[BagSlot] = []
 ## Sell mode (after Sell / Swap): the bag lifts and the hint shows. It lasts
 ## until you leave, so it survives the rebuild after each sale.
 var selling := false
+## Swap mode (bag5_sacrifice_v1 §1): the die offer being bought with a full
+## bag; the bag lifts and a slot pick opens the swap card. -1 = off.
+var swap_offer := -1
 var bag_label: Label
 ## "Pick a die to sell." in sell mode (hidden otherwise).
 var sell_hint: Label
@@ -217,19 +218,19 @@ func _add_buttons(vis: Vector2, y: float) -> void:
 	var pc := layout == Layout.PC
 	var px := int((26 if pc else 24) * k)
 	var reroll_text := "Reroll  %d" % run.reroll_price() if run.progress.free_rerolls == 0 else ShopSideCard.reroll_label(true)  # Same words as the card's button; the card shows how many are left.
-	sell_button = _button("Sell / Swap", px, func() -> void: selling = not selling; card.close(); build(screen))
+	sell_button = _button("Sell / Swap", px, func() -> void: selling = not selling; swap_offer = -1; card.close(); build(screen))
 	reroll_button = _button(reroll_text, px, _on_reroll_pressed)
 	reroll_button.disabled = not touch_mode and run.progress.embers < run.reroll_price()
 	reroll_button.mouse_entered.connect(func() -> void: if not touch_mode: card.show_reroll(reroll_button, false))
 	reroll_button.mouse_exited.connect(card.leave)
-	leave_button = _button("Leave", px, func() -> void: selling = false; run.leave())
+	leave_button = _button("Leave", px, func() -> void: selling = false; swap_offer = -1; run.leave())
 	# PC: Sell / Swap sits right of the bag row; phones put all three in one row.
 	var row: Array[Button] = [sell_button, reroll_button, leave_button]
 	if pc:
 		row.pop_front()
 		sell_button.custom_minimum_size = PC_BUTTONS[0] * k
 		sell_button.size = sell_button.get_combined_minimum_size()
-		var last := bag[BAG_SLOTS - 1]
+		var last := bag[bag.size() - 1]
 		sell_button.position = Vector2(last.position.x + last.size.x + 30 * k, last.position.y + (last.size.y - sell_button.size.y) / 2.0)
 	if layout == Layout.PORTRAIT:  # Three equal buttons across the width, 8 px gaps.
 		var gap := 8 * k
@@ -265,29 +266,32 @@ func _on_reroll_pressed() -> void:
 			card.show_reroll(reroll_button, true)
 		return
 	card.close()
+	swap_offer = -1
 	if screen.run.shop_reroll():
 		screen.refresh()
 
 
-## The bag row: "YOUR DICE n/6", the sell-mode hint, and six slots of
+## The bag row: "YOUR DICE · 5", the sell or swap hint, and max_dice slots of
 ## `px` design px from top `y`. Sell mode lifts the row 10 spec px.
 func _add_bag(y: float, px: float) -> void:
 	var p := screen.run.progress
-	if selling:
+	if selling or swap_offer >= 0:
 		y -= 10 * k
 	var x := (40 if layout == Layout.PC else 16) * k
 	var gap := (10 if layout == Layout.PC else 8) * k
 	var label_px := int((20 if layout == Layout.PC else 14) * k)
-	bag_label = RunTheme.label("YOUR DICE  %d/%d" % [p.dice.size(), p.data.max_dice], label_px, CREAM)
+	bag_label = RunTheme.label(ShopSideCard.SWAP_TEXT.hud_dice_count.replace("{n}", str(p.dice.size())), label_px, CREAM)
 	bag_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	bag_label.position = Vector2(x, y - label_px * 1.5)
 	add_child(bag_label)
-	sell_hint = RunTheme.label(ShopCardStrings.get_text("shop_hint_pick_sell"), label_px, BRASS)
+	var hint := ShopSideCard.SWAP_TEXT.shop_swap_pick if swap_offer >= 0 else ShopCardStrings.get_text("shop_hint_pick_sell")
+	sell_hint = RunTheme.label(hint, label_px, BRASS)
 	sell_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
-	sell_hint.position = Vector2(x + bag_label.get_combined_minimum_size().x + 16 * k, bag_label.position.y)
-	sell_hint.visible = selling
+	var lw := bag_label.get_theme_font(&"font").get_string_size(bag_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label_px).x
+	sell_hint.position = Vector2(x + lw + 24 * k, bag_label.position.y)
+	sell_hint.visible = selling or swap_offer >= 0
 	add_child(sell_hint)
-	for i in BAG_SLOTS:
+	for i in p.data.max_dice:  # 5 (bag5_sacrifice_v1)
 		var s := BagSlot.new()
 		s.setup(screen.run, i, px, k)
 		s.position = Vector2(x + i * (px + gap), y)

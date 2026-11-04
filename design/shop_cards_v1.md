@@ -26,10 +26,9 @@ Source: `game/scripts/map/shop_view.gd`, `game/scripts/core/map/map_run_shop.gd`
 | One-line effect | KEEP, ≤12 words; reuse the item's existing description string (strings_v1). |
 | Price in Embers | KEEP (line 1, right). Final price incl. floor markup. Mods show the range "{lo}–{hi}" with `shop_card_mod_price_note`. |
 | Buy button | KEEP, line 5, `shop_card_buy`. |
-| Can't-afford line | KEEP but **replaces** the Buy button on line 5 (greyed button with the reason), never an extra line. One blocker shown, priority: bag full > no free face > can't afford > Seal not usable. |
+| Can't-afford line | KEEP but **replaces** the Buy button on line 5 (greyed button with the reason), never an extra line. One blocker shown, priority: no free face > can't afford > Seal not usable. |
 | Carve target face | KEEP for mods, but it's chosen after Buy in the face picker (price depends on die). Card line 3 states the rule (`shop_card_mod_pick`). |
 | **Sell value** | **CUT from the buy card.** Shown only on the sell/bag card (`shop_card_sell_value`). Reason: one number per card = clarity; sell is a separate action. |
-| **ADD: bag-full blocker** | `shop_card_bag_full` (bag cap 6). |
 | **ADD: shape line** | shaped dice say their face count (players must know it isn't a d6). |
 | **ADD: owned rare rule** | Owned rares are never re-offered (rare_dice_v1 no-repeats), so no "owned" state needed. |
 

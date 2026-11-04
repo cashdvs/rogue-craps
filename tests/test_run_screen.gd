@@ -22,6 +22,7 @@ func _initialize() -> void:
 	scene.run_seed = 21
 	scene.run_data = (load("res://resources/map/bonfire_run.tres") as RunData).duplicate() as RunData
 	scene.run_data.floors_in_run = 0  # this suite plays the full 3-floor run
+	scene.run_data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	root.add_child(scene)
 	await process_frame
 	await _test_map(scene)

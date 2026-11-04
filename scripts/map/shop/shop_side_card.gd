@@ -5,6 +5,18 @@
 class_name ShopSideCard
 extends ShopCard
 
+## bag5_sacrifice_v1 §6 swap strings (design/strings_v1.md, "Bag of 5" rows).
+const SWAP_TEXT: Dictionary[String, String] = {
+	"shop_swap_pick": "Give up which die?",
+	"shop_swap_confirm": "Swap {old} for {new}?",
+	"shop_swap_btn": "SWAP",
+	"shop_swap_cancel": "CANCEL",
+	"shop_swap_mods_warn": "Its carved faces go with it.",
+	"shop_swap_no_refund": "No refund: it's gone for the run.",
+	"reward_keep_dice": "Keep my dice",
+	"hud_dice_count": "YOUR DICE · {n}",
+}
+
 ## The bag slot whose sell card is open (null = none).
 var slot: BagSlot
 ## True while the reroll card is open.
@@ -38,6 +50,9 @@ func leave() -> void:
 ## The sell card for bag slot `s`: name, face strip, effect, then the sell
 ## value and button. Bone dice sell for 0, so they get neither.
 func show_sell(s: BagSlot, pin: bool) -> void:
+	if shop.swap_offer >= 0:
+		show_swap(s, pin)
+		return
 	close()
 	slot = s
 	pinned = pin
@@ -60,6 +75,46 @@ func show_sell(s: BagSlot, pin: bool) -> void:
 		var text := ShopCardStrings.fill("shop_card_sell", value) if can else ShopCardStrings.fill("shop_card_cant_sell", floor_n)
 		_button(text, can, GREY, sell)
 	_open_at(s.get_global_rect())
+
+
+## Swap mode (bag5_sacrifice_v1 §1): confirm giving up slot `s`'s die for
+## the picked offer, with the no-refund and carved-faces warnings.
+func show_swap(s: BagSlot, pin: bool) -> void:
+	close()
+	slot = s
+	pinned = pin
+	s.lift(true)
+	var run := shop.screen.run
+	var lines_out := swap_lines(run.progress, s.die_i, run.shop_dice[shop.swap_offer].display_name)
+	_frame()
+	_title(lines_out[0], "")
+	for t in lines_out.slice(1):
+		_line(t, RED if t == SWAP_TEXT.shop_swap_mods_warn else DIM)
+	_button(SWAP_TEXT.shop_swap_btn, true, GREY, swap)
+	var cancel := RunTheme.button(SWAP_TEXT.shop_swap_cancel, _px(23))
+	cancel.pressed.connect(func() -> void: shop.swap_offer = -1; close(); shop.screen.refresh())
+	lines.add_child(cancel)
+	_open_at(s.get_global_rect())
+
+
+## "Swap {old} for {new}?" then the warnings for giving up die `die_i`.
+static func swap_lines(p: RunProgress, die_i: int, new_name: String) -> Array[String]:
+	var out: Array[String] = [SWAP_TEXT.shop_swap_confirm.format({"old": p.die_name(die_i), "new": new_name}), SWAP_TEXT.shop_swap_no_refund]
+	if p.die_has_mods(die_i):
+		out.append(SWAP_TEXT.shop_swap_mods_warn)
+	return out
+
+
+## The SWAP button: pay, give up the open slot's die, take the offer.
+func swap() -> void:
+	if slot == null:
+		return
+	var i := slot.die_i
+	var offer := shop.swap_offer
+	shop.swap_offer = -1
+	close()
+	shop.screen.run.buy_die(offer, i)
+	shop.screen.refresh()
 
 
 ## The sell button: sell the open slot's die and redraw the shop.
@@ -101,6 +156,7 @@ func show_reroll(anchor: Control, pin: bool) -> void:
 ## The reroll card's button (the only reroll on phones).
 func reroll() -> void:
 	var screen := shop.screen
+	shop.swap_offer = -1
 	close()
 	if screen.run.shop_reroll():
 		screen.refresh()

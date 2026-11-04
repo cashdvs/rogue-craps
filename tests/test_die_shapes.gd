@@ -16,6 +16,7 @@ var _run: RunData
 
 func _initialize() -> void:
 	_run = load("res://resources/map/bonfire_run.tres") as RunData
+	_run.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	_test_data()
 	_test_dice()
 	_test_table()

@@ -5,6 +5,7 @@
 class_name EventView
 extends Control
 
+signal _swap_answer(ok: bool)
 signal choice_made(index: int, picks: Array[Vector2i])
 
 var _box: VBoxContainer
@@ -99,7 +100,7 @@ func _on_choice(i: int) -> void:
 			continue
 		var picker := DicePanel.new()
 		var verb: String = "Pick a face mod to give up." if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
-			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else "Pick a face for the %s" % e.mod.display_name)
+			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else ShopSideCard.SWAP_TEXT.shop_swap_pick if e.kind == EventEffectData.Kind.GIVE_DIE else "Pick a face for the %s" % e.mod.display_name)
 		picker.build(_progress, {"prompt": verb, "seals": false, "allowed": func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks)})
 		_clear()
 		_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
@@ -111,14 +112,32 @@ func _on_choice(i: int) -> void:
 		back.pressed.connect(func() -> void: show_event(_event, _progress, _table_ahead))
 		_box.add_child(back)
 		picks.append(await picker.picked)
+		if e.kind == EventEffectData.Kind.GIVE_DIE and not _progress.can_add_die() and not await _confirm_swap(e, picks[-1].x):
+			show_event(_event, _progress, _table_ahead)
+			return
 	choice_made.emit(i, picks)
+
+
+## bag5_sacrifice_v1: the shop's swap confirm (no refund, carved faces
+## warning). True on SWAP; CANCEL changes nothing.
+func _confirm_swap(e: EventEffectData, die_i: int) -> bool:
+	var T := ShopSideCard.SWAP_TEXT
+	_clear()
+	_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
+	for line in ShopSideCard.swap_lines(_progress, die_i, DiceIds.display_name(e.die if e.die != &"" else DiceIds.DIE_BONE)):
+		_box.add_child(RunTheme.label(line, 22, RunTheme.EMBER if line == T.shop_swap_mods_warn else RunTheme.GOLD))
+	for b: Array in [[T.shop_swap_btn, true], [T.shop_swap_cancel, false]]:
+		var btn := RunTheme.button(b[0])
+		btn.pressed.connect(func() -> void: _swap_answer.emit(b[1]))
+		_box.add_child(btn)
+	return await _swap_answer
 
 
 ## A legal, unused pick (a sold die can't be picked twice).
 func _pick_allowed(e: EventEffectData, at: Vector2i, picks: Array[Vector2i]) -> bool:
 	if not EventApplier.pick_ok(e, _progress, at) or picks.has(at):
 		return false
-	if e.kind == EventEffectData.Kind.SELL_DIE:
+	if e.kind in [EventEffectData.Kind.SELL_DIE, EventEffectData.Kind.GIVE_DIE]:
 		for q in picks:
 			if q.x == at.x:
 				return false

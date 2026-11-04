@@ -11,12 +11,12 @@ extends SceneTree
 
 const LOOK_FIXED := true
 const SHAPES_FIXED := true
-## Every die the shop can sell (the 8 RunData.special_dice and the enabled
-## shapes, shop and rare). last_breath (retired in #225) is not in RunData;
+## Every die the shop can sell (the RunData.special_dice but the plain Extra,
+## which bag5 §2 drops, and the enabled shapes, shop and rare: 17). last_breath (retired in #225) is not in RunData;
 ## ferryman, caltrop, lantern, tithe, midnight, verdict and knucklebone are
 ## enabled = false, so no shop rolls them.
 const EXPECTED_SHAPE := {
-	&"extra": &"d6", &"mirror": &"d6", &"cracked": &"d6", &"twin_flame": &"d6",
+	&"mirror": &"d6", &"cracked": &"d6", &"twin_flame": &"d6",
 	&"wanderer": &"d6", &"bellows": &"d6", &"blood_pact": &"d6", &"coven": &"d6",
 	&"powder_keg": &"keg", &"pyre": &"d6", &"gilt": &"d6", &"lodestone": &"d6",
 	&"ossuary": &"d6", &"gallows": &"d4", &"beacon": &"d8", &"barrel": &"d6",
@@ -32,9 +32,11 @@ var _data: RunData
 
 func _initialize() -> void:
 	_data = load("res://resources/map/bonfire_run.tres") as RunData
+	_data.max_dice = 6  # bag5: the loop adds a 6th die; _test_die(id, true) swaps at 5
 	var sellable: Array[StringName] = []
 	for d in _data.special_dice:
-		sellable.append(d.id)
+		if d.id != DiceIds.DIE_EXTRA:
+			sellable.append(d.id)
 	for s in _data.shapes:
 		if s.enabled:
 			sellable.append(s.id)
@@ -44,6 +46,11 @@ func _initialize() -> void:
 	_check(not sellable.has(&"last_breath"), "last_breath (retired in #225) is not sold")
 	for id in EXPECTED_SHAPE:
 		await _test_die(id)
+	# bag5_sacrifice_v1: the real game path, a full bag of 5 and a swap for slot 0.
+	_data.max_dice = 5
+	for id in [&"mirror", &"powder_keg", &"gallows"]:
+		await _test_die(id, true)
+	_data.max_dice = 6
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_data = null
 	quit(1 if _failed > 0 else 0)
@@ -83,7 +90,7 @@ func _shop_with(id: StringName) -> RunScreen:
 	return null
 
 
-func _test_die(id: StringName) -> void:
+func _test_die(id: StringName, swap: bool = false) -> void:
 	var screen: RunScreen = await _shop_with(id)
 	_check(screen != null, "%s: a shop offers it" % id)
 	if screen == null:
@@ -91,9 +98,14 @@ func _test_die(id: StringName) -> void:
 	var run := screen.run
 	var before := run.progress.dice.size()
 	_offer(screen, id).buy(screen)
+	if swap:
+		var ss := screen.shop_screen
+		_check(ss.swap_offer >= 0 and run.progress.dice.size() == 5, "%s: a full bag enters swap mode" % id)
+		ss.card.slot = ss.bag[0]
+		ss.card.swap()
 	var bag := run.progress.dice
-	var last: RunDie = bag[-1]
-	_check(bag.size() == before + 1 and (last.special_id == id or last.shape == id),
+	var last: RunDie = bag[0] if swap else bag[-1]
+	_check(bag.size() == before + int(not swap) and (last.special_id == id or last.shape == id),
 		"%s: bought into the bag (%d dice, last %s/%s)" % [id, bag.size(), last.shape, last.special_id])
 	screen.shop_screen.leave_button.pressed.emit()
 	_check(run.screen == MapRun.Screen.MAP, "%s: Leave returns to the map" % id)

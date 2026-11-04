@@ -17,6 +17,7 @@ var _t: BonfireTuning
 
 func _initialize() -> void:
 	_run = load("res://resources/map/bonfire_run.tres") as RunData
+	_run.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	_t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	_test_data()
 	_test_odds()

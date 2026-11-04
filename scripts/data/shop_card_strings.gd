@@ -11,7 +11,6 @@ const TEXT: Dictionary[String, String] = {
 	"shop_card_buy": "Buy",
 	"shop_card_price": "{n} Embers",
 	"shop_card_cant_afford": "Need {n} more Embers.",
-	"shop_card_bag_full": "Bag full: sell a die first.",
 	"shop_card_no_free_face": "No free face to carve.",
 	"shop_card_seal_unusable": "You can't use this Seal right now.",
 	"shop_card_shape": "{n} faces: rolls 1 to {n}.",

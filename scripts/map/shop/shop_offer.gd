@@ -80,8 +80,12 @@ static func list(run: MapRun) -> Array[ShopOffer]:
 func buy(screen: RunScreen) -> void:
 	var run := screen.run
 	match kind:
-		Kind.DIE:
-			run.buy_die(index)
+		Kind.DIE:  # A full bag picks a die to give up first (bag5_sacrifice_v1 §1).
+			if run.progress.can_add_die():
+				run.buy_die(index)
+			elif affordable(run.progress.embers):
+				screen.shop_screen.selling = false
+				screen.shop_screen.swap_offer = index
 		Kind.SOUL:
 			run.buy_soul()
 		Kind.MOD:

@@ -143,16 +143,41 @@ func sell_die(die_i: int) -> int:
 func add_die(special: StringName) -> bool:
 	if not can_add_die():
 		return false
+	dice.append(_offer_die(special))
+	changed.emit()
+	return true
+
+
+## bag5_sacrifice_v1 §1: give up die `die_i` for a new die `offer_id`, in
+## the same slot. The old die goes for good with its carved faces and mods
+## (no refund, no transfer). Starting and carved dice can be given up.
+func swap_die(die_i: int, offer_id: StringName) -> bool:
+	if die_i < 0 or die_i >= dice.size():
+		return false
+	dice[die_i] = _offer_die(offer_id)
+	changed.emit()
+	return true
+
+
+## Add a die if the bag has room, else swap out `give_up_i` (-1 = refuse).
+func gain_die(offer_id: StringName, give_up_i: int = -1) -> bool:
+	return add_die(offer_id) if can_add_die() else swap_die(give_up_i, offer_id)
+
+
+## Does die i carry carved faces or mods that a swap would lose?
+func die_has_mods(die_i: int) -> bool:
+	return die_i >= 0 and die_i < dice.size() and not dice[die_i].modded_faces().is_empty()
+
+
+## A new die for offer id: a special die, or a shape with its preset faces.
+func _offer_die(special: StringName) -> RunDie:
 	var sh := shape_data(special)
 	if sh != null and special != DiceIds.DIE_BONE:
 		var d := _new_die(&"", sh.id, sh.face_count())
 		for i in sh.faces.size():
 			d.faces[i] = StringName(sh.preset_mods.get(sh.faces[i], &""))
-		dice.append(d)
-	else:
-		dice.append(_new_die(special if special != DiceIds.DIE_BONE else &""))
-	changed.emit()
-	return true
+		return d
+	return _new_die(special if special != DiceIds.DIE_BONE else &"")
 
 
 func _new_die(special: StringName, shape_id: StringName = DiceIds.DIE_BONE, face_count: int = 6) -> RunDie:

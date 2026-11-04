@@ -16,6 +16,7 @@ func _initialize() -> void:
 	root.add_child(scene)
 	await process_frame
 	run = scene.run
+	run.data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	_open_shop_with_rare()
 	_test_counter_shows()
 	_test_art_keys()

@@ -16,6 +16,7 @@ func _initialize() -> void:
 	root.add_child(scene)
 	await process_frame
 	run = scene.run
+	run.data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	ss = scene.shop_screen
 	_open_shop_with_rare()
 	_test_strings()
@@ -83,7 +84,7 @@ func _texts(card: ShopCard) -> Array[String]:
 
 
 func _test_strings() -> void:
-	_check(ShopCardStrings.TEXT.size() == 23, "23 Shop card ids (shop_card_* + shop_hint_pick_sell)")
+	_check(ShopCardStrings.TEXT.size() == 22, "22 Shop card ids (shop_card_* + shop_hint_pick_sell)")
 	_check(ShopCardStrings.fill("shop_card_cant_afford", 4) == "Need 4 more Embers.", "cant_afford fills {n}")
 	_check(ShopCardStrings.fill("shop_card_shape", 8) == "8 faces: rolls 1 to 8.", "shape fills both {n}")
 	_check(ShopCardStrings.get_text("shop_card_soul_name") == "Soul Draught", "soul name (strings_v1 line 466)")
@@ -223,7 +224,7 @@ func _test_blocker_order() -> void:
 		d.faces.fill(&"wild")
 	run.progress.embers = 0
 	_show(Vector2i(390, 844), true)
-	_check(_blocker(_item(ShopOffer.Kind.DIE, 0)) == &"shop_card_bag_full", "die: bag full beats can't afford")
+	_check(_blocker(_item(ShopOffer.Kind.DIE, 0)) == &"shop_card_cant_afford", "bag5: a full bag never blocks a die (it's a swap)")
 	_check(_blocker(_item(ShopOffer.Kind.MOD, 0)) == &"shop_card_no_free_face", "mod: no free face beats can't afford")
 	_check(_blocker(_item(ShopOffer.Kind.RARE_SEAL)) == &"shop_card_cant_afford", "Seal: can't afford beats not usable")
 	var red := ss.card.action

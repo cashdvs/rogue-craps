@@ -13,6 +13,7 @@ var _data: RunData
 func _initialize() -> void:
 	_t = load("res://resources/tuning/bonfire_tuning.tres") as BonfireTuning
 	_data = load("res://resources/map/bonfire_run.tres") as RunData
+	_data.max_dice = 6  # bag5: these checks add a die past the fixed 5
 	await _test(&"gallows", &"d4", "caltrop_d4")
 	await _test(&"beacon", &"d8", "lantern_d8")
 	_check_dress_keeps_other_nodes()
