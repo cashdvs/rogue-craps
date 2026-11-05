@@ -25,11 +25,21 @@ static func model_path(key: StringName) -> String:
 	return p if ResourceLoader.exists(p) else ""
 
 
-## The render for `o` at `px` square, or null if its art key has no .glb yet.
+## The render for `o` at `px` square, or null when there is no model yet.
+## Dice use a .glb; chips and tokens use ShopChipBuild (AD chips_3d_nov5).
 static func make(o: ShopOffer, px: float) -> ShopDieRender:
+	if o.kind != ShopOffer.Kind.DIE:
+		# Chips use id; mods/Seals/Draught use art_key for the bone token.
+		var key: StringName = o.id if o.kind == ShopOffer.Kind.CHIP else o.art_key
+		return make_model(ShopChipBuild.make(key), px)
 	var path := model_path(o.art_key)
 	if path == "":
 		return null
+	return make_model((load(path) as PackedScene).instantiate(), px)
+
+
+## A live SubViewport of any Node3D at `px` square (shared camera / lights).
+static func make_model(model: Node3D, px: float) -> ShopDieRender:
 	var r := ShopDieRender.new()
 	r.stretch = true
 	r.custom_minimum_size = Vector2(px, px)
@@ -39,7 +49,6 @@ static func make(o: ShopOffer, px: float) -> ShopDieRender:
 	r.view.own_world_3d = true
 	r.view.size = Vector2i(int(px), int(px))
 	r.add_child(r.view)
-	var model: Node3D = (load(path) as PackedScene).instantiate()
 	r.view.add_child(model)
 	# Fit any model size: centre it and scale its widest side to 1 unit.
 	var box := _bounds(model)

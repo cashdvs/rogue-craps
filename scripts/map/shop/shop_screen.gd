@@ -190,6 +190,7 @@ func _fill_shelf(row: Array, area: Rect2, spec: Dictionary) -> void:
 		return
 	var cell := area.size.x / row.size()
 	var embers := screen.run.progress.embers
+	var chip_x := -1.0  # Leftmost chip item centre; shelf title sits above it.
 	for i in row.size():
 		var it := ShopItem.new()
 		it.setup(row[i], embers, spec.art * k, int(NUM_PX * k), k)
@@ -202,6 +203,16 @@ func _fill_shelf(row: Array, area: Rect2, spec: Dictionary) -> void:
 		it.focus_item.connect(_on_focus)
 		it.unfocus_item.connect(func(x: ShopItem) -> void: if not touch_mode: card.unhover(x))
 		items.append(it)
+		if row[i].kind == ShopOffer.Kind.CHIP and chip_x < 0.0:
+			chip_x = it.position.x + it.size.x * 0.5
+	if chip_x >= 0.0:
+		var title := RunTheme.label(ChipStrings.get_text("chip_shelf_label"), int(14 * k), BRASS, true)
+		title.autowrap_mode = TextServer.AUTOWRAP_OFF
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(title)
+		var tw: float = title.get_theme_font(&"font").get_string_size(
+			title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size(&"font_size")).x
+		title.position = Vector2(chip_x - tw * 0.5, area.position.y - 4.0 * k)
 
 
 ## PC hover waits HOVER_DELAY; a phone tap opens the card at once.

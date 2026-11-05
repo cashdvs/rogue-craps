@@ -176,14 +176,16 @@ func _test_lines_per_type() -> void:
 
 
 ## Dice keep the 3D render from #178 (a real model in a SubViewport); mods
-## don't. The card's face strip draws pips, not numerals, with a mod disc on
+## and Seals now use the same SubViewport with a bone token (chips_3d lift).
+## The card's face strip draws pips, not numerals, with a mod disc on
 ## carved faces and a lock on pre-carved ones.
 func _test_die_render_and_pips() -> void:
 	_show(Vector2i(1920, 1080))
 	var die := _item(ShopOffer.Kind.DIE, 1)
 	var r := (die.icon as ShopIcon).die_view
 	_check(r != null and r.find_children("*", "MeshInstance3D", true, false).size() > 0, "die item shows its 3D model")
-	_check((_item(ShopOffer.Kind.MOD, 0).icon as ShopIcon).die_view == null, "mod item is a token, not a die render")
+	var mod_view := (_item(ShopOffer.Kind.MOD, 0).icon as ShopIcon).die_view
+	_check(mod_view != null and mod_view.find_children("*", "MeshInstance3D", true, false).size() > 0, "mod item shows its 3D bone token")
 	ss.card.show_for(die)
 	_check(ss.card.find_children("*", "EmberPrice", true, false).size() == 1, "card price uses the shared EmberPrice coin")
 	var d: SpecialDieData = run.shop_dice[1]

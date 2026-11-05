@@ -31,6 +31,7 @@ var map_view: MapView
 var event_view: EventView
 var _ui: CanvasLayer
 var _bar: Label
+var chip_row: ChipRow
 var _panel_root: CenterContainer
 var _panel_box: VBoxContainer
 var _table: Bonfire3D
@@ -159,6 +160,7 @@ func refresh() -> void:
 	_panel_root.visible = not (map_view.visible or event_view.visible)
 	shop_screen.visible = false
 	_bar.visible = run.screen != S.SHOP
+	if chip_row: chip_row.visible = _bar.visible
 	quit_button.visible = map_view.visible
 	bag_button.visible = map_view.visible
 	key_button.visible = map_view.visible
@@ -191,6 +193,12 @@ func _refresh_bar() -> void:
 	var p := run.progress
 	_bar.text = "%s   Soul %d/%d   Embers %d   Dice %d   Contract %d   Seals %d   Seed %d" % [run.floor_data().display_name,
 		p.soul, p.max_soul, p.embers, p.dice.size(), p.contract_pieces, run.owned_seals().size(), run.run_seed]
+	# Owned chips under the bar (AD chips_3d_nov5 §4).
+	if chip_row == null:
+		chip_row = ChipRow.attach(_ui, p.chips)
+		chip_row.position = Vector2(20, 36)
+	else:
+		chip_row.refresh(p.chips)
 
 
 ## Fill the centre panel: a title, text lines, and [label, callable(, disabled)] buttons.

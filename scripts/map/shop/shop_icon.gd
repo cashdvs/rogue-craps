@@ -23,12 +23,12 @@ var die_view: SubViewport
 
 
 ## Size the icon and build its contents for `o`.
+## Dice, chips and tokens all use the shared ShopDieRender SubViewport.
 func setup(o: ShopOffer, px: float) -> void:
 	offer = o
 	custom_minimum_size = Vector2(px, px)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if o.kind == ShopOffer.Kind.DIE:
-		_build_die(px)
+	_build_3d(px)
 	queue_redraw()
 
 
@@ -37,25 +37,24 @@ static func model_path(key: StringName) -> String:
 	return ShopDieRender.model_path(key)
 
 
-## Dice use the shared 3D rig in ShopDieRender.
-func _build_die(px: float) -> void:
+## Shared 3D rig: die .glb, chip mesh, or bone token (HANDOFF_SPEC §5 lift).
+func _build_3d(px: float) -> void:
 	var r := ShopDieRender.make(offer, px)
 	if r == null:
-		return  # No model yet: _draw shows a plain bone die instead.
+		return  # No model yet: _draw shows a plain fallback.
 	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(r)
 	die_view = r.view
 
 
 func _draw() -> void:
-	if offer == null:
-		return
+	if offer == null or die_view != null:
+		return  # 3D view is up; only fall back when the model is missing.
 	var px := size.x
 	var c := size / 2.0
 	if offer.kind == ShopOffer.Kind.DIE:
-		if die_view == null:  # Fallback die: a bone tile with one pip.
-			draw_rect(Rect2(Vector2.ONE * px * 0.1, Vector2.ONE * px * 0.8), BONE)
-			draw_circle(c, px * 0.08, INK)
+		draw_rect(Rect2(Vector2.ONE * px * 0.1, Vector2.ONE * px * 0.8), BONE)
+		draw_circle(c, px * 0.08, INK)
 		return
 	var r := px * 0.48
 	draw_circle(c, r, BRASS)
