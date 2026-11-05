@@ -87,16 +87,47 @@ func _test_shop_shelf() -> void:
 
 ## HUD row shows 3 slots; owned chips fill discs; pop scales briefly.
 func _test_hud_row() -> void:
+	run.screen = MapRun.Screen.MAP
 	run.progress.chips = [&"leaning", &"second_wind"]
-	scene._refresh_bar()
+	scene.refresh()
 	await process_frame
-	_check(scene.chip_row != null and scene.chip_row.get_child_count() == 3, "HUD ChipRow has 3 slots")
+	await process_frame
+	_check(scene.chip_row != null and scene.chip_row._discs.size() == 3, "HUD ChipRow has 3 disc slots")
 	var filled := 0
-	for c in scene.chip_row.get_children():
+	for c in scene.chip_row._discs:
 		filled += 1 if c.get_child_count() > 0 else 0
 	_check(filled == 2, "2 owned discs + 1 empty ring (filled %d)" % filled)
 	scene.chip_row.pop(0)
 	_check(true, "pop does not crash")
+	await _test_hud_count_label()
+
+
+## Count label stays on-screen next to the row, and hides with the row in shop.
+func _test_hud_count_label() -> void:
+	# Force MAP so the row (and count) are visible, then read the laid-out rect.
+	run.screen = MapRun.Screen.MAP
+	scene.refresh()
+	await process_frame
+	await process_frame
+	# refresh() rebuilds children — always read _count after refresh.
+	var label: Label = scene.chip_row._count
+	_check(label != null, "ChipRow has a count label")
+	if label == null:
+		return
+	var r: Rect2 = label.get_global_rect()
+	var vp: Rect2 = scene.get_viewport().get_visible_rect()
+	_check(r.position.x >= 0.0 and r.end.x <= vp.size.x + 0.5,
+		"count label x inside viewport (rect=%s vp.w=%s)" % [r, vp.size.x])
+	_check(r.position.y >= 0.0 and r.end.y <= vp.size.y + 0.5,
+		"count label y inside viewport (rect=%s)" % r)
+	# SHOP hides the row — count is a child, so it must hide too.
+	run.screen = MapRun.Screen.SHOP
+	run._roll_shop()
+	scene.refresh()
+	await process_frame
+	label = scene.chip_row._count
+	_check(not scene.chip_row.visible, "ChipRow hidden in shop")
+	_check(label != null and not label.is_visible_in_tree(), "count hidden when ChipRow hidden")
 
 
 ## Buying a chip parks it in the HUD (max 3) and clears the shelf slot.
