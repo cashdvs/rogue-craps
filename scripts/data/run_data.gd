@@ -70,7 +70,10 @@ extends Resource
 @export_group("Rewards (spec 1)")
 ## Free Seal pick after every cleared Table/Elite/Boss: options, or skip for Embers.
 @export var seal_pick_options: int = 3
-@export var elite_seal_pick_options: int = 4
+@export var elite_seal_pick_options: int = 3
+## Hard cap on after-table reward choices shown (Seal picks, and Elite dice).
+## Skip-for-Embers does not count. Shop item counts stay on their own exports.
+@export var reward_choice_cap: int = 3
 @export var seal_skip_embers: int = 3
 ## Elite: pick 1 of this many special dice.
 @export var elite_dice_options: int = 2

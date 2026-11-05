@@ -217,18 +217,25 @@ func quick_resolve(cleared: bool) -> void:
 
 func _roll_rewards() -> void:
 	var rng := _rng(&"reward", boss_misses)
+	## Cash 0.1.6/0.1.7: at most reward_choice_cap picks after a table.
+	var cap: int = maxi(1, data.reward_choice_cap)
 	var n: int = data.elite_seal_pick_options if table_type == NT.ELITE else data.seal_pick_options
-	seal_options = _seal_offers(rng, n)
+	seal_options = _seal_offers(rng, mini(n, cap))
 	if table_type == NT.BOSS and not data.rare_seals.is_empty():
 		var rares: Array[StringName] = []
 		for r in data.rare_seals:
 			if not seal_options.has(r):
 				rares.append(r)
 		if not rares.is_empty():
-			seal_options.append(rares[rng.randi_range(0, rares.size() - 1)])
+			var rare: StringName = rares[rng.randi_range(0, rares.size() - 1)]
+			## Keep the boss rare inside the cap (replace the last slot if full).
+			if seal_options.size() < cap:
+				seal_options.append(rare)
+			else:
+				seal_options[seal_options.size() - 1] = rare
 	dice_options.clear()
 	if table_type == NT.ELITE:
-		dice_options = _dice_offers(rng, data.elite_dice_options)
+		dice_options = _dice_offers(rng, mini(data.elite_dice_options, cap))
 
 
 

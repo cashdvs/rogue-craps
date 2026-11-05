@@ -228,7 +228,9 @@ func _test_floor(scene: RunScreen) -> void:
 			S.TABLE:
 				_press(scene, "Stub: clear")
 			S.REWARD:
-				_press(scene, "Skip")
+				# Elite shows dice first (no Skip yet); Keep clears them, then Skip.
+				if not _press(scene, "Skip"):
+					_press(scene, ShopSideCard.SWAP_TEXT.reward_keep_dice)
 			S.REST:
 				_press(scene, "Heal")
 			S.SHOP:
