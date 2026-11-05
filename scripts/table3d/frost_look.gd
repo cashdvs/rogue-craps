@@ -1,8 +1,9 @@
 ## FrostLook: the "frozen" look for a die a table rule keeps dark (Cold
 ## Sixes and friends). It sits on top of the normal cold grey: the body is
-## dimmed further and tinted cool blue, so it reads as "can't score at all"
-## rather than "didn't score this time". Material only: no glow, no
-## emission, no particles (toon_noir.gdshader's die_frost uniform).
+## tinted cool blue so it reads as "can't score at all" rather than "didn't
+## score this time". frost_dim in toon_noir / d4_flat_pass defaults to 1.0,
+## so this is a tint only (the Art Director owns any further dim). Material
+## only: no glow, no emission, no particles (die_frost uniform).
 class_name FrostLook
 extends RefCounted
 
