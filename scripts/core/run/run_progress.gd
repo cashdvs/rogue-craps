@@ -15,6 +15,8 @@ var soul: int
 var max_soul: int
 var embers: int
 var dice: Array[RunDie] = []
+## Owned chips (visual HUD row; max 3 per chips_v1). Systems owns fire rules later.
+var chips: Array[StringName] = []
 var contract_pieces: int = 0
 ## Every Ember gained this run (spending doesn't lower it), for the end summary.
 var embers_earned: int = 0
@@ -61,6 +63,14 @@ func change_embers(delta: int) -> int:
 
 
 ## Room for another die (bag below RunData.max_dice)?
+## Park a chip in the HUD row (max 3). Returns false when the row is full.
+func add_chip(id: StringName) -> bool:
+	if chips.size() >= 3 or not ChipLooks.has(id):
+		return false
+	chips.append(id)
+	return true
+
+
 func can_add_die() -> bool:
 	return dice.size() < data.max_dice
 

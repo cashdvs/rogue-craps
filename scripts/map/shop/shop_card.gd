@@ -158,6 +158,12 @@ func _body(o: ShopOffer) -> Array:
 			out.append([ShopCardStrings.get_text("shop_card_seal_rare" if o.rare else "shop_card_seal"), DIM])
 		ShopOffer.Kind.SOUL:
 			out.append([ShopCardStrings.fill("shop_card_soul", run.data.shop_soul_amount), CREAM])
+		ShopOffer.Kind.CHIP:
+			lines.add_child(_token(o))
+			var look: Dictionary = ChipLooks.look(o.id)
+			out.append([ChipLooks.tier_tag(look.tier), Color("#C9A24A")])
+			if look.risky:
+				out.append(["RISKY", Color("#FF2E3E")])
 	return out
 
 ## The counter token (mod icon / Seal combo mark) at 42 spec px.

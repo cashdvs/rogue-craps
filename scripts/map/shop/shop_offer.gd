@@ -4,7 +4,7 @@
 class_name ShopOffer
 extends RefCounted
 
-enum Kind { DIE, MOD, SEAL, RARE_SEAL, SOUL }
+enum Kind { DIE, MOD, SEAL, RARE_SEAL, SOUL, CHIP }
 
 var kind: Kind
 ## Slot index in run.shop_dice / shop_mods / shop_seals (0 for the others).
@@ -54,6 +54,14 @@ static func list(run: MapRun) -> Array[ShopOffer]:
 			var o := _make(Kind.DIE, i, d.id, d.display_name, DiceIds.body_key(d.id), run.die_price(i))
 			o.rare = d.is_rare()
 			out.append(o)
+	# Chips (visual): one shelf slot when MapRun.shop_chips is stocked.
+	for i in run.shop_chips.size():
+		var cid: StringName = run.shop_chips[i]
+		if cid != &"" and ChipLooks.has(cid):
+			var look: Dictionary = ChipLooks.look(cid)
+			var co := _make(Kind.CHIP, i, cid, str(look.get("name", "")), cid, 10)
+			co.rare = look.tier == &"R"
+			out.append(co)
 	if run.data.shop_soul_amount > 0:
 		out.append(_make(Kind.SOUL, 0, &"soul", EconomyStrings.shop_soul_button(run.data.shop_soul_amount, run.soul_price()),
 			&"soul", run.soul_price()))
@@ -106,4 +114,8 @@ func buy(screen: RunScreen) -> void:
 				screen.refresh()
 				return ok)
 			return
+		Kind.CHIP:
+			# Visual-only buy: parks the chip in the HUD row; no ember rule yet.
+			if affordable(run.progress.embers) and run.progress.add_chip(id):
+				run.shop_chips[index] = &""
 	screen.refresh()

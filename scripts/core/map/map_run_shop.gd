@@ -57,6 +57,7 @@ func _dice_offers(rng: RandomNumberGenerator, n: int) -> Array[SpecialDieData]:
 func _roll_shop() -> void:
 	var rng := _rng(&"shop", shop_rerolls + 1000 * shop_free_rerolls)
 	shop_dice.clear()
+	shop_chips.clear()  # Visual inject only; Systems owns the roll later.
 	shop_dice = _dice_offers(rng, data.shop_dice)
 	var rare := _rare_offer(_rng(&"shop_rare", shop_rerolls + 1000 * shop_free_rerolls))
 	if rare != null and shop_dice.size() >= 2:

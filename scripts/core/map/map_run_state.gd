@@ -49,6 +49,8 @@ var _events_seen: Array[StringName] = []
 
 ## Shop offers (bought ones become null / &"").
 var shop_dice: Array[SpecialDieData] = []
+## Chip shelf (visual): up to 1 id; &"" = sold. Systems owns the roll later.
+var shop_chips: Array[StringName] = []
 var shop_mods: Array[FaceModData] = []
 var shop_seals: Array[StringName] = []
 var shop_seals_bought: int = 0
