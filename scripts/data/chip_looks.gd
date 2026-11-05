@@ -3,6 +3,7 @@
 ## Echo stays in the table but is ON HOLD (chips_v1) — do not offer it.
 ## Hold: no player-facing "chip"/"Chips" copy until Cash rules on TOKENS
 ## (GD). `name` values below are placeholders without that word.
+## Six ids are RISKY (cream face); this PR only Double Down ships the overlay.
 class_name ChipLooks
 extends RefCounted
 
@@ -26,13 +27,13 @@ const LOOKS := {
 	&"loose_change": {"name": "Loose Change", "tier": &"C", "accent": "#E0B84A", "risky": false},
 	&"mirror": {"name": "Mirror", "tier": &"S", "accent": "#B8C2CC", "risky": false},
 	&"echo": {"name": "Echo", "tier": &"S", "accent": "#7C8796", "risky": false},  # ON HOLD
-	&"kiln": {"name": "Kiln", "tier": &"S", "accent": "#A0503A", "risky": false},
+	&"kiln": {"name": "Kiln", "tier": &"S", "accent": "#A0503A", "risky": true},  # RISKY look; overlay later
 	&"twin": {"name": "Twin", "tier": &"S", "accent": "#C07A80", "risky": false},
 	&"fuse_cord": {"name": "Fuse Cord", "tier": &"S", "accent": "#E08A3C", "risky": false},
 	&"ladder": {"name": "Ladder", "tier": &"S", "accent": "#7A8A3A", "risky": false},
 	&"ash_ward": {"name": "Ash Ward", "tier": &"S", "accent": "#8A8580", "risky": false},
 	&"loaded": {"name": "Loaded", "tier": &"R", "accent": "#8A2A22", "risky": true},
-	&"snake_eyes": {"name": "Snake Eyes", "tier": &"R", "accent": "#3E9A5A", "risky": false},
+	&"snake_eyes": {"name": "Snake Eyes", "tier": &"R", "accent": "#3E9A5A", "risky": true},  # RISKY look; overlay later
 	&"double_down": {"name": "Double Down", "tier": &"R", "accent": "#C9A24A", "risky": true},
 	&"sixth_die": {"name": "Sixth Die", "tier": &"R", "accent": "#7A6A4A", "risky": true},
 	&"devils": {"name": "Devil's", "tier": &"R", "accent": "#6E2A2A", "risky": true},

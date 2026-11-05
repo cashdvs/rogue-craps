@@ -13,6 +13,7 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(_out)
 	await _shop_shots()
 	await _sheet_48()
+	await _risky_pair()
 	await _hud_row()
 	print("done -> ", _out)
 	quit()
@@ -62,7 +63,7 @@ func _shop_shots() -> void:
 	await _shot("shop_pc_cant_afford.png")
 	# Sold: clear first slot.
 	scene.run.progress.embers = 100
-	scene.run.shop_chips = [&"", &"fuse_cord", &"double_down"]
+	scene.run.shop_chips = [&"", &"cold_comfort", &"double_down"]
 	scene.shop_screen.build(scene)
 	await _shot("shop_pc_sold.png")
 	scene.queue_free()
@@ -110,6 +111,33 @@ func _sheet_48() -> void:
 	sheet.resize(sheet.get_width() * 4, sheet.get_height() * 4, Image.INTERPOLATE_NEAREST)
 	sheet.save_png(_out + "first_batch_48_x4.png")
 	print("saved first_batch_48(_x4).png")
+	row.queue_free()
+	await process_frame
+
+
+
+## RISKY-vs-normal pair at 96 px: Double Down (overlay) vs Cold Comfort (normal).
+func _risky_pair() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	root.add_child(row)
+	var renders: Array = []
+	for id in [&"double_down", &"cold_comfort"]:
+		var o := ShopOffer._make(ShopOffer.Kind.CHIP, 0, id, str(ChipLooks.look(id).get("name", "")), id, 0)
+		var r := ShopDieRender.make(o, 96)
+		row.add_child(r)
+		renders.append(r)
+	for i in 24:
+		await process_frame
+	await RenderingServer.frame_post_draw
+	var sheet := Image.create(96 * 2 + 16, 96, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.12, 0.05, 0.06, 1))
+	for i in renders.size():
+		sheet.blit_rect(renders[i].view.get_texture().get_image(), Rect2i(0, 0, 96, 96), Vector2i(i * (96 + 16), 0))
+	sheet.save_png(_out + "risky_vs_normal.png")
+	sheet.resize(sheet.get_width() * 2, sheet.get_height() * 2, Image.INTERPOLATE_NEAREST)
+	sheet.save_png(_out + "risky_vs_normal_x2.png")
+	print("saved risky_vs_normal(_x2).png")
 	row.queue_free()
 	await process_frame
 

@@ -16,9 +16,9 @@ func _initialize() -> void:
 	run = scene.run
 	_test_looks()
 	_test_build()
-	_test_shop_shelf()
-	_test_hud_row()
-	_test_buy_and_cap()
+	await _test_shop_shelf()
+	await _test_hud_row()
+	await _test_buy_and_cap()
 	_test_no_emission()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -38,6 +38,8 @@ func _test_looks() -> void:
 	_check(ChipLooks.LOOKS.size() == 20, "20 chip looks (Echo included)")
 	_check(not ChipLooks.FIRST_BATCH.has(&"echo"), "Echo is ON HOLD, not in First Batch")
 	_check(ChipLooks.look(&"double_down").risky and ChipLooks.look(&"thumb").risky == false, "RISKY flag")
+	_check(ChipLooks.look(&"cold_comfort").risky == false, "Cold Comfort stays normal")
+	_check(ChipLooks.look(&"kiln").risky and ChipLooks.look(&"snake_eyes").risky, "Kiln + Snake Eyes are RISKY (overlay later)")
 	_check(ResourceLoader.exists(ChipLooks.face_path(&"thumb")), "thumb face PNG exists")
 	_check(ChipLooks.tier_tag(&"C") == "COMMON", "tier tag")
 
@@ -50,8 +52,17 @@ func _test_build() -> void:
 		_check(meshes.size() >= 2, "%s has body + face meshes (%d)" % [id, meshes.size()])
 		n.free()
 	var risky := ShopChipBuild.make(&"double_down")
-	_check(risky.find_children("*", "MeshInstance3D", true, false).size() >= 3, "RISKY chip has overlay disc")
+	# Same Rare tier (8 spots) without the overlay — only Double Down gets it this PR.
+	var peer := ShopChipBuild.make(&"sixth_die")
+	var normal := ShopChipBuild.make(&"cold_comfort")
+	var rn := risky.find_children("*", "MeshInstance3D", true, false).size()
+	var pn := peer.find_children("*", "MeshInstance3D", true, false).size()
+	var nn := normal.find_children("*", "MeshInstance3D", true, false).size()
+	_check(rn == pn + 1, "Double Down has overlay disc vs same-tier Rare (%d vs %d)" % [rn, pn])
+	_check(nn >= 2 and rn > nn, "Cold Comfort is normal (no overlay); DD mesh count higher")
 	risky.free()
+	peer.free()
+	normal.free()
 	var tok := ShopChipBuild.make(&"mod_wild")
 	_check(tok.find_children("*", "MeshInstance3D", true, false).size() >= 2, "mod token has body + mark")
 	tok.free()
@@ -107,9 +118,26 @@ func _test_buy_and_cap() -> void:
 		_check(run.shop_chips[0] == &"", "shelf slot clears on buy")
 	_check(run.progress.add_chip(&"leaning") and run.progress.add_chip(&"fuse_cord"), "can fill to 3")
 	_check(not run.progress.add_chip(&"double_down"), "cap at 3 owned chips")
-	# Echo has a look row (ON HOLD) but the shop roll must never stock chips.
+	# Can't afford: chip costs 10; refuse under that.
+	run.progress.chips.clear()
+	run.shop_chips = [&"thumb"]
+	run.progress.embers = 9
+	scene.refresh()
+	await process_frame
+	it = null
+	for x in scene.shop_screen.items:
+		if x.offer.kind == ShopOffer.Kind.CHIP:
+			it = x
+			break
+	_check(it != null and not it.offer.affordable(9), "chip unaffordable at 9 embers")
+	if it:
+		it.offer.buy(scene)
+		_check(not run.progress.chips.has(&"thumb"), "refuse buy under 10 embers")
+		_check(run.shop_chips[0] == &"thumb", "shelf keeps chip when can't afford")
+	# Seed non-empty shop_chips, then roll — must clear (visual inject only).
+	run.shop_chips = [&"thumb", &"cold_comfort", &"double_down"]
 	run._roll_shop()
-	_check(run.shop_chips.is_empty(), "shop roll does not stock chips (visual inject only)")
+	_check(run.shop_chips.is_empty(), "shop roll clears injected chips")
 
 
 ## Emission stays 0 on chip rim materials (AD: no glow).

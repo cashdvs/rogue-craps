@@ -62,7 +62,6 @@ func change_embers(delta: int) -> int:
 	return embers - before
 
 
-## Room for another die (bag below RunData.max_dice)?
 ## Park a chip in the HUD row (max 3). Returns false when the row is full.
 func add_chip(id: StringName) -> bool:
 	if chips.size() >= 3 or not ChipLooks.has(id):
@@ -71,6 +70,7 @@ func add_chip(id: StringName) -> bool:
 	return true
 
 
+## Room for another die (bag below RunData.max_dice)?
 func can_add_die() -> bool:
 	return dice.size() < data.max_dice
 
