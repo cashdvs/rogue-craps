@@ -278,13 +278,19 @@ func _on_table_finished(o: TableOutcome) -> void:
 
 func _show_reward() -> void:
 	var buttons: Array = []
-	var lines: Array = ["Cleared! Take a free Seal, or skip for %d Embers." % run_data.seal_skip_embers]
+	## Cash (0.1.6/0.1.7): at most reward_choice_cap picks on screen. Skip /
+	## "Keep my dice" do not count. Elite dice show alone first so Seals do
+	## not stack on the same panel.
+	var cap: int = maxi(1, run_data.reward_choice_cap)
 	if not run.dice_options.is_empty():
-		lines.append("Elite spoils: take one special die.")
-		for i in run.dice_options.size():
+		var lines_die: Array = ["Elite spoils: take one special die."]
+		for i in mini(run.dice_options.size(), cap):
 			buttons.append(["Take the %s (%s)" % [run.dice_options[i].display_name, run.dice_options[i].description], func() -> void: _take_die(i)])
 		buttons.append([ShopSideCard.SWAP_TEXT.reward_keep_dice, func() -> void: run.dice_options.clear(); _show_reward()])
-	for i in run.seal_options.size():
+		_panel("Seal Reward", lines_die, buttons)
+		return
+	var lines: Array = ["Cleared! Take a free Seal, or skip for %d Embers." % run_data.seal_skip_embers]
+	for i in mini(run.seal_options.size(), cap):
 		var id := run.seal_options[i]
 		var txt: String = ("%s (rare Seal)" % String(id).capitalize()) if run.is_rare_seal(id) \
 			else "%s Seal -> Lv%d" % [String(id).capitalize(), run.progress.seal_level(id) + 1]

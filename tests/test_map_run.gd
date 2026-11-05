@@ -94,7 +94,7 @@ func _test_rewards() -> void:
 	_enter(run, NT.ELITE)
 	_check(run.rules.size() == 1 and _data.floors[0].elite_twists.has(run.rules[0]), "elite: one twist from the pool")
 	run.quick_resolve(true)
-	_check(run.seal_options.size() == 4 and run.dice_options.size() == 2, "elite: 1 of 2 special dice + a 4-option Seal pick")
+	_check(run.seal_options.size() == 3 and run.dice_options.size() == 2, "elite: 1 of 2 special dice + a 3-option Seal pick")
 	_check(run.take_die(1) and run.progress.dice.size() == 6 and not run.take_die(0), "elite: take one die only")
 	if run.is_rare_seal(run.seal_options[0]):
 		run.seal_options[0] = &"pair"
@@ -117,7 +117,7 @@ func _test_boss() -> void:
 	_enter(win, NT.BOSS)
 	win.quick_resolve(true)
 	var rare: bool = win.is_rare_seal(win.seal_options[win.seal_options.size() - 1])
-	_check(win.progress.embers == 14 + 25 and win.progress.contract_pieces == 1 and rare and win.seal_options.size() == 4,
+	_check(win.progress.embers == 14 + 25 and win.progress.contract_pieces == 1 and rare and win.seal_options.size() == 3,
 		"boss: 25 Embers, a contract piece, Seal pick with a guaranteed rare")
 	_check(win.progress.max_soul == 40 and win.progress.soul == 40, "boss: contract piece +5 max Soul, heals to full")
 	win.seal_options[0] = &"pair"
