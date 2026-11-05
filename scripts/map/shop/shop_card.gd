@@ -161,9 +161,10 @@ func _body(o: ShopOffer) -> Array:
 		ShopOffer.Kind.CHIP:
 			lines.add_child(_token(o))
 			var look: Dictionary = ChipLooks.look(o.id)
-			out.append([ChipLooks.tier_tag(look.tier), Color("#C9A24A")])
+			out.append([ChipStrings.tier_tag(look.tier), Color("#C9A24A")])
 			if look.risky:
-				out.append(["RISKY", Color("#FF2E3E")])
+				out.append([ChipStrings.get_text("chip_risky_tag"), Color("#FF2E3E")])
+			out.append([ChipStrings.get_text("chip_card_hint"), DIM])
 	return out
 
 ## The counter token (mod icon / Seal combo mark) at 42 spec px.

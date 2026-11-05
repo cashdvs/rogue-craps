@@ -1,5 +1,6 @@
 ## Owned-chip HUD row (AD chips_3d_nov5 §4): up to 3 discs at 36 px under the
-## Soul/Embers bar. Empty slots are a 1 px #6E6046 ring. Fire = scale pop only
+## Soul/Embers bar, plus a sibling "CHIPS · n/3" count label (strings_v1).
+## Empty slots are a 1 px #6E6046 ring. Fire = scale pop only
 ## (1.0 → 1.12 over 90 ms, back over 140 ms); no glow.
 class_name ChipRow
 extends HBoxContainer
@@ -10,6 +11,8 @@ const POP_UP := 0.09
 const POP_DOWN := 0.14
 
 var _discs: Array[Control] = []
+## Sibling under the same host (not a child — tests expect 3 disc slots).
+var _count: Label
 
 
 ## Attach under `host`'s top bar. Keeps run_screen.gd under the line budget.
@@ -19,6 +22,11 @@ static func attach(host: Node, chips: Array[StringName]) -> ChipRow:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(row)
+	row._count = RunTheme.label(ChipStrings.owned(chips.size()), 16, RunTheme.GOLD)
+	row._count.name = "ChipCount"
+	row._count.autowrap_mode = TextServer.AUTOWRAP_OFF
+	row._count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(row._count)
 	row.refresh(chips)
 	return row
 
@@ -28,11 +36,29 @@ func refresh(chips: Array[StringName]) -> void:
 	for c in get_children():
 		c.queue_free()
 	_discs.clear()
+	if _count:
+		_count.text = ChipStrings.owned(chips.size())
+		# Sit just left of the discs once our position is known.
+		call_deferred("_place_count")
 	for i in 3:
 		var id: StringName = chips[i] if i < chips.size() else &""
 		var slot := _slot(id)
 		add_child(slot)
 		_discs.append(slot)
+
+
+func _place_count() -> void:
+	if _count == null:
+		return
+	var tw: float = _count.get_theme_font(&"font").get_string_size(
+		_count.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _count.get_theme_font_size(&"font_size")).x
+	_count.position = position + Vector2(-tw - 8.0, (SLOT - 16.0) * 0.5)
+
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOVED_IN_PARENT or what == NOTIFICATION_RESIZED:
+		_place_count()
 
 
 ## Scale-pop the disc at `i` (chip fired). No glow.
