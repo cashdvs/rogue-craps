@@ -66,7 +66,7 @@ Hero bosses (including Mister Wick) get their own rigs, per the locked direction
 
 | Clip | Length | Loop | Use |
 |---|---|---|---|
-| `idle` | 3.0 s | yes | leans low on the far rail (both forearms on it), rolls a chip over his right knuckles just above the rail top, grin twitch, breath, head sway |
+| `idle` | 4.0 s | yes | planted on the far rail (forearms + fingertips on it; authored for greybox/Board A under `GREYBOX_RAIL_LIFT`), quiet fidgets (weight shift, breath shrug, left-hand finger settle, right-hand chip roll), grin twitch, head sway. Follow-up to #216/#223 (Cash Nov 6: floating / inert) |
 | `taunt` | 1.4 s | no | on bust: leans in, cackles (jaw chatter, head back), points out at the player at head height (never above it) |
 | `grudging` | 1.6 s | no | big score (tier 3+): two slow sarcastic claps, hands forward over the rail under the chin. Between claps the hands are held a palm-width apart (~8.6 cm of air), palms facing, fingers up and slightly splayed; the palms meet for 2 frames per clap and the wrists never cross. On screen the cracking grin sits right above the hands (chip palmed for the clip) |
 | `cheat` | 1.2 s | no | boss tell, on screen-left (his own right side, away from the brazier): shifty glance back over his shoulder, visor tipped down, right cuff flicked up by his shoulder and the chip palmed into it low, then a sleeve tug back to the rail; left hand stays down; smug grin |

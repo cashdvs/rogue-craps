@@ -2,11 +2,11 @@
 
 [ext_resource type="PackedScene" path="res://art/models/characters/bosses/pit_boss/pit_boss_mobile.glb" id="1_vppwy"]
 
-[node name="PitBoss" type="Node3D" unique_id=2139381722]
+[node name="PitBoss" type="Node3D" unique_id=1518711909]
 
-[node name="Model" parent="." unique_id=1933354740 instance=ExtResource("1_vppwy")]
+[node name="Model" parent="." unique_id=2037283462 instance=ExtResource("1_vppwy")]
 
-[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1933354740, 978335490) index="4" unique_id=620419386]
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(2037283462, 1681417892) index="4" unique_id=2111371044]
 influence = 0.0
 bone_name = "head"
 duration = 0.25
@@ -19,10 +19,10 @@ primary_damp_threshold = 1.0
 secondary_limit_angle = 0.6981317
 secondary_damp_threshold = 1.0
 
-[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1933354740, 978335490) index="5" unique_id=270817895]
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(2037283462, 1681417892) index="5" unique_id=1142137695]
 bone_name = "head"
 
-[node name="AnimationPlayer" parent="Model" index="1" unique_id=1212532513]
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=2075195467]
 autoplay = &"idle"
 
 [editable path="Model"]
