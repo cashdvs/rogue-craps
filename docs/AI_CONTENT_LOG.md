@@ -8,6 +8,10 @@ for every update. This file is the record we answer it from.
 audio, font, in-game text) adds or updates its row here. If you don't know how an asset was made,
 write `TBD (ask <owner>)`; never guess a tool or a date.
 
+## 2026-11-06 — idle elbows lowered (Cash playtest follow-up on #259)
+
+Cash on grounded-idle stills: "Why are the elbows so high. Seems unnatural." Shared `idle` in `build_smiles.py` only: tuck IK poles near the body (was flared |X|~0.3 / back-high Y~0.3 with shrug 2–4), shrug 0, mild finger-aim soften so tips still kiss the dealer-side lip. Hands stay in the existing clearance envelope (`IDLE_HAND_MIN_ABOVE_RAIL=0.015`, RAIL_Y/FELT_Y 0.61/0.50). Other clips untouched at source. Rebuilt Smiles + 6 bosses × PC/mobile (14 GLBs). Stills: `art/renders/hands_grounded_idle/elbows/` (before=bf6a070, after=this, compare_*).
+
 ## Policy: broad disclosure (PM ruling, Oct 19 2026)
 
 - Log **everything players see or hear that AI agents made or scripted, text included.** The Tiny

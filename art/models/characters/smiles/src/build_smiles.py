@@ -497,25 +497,28 @@ def clip(name, length_s, keys, loop=False):
 # without stealing focus from the dice. Other clips (taunt/grudging/cheat/deal/mc_*) are untouched.
 IDLE_PALM = (0, -0.2, -1)
 # Same finger aim as the natural-hands idle (#223): tips drape onto the lip without reaching the felt.
-IDLE_FINGERS_L = (-0.35, -1.0, 0.42)
-IDLE_FINGERS_R = (0.35, -1.0, 0.42)
+IDLE_FINGERS_L = (-0.30, -0.85, 0.50)
+IDLE_FINGERS_R = (0.30, -0.85, 0.50)
 # Wrist Blender Y ~+0.02 pulls hands back onto the dealer-side lip (was -0.04 forward over the rail).
 # Wrist Z ~0.65: matches the pre-#259 rail-clearance envelope (no-lift RAIL_TOP 0.14 / idle hands
 # <= 0.10 m above the rail) while Y keeps wrists on the dealer-side lip. Finger aim matches the
 # natural-hands idle so tips kiss the lip without covering the felt or eating brazier dark clearance.
-_lean = arm("L", (0.070, 0.030, 0.655), (0.18, 0.32, 0.06), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 7, 2))
-_lean2 = arm("L", (0.075, 0.025, 0.662), (0.20, 0.32, 0.06), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 8, 4))
-_lean3 = arm("L", (0.065, 0.032, 0.650), (0.17, 0.30, 0.04), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 6, 2))
+# Elbows: Cash Nov 6 stills — "Why are the elbows so high". Keep wrists on the dealer-side lip but
+# tuck IK poles near the body (base left elbow sat at x~0.09; flared |X|~0.3 read as chicken-wing).
+# Mild down bias on the pole + shrug 0 so upper arms drape toward the rail. Wrist Y ~0.005 (slightly
+# forward of the pure-lip pose) gives the chain room to hang without breaking clearance.
+_lean = arm("L", (0.080, 0.008, 0.650), (0.11, 0.10, 0.02), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 4, 0))
+_lean2 = arm("L", (0.085, 0.002, 0.657), (0.12, 0.08, 0.03), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 5, 0))
+_lean3 = arm("L", (0.075, 0.012, 0.651), (0.10, 0.12, 0.01), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 3, 0))
 # Moderate uncurl so the sculpted hang rests on the lip (not punched through Studs / felt).
-_rail_fingers = {"index_L": (0, 0, 20), "fingers_L": (0, 0, 24), "thumb_L": (0, 0, 16),
-                 "index_R": (0, 0, -20), "fingers_R": (0, 0, -24), "thumb_R": (0, 0, -16)}
-_tap1 = {"index_L": (0, 0, 12), "fingers_L": (0, 0, 24), "thumb_L": (0, 0, 16)}
-_tap2 = {"index_L": (0, 0, 24), "fingers_L": (0, 0, 14), "thumb_L": (0, 0, 12)}
-_tap3 = {"index_L": (0, 0, 18), "fingers_L": (0, 0, 26), "thumb_L": (0, 0, 16)}
-_r0 = arm("R", (-0.160, 0.030, 0.657), (-0.40, 0.28, 0.08), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 6, 2))
-_r1 = arm("R", (-0.170, 0.022, 0.664), (-0.42, 0.30, 0.08), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 7, 4))
-_r2 = arm("R", (-0.152, 0.032, 0.652), (-0.38, 0.26, 0.06), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 5, 2))
-# Keep spine/chest near the base idle lean so phone brazier dark-clearance stays >= 20 px.
+_rail_fingers = {"index_L": (0, 0, 22), "fingers_L": (0, 0, 28), "thumb_L": (0, 0, 18),
+                 "index_R": (0, 0, -22), "fingers_R": (0, 0, -28), "thumb_R": (0, 0, -18)}
+_tap1 = {"index_L": (0, 0, 16), "fingers_L": (0, 0, 30), "thumb_L": (0, 0, 18)}
+_tap2 = {"index_L": (0, 0, 26), "fingers_L": (0, 0, 28), "thumb_L": (0, 0, 16)}
+_tap3 = {"index_L": (0, 0, 20), "fingers_L": (0, 0, 30), "thumb_L": (0, 0, 18)}
+_r0 = arm("R", (-0.155, 0.008, 0.652), (-0.12, 0.08, 0.00), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 4, 0))
+_r1 = arm("R", (-0.160, 0.002, 0.659), (-0.13, 0.06, 0.01), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 5, 0))
+_r2 = arm("R", (-0.148, 0.012, 0.653), (-0.11, 0.10, 0.00), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 3, 0))
 _plant0 = P(STAND, _lean, _rail_fingers, _r0, spine=(6, 0, 0), chest=(10, 0, 0))
 _plant1 = P(STAND, _lean2, _rail_fingers, _r1, spine=(6, 0, 0), chest=(11, 0, 0))
 _plant2 = P(STAND, _lean3, _rail_fingers, _r2, spine=(6, 0, 0), chest=(10, 0, 0))
