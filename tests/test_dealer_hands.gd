@@ -37,17 +37,17 @@ const CURL_MAX := 70.0
 ## Max forearm -> hand bend (deg) in any dealer clip.
 const WRIST_MAX := 60.0
 const DEALER_CLIPS := ["idle", "taunt", "grudging", "cheat", "deal"]
-## Rail / felt in model space. Idle is authored for the greybox / Board A rail under BonfireDealerArt's
-## GREYBOX_RAIL_LIFT (+0.12 y): world rail top 0.11 -> model y 0.46 with the lift. (When the lift goes to 0
-## for the Hearth board, raise idle wrists ~0.12 and restore RAIL_Y toward 0.58.)
-## rail's outer edge world z -0.72 = model z 0.14, 0.2 m deep. FELT_Y tracks the same lift offset.
-const RAIL_Y := 0.46
-const FELT_Y := 0.35
+## Rail / felt in model space at the dealer spot (same as test_smiles: RAIL_TOP 0.14 -> model y 0.61
+## without GREYBOX_RAIL_LIFT). Idle wrists sit on the dealer-side lip near this height; fingertips may
+## kiss the rail. FELT_Y is the felt top in the same frame.
+## rail's outer edge world z -0.72 = model z 0.14, 0.2 m deep.
+const RAIL_Y := 0.61
+const FELT_Y := 0.50
 const RAIL_Z0 := 0.14
 const RAIL_DEPTH := 0.2
-## Idle hand bones must sit near the rail top (planted), not hover.
+## Idle hand bones must sit near the rail top (planted on the dealer-side lip), not hover high.
 const IDLE_HAND_MAX_ABOVE_RAIL := 0.10
-const IDLE_HAND_MIN_ABOVE_RAIL := 0.015
+const IDLE_HAND_MIN_ABOVE_RAIL := -0.02
 ## Quiet idle motion: at least this much hand travel (m) across the idle loop.
 const IDLE_HAND_TRAVEL_MIN := 0.012
 

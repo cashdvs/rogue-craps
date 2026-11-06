@@ -489,44 +489,44 @@ def clip(name, length_s, keys, loop=False):
     CLIPS[name] = (length_s, keys, loop)
 
 
-# idle (4.0 s loop): planted on the far rail (Cash Nov 6 playtest: "hands ... floating in space and don't
-# really do anything"). Follow-up to the Oct 30 natural-hands pass (#216/#223).
-# Greybox / Board A rail top is world y 0.11; BonfireDealerArt still lifts the dealer GREYBOX_RAIL_LIFT
-# (+0.12 y) so faces clear that rail, so idle wrists are authored at model y ~0.46 (= world 0.11 with the
-# lift). When the Hearth board ships and GREYBOX_RAIL_LIFT goes to 0, raise these wrist Z targets by ~0.12.
-# Both forearms + palms rest on the rail (palms DOWN, knuckles up). Quiet lived-in motion: weight shifts,
-# a breath shrug, left-hand finger settle / tap, right hand rolls a chip over its knuckles. Keep it small
-# enough that it does not steal focus from the dice.
+# idle (4.0 s loop): planted on the DEALER-SIDE lip of the far rail (Cash Nov 6 playtest follow-up).
+# Wrists stay behind the far-rail outer edge (world z <= -0.72 at DEALER_POS) so the no-lift framing /
+# rail-clearance / Hearth-Studs suites stay green, while GREYBOX_RAIL_LIFT (+0.12 y) still drops the
+# fingertips onto the greybox rail top in-game. Fingers aim slightly onto the rail; quiet fidgets
+# (weight shift, breath shrug, left-hand finger settle, right-hand chip roll) keep the idle lived-in
+# without stealing focus from the dice. Other clips (taunt/grudging/cheat/deal/mc_*) are untouched.
 IDLE_PALM = (0, -0.2, -1)
-# Fingers aim along the rail top (mostly -Y / toward camera, almost no up) so palms sit flat, not hovering.
-IDLE_FINGERS_L = (-0.12, -1.0, 0.18)
-IDLE_FINGERS_R = (0.12, -1.0, 0.18)
-# Wrist Z ~0.58 (was ~0.68): drops the hands ~10 cm in world space so fingertips rest on the greybox rail
-# under the lift (palms sit a few cm above; the sculpted curl hangs tips to the rail top).
-_lean = arm("L", (0.11, -0.04, 0.575), (0.22, 0.32, 0.02), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 10, 3))
-_lean2 = arm("L", (0.13, -0.045, 0.583), (0.24, 0.32, 0.02), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 12, 6))
-_lean3 = arm("L", (0.09, -0.038, 0.571), (0.20, 0.30, 0.0), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 9, 2))
-# Fingers eased open so the sculpted curl rests ON the rail instead of curling into it.
-_rail_fingers = {"index_L": (0, 0, 48), "fingers_L": (0, 0, 55), "thumb_L": (0, 0, 36),
-                 "index_R": (0, 0, -48), "fingers_R": (0, 0, -55), "thumb_R": (0, 0, -36)}
-# Left-hand finger settle / quiet tap (index then fingers), kept under ~8 deg so it reads as fidget not drumming.
-_tap1 = {"index_L": (0, 0, 40), "fingers_L": (0, 0, 55), "thumb_L": (0, 0, 36)}
-_tap2 = {"index_L": (0, 0, 52), "fingers_L": (0, 0, 42), "thumb_L": (0, 0, 32)}
-_tap3 = {"index_L": (0, 0, 46), "fingers_L": (0, 0, 58), "thumb_L": (0, 0, 38)}
-_r0 = arm("R", (-0.16, -0.04, 0.579), (-0.42, 0.28, 0.06), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 9, 3))
-_r1 = arm("R", (-0.18, -0.048, 0.587), (-0.44, 0.30, 0.08), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 11, 5))
-_r2 = arm("R", (-0.15, -0.036, 0.573), (-0.40, 0.26, 0.04), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 8, 2))
-_plant0 = P(STAND, _lean, _rail_fingers, _r0, spine=(8, 0, -2), chest=(12, 0, -1))
-_plant1 = P(STAND, _lean2, _rail_fingers, _r1, spine=(9, 0, 3), chest=(14, 0, 2))
-_plant2 = P(STAND, _lean3, _rail_fingers, _r2, spine=(7, 0, -1), chest=(11, 0, 0))
+# Same finger aim as the natural-hands idle (#223): tips drape onto the lip without reaching the felt.
+IDLE_FINGERS_L = (-0.35, -1.0, 0.42)
+IDLE_FINGERS_R = (0.35, -1.0, 0.42)
+# Wrist Blender Y ~+0.02 pulls hands back onto the dealer-side lip (was -0.04 forward over the rail).
+# Wrist Z ~0.65: matches the pre-#259 rail-clearance envelope (no-lift RAIL_TOP 0.14 / idle hands
+# <= 0.10 m above the rail) while Y keeps wrists on the dealer-side lip. Finger aim matches the
+# natural-hands idle so tips kiss the lip without covering the felt or eating brazier dark clearance.
+_lean = arm("L", (0.070, 0.030, 0.655), (0.18, 0.32, 0.06), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 7, 2))
+_lean2 = arm("L", (0.075, 0.025, 0.662), (0.20, 0.32, 0.06), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 8, 4))
+_lean3 = arm("L", (0.065, 0.032, 0.650), (0.17, 0.30, 0.04), fingers=IDLE_FINGERS_L, palm=IDLE_PALM, sh=shd("L", 6, 2))
+# Moderate uncurl so the sculpted hang rests on the lip (not punched through Studs / felt).
+_rail_fingers = {"index_L": (0, 0, 20), "fingers_L": (0, 0, 24), "thumb_L": (0, 0, 16),
+                 "index_R": (0, 0, -20), "fingers_R": (0, 0, -24), "thumb_R": (0, 0, -16)}
+_tap1 = {"index_L": (0, 0, 12), "fingers_L": (0, 0, 24), "thumb_L": (0, 0, 16)}
+_tap2 = {"index_L": (0, 0, 24), "fingers_L": (0, 0, 14), "thumb_L": (0, 0, 12)}
+_tap3 = {"index_L": (0, 0, 18), "fingers_L": (0, 0, 26), "thumb_L": (0, 0, 16)}
+_r0 = arm("R", (-0.160, 0.030, 0.657), (-0.40, 0.28, 0.08), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 6, 2))
+_r1 = arm("R", (-0.170, 0.022, 0.664), (-0.42, 0.30, 0.08), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 7, 4))
+_r2 = arm("R", (-0.152, 0.032, 0.652), (-0.38, 0.26, 0.06), fingers=IDLE_FINGERS_R, palm=IDLE_PALM, sh=shd("R", 5, 2))
+# Keep spine/chest near the base idle lean so phone brazier dark-clearance stays >= 20 px.
+_plant0 = P(STAND, _lean, _rail_fingers, _r0, spine=(6, 0, 0), chest=(10, 0, 0))
+_plant1 = P(STAND, _lean2, _rail_fingers, _r1, spine=(6, 0, 0), chest=(11, 0, 0))
+_plant2 = P(STAND, _lean3, _rail_fingers, _r2, spine=(6, 0, 0), chest=(10, 0, 0))
 clip("idle", 4.0, [
     (0.0, P(_plant0, chip=(0, 0, 0, -0.025, 0.0, 0.0))),
     (0.6, P(_plant1, _tap1, head=(-24, 0, 3), chip=(70, 0, 0, -0.025, -0.01, 0.0))),
     (1.2, P(_plant1, _tap2, head=(-25, 0, 5), jaw=(3, 0, 0), chip=(150, 0, 0, -0.025, -0.02, 0.0))),
-    (1.8, P(_plant1, _tap3, head=(-27, 0, 4), jaw=(6, 0, 0), grin_L=(0, 0, 8), grin_R=(0, 0, -8),
-            chip=(230, 0, 0, -0.025, -0.028, 0.0))),
-    (2.4, P(_plant2, _tap1, head=(-25, 0, -2), jaw=(0, 0, 0), chip=(300, 0, 0, -0.025, -0.016, 0.0))),
-    (3.2, P(_plant0, head=(-23, 0, -3), chip=(340, 0, 0, -0.025, -0.006, 0.0))),
+    (1.8, P(_plant1, _tap3, head=(-26, 0, 4), jaw=(5, 0, 0), grin_L=(0, 0, 7), grin_R=(0, 0, -7),
+            chip=(230, 0, 0, -0.025, -0.026, 0.0))),
+    (2.4, P(_plant2, _tap1, head=(-25, 0, 2), jaw=(0, 0, 0), chip=(300, 0, 0, -0.025, -0.014, 0.0))),
+    (3.2, P(_plant0, head=(-23, 0, 0), chip=(340, 0, 0, -0.025, -0.005, 0.0))),
     (4.0, P(_plant0, chip=(360, 0, 0, -0.025, 0.0, 0.0))),
 ], loop=True)
 

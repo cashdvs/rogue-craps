@@ -2,11 +2,11 @@
 
 [ext_resource type="PackedScene" path="res://art/models/characters/bosses/straight_man/straight_man_mobile.glb" id="1_wkjl4"]
 
-[node name="StraightMan" type="Node3D" unique_id=738410045]
+[node name="StraightMan" type="Node3D" unique_id=1831193962]
 
-[node name="Model" parent="." unique_id=1067868166 instance=ExtResource("1_wkjl4")]
+[node name="Model" parent="." unique_id=1501496781 instance=ExtResource("1_wkjl4")]
 
-[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1067868166, 7827862) index="4" unique_id=1397232977]
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1501496781, 1951519823) index="4" unique_id=349886825]
 influence = 0.0
 bone_name = "head"
 duration = 0.25
@@ -19,10 +19,10 @@ primary_damp_threshold = 1.0
 secondary_limit_angle = 0.6981317
 secondary_damp_threshold = 1.0
 
-[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1067868166, 7827862) index="5" unique_id=442864452]
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1501496781, 1951519823) index="5" unique_id=26171692]
 bone_name = "head"
 
-[node name="AnimationPlayer" parent="Model" index="1" unique_id=1296517168]
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=872667993]
 autoplay = &"idle"
 
 [editable path="Model"]

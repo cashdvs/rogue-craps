@@ -2,11 +2,11 @@
 
 [ext_resource type="PackedScene" path="res://art/models/characters/bosses/collector/collector.glb" id="1_padvi"]
 
-[node name="Collector" type="Node3D" unique_id=1469232486]
+[node name="Collector" type="Node3D" unique_id=1251748112]
 
-[node name="Model" parent="." unique_id=805261901 instance=ExtResource("1_padvi")]
+[node name="Model" parent="." unique_id=1025287144 instance=ExtResource("1_padvi")]
 
-[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(805261901, 1458233841) index="4" unique_id=163875895]
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1025287144, 148666564) index="4" unique_id=1488829753]
 influence = 0.0
 bone_name = "head"
 duration = 0.25
@@ -19,10 +19,10 @@ primary_damp_threshold = 1.0
 secondary_limit_angle = 0.6981317
 secondary_damp_threshold = 1.0
 
-[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(805261901, 1458233841) index="5" unique_id=1245737908]
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1025287144, 148666564) index="5" unique_id=163836847]
 bone_name = "head"
 
-[node name="AnimationPlayer" parent="Model" index="1" unique_id=907390533]
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=589168554]
 autoplay = &"idle"
 
 [editable path="Model"]

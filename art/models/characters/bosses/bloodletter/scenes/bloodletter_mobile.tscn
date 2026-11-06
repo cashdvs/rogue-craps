@@ -2,11 +2,11 @@
 
 [ext_resource type="PackedScene" path="res://art/models/characters/bosses/bloodletter/bloodletter_mobile.glb" id="1_mmvor"]
 
-[node name="Bloodletter" type="Node3D" unique_id=293818833]
+[node name="Bloodletter" type="Node3D" unique_id=67994808]
 
-[node name="Model" parent="." unique_id=1099483018 instance=ExtResource("1_mmvor")]
+[node name="Model" parent="." unique_id=454508187 instance=ExtResource("1_mmvor")]
 
-[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1099483018, 574730927) index="4" unique_id=1139294087]
+[node name="HeadTrack" type="LookAtModifier3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(454508187, 1115470623) index="4" unique_id=1716286219]
 influence = 0.0
 bone_name = "head"
 duration = 0.25
@@ -19,10 +19,10 @@ primary_damp_threshold = 1.0
 secondary_limit_angle = 0.6981317
 secondary_damp_threshold = 1.0
 
-[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(1099483018, 574730927) index="5" unique_id=1333459788]
+[node name="HeadAnchor" type="BoneAttachment3D" parent="Model/Smiles/Skeleton3D" parent_id_path=PackedInt32Array(454508187, 1115470623) index="5" unique_id=440363221]
 bone_name = "head"
 
-[node name="AnimationPlayer" parent="Model" index="1" unique_id=27136562]
+[node name="AnimationPlayer" parent="Model" index="1" unique_id=941835171]
 autoplay = &"idle"
 
 [editable path="Model"]
