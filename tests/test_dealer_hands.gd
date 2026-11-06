@@ -47,7 +47,7 @@ const RAIL_Z0 := 0.14
 const RAIL_DEPTH := 0.2
 ## Idle hand bones must sit near the rail top (planted on the dealer-side lip), not hover high.
 const IDLE_HAND_MAX_ABOVE_RAIL := 0.10
-const IDLE_HAND_MIN_ABOVE_RAIL := -0.02
+const IDLE_HAND_MIN_ABOVE_RAIL := 0.015
 ## Quiet idle motion: at least this much hand travel (m) across the idle loop.
 const IDLE_HAND_TRAVEL_MIN := 0.012
 
