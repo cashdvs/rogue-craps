@@ -1,6 +1,7 @@
 ## The visual Ember Shop (art/concept/shop_redesign/HANDOFF_SPEC.md): a wooden
 ## counter with shelves of goods, each with a brass price tag. Rules and prices
 ## stay in MapRunShop; this only lays the goods out and forwards clicks.
+## A matte counter pad (ShopCounterPad) sits behind each good that has room.
 ## Smiles (DealerBackdrop) stands behind the rail. The one card (ShopSideCard)
 ## shows items (PR B), bag dice to sell and the reroll (PR C); PR D adds the rare chip.
 class_name ShopScreen
@@ -191,6 +192,7 @@ func _fill_shelf(row: Array, area: Rect2, spec: Dictionary) -> void:
 	var cell := area.size.x / row.size()
 	var embers := screen.run.progress.embers
 	var chip_x := -1.0  # Leftmost chip item centre; shelf title sits above it.
+	var row_items: Array[ShopItem] = []
 	for i in row.size():
 		var it := ShopItem.new()
 		it.setup(row[i], embers, spec.art * k, int(NUM_PX * k), k)
@@ -198,6 +200,7 @@ func _fill_shelf(row: Array, area: Rect2, spec: Dictionary) -> void:
 		it.size = it.get_combined_minimum_size()
 		it.position = Vector2(area.position.x + cell * (i + 0.5) - it.size.x / 2.0, area.end.y - it.size.y)
 		it.touch_mode = touch_mode
+		row_items.append(it)
 		it.tooltip_text = ""  # The hover card replaces the native tooltip.
 		it.buy.connect(func(o: ShopOffer) -> void: card.close(); o.buy(screen))
 		it.focus_item.connect(_on_focus)
@@ -213,6 +216,39 @@ func _fill_shelf(row: Array, area: Rect2, spec: Dictionary) -> void:
 		var tw: float = title.get_theme_font(&"font").get_string_size(
 			title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size(&"font_size")).x
 		title.position = Vector2(chip_x - tw * 0.5, area.position.y - 4.0 * k)
+		title.name = "ChipShelfTitle"
+	_place_pads(row_items, cell)
+
+
+## Matte pads behind this row. Omitted when the slot, a price tag, the brass
+## rail or a neighbour pad cannot take one. Goods themselves are not moved.
+func _place_pads(row_items: Array[ShopItem], cell: float) -> void:
+	for it in row_items:  # Tags and icons need their laid-out rects first.
+		it.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	var blockers := _pad_blockers()
+	var placed: Array[Rect2] = []
+	for it in row_items:
+		var pad := ShopCounterPad.attach(it.icon as ShopIcon, cell, k, blockers, placed, false)
+		if pad != null:
+			placed.append(Rect2(it.icon.global_position + pad.position, pad.size))
+
+
+## Global rects a pad must not cross: brass rails, price tags, RARE chips,
+## and the CHIPS shelf title.
+func _pad_blockers() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	var shelf := ChipStrings.get_text("chip_shelf_label")
+	for c in get_children():
+		if c is ColorRect and (c as ColorRect).color == BRASS:
+			out.append((c as ColorRect).get_global_rect())
+		elif c is Label and (c as Label).text == shelf:
+			out.append((c as Label).get_global_rect())
+	for it in items:
+		out.append(it.tag.get_global_rect())
+		var rare := it.find_child("RareChip", false, false)
+		if rare is Control:
+			out.append((rare as Control).get_global_rect())
+	return out
 
 
 ## PC hover waits HOVER_DELAY; a phone tap opens the card at once.

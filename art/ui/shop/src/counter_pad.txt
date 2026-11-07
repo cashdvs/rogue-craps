@@ -1,0 +1,13 @@
+Shop counter pad (Nov 7 art handoff).
+
+The shipped file is art/ui/shop/counter_pad.png, copied byte for byte from the
+handoff asset counter_pad_2x.png. It is an original Tiny Anvil Games graphic
+(proprietary, same terms as the rest of the game). No third-party art.
+
+Raster: 128 x 40 RGBA. The shop draws it at a logical 64 x 20 (this file is 2x)
+with the engine's linear filter. No runtime tint.
+
+Recipe, one plain ellipse, no shadow, bevel, sparkle or symbol:
+  fill  #141210 at alpha 235/255
+  edge  #E8DCC0 at alpha 61/255
+  the edge is the 1 logical px anti-aliased rim

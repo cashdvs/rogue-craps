@@ -18,8 +18,10 @@ const GLYPHS := {
 const SEAL_PIPS := {&"pair": 2, &"trips": 3, &"two_pair": 4, &"quads": 4, &"full_house": 5}
 
 var offer: ShopOffer
-## The 3D view for dice (null for tokens). Tests read it.
+## The 3D view for dice (null for the flat fallback). Tests read it.
 var die_view: SubViewport
+## The rig that owns `die_view` (null for the flat fallback).
+var rig: ShopDieRender
 
 
 ## Size the icon and build its contents for `o`.
@@ -44,6 +46,7 @@ func _build_3d(px: float) -> void:
 		return  # No model yet: _draw shows a plain fallback.
 	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(r)
+	rig = r
 	die_view = r.view
 
 
