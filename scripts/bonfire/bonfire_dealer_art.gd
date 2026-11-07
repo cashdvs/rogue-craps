@@ -15,15 +15,15 @@
 class_name BonfireDealerArt
 extends Node
 
-## Smiles stands here (art/dealer-smiles README "Placement"); every boss scene
-## is built as a straight swap for Smiles at this anchor.
-const DEALER_SPOT := Vector3(-0.42, -0.47, -0.86)
-## Smiles' spot was set for the Hearth board, whose far rail lip is low.
-## Gameplay still uses the greybox table, whose far rail hides the dealers'
-## faces at that height (QA on #171: only hats / hands showed on PC), so the
-## dealer stands this much higher. Their tops still clear the frame top
-## (~0.25 m of headroom left). Set to 0 when the Hearth board ships.
-const GREYBOX_RAIL_LIFT := Vector3(0, 0.12, 0)
+## Legacy anchor from the Smiles README. Every boss scene is a straight swap
+## at the play seat, which is this anchor plus GREYBOX_RAIL_LIFT. The numbers
+## live in DealerPlacement so the table and the tests share one origin.
+const DEALER_SPOT := DealerPlacement.DOCUMENTED_FIXTURE
+## The play seat is 0.12 m above the legacy anchor. Measured rail crowns are
+## the same on greybox, Board A and Hearth, so this is not a shorter Hearth
+## lip. It stays: Straight Man's head only clears the boss gate by ~1.5 cm.
+## Do not zero it when an art board is present. See DealerPlacement.
+const GREYBOX_RAIL_LIFT := Vector3(0.0, DealerPlacement.LIFT_Y, 0.0)
 const SMILES := "res://art/models/characters/smiles/scenes/smiles.tscn"
 const BOSS_DIR := "res://art/models/characters/bosses/%s/scenes/%s.tscn"
 ## Boss cheat id -> boss art folder.
@@ -91,7 +91,7 @@ func show_art(id: String, mobile: bool = false) -> void:
 		return
 	scene = (load(path) as PackedScene).instantiate() as Node3D
 	scene.name = "DealerArt"
-	scene.position = DEALER_SPOT + GREYBOX_RAIL_LIFT
+	scene.position = DealerPlacement.production_origin()
 	table.add_child(scene)
 	_show_greybox(false)
 	var found := scene.find_children("*", "AnimationPlayer", true, false)
