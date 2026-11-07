@@ -19,6 +19,73 @@ const AMBIENT_ENERGY := 0.6
 var view: SubViewport
 
 
+## Where the model meets the counter, in viewport pixels.
+## x is the centre of the projected bounds; y is the lowest corner.
+## (-1, -1) when the rig has no mesh. The counter pad anchors here.
+func contact_local() -> Vector2:
+	var model := _subject()
+	var cam := _camera()
+	if model == null or cam == null:
+		return Vector2(-1, -1)
+	var box := _world_bounds(model)
+	if box.size == Vector3.ZERO:
+		return Vector2(-1, -1)
+	var p := box.position
+	var s := box.size
+	var min_x := INF
+	var max_x := -INF
+	var low_y := -INF
+	for corner in [
+		p,
+		p + Vector3(s.x, 0, 0),
+		p + Vector3(0, s.y, 0),
+		p + Vector3(0, 0, s.z),
+		p + Vector3(s.x, s.y, 0),
+		p + Vector3(s.x, 0, s.z),
+		p + Vector3(0, s.y, s.z),
+		p + s,
+	]:
+		var sp := cam.unproject_position(corner)
+		min_x = minf(min_x, sp.x)
+		max_x = maxf(max_x, sp.x)
+		low_y = maxf(low_y, sp.y)
+	return Vector2((min_x + max_x) * 0.5, low_y)
+
+
+## The model under the camera (not a light).
+func _subject() -> Node3D:
+	if view == null:
+		return null
+	for ch in view.get_children():
+		if ch is Node3D and not (ch is Camera3D) and not (ch is Light3D):
+			return ch
+	return null
+
+
+## The rig's existing camera. Not moved by the pad.
+func _camera() -> Camera3D:
+	if view == null:
+		return null
+	for ch in view.get_children():
+		if ch is Camera3D:
+			return ch
+	return null
+
+
+## Mesh bounds in world space, after the fit scale in `make_model`.
+func _world_bounds(model: Node3D) -> AABB:
+	var out := AABB()
+	var first := true
+	model.force_update_transform()
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		mi.force_update_transform()
+		var g: AABB = mi.global_transform * mi.get_aabb()
+		out = g if first else out.merge(g)
+		first = false
+	return out
+
+
 ## Path of the model for art key `key` ("" if the file doesn't exist).
 static func model_path(key: StringName) -> String:
 	var p := "res://art/models/dice/%s.glb" % key
