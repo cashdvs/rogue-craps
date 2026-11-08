@@ -6,9 +6,15 @@ Only Smiles_Head and Smiles_Visor vertices are tested. Glow materials on
 those meshes are counted apart from the opaque shell. Body and Chip slots
 in the same binaries stay normalized-CPU and are not measured.
 
-This is ray-parity through the closed rail plus transverse edge hits.
-It does not use a min/max vertical span at the same XZ. Reverse containment
-is not claimed: the head is not treated as a closed solid.
+This is ray-parity through the closed rail plus transverse edge hits in
+both directions (each mesh's edges against the other's triangles). A Head
+triangle can cut a rail even when every Head edge misses it. That surface
+test is not reverse containment: the open head is still not a closed solid.
+
+A hit closer than 1 µm is unresolved, not outside. Zero bad frames means
+this sample detected nothing, not a solid-clearance certificate.
+
+It does not use a min/max vertical span at the same XZ.
 
 60 Hz samples with endpoints. Not swept motion, not blends, not the yaw-90
 MC seat.
@@ -94,9 +100,13 @@ def _ray_kind(orig: np.ndarray, direction: np.ndarray, tris: np.ndarray) -> np.n
         v = np.einsum("ntj,j->nt", qvec, direction) * inv_det
         t = np.einsum("ntj,tj->nt", qvec, e2) * inv_det
         w = 1.0 - u - v
-        miss = (~safe)[None, :] | (u < -1e-8) | (u > 1.0 + 1e-8) | (v < -1e-8) | (u + v > 1.0 + 1e-8) | (t <= MARGIN)
-        graze = (~miss) & ((u < BARY) | (v < BARY) | (w < BARY))
-        hit = (~miss) & (~graze)
+        on = safe[None, :] & (u >= -1e-8) & (v >= -1e-8) & (w >= -1e-8)
+        # Within 1 µm of a face the parity is not reliable. That is not
+        # "outside", and it is not a penetration tolerance.
+        near = on & (np.abs(t) <= MARGIN)
+        miss = ~on | ((t <= 0.0) & ~near)
+        graze = near | ((~miss) & ((u < BARY) | (v < BARY) | (w < BARY)))
+        hit = (~miss) & (~graze) & (t > MARGIN)
         grazed = graze.any(axis=1)
         count = hit.sum(axis=1)
         block = np.where(grazed, 2, np.where(count % 2 == 1, 1, 0)).astype(np.int8)
@@ -118,36 +128,42 @@ def points_vs_solid(pts: np.ndarray, solid: dict) -> np.ndarray:
     idx = np.nonzero(inside_box)[0]
     if len(idx) == 0:
         return out
-    votes_in = np.zeros(len(idx), dtype=bool)
-    votes_out = np.zeros(len(idx), dtype=bool)
+    saw_in = np.zeros(len(idx), dtype=bool)
+    saw_out = np.zeros(len(idx), dtype=bool)
+    saw_ind = np.zeros(len(idx), dtype=bool)
     for d in DIRS:
         direction = d / np.linalg.norm(d)
         kind = _ray_kind(pts[idx], direction, solid["tris"])
-        votes_in |= kind == 1
-        votes_out |= kind == 0
-    disagree = votes_in & votes_out
-    decided_in = votes_in & ~votes_out
-    decided_out = votes_out & ~votes_in
-    out[idx[decided_in]] = 1
-    out[idx[decided_out]] = 0
-    out[idx[disagree | ~(votes_in | votes_out)]] = 2
+        saw_in |= kind == 1
+        saw_out |= kind == 0
+        saw_ind |= kind == 2
+    # An unresolved ray must not be outvoted into a clearance.
+    inside = saw_in & ~saw_out
+    outside = saw_out & ~saw_in & ~saw_ind
+    out[idx[inside]] = 1
+    out[idx[outside]] = 0
+    out[idx[~(inside | outside)]] = 2
     return out
 
 
-def transverse_any(head_tris: np.ndarray, rail: np.ndarray) -> str:
-    """'transverse', 'separate', or 'graze'. head_tris (H,3,3) already near the rail."""
-    if len(head_tris) == 0:
-        return "separate"
-    # three edges
+def _edges_vs_tris(src: np.ndarray, dst: np.ndarray) -> str:
+    """Edges of src against triangles of dst. 'transverse', 'graze', or 'separate'."""
     edges = np.stack(
         [
-            np.stack([head_tris[:, 0], head_tris[:, 1]], axis=1),
-            np.stack([head_tris[:, 1], head_tris[:, 2]], axis=1),
-            np.stack([head_tris[:, 2], head_tris[:, 0]], axis=1),
+            np.stack([src[:, 0], src[:, 1]], axis=1),
+            np.stack([src[:, 1], src[:, 2]], axis=1),
+            np.stack([src[:, 2], src[:, 0]], axis=1),
         ],
         axis=1,
     ).reshape(-1, 2, 3)
-    v0, v1, v2 = rail[:, 0], rail[:, 1], rail[:, 2]
+    dmin = dst.min(axis=(0, 1)) - EDGE
+    dmax = dst.max(axis=(0, 1)) + EDGE
+    emin = edges.min(axis=1)
+    emax = edges.max(axis=1)
+    edges = edges[np.all(emax >= dmin, axis=1) & np.all(emin <= dmax, axis=1)]
+    if len(edges) == 0:
+        return "separate"
+    v0, v1, v2 = dst[:, 0], dst[:, 1], dst[:, 2]
     n = np.cross(v1 - v0, v2 - v0)
     grazed = False
     step = 64
@@ -155,16 +171,10 @@ def transverse_any(head_tris: np.ndarray, rail: np.ndarray) -> str:
         p0 = edges[s : s + step, 0]
         p1 = edges[s : s + step, 1]
         direction = p1 - p0
-        # (E,T)
-        e = len(p0)
-        tvec = p0[:, None, :] - v0[None, :, :]
         denom = np.einsum("ij,ej->ei", n, direction)
         safe = np.abs(denom) > 1e-12
         inv = np.zeros_like(denom)
         inv[safe] = 1.0 / denom[safe]
-        t = np.einsum("ij,eij->ei", n, tvec) * inv  # n · (v0 - p0) / denom wait sign
-        # n·(a-p0)/denom = -n·(p0-a)/denom. Use t = n·(v0-p0) / n·dir ? 
-        # standard t = dot(n, v0-p0) / dot(n, dir) = -dot(n, p0-v0)/dot(n,dir)
         t = np.einsum("ij,eij->ei", n, (v0[None, :, :] - p0[:, None, :])) * inv
         hitp = p0[:, None, :] + direction[:, None, :] * t[:, :, None]
         # barycentric
@@ -188,6 +198,25 @@ def transverse_any(head_tris: np.ndarray, rail: np.ndarray) -> str:
         if graze.any():
             grazed = True
     return "graze" if grazed else "separate"
+
+
+def transverse_any(a_tris: np.ndarray, b_tris: np.ndarray) -> str:
+    """Surface crossing either way. Not reverse solid containment.
+
+    Head edges can miss a rail while a rail edge still cuts the Head
+    triangle. Both directions are required. Coplanar contact is not a hit.
+    """
+    if len(a_tris) == 0 or len(b_tris) == 0:
+        return "separate"
+    ab = _edges_vs_tris(a_tris, b_tris)
+    if ab == "transverse":
+        return "transverse"
+    ba = _edges_vs_tris(b_tris, a_tris)
+    if ba == "transverse":
+        return "transverse"
+    if ab == "graze" or ba == "graze":
+        return "graze"
+    return "separate"
 
 
 def load_rails(geom_path: Path, names: tuple[str, ...]) -> list[dict]:
@@ -219,29 +248,27 @@ def opaque_ranges(meta: dict, glow: bool) -> list[tuple[int, int, np.ndarray]]:
     return out
 
 
-def measure_stream(bin_path: Path, meta: dict, rails: list[dict], glow: bool) -> dict:
+def measure_stream(bin_path: Path, meta: dict, rails: list[dict], glow: bool, expected_frames: int | None = None) -> dict:
+    if not rails or any(not s.get("ok") for s in rails):
+        return {"ok": False, "reason": "no_rails", "frames": 0, "bad": 0, "indeterminate_frames": 0}
     ranges = opaque_ranges(meta, glow)
     if not ranges:
-        return {"ok": False, "reason": "no_part"}
+        return {"ok": False, "reason": "no_part", "frames": 0, "bad": 0, "indeterminate_frames": 0}
+    for start, count, idx in ranges:
+        local = idx - start
+        if local.size and (int(local.min()) < 0 or int(local.max()) >= count):
+            return {"ok": False, "reason": "index_out_of_range", "frames": 0, "bad": 0, "indeterminate_frames": 0}
     arr = np.fromfile(bin_path, dtype="<f4")
-    frames = int(meta["clips"][bin_path.stem.split("_")[-1]]["frames"]) if False else None
-    # shape from file size and vertex count
     nvert = int(meta["vertices"])
-    if arr.size % (nvert * 3) != 0:
-        return {"ok": False, "reason": "bad_stride"}
+    if nvert <= 0 or arr.size == 0 or arr.size % (nvert * 3) != 0:
+        return {"ok": False, "reason": "empty_stream", "frames": 0, "bad": 0, "indeterminate_frames": 0}
     nframes = arr.size // (nvert * 3)
+    if nframes == 0 or (expected_frames is not None and nframes != expected_frames):
+        return {"ok": False, "reason": "frame_count", "frames": nframes, "bad": 0, "indeterminate_frames": 0}
     pos = arr.reshape(nframes, nvert, 3).astype(np.float64)
     if not np.isfinite(pos).all():
-        return {"ok": False, "reason": "nonfinite_positions"}
+        return {"ok": False, "reason": "nonfinite_positions", "frames": nframes, "bad": 0, "indeterminate_frames": 0}
     index_sets = [idx for _, _, idx in ranges]
-    # local index bound
-    for s in meta["surfaces"]:
-        if s["mesh"] not in ("Smiles_Head", "Smiles_Visor"):
-            continue
-        if ("glow" in s["material"]) != glow:
-            continue
-        if len(s["indices"]) and max(s["indices"]) >= s["count"]:
-            return {"ok": False, "reason": "index_not_local"}
     bad = inside_frames = cross_frames = indet = 0
     witnesses = []
     pts_i = np.unique(np.concatenate(index_sets))
@@ -288,7 +315,7 @@ def measure_stream(bin_path: Path, meta: dict, rails: list[dict], glow: bool) ->
             bad += 1
         else:
             continue
-        if len(witnesses) < 3:
+        if len(witnesses) < 40:
             witnesses.append(fi)
     return {
         "ok": True,
@@ -299,6 +326,60 @@ def measure_stream(bin_path: Path, meta: dict, rails: list[dict], glow: bool) ->
         "indeterminate_frames": indet,
         "witness_frames": witnesses,
     }
+
+
+CLIPS = {"idle": 181, "deal": 61, "taunt": 85, "grudging": 97, "cheat": 73, "mc_idle": 145, "mc_cheer": 73}
+ASSETS = ("baseline", "v188", "v194")
+LODS = ("pc", "mobile")
+SEATS = ("production", "fixture")
+
+
+def _identity_basis(rows: list) -> bool:
+    m = np.asarray(rows[:3], dtype=np.float64)
+    return m.shape == (3, 3) and np.allclose(m, np.eye(3), atol=1e-5)
+
+
+def validate_bundle(diag: Path) -> list[str]:
+    """Fail closed unless the frozen manifest is complete. Do not count files that merely exist."""
+    errors: list[str] = []
+    if sum(CLIPS.values()) != 715:
+        errors.append("clip frame table is not 715")
+    expected = []
+    for asset in ASSETS:
+        for lod in LODS:
+            for seat in SEATS:
+                meta_path = diag / f"{asset}_{lod}_{seat}.json"
+                if not meta_path.is_file():
+                    errors.append(f"missing metadata {meta_path.name}")
+                    continue
+                meta = json.loads(meta_path.read_text())
+                if not _identity_basis(meta["actor"]) or not _identity_basis(meta["skeleton"]):
+                    errors.append(f"{meta_path.name} basis")
+                if meta["skeleton"] != meta["actor"]:
+                    errors.append(f"{meta_path.name} skeleton != actor")
+                origin_y = float(meta["actor"][3][1])
+                want_y = -0.35 if seat == "production" else -0.47
+                if abs(origin_y - want_y) > 1e-5:
+                    errors.append(f"{meta_path.name} origin y {origin_y}")
+                if set(meta["clips"]) != set(CLIPS):
+                    errors.append(f"{meta_path.name} clips")
+                for clip, n in CLIPS.items():
+                    info = meta["clips"][clip]
+                    if int(info["frames"]) != n or len(info["times"]) != n:
+                        errors.append(f"{meta_path.name} {clip} frames/times")
+                    expected.append(f"{asset}_{lod}_{seat}_{clip}.bin")
+                opaque = [s for s in meta["surfaces"] if s["mesh"] in ("Smiles_Head", "Smiles_Visor") and "glow" not in s["material"]]
+                if not any(s["mesh"] == "Smiles_Head" for s in opaque) or not any(s["mesh"] == "Smiles_Visor" for s in opaque):
+                    errors.append(f"{meta_path.name} missing Head or Visor")
+                for s in meta["surfaces"]:
+                    idx = s["indices"]
+                    if any(i < 0 or i >= s["count"] for i in idx):
+                        errors.append(f"{meta_path.name} bad index {s['mesh']}")
+                        break
+    found = sorted(p.name for p in (diag / "native_head").glob("*.bin"))
+    if found != sorted(expected):
+        errors.append(f"stream manifest {len(found)} files, expected {len(expected)}")
+    return errors
 
 
 def main() -> int:
@@ -317,7 +398,13 @@ def main() -> int:
         "above_real_surface": points_vs_solid(np.array([[-0.42, 0.108872, -0.592908]]), hearth)[0].item(),
     }
     report["point_controls_0out_1in_2indet"] = controls
-    print("rails", report["rails"], "controls", controls, flush=True)
+    errors = validate_bundle(diag)
+    report["manifest_errors"] = errors
+    print("rails", report["rails"], "controls", controls, "manifest_errors", len(errors), flush=True)
+    if errors:
+        print("MANIFEST FAILED", errors[:8], flush=True)
+        out_path.write_text(json.dumps(report, indent=2))
+        return 2
     if controls["jaw_inside"] != 1 or controls["outside_footprint"] != 0 or controls["above_real_surface"] != 0:
         print("POINT CONTROLS FAILED; not scanning streams", flush=True)
         out_path.write_text(json.dumps(report, indent=2))
@@ -338,12 +425,13 @@ def main() -> int:
             label, lod, seat = parts[0], parts[1], parts[2]
             clip = "_".join(parts[3:])
         meta = json.loads((diag / f"{label}_{lod}_{seat}.json").read_text())
+        expected_frames = int(meta["clips"][clip]["frames"])
         board_set = []
         solids_pc = [by_name[n] for n in ("greybox/RailFar", "greybox/RailNear", "greybox/RailLeft", "greybox/RailRight")]
         solids_h = [by_name["hearth/Visual/Rails/rails" if lod == "pc" else "hearth/Visual/Rails/rails_mobile"]]
         for board, solids in (("greybox", solids_pc), ("hearth", solids_h)):
-            opaque = measure_stream(b, meta, solids, glow=False)
-            glow_r = measure_stream(b, meta, solids, glow=True)
+            opaque = measure_stream(b, meta, solids, False, expected_frames)
+            glow_r = measure_stream(b, meta, solids, True, expected_frames)
             row = {
                 "asset": label,
                 "lod": lod,
@@ -361,12 +449,17 @@ def main() -> int:
         "body_chip": "present in the binaries as normalized CPU; not measured",
         "reverse_containment": "unverified",
         "mc_yaw90": "these seats are far-dealer yaw 0, not the MC seat",
-        "classifier": "closed-rail ray parity and transverse edges; not min/max vertical",
+        "classifier": "closed-rail ray parity and bidirectional transverse edges; not min/max vertical",
+        "surface_crossing": "both edge directions; not reverse solid containment",
+        "zero_bad_means": "no detection in this sample, not a solid-clearance certificate",
         "continuous": False,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report))
-    print("WROTE", out_path, "cells", len(cells), flush=True)
+    failed = [c for c in cells if not c["opaque"].get("ok") or not c["glow_native_separate"].get("ok")]
+    print("WROTE", out_path, "cells", len(cells), "failed_cells", len(failed), flush=True)
+    if len(cells) != 168 or failed:
+        return 1
     return 0
 
 

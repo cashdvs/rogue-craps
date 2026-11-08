@@ -10,7 +10,20 @@
     "extracted_sha256sums": "203/203 OK",
     "native_bins": 84
   },
-  "oracle": "closed-rail ray parity + transverse edges; not min/max vertical",
+  "oracle": "closed-rail ray parity + bidirectional triangle crossing; 1 µm unresolved is indeterminate; not min/max vertical",
+  "zero_bad_means": "no detection in this sample, not a solid-clearance certificate",
+  "tool_rerun_vs_05e6901": {
+    "opaque_bad_delta": 3,
+    "opaque_inside_delta": 0,
+    "opaque_crossing_delta": 0,
+    "opaque_indeterminate_frames": 3,
+    "notes": [
+      "baseline pc fixture hearth idle frame 49 (t=0.8167s): one opaque vertex in the 1 µm unresolved band. Counted fail-closed. Inside count stayed 0.",
+      "v188 pc production hearth mc_cheer frames 15 (t=0.25s) and 33 (t=0.55s): two opaque vertices unresolved on each frame. Inside count stayed 9 on that clip and 10 on the hearth rollup.",
+      "v188 pc fixture hearth glow on mc_idle frames 14 (t=0.233s) and 100 (t=1.667s) became indeterminate. Glow bad 651 to 653. Glow inside stayed 95 and glow crossing stayed 2 on that rollup.",
+      "No new inside frames and no new crossing-only frames. V194 production stayed 0/715 on both boards and both LODs. That zero is still only no detection."
+    ]
+  },
   "native_parts": "Smiles_Head and Smiles_Visor opaque surfaces",
   "glow": "counted separately; not folded into the opaque total",
   "body_chip": "normalized CPU slots in the same binaries; not measured",
@@ -86,9 +99,9 @@
       "glow_bad": 0
     },
     "baseline|pc|fixture|hearth": {
-      "bad": 0,
+      "bad": 1,
       "frames": 715,
-      "indet": 0,
+      "indet": 1,
       "glow_bad": 0
     },
     "baseline|pc|production|greybox": {
@@ -137,7 +150,7 @@
       "bad": 715,
       "frames": 715,
       "indet": 0,
-      "glow_bad": 651
+      "glow_bad": 653
     },
     "v188|pc|production|greybox": {
       "bad": 14,
@@ -146,9 +159,9 @@
       "glow_bad": 0
     },
     "v188|pc|production|hearth": {
-      "bad": 10,
+      "bad": 12,
       "frames": 715,
-      "indet": 0,
+      "indet": 2,
       "glow_bad": 0
     },
     "v194|mobile|fixture|greybox": {
@@ -222,10 +235,25 @@
     "v188_pc_production_hearth_taunt_bad_frames": [
       30
     ],
-    "v188_pc_production_hearth_mc_cheer_first_bad_frames": [
+    "v188_pc_production_hearth_mc_cheer_bad_frames": [
       12,
       13,
-      14
+      14,
+      15,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39
+    ],
+    "v188_pc_production_hearth_mc_cheer_indeterminate_frames": [
+      15,
+      33
+    ],
+    "baseline_pc_fixture_hearth_idle_indeterminate_frames": [
+      49
     ]
   }
 }
