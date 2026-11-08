@@ -1,16 +1,16 @@
-## The one seat a dealer stands on during play, and a fail-closed rail query.
+## The shipped play seat, plus a fail-closed height query. Not a Hearth waiver.
 ##
-## Greybox, Board A and the Hearth board all crown near y = 0.11. Play uses
-## one origin, 0.46 m below that design crown and 0.25 m behind the far-rail
-## centre: world (-0.42, -0.35, -0.86). That is the old documented anchor
-## plus the existing 0.12 m lift. The lift stays. Straight Man's head clears
-## the boss framing gate by about 1.5 cm, so a lower actor hides boss heads.
+## Shipped Bonfire still builds the greybox table. The dealer parent is that
+## table, and the actor-local origin is (-0.42, -0.35, -0.86): the documented
+## anchor plus one +0.12 lift. That is the current authoring target. Do not
+## lower it, and do not treat "when Hearth ships" as permission to drop the lift.
 ##
-## The anchor (-0.42, -0.47, -0.86) is a legacy test fixture. It is not a
-## second seat the idle has to satisfy. Planting fingers on the real leather
-## at the play seat drops those vertices through the old y = 0.14 slab when
-## the same clip is played on the fixture. That conflict is reported; the
-## legacy tests are not rewritten here.
+## (-0.42, -0.47, -0.86) is the real Hearth capture fixture (test_hearth_dealer_clear
+## and the Smiles README). It is not a coordinate bug, and it is not retired here.
+## A future Hearth board at the play seat would be a separate integration candidate,
+## not the live table. Equal rail crowns are not that integration. The MC seat
+## (-1.32, -0.42, -0.30), yaw 90°, beside a boss, stays a documented context too.
+## See DealerContext. Legacy tests stay in force until QA accepts each successor.
 class_name DealerPlacement
 extends RefCounted
 

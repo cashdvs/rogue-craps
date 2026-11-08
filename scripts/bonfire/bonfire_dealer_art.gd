@@ -19,10 +19,10 @@ extends Node
 ## at the play seat, which is this anchor plus GREYBOX_RAIL_LIFT. The numbers
 ## live in DealerPlacement so the table and the tests share one origin.
 const DEALER_SPOT := DealerPlacement.DOCUMENTED_FIXTURE
-## The play seat is 0.12 m above the legacy anchor. Measured rail crowns are
-## the same on greybox, Board A and Hearth, so this is not a shorter Hearth
-## lip. It stays: Straight Man's head only clears the boss gate by ~1.5 cm.
-## Do not zero it when an art board is present. See DealerPlacement.
+## One +0.12 lift, applied at this actor only. It is not a promise to delete
+## the lift when a Hearth board ships, and it is not a second lift. The
+## Hearth capture seat stays y = -0.47 in its own tests. Author new production
+## poses at the lifted play seat. See DealerPlacement and DealerContext.
 const GREYBOX_RAIL_LIFT := Vector3(0.0, DealerPlacement.LIFT_Y, 0.0)
 const SMILES := "res://art/models/characters/smiles/scenes/smiles.tscn"
 const BOSS_DIR := "res://art/models/characters/bosses/%s/scenes/%s.tscn"
