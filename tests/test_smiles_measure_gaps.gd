@@ -1,20 +1,51 @@
-## Gap ledger for Smiles measurement. Every cell here is unverified acceptance.
+## Coverage ledger after the frozen-stream measurement. Not acceptance.
 ##
-## Synthetic box checks live in test_dealer_rail_oracle.gd and are not these
-## cells. A partial idle t=0 note is printed and still fails: one frame is
-## not a clip. Missing V188/V194 meshes fail. They are not passes and not
-## stand-ins. This file does not load those assets.
+## Measured cells are native opaque Head/Visor positions from the QA bundle,
+## tested with closed-rail ray parity and transverse edges. They do not waive
+## legacy envelopes, dressing, or framing. Body/Chip, open-head reverse
+## containment, yaw-90 MC, blends, and Vulkan re-bakes stay failures.
 ##
 ##   godot --headless --path . --script res://tests/test_smiles_measure_gaps.gd
 extends SceneTree
 
-const CLIPS: Array[String] = ["idle", "deal", "taunt", "grudging", "cheat", "mc_idle", "mc_cheer"]
-const LODS: Array[String] = ["pc", "mobile"]
-const CONTEXTS: Array[String] = ["shipped_greybox", "documented_hearth_fixture", "future_hearth_at_play_seat", "documented_mc_beside_boss"]
-const ASSETS: Array[String] = ["this_tree_smiles_not_v194", "v188", "v194"]
+const SUMMARY := "res://tests/data/frozen_head_rail_summary.json"
+## opaque bad frames / 715. Both seats, both boards, both mesh LODs.
+const EXPECTED := {
+	"baseline|mobile|fixture|greybox": 0,
+	"baseline|mobile|fixture|hearth": 0,
+	"baseline|mobile|production|greybox": 0,
+	"baseline|mobile|production|hearth": 0,
+	"baseline|pc|fixture|greybox": 0,
+	"baseline|pc|fixture|hearth": 0,
+	"baseline|pc|production|greybox": 0,
+	"baseline|pc|production|hearth": 0,
+	"v188|mobile|fixture|greybox": 715,
+	"v188|mobile|fixture|hearth": 715,
+	"v188|mobile|production|greybox": 14,
+	"v188|mobile|production|hearth": 0,
+	"v188|pc|fixture|greybox": 715,
+	"v188|pc|fixture|hearth": 715,
+	"v188|pc|production|greybox": 14,
+	"v188|pc|production|hearth": 10,
+	"v194|mobile|fixture|greybox": 715,
+	"v194|mobile|fixture|hearth": 715,
+	"v194|mobile|production|greybox": 0,
+	"v194|mobile|production|hearth": 0,
+	"v194|pc|fixture|greybox": 715,
+	"v194|pc|fixture|hearth": 715,
+	"v194|pc|production|greybox": 0,
+	"v194|pc|production|hearth": 0,
+}
 
 var _pass := 0
 var _fail := 0
+
+
+func _ints(raw: Variant) -> Array:
+	var out: Array = []
+	for item in raw:
+		out.append(int(item))
+	return out
 
 
 func _initialize() -> void:
@@ -30,30 +61,31 @@ func _check(ok: bool, msg: String) -> void:
 
 
 func _run() -> void:
-	print("=== Smiles measure gaps (not acceptance) ===")
-	print("frozen V194 %s absent on this remote" % DealerContext.FROZEN_V194)
-	print("frozen V188 %s absent on this remote" % DealerContext.FROZEN_V188_CHECKPOINT)
-	for asset in ASSETS:
-		for lod in LODS:
-			for ctx in CONTEXTS:
-				for clip in CLIPS:
-					var note := _partial(asset, lod, ctx, clip)
-					# Partial observations stay failures. Unavailable meshes stay failures.
-					_check(false, "%s | %s | %s | %s | %s" % [asset, lod, ctx, clip, note])
-	for row in ["open_head_reverse_containment", "mc_collision_all_clips", "transitions_blends_resets_autoplay", "finger_support", "native_character_framing", "vulkan_skin_equivalence"]:
+	print("=== Smiles measured coverage vs remaining gaps (not acceptance) ===")
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SUMMARY))
+	_check(parsed is Dictionary, "summary json loads")
+	if not parsed is Dictionary:
+		print("=== %d passed, %d failed ===" % [_pass, _fail])
+		quit(1)
+		return
+	var doc: Dictionary = parsed
+	_check(String(doc["v194_commit"]) == DealerContext.FROZEN_V194, "summary is bound to frozen V194, not a later snapshot")
+	_check(String(doc["v188_checkpoint"]) == DealerContext.FROZEN_V188_CHECKPOINT and doc["v188_is_active_runtime"] == false, "V188 is the inactive checkpoint, not active-runtime V147")
+	_check(int(doc["custody"]["archive_sha256_mismatches"]) == 0 and int(doc["custody"]["extracted_sha256sums"].split("/")[0]) == 203, "custody: 13 archives and 203/203 extracted checksums")
+	var totals: Dictionary = doc["opaque_totals"]
+	_check(totals.size() == EXPECTED.size(), "24 asset/lod/seat/board totals present, got %d" % totals.size())
+	for key in EXPECTED:
+		var row: Dictionary = totals.get(key, {})
+		var bad := int(row.get("bad", -1))
+		var frames := int(row.get("frames", -1))
+		print("MEASURED %s opaque_bad %d / %d (not a policy pass)" % [key, bad, frames])
+		_check(bad == int(EXPECTED[key]) and frames == 715 and int(row.get("indet", -1)) == 0, "%s bad %d frames %d" % [key, bad, frames])
+	var wit: Dictionary = doc["witnesses"]
+	_check(_ints(wit["v188_pc_production_greybox_taunt_bad_frames"]) == [30], "V188 production greybox taunt bad frame is 30 (t=0.500s)")
+	_check(_ints(wit["v188_pc_production_greybox_mc_cheer_bad_frames"]) == [11, 12, 13, 14, 15, 33, 34, 35, 36, 37, 38, 39, 40], "V188 production greybox mc_cheer bad frames match 11-15 and 33-40")
+	# Still unverified. Availability of the other bytes is not coverage.
+	for row in ["open_head_reverse_containment", "body_chip_native", "mc_yaw90_seat", "transitions_blends_resets_autoplay", "finger_support_policy", "native_character_framing", "continuous_motion", "legacy_gate_replacement"]:
 		_check(false, "UNVERIFIED %s" % row)
+	_check(false, "HOLD these head counts are not acceptance, merge, or a waiver of legacy envelopes, dressing, or framing")
 	print("=== %d passed, %d failed ===" % [_pass, _fail])
 	quit(0 if _fail == 0 else 1)
-
-
-## What this tree has actually skinned. Still not a full-cell pass.
-func _partial(asset: String, lod: String, ctx: String, clip: String) -> String:
-	if asset != "this_tree_smiles_not_v194" or lod != "pc" or clip != "idle":
-		if asset == "v188" or asset == "v194":
-			return "UNAVAILABLE_MESH"
-		return "UNVERIFIED"
-	if ctx == "documented_hearth_fixture":
-		return "PARTIAL head t=0 rail-containment clear only; not the clip; reverse containment unverified"
-	if ctx == "future_hearth_at_play_seat":
-		return "PARTIAL head t=0 rail-containment clear and body hit; not the clip; not live Hearth; reverse containment unverified"
-	return "UNVERIFIED"

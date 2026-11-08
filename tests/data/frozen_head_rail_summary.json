@@ -1,0 +1,231 @@
+{
+  "status": "measured_not_acceptance",
+  "v194_commit": "61619e93b127ad64a6762fad777471d5831e7458",
+  "v188_checkpoint": "c1c260c7f6b9c0344300af9c32b4deeb39859bc6",
+  "v188_is_active_runtime": false,
+  "custody": {
+    "archives": 13,
+    "archive_sha256_mismatches": 0,
+    "archive_bytes": 138767124,
+    "extracted_sha256sums": "203/203 OK",
+    "native_bins": 84
+  },
+  "oracle": "closed-rail ray parity + transverse edges; not min/max vertical",
+  "native_parts": "Smiles_Head and Smiles_Visor opaque surfaces",
+  "glow": "counted separately; not folded into the opaque total",
+  "body_chip": "normalized CPU slots in the same binaries; not measured",
+  "reverse_containment": "unverified",
+  "mc_yaw90": "not these streams",
+  "continuous": false,
+  "point_controls": {
+    "jaw_inside": 1,
+    "outside_footprint": 0,
+    "above_real_surface": 0
+  },
+  "rails": {
+    "greybox/RailFar": {
+      "ok": true,
+      "reason": "closed",
+      "triangles": 120
+    },
+    "greybox/RailNear": {
+      "ok": true,
+      "reason": "closed",
+      "triangles": 120
+    },
+    "greybox/RailLeft": {
+      "ok": true,
+      "reason": "closed",
+      "triangles": 120
+    },
+    "greybox/RailRight": {
+      "ok": true,
+      "reason": "closed",
+      "triangles": 120
+    },
+    "hearth/Visual/Rails/rails": {
+      "ok": true,
+      "reason": "closed",
+      "triangles": 5328
+    },
+    "hearth/Visual/Rails/rails_mobile": {
+      "ok": true,
+      "reason": "closed",
+      "triangles": 1680
+    }
+  },
+  "opaque_totals": {
+    "baseline|mobile|fixture|greybox": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "baseline|mobile|fixture|hearth": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "baseline|mobile|production|greybox": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "baseline|mobile|production|hearth": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "baseline|pc|fixture|greybox": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "baseline|pc|fixture|hearth": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "baseline|pc|production|greybox": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "baseline|pc|production|hearth": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v188|mobile|fixture|greybox": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 697
+    },
+    "v188|mobile|fixture|hearth": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 601
+    },
+    "v188|mobile|production|greybox": {
+      "bad": 14,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v188|mobile|production|hearth": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v188|pc|fixture|greybox": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 704
+    },
+    "v188|pc|fixture|hearth": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 651
+    },
+    "v188|pc|production|greybox": {
+      "bad": 14,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v188|pc|production|hearth": {
+      "bad": 10,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v194|mobile|fixture|greybox": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 698
+    },
+    "v194|mobile|fixture|hearth": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 649
+    },
+    "v194|mobile|production|greybox": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v194|mobile|production|hearth": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v194|pc|fixture|greybox": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 698
+    },
+    "v194|pc|fixture|hearth": {
+      "bad": 715,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 689
+    },
+    "v194|pc|production|greybox": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    },
+    "v194|pc|production|hearth": {
+      "bad": 0,
+      "frames": 715,
+      "indet": 0,
+      "glow_bad": 0
+    }
+  },
+  "witnesses": {
+    "v188_pc_production_greybox_taunt_bad_frames": [
+      30
+    ],
+    "v188_pc_production_greybox_mc_cheer_bad_frames": [
+      11,
+      12,
+      13,
+      14,
+      15,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40
+    ],
+    "v188_pc_production_hearth_taunt_bad_frames": [
+      30
+    ],
+    "v188_pc_production_hearth_mc_cheer_first_bad_frames": [
+      12,
+      13,
+      14
+    ]
+  }
+}
