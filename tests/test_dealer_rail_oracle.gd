@@ -30,10 +30,15 @@ func _check(ok: bool, msg: String) -> void:
 
 func _run() -> void:
 	print("=== dealer rail oracle (additive, not accepted) ===")
+	print("--- section: collision-oracle tool (synthetic boxes only; not V188/V194) ---")
 	_synthetics()
+	print("--- section: production-seat naming ---")
 	_preconditions()
+	print("--- section: integration-policy proposal (not accepted) ---")
 	_legacy_map()
+	print("--- section: this-tree Smiles sample (not frozen V194) ---")
 	await _rails_and_original_smiles()
+	print("--- section: frozen-asset gaps (unavailable is a failure) ---")
 	_frozen_art_gap()
 	print("=== %d passed, %d failed ===" % [_pass, _fail])
 	print("COVERAGE sampled key times only; not 60 Hz, not swept, not blend/reset/autoplay.")
@@ -99,7 +104,7 @@ func _preconditions() -> void:
 	var world := DealerContext.actor_world(parent, play, 0.0)
 	_check(world.origin.is_equal_approx(parent * play), "actor world uses the full parent, not a bare world constant")
 	var mc := DealerContext.actor_world(Transform3D.IDENTITY, DealerContext.MC_LOCAL, DealerContext.MC_YAW_DEG)
-	_check(mc.origin.is_equal_approx(DealerContext.MC_LOCAL) and is_equal_approx(mc.basis.get_euler().y, deg_to_rad(90.0)), "MC yaw stays on the documented anchor")
+	_check(mc.origin.is_equal_approx(DealerContext.MC_LOCAL) and is_equal_approx(mc.basis.get_euler().y, deg_to_rad(90.0)), "MC anchor constant only; not a collision measurement")
 
 
 func _legacy_map() -> void:
@@ -163,7 +168,8 @@ func _rails_and_original_smiles() -> void:
 		await process_frame
 		var at_play := _skinned_parts(smiles, skel)
 		var head_play := DealerRailSolid.compare(at_play["head"]["tris"], rails, {}, false)
-		_check(head_play["status"] == "clear" and head_play["reverse"] == "not_certified", "original idle t=0 head vs Hearth at play seat is clear; reverse containment not certified on an open head (%s)" % head_play)
+		_check(head_play["status"] == "clear", "original idle t=0 head vs Hearth at play seat, rail-containment only (%s)" % head_play)
+		_check(false, "UNVERIFIED open-head reverse containment (reverse=%s); not coverage" % str(head_play.get("reverse", "")))
 		smiles.position = DealerPlacement.DOCUMENTED_FIXTURE
 		await process_frame
 		var at_fix := _skinned_parts(smiles, skel)
