@@ -10,17 +10,18 @@
     "extracted_sha256sums": "203/203 OK",
     "native_bins": 84
   },
-  "oracle": "closed-rail ray parity + bidirectional triangle crossing; 1 µm unresolved is indeterminate; not min/max vertical",
+  "oracle": "closed-rail ray parity + bidirectional triangle crossing; unresolved rays stay fail-closed; not min/max vertical",
   "zero_bad_means": "no detection in this sample, not a solid-clearance certificate",
+  "indeterminate_cause": "Kind 2 is an unresolved ray. On the five frozen vertices below it is a distant barycentric edge graze (BARY=1e-5), with zero face hits inside 1 µm. Nearest rail distances are about 33.7 mm, 3.07 mm, 3.07 mm, 16.0 mm and 12.4 mm. Those rows stay unresolved. They are not penetrations, and the thresholds were not loosened.",
   "tool_rerun_vs_05e6901": {
     "opaque_bad_delta": 3,
     "opaque_inside_delta": 0,
     "opaque_crossing_delta": 0,
     "opaque_indeterminate_frames": 3,
     "notes": [
-      "baseline pc fixture hearth idle frame 49 (t=0.8167s): one opaque vertex in the 1 µm unresolved band. Counted fail-closed. Inside count stayed 0.",
-      "v188 pc production hearth mc_cheer frames 15 (t=0.25s) and 33 (t=0.55s): two opaque vertices unresolved on each frame. Inside count stayed 9 on that clip and 10 on the hearth rollup.",
-      "v188 pc fixture hearth glow on mc_idle frames 14 (t=0.233s) and 100 (t=1.667s) became indeterminate. Glow bad 651 to 653. Glow inside stayed 95 and glow crossing stayed 2 on that rollup.",
+      "baseline pc fixture hearth idle frame 49 (t=0.8167s), vertex 3057: one opaque kind-2 sample. Nearest rail is about 33.7 mm. The +Z ray grazes an edge at about 85 mm and 1.30 m. Inside count stayed 0.",
+      "v188 pc production hearth mc_cheer frames 15 (t=0.25s) and 33 (t=0.55s), vertices 2531 and 2567: two opaque kind-2 samples, each about 3.07 mm from the rail. A +X ray grazes an edge about 1.51 m away. Inside count stayed 9 on that clip and 10 on the hearth rollup.",
+      "v188 pc fixture hearth glow on mc_idle frames 14 (t=0.233s) and 100 (t=1.667s), vertices 3738 and 3767: kind 2 at about 16.0 mm and 12.4 mm from the rail. Glow bad 651 to 653. Glow inside stayed 95 and glow crossing stayed 2 on that rollup.",
       "No new inside frames and no new crossing-only frames. V194 production stayed 0/715 on both boards and both LODs. That zero is still only no detection."
     ]
   },

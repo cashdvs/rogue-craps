@@ -2,7 +2,8 @@
 ##
 ## Measured cells are native opaque Head/Visor positions from the QA bundle,
 ## tested with closed-rail ray parity and bidirectional triangle crossing.
-## A 1 µm unresolved sample counts as bad. A zero is no detection, not clearance.
+## An unresolved sample counts as bad. On the reported frames that is a distant
+## ray-edge graze, not a 1 µm penetration. A zero is no detection, not clearance.
 ## These numbers do not waive legacy envelopes, dressing, or framing.
 ## Body/Chip, open-head reverse containment, yaw-90 MC, blends, and Vulkan
 ## re-bakes stay failures.
