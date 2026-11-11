@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/ember_glow.gdshader" id="1_ihg21"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_ihg21")
+shader_parameter/cool_color = null
+shader_parameter/hot_color = null
+shader_parameter/white_color = null
+shader_parameter/energy = null
+shader_parameter/crawl = null
+shader_parameter/cell_scale = null

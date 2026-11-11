@@ -1,0 +1,135 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/vfx/bonfire/scenes/dice/potted_die_rig.tscn" id="1_ynb83"]
+
+[sub_resource type="Animation" id="Animation_qwwa8"]
+length = 0.8
+tracks/0/type = "animation"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Die0/AnimationPlayer")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0)
+}
+tracks/1/type = "animation"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Die1/AnimationPlayer")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.14)
+}
+tracks/2/type = "animation"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Die2/AnimationPlayer")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.28)
+}
+tracks/3/type = "animation"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Die3/AnimationPlayer")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.42)
+}
+tracks/4/type = "animation"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Die4/AnimationPlayer")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.56)
+}
+
+[sub_resource type="Animation" id="Animation_3vh2n"]
+length = 0.56
+tracks/0/type = "animation"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Die0/AnimationPlayer")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0)
+}
+tracks/1/type = "animation"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Die1/AnimationPlayer")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.08)
+}
+tracks/2/type = "animation"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Die2/AnimationPlayer")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.16)
+}
+tracks/3/type = "animation"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Die3/AnimationPlayer")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.24)
+}
+tracks/4/type = "animation"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Die4/AnimationPlayer")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"clips": PackedStringArray("lift_light"),
+"times": PackedFloat32Array(0.32)
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_r34aw"]
+_data = {
+&"pot_sequence_big": SubResource("Animation_qwwa8"),
+&"pot_sequence_normal": SubResource("Animation_3vh2n")
+}
+
+[node name="PottedDiceDemo" type="Node3D" unique_id=949200502]
+
+[node name="Die0" type="Node3D" parent="." unique_id=1053025095 instance=ExtResource("1_ynb83")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 0.04, -0.05)
+
+[node name="Die1" type="Node3D" parent="." unique_id=919962148 instance=ExtResource("1_ynb83")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.04, 0.08)
+
+[node name="Die2" type="Node3D" parent="." unique_id=1250165056 instance=ExtResource("1_ynb83")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, -0.08)
+
+[node name="Die3" type="Node3D" parent="." unique_id=404698446 instance=ExtResource("1_ynb83")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.16, 0.04, 0.05)
+
+[node name="Die4" type="Node3D" parent="." unique_id=1739488560 instance=ExtResource("1_ynb83")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.33, 0.04, -0.03)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=565353661]
+libraries/ = SubResource("AnimationLibrary_r34aw")

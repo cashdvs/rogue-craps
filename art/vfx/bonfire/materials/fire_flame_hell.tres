@@ -1,0 +1,21 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/toon_fire.gdshader" id="1_hsmqy"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_hsmqy")
+shader_parameter/shape = 0
+shader_parameter/billboard = null
+shader_parameter/outer_color = Color(0.78431374, 0.15686275, 0.11764706, 1)
+shader_parameter/mid_color = Color(0.9098039, 0.38431373, 0.16470589, 1)
+shader_parameter/core_color = Color(0.9647059, 0.65882355, 0.27058825, 1)
+shader_parameter/ink_color = null
+shader_parameter/ink_width = null
+shader_parameter/mid_at = null
+shader_parameter/core_at = null
+shader_parameter/energy = 1.3
+shader_parameter/flicker_speed = null
+shader_parameter/wobble = null
+shader_parameter/scroll_speed = null
+shader_parameter/tongues = null

@@ -1,0 +1,40 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Material" path="res://art/models/props/bonfire/materials/prop_ink_mode1.tres" id="1_yuuxy"]
+[ext_resource type="Shader" path="res://shaders/3d/toon_noir.gdshader" id="2_b2vf1"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_yuuxy")
+shader = ExtResource("2_b2vf1")
+shader_parameter/albedo = Color(0.5568628, 0.101960786, 0.1254902, 1)
+shader_parameter/shadow_color = Color(0.16470589, 0.039215688, 0.0627451, 1)
+shader_parameter/mid_tint = 0.72
+shader_parameter/wrap = 0.3
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = 0.85
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = null
+shader_parameter/ambient_energy = null
+shader_parameter/spec_size = 0.97
+shader_parameter/spec_color = null
+shader_parameter/spec_strength = 0.35
+shader_parameter/rim_color = null
+shader_parameter/rim_power = null
+shader_parameter/rim_strength = null
+shader_parameter/emission_color = null
+shader_parameter/emission_energy = null
+shader_parameter/roughness = null
+shader_parameter/use_overlay = null
+shader_parameter/overlay_tint = null
+shader_parameter/grime = null
+shader_parameter/grime_color = null
+shader_parameter/flash = null
+shader_parameter/flash_color = null
+shader_parameter/scorch = null
+shader_parameter/chip_mode = null
+shader_parameter/notch_color = null
+shader_parameter/ring_color = null
+shader_parameter/chip_radius = null

@@ -1,0 +1,25 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://art/vfx/bonfire/shaders/ash_die.gdshader" id="1_cm48w"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_cm48w")
+shader_parameter/base_color = Color(0.05490196, 0.078431375, 0.078431375, 1)
+shader_parameter/base_shadow = Color(0.05490196, 0.078431375, 0.078431375, 1)
+shader_parameter/ash_color = Color(0.16862746, 0.15686275, 0.14901961, 1)
+shader_parameter/ash_shadow = Color(0.05490196, 0.050980393, 0.047058824, 1)
+shader_parameter/ember_color = null
+shader_parameter/ember_energy = null
+shader_parameter/ash_flat = null
+shader_parameter/front_width = null
+shader_parameter/cell_scale = null
+shader_parameter/mid_tint = null
+shader_parameter/wrap = null
+shader_parameter/band_lo = null
+shader_parameter/band_hi = null
+shader_parameter/band_soft = null
+shader_parameter/light_gain = 0.4
+shader_parameter/att_ref = null
+shader_parameter/ambient_color = null
+shader_parameter/ambient_energy = null

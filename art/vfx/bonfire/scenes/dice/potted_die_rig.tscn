@@ -1,0 +1,225 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/lit_face_glow.tres" id="1_fiio4"]
+[ext_resource type="Material" path="res://art/vfx/bonfire/materials/felt_glow_pool.tres" id="2_dwysx"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_hkitv"]
+size = Vector2(0.08, 0.08)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_pjmyo"]
+size = Vector2(0.16, 0.16)
+
+[sub_resource type="Animation" id="Animation_3cprt"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lift:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lift:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(1, 1, 1)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Lift/LitFace:instance_shader_parameters/glow")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("FeltGlow:instance_shader_parameters/glow")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_trq3b"]
+length = 0.15
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lift:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.15),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0.07, 0), Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lift/LitFace:instance_shader_parameters/glow")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.15),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("FeltGlow:instance_shader_parameters/glow")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.15),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.6, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_g2bvx"]
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lift:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0.07, 0), Vector3(0, 0.074, 0), Vector3(0, 0.07, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lift/LitFace:instance_shader_parameters/glow")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [1.0, 0.8, 1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("FeltGlow:instance_shader_parameters/glow")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.6, 0.6]
+}
+
+[sub_resource type="Animation" id="Animation_0act6"]
+length = 0.24
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lift:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14, 0.24),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 0.078, 0), Vector3(0, 0.07, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lift:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.09, 0.24),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(1, 1, 1), Vector3(1.14, 1.14, 1.14), Vector3(1, 1, 1)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Lift/LitFace:instance_shader_parameters/glow")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.08, 0.24),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 1.8, 1.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("FeltGlow:instance_shader_parameters/glow")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.24),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 1.0, 0.6]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_32in3"]
+_data = {
+&"RESET": SubResource("Animation_3cprt"),
+&"drop": SubResource("Animation_trq3b"),
+&"hold": SubResource("Animation_g2bvx"),
+&"lift_light": SubResource("Animation_0act6")
+}
+
+[node name="PottedDie" type="Node3D" unique_id=1053025095]
+
+[node name="Lift" type="Node3D" parent="." unique_id=1798007929]
+
+[node name="DieSlot" type="Node3D" parent="Lift" unique_id=233253030]
+
+[node name="Follow" type="RemoteTransform3D" parent="Lift" unique_id=1211801492]
+update_rotation = false
+
+[node name="LitFace" type="MeshInstance3D" parent="Lift" unique_id=550540191]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0406, 0)
+material_override = ExtResource("1_fiio4")
+cast_shadow = 0
+instance_shader_parameters/glow = 0.0
+mesh = SubResource("PlaneMesh_hkitv")
+
+[node name="FeltGlow" type="MeshInstance3D" parent="." unique_id=1919676470]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0395, 0)
+material_override = ExtResource("2_dwysx")
+cast_shadow = 0
+instance_shader_parameters/glow = 0.0
+mesh = SubResource("PlaneMesh_pjmyo")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1956947442]
+libraries/ = SubResource("AnimationLibrary_32in3")
