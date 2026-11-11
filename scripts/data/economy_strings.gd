@@ -16,6 +16,7 @@ const TEXT: Dictionary[String, String] = {
 	"table_payout_boss": "Boss beaten: +{n} Embers.",
 	"table_payout_final": "Final table beaten: +{n} Embers, run complete.",
 	"table_payout_continue": "Continue",
+	"table_payout_preview": "+{n} Embers",
 }
 const TABLE_PAYOUT_CONTINUE: String = TEXT["table_payout_continue"]
 
@@ -41,14 +42,20 @@ static func table_payout_line(table_type: int, n: int, is_final: bool = false) -
 const POINTS_BECAME_EMBERS := "%d points became %d Embers%s.  Embers %d."
 
 
+## Short top-right preview for a fixed-payout table (table_payout_preview).
+static func table_payout_preview(n: int) -> String:
+	return text("table_payout_preview", {"n": n})
+
+
 ## Live points-line preview (HUD top-right). A fixed-payout goal shows the
-## table_payout_* string; otherwise the miss / legacy conversion preview.
+## short table_payout_preview string; the full table_payout_* sentences stay
+## on the end panel. Miss / legacy tables keep the conversion preview.
 static func points_preview_line(run: BonfireRun, pts: int) -> String:
 	var g := run.goal
-	# Mid-table and a successful clear: the fixed payout. A miss still
+	# Mid-table and a successful clear: the short fixed payout. A miss still
 	# converts, so the preview falls back to the cap line.
 	if g != null and g.fixed_payout and (not run.is_over() or run.cleared):
-		return table_payout_line(g.table_type, g.clear_embers, g.is_final)
+		return table_payout_preview(g.clear_embers)
 	return "points %d → +%d Embers" % [pts, BonfireRun.points_to_embers(run.tuning, pts)]
 
 

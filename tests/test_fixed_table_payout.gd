@@ -314,18 +314,42 @@ func _test_hud_ember_line() -> void:
 	hud.show_end(leg)
 	_check(hud.end_body.text.contains("points became") and not hud.end_body.text.contains("Table beaten"),
 		"hud panel: legacy clear keeps the conversion line")
-	# Live points preview (bonfire_hud_goal.gd): same split.
+	# Live points preview (bonfire_hud_goal.gd): the short table_payout_preview
+	# string on every fixed-payout table; full sentences stay on the end panel.
 	var mid := BonfireRun.new(_tuning, _map_goal(350, 5), 30, 5)
 	mid.points = 200
 	hud.refresh(mid, true)
-	_check(hud.points_label.text == want and not hud.points_label.text.contains("→ +"),
-		"hud preview: a fixed-payout goal shows '%s', not a conversion" % want)
-	_check(EconomyStrings.points_preview_line(mid, 200) == want
-		and EconomyStrings.points_preview_line(elite, elite.points) == "Elite beaten: +42 Embers."
-		and EconomyStrings.points_preview_line(fin, fin.points) == "Final table beaten: +45 Embers, run complete.",
-		"hud preview helper: Table / Elite / Final keys")
+	var short := EconomyStrings.table_payout_preview(26)
+	_check(short == "+26 Embers" and hud.points_label.text == short
+		and not hud.points_label.text.contains("→ +")
+		and not hud.points_label.text.contains("Table beaten"),
+		"hud preview: a fixed-payout goal shows '%s', not a conversion" % short)
+	_check(EconomyStrings.points_preview_line(mid, 200) == "+26 Embers"
+		and EconomyStrings.points_preview_line(elite, elite.points) == "+42 Embers"
+		and EconomyStrings.points_preview_line(fin, fin.points) == "+45 Embers",
+		"hud preview helper: short string on ordinary / Elite / final")
+	# End panel still uses the full sentences; preview does not.
+	_check(EconomyStrings.end_ember_line(r) == "Table beaten: +26 Embers."
+		and EconomyStrings.end_ember_line(elite) == "Elite beaten: +42 Embers."
+		and EconomyStrings.end_ember_line(fin) == "Final table beaten: +45 Embers, run complete."
+		and EconomyStrings.points_preview_line(fin, fin.points) != EconomyStrings.end_ember_line(fin),
+		"hud preview: full table_payout_* sentences stay on the end panel")
 	hud.refresh(r, true)
-	_check(hud.points_label.text == want, "hud preview: a fixed clear keeps the payout string")
+	_check(hud.points_label.text == "+26 Embers", "hud preview: a fixed clear keeps the short string")
+	hud.refresh(elite, true)
+	_check(hud.points_label.text == "+42 Embers", "hud preview: Elite shows the short string")
+	hud.refresh(fin, true)
+	_check(hud.points_label.text == "+45 Embers", "hud preview: final shows '+45 Embers'")
+	# The short string fits the 340 px top-right slot (no widen / wrap).
+	const SLOT := 340.0
+	_check(hud.points_label.size.x == SLOT and hud.points_label.autowrap_mode == TextServer.AUTOWRAP_OFF,
+		"hud preview: slot stays 340 px, no wrap")
+	var fit_ok := true
+	for n in [26, 42, 56, 45]:
+		hud.points_label.text = EconomyStrings.table_payout_preview(n)
+		if hud.points_label.get_minimum_size().x > SLOT:
+			fit_ok = false
+	_check(fit_ok, "hud preview: +26 / +42 / +56 / +45 Embers all fit the 340 px slot")
 	hud.refresh(miss, true)
 	_check(hud.points_label.text == "points 750 → +6 Embers",
 		"hud preview: a miss still shows the conversion cap line")

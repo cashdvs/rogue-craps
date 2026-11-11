@@ -53,3 +53,4 @@ Repo copy: only the rows the game loads by id from this file so far; the full ta
 | Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_boss | (new) | Boss beaten: +{n} Embers. | 4 |
 | Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_final | (new) | Final table beaten: +{n} Embers, run complete. | 7 |
 | Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_continue | (new) | Continue | 1 |
+| Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_preview | (new) | +{n} Embers | 2 |
