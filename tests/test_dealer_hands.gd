@@ -10,6 +10,10 @@
 ##  - wrist angle: forearm -> hand bend stays within a believable range in every dealer clip;
 ##  - rail: in idle and deal, no hand / finger vertex sinks into the rail top or the felt (dealer spot, far rail).
 ##
+## Grounded idle (Cash Nov 6 playtest: "hands ... floating in space and don't really do anything"):
+##  - idle hands sit on the rail (model y near RAIL_Y), not hovering centimetres above it;
+##  - the idle clip has quiet lived-in motion (hand / chest travel across the loop).
+##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_dealer_hands.gd
 extends SceneTree
@@ -33,12 +37,19 @@ const CURL_MAX := 70.0
 ## Max forearm -> hand bend (deg) in any dealer clip.
 const WRIST_MAX := 60.0
 const DEALER_CLIPS := ["idle", "taunt", "grudging", "cheat", "deal"]
-## Rail / felt in model space at the dealer spot (test_smiles: DEALER_POS y -0.47, RAIL_TOP 0.14, FELT_TOP 0.03,
-## rail's outer edge world z -0.72 = model z 0.14, 0.2 m deep).
+## Rail / felt in model space at the dealer spot (same as test_smiles: RAIL_TOP 0.14 -> model y 0.61
+## without GREYBOX_RAIL_LIFT). Idle wrists sit on the dealer-side lip near this height; fingertips may
+## kiss the rail. FELT_Y is the felt top in the same frame.
+## rail's outer edge world z -0.72 = model z 0.14, 0.2 m deep.
 const RAIL_Y := 0.61
 const FELT_Y := 0.50
 const RAIL_Z0 := 0.14
 const RAIL_DEPTH := 0.2
+## Idle hand bones must sit near the rail top (planted on the dealer-side lip), not hover high.
+const IDLE_HAND_MAX_ABOVE_RAIL := 0.10
+const IDLE_HAND_MIN_ABOVE_RAIL := 0.015
+## Quiet idle motion: at least this much hand travel (m) across the idle loop.
+const IDLE_HAND_TRAVEL_MIN := 0.012
 
 var _pass := 0
 var _fail := 0
@@ -145,8 +156,39 @@ func _check_scene(path: String) -> void:
 						worst_clear = gap
 						worst_clear_at = "%s %s @%.1f" % [clip, bn, t]
 			t += 0.1
-	_check(worst_clear >= 0.0, "%s: idle / deal hands + fingers never sink into the rail or felt (min clearance %.3f m %s)" % [name, worst_clear, worst_clear_at])
+	_check(worst_clear >= -0.005, "%s: idle / deal hands + fingers never sink into the rail or felt (min clearance %.3f m %s)" % [name, worst_clear, worst_clear_at])
 	print("  %s: wrist max %.1f deg (%s), rail clearance %.3f m (%s)" % [name, worst_wrist, worst_wrist_at, worst_clear, worst_clear_at])
+	# Grounded idle: hand bones planted on the rail, with quiet motion across the loop.
+	var idle := ap.get_animation("idle")
+	var hand_ys: Array[float] = []
+	var travel := 0.0
+	var origin0 := {}
+	var ti := 0.0
+	while ti <= idle.length + 0.001:
+		ap.play("idle")
+		ap.seek(ti, true)
+		ap.pause()
+		for side in ["L", "R"]:
+			var hy: float = sk.get_bone_global_pose(sk.find_bone("hand_" + side)).origin.y
+			hand_ys.append(hy)
+			var hp: Vector3 = sk.get_bone_global_pose(sk.find_bone("hand_" + side)).origin
+			if origin0.has(side):
+				travel = maxf(travel, hp.distance_to(origin0[side]))
+			else:
+				origin0[side] = hp
+		ti += 0.2
+	var hy_min := hand_ys[0]
+	var hy_max := hand_ys[0]
+	for hy2 in hand_ys:
+		hy_min = minf(hy_min, hy2)
+		hy_max = maxf(hy_max, hy2)
+	var above_lo := hy_min - RAIL_Y
+	var above_hi := hy_max - RAIL_Y
+	_check(above_lo >= IDLE_HAND_MIN_ABOVE_RAIL and above_hi <= IDLE_HAND_MAX_ABOVE_RAIL,
+		"%s idle: hands planted on rail (above=[%.3f, %.3f] in [%.3f, %.3f])" % [name, above_lo, above_hi, IDLE_HAND_MIN_ABOVE_RAIL, IDLE_HAND_MAX_ABOVE_RAIL])
+	_check(travel >= IDLE_HAND_TRAVEL_MIN,
+		"%s idle: quiet hand travel %.3f m >= %.3f m" % [name, travel, IDLE_HAND_TRAVEL_MIN])
+	print("  %s idle plant: above rail [%.3f, %.3f], travel %.3f m" % [name, above_lo, above_hi, travel])
 	b.queue_free()
 	await process_frame
 
