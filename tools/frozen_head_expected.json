@@ -1,0 +1,1973 @@
+{
+  "parent": "identity",
+  "yaw_deg": 0,
+  "cadence_hz": 60,
+  "seats": {
+    "production": {
+      "local": [
+        -0.42,
+        -0.35,
+        -0.86
+      ]
+    },
+    "fixture": {
+      "local": [
+        -0.42,
+        -0.47,
+        -0.86
+      ]
+    }
+  },
+  "unsupported_seats": {
+    "documented_mc_beside_boss": {
+      "local": [
+        -1.32,
+        -0.42,
+        -0.3
+      ],
+      "yaw_deg": 90
+    }
+  },
+  "files": {
+    "baseline_pc_production.json": {
+      "sha256": "f40df3aac71d9c4ed465280f3835c6cc387fe5d128e6348bb0b01233e5fe8cce",
+      "bytes": 155359,
+      "vertices": 4139,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 418,
+          "index_count": 2328
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 418,
+          "count": 742,
+          "index_count": 4308
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 1160,
+          "count": 199,
+          "index_count": 1146
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1359,
+          "count": 218,
+          "index_count": 1080
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1577,
+          "count": 276,
+          "index_count": 1584
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 1853,
+          "count": 42,
+          "index_count": 240
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 1895,
+          "count": 40,
+          "index_count": 120
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1935,
+          "count": 545,
+          "index_count": 3210
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 2480,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 2550,
+          "count": 335,
+          "index_count": 1890
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 2885,
+          "count": 232,
+          "index_count": 1368
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 3117,
+          "count": 172,
+          "index_count": 1008
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 3289,
+          "count": 223,
+          "index_count": 1314
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 3512,
+          "count": 116,
+          "index_count": 336
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 3628,
+          "count": 50,
+          "index_count": 150
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 3678,
+          "count": 277,
+          "index_count": 1500
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 3955,
+          "count": 92,
+          "index_count": 528
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 4047,
+          "count": 92,
+          "index_count": 528
+        }
+      ]
+    },
+    "native_head/baseline_pc_production_idle.bin": {
+      "sha256": "5ea02279b275880ff9252432358f7fd57aa931c7d6c42a3ff0a277e0a4d38992",
+      "bytes": 8989908
+    },
+    "native_head/baseline_pc_production_deal.bin": {
+      "sha256": "6bc5cfd3297e25a897a647f76e2a56ad81b8e3c478e7d140635690f517aa4845",
+      "bytes": 3029748
+    },
+    "native_head/baseline_pc_production_taunt.bin": {
+      "sha256": "08b00583c1cd9aa71012e8a6c4c8b1bdb5e35382afc5190926f2bbc98cf09222",
+      "bytes": 4221780
+    },
+    "native_head/baseline_pc_production_grudging.bin": {
+      "sha256": "d3c526df5aeb2b2f2d6d283bf934ae2dc1403f0933e49208302f58ac7746dd66",
+      "bytes": 4817796
+    },
+    "native_head/baseline_pc_production_cheat.bin": {
+      "sha256": "6829f892143b0e894ab883e993a5cdc1fe85cda640994e08a30e66509aacbe83",
+      "bytes": 3625764
+    },
+    "native_head/baseline_pc_production_mc_idle.bin": {
+      "sha256": "31133bec0e2fbb9c4d2f45430554cd4214d625103794b98f653d7c6fde95aac2",
+      "bytes": 7201860
+    },
+    "native_head/baseline_pc_production_mc_cheer.bin": {
+      "sha256": "d4b5df3e619694db1bc7e43514deb5eb55b59c4d3c3a36d16e1fff92beebc57b",
+      "bytes": 3625764
+    },
+    "baseline_pc_fixture.json": {
+      "sha256": "13bc4c2ca490d2b5615bae5015d070a7d32aff1f00b6f0bad3360de89c3e5f7b",
+      "bytes": 155356,
+      "vertices": 4139,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 418,
+          "index_count": 2328
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 418,
+          "count": 742,
+          "index_count": 4308
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 1160,
+          "count": 199,
+          "index_count": 1146
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1359,
+          "count": 218,
+          "index_count": 1080
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1577,
+          "count": 276,
+          "index_count": 1584
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 1853,
+          "count": 42,
+          "index_count": 240
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 1895,
+          "count": 40,
+          "index_count": 120
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1935,
+          "count": 545,
+          "index_count": 3210
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 2480,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 2550,
+          "count": 335,
+          "index_count": 1890
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 2885,
+          "count": 232,
+          "index_count": 1368
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 3117,
+          "count": 172,
+          "index_count": 1008
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 3289,
+          "count": 223,
+          "index_count": 1314
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 3512,
+          "count": 116,
+          "index_count": 336
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 3628,
+          "count": 50,
+          "index_count": 150
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 3678,
+          "count": 277,
+          "index_count": 1500
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 3955,
+          "count": 92,
+          "index_count": 528
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 4047,
+          "count": 92,
+          "index_count": 528
+        }
+      ]
+    },
+    "native_head/baseline_pc_fixture_idle.bin": {
+      "sha256": "09e29313c6824a1a28e008e464b262e8e7a20f8a399a740f326ff08bb2669872",
+      "bytes": 8989908
+    },
+    "native_head/baseline_pc_fixture_deal.bin": {
+      "sha256": "8e3e4044017434038a9579572e14479938576f76bd89fa399df165b3f7d8e2dc",
+      "bytes": 3029748
+    },
+    "native_head/baseline_pc_fixture_taunt.bin": {
+      "sha256": "57e11a120d41461502ba2bc8f3eead99f37c9fc0e5b268e877a448c840053ccb",
+      "bytes": 4221780
+    },
+    "native_head/baseline_pc_fixture_grudging.bin": {
+      "sha256": "ca1bec6b16d0d5aa9750b5354bd390682b092b234ed5defc56e5890df32f3f8a",
+      "bytes": 4817796
+    },
+    "native_head/baseline_pc_fixture_cheat.bin": {
+      "sha256": "c23b65b86889dbb43df1cabcb524cbf62bdaa01066a548a7cdd4feb3a6574c0b",
+      "bytes": 3625764
+    },
+    "native_head/baseline_pc_fixture_mc_idle.bin": {
+      "sha256": "ae30332e7476413232c61f7a07659274588f64abc0bc65d13d6bb014f2e153ad",
+      "bytes": 7201860
+    },
+    "native_head/baseline_pc_fixture_mc_cheer.bin": {
+      "sha256": "f82dac8abcb3cfe096fc40dd4c4be2aaa8040fbcf550788e5f8cb262121e4d41",
+      "bytes": 3625764
+    },
+    "baseline_mobile_production.json": {
+      "sha256": "42e16647c0c4712b32e470dae5bab491ec04d0f8f17b771138a229c723bf37b1",
+      "bytes": 77766,
+      "vertices": 1943,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 277,
+          "index_count": 1482
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 277,
+          "count": 324,
+          "index_count": 1800
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 601,
+          "count": 121,
+          "index_count": 678
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 722,
+          "count": 122,
+          "index_count": 576
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 844,
+          "count": 108,
+          "index_count": 576
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 952,
+          "count": 26,
+          "index_count": 144
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 978,
+          "count": 24,
+          "index_count": 72
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1002,
+          "count": 207,
+          "index_count": 1182
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 1209,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1255,
+          "count": 143,
+          "index_count": 738
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1398,
+          "count": 120,
+          "index_count": 696
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 1518,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 1564,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 1634,
+          "count": 60,
+          "index_count": 168
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1694,
+          "count": 30,
+          "index_count": 90
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 1724,
+          "count": 107,
+          "index_count": 540
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 1831,
+          "count": 56,
+          "index_count": 312
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 1887,
+          "count": 56,
+          "index_count": 312
+        }
+      ]
+    },
+    "native_head/baseline_mobile_production_idle.bin": {
+      "sha256": "07482f6ea2bfa881658d1d03351e1258602c1abe7d2c2a0634cef42efdff9f86",
+      "bytes": 4220196
+    },
+    "native_head/baseline_mobile_production_deal.bin": {
+      "sha256": "17ae0b7a153a895026ba02a18b2bbce9c1c69df3eec57d85ff8cb16080c719ac",
+      "bytes": 1422276
+    },
+    "native_head/baseline_mobile_production_taunt.bin": {
+      "sha256": "8198138f80632abae13f8ecbd75fc0e2475e4c5d3af47cd44b1afeceda3bc2f5",
+      "bytes": 1981860
+    },
+    "native_head/baseline_mobile_production_grudging.bin": {
+      "sha256": "6adbdf24350126d8f512d70ac07e0fc6f30519c00d578e7252a082de0a25e547",
+      "bytes": 2261652
+    },
+    "native_head/baseline_mobile_production_cheat.bin": {
+      "sha256": "2db859a7d423d1011e9e295bbf21d98af1fe1e57ad1d7116fc3b85f22bf9558a",
+      "bytes": 1702068
+    },
+    "native_head/baseline_mobile_production_mc_idle.bin": {
+      "sha256": "b2b97053ea9ca5bbae51e86009c09d556d41544f5c8f36f6e8f79b7e95ccb5bc",
+      "bytes": 3380820
+    },
+    "native_head/baseline_mobile_production_mc_cheer.bin": {
+      "sha256": "d20c36db602c902386403b712670dcc14f48f227d35b1d4feb5a5eda46f0f00b",
+      "bytes": 1702068
+    },
+    "baseline_mobile_fixture.json": {
+      "sha256": "fbe2e0f14013407c861508ab2b12470d40b1262e91e0fc5d0bfae13d7b1cd787",
+      "bytes": 77763,
+      "vertices": 1943,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 277,
+          "index_count": 1482
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 277,
+          "count": 324,
+          "index_count": 1800
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 601,
+          "count": 121,
+          "index_count": 678
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 722,
+          "count": 122,
+          "index_count": 576
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 844,
+          "count": 108,
+          "index_count": 576
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 952,
+          "count": 26,
+          "index_count": 144
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 978,
+          "count": 24,
+          "index_count": 72
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1002,
+          "count": 207,
+          "index_count": 1182
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 1209,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1255,
+          "count": 143,
+          "index_count": 738
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1398,
+          "count": 120,
+          "index_count": 696
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 1518,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 1564,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 1634,
+          "count": 60,
+          "index_count": 168
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1694,
+          "count": 30,
+          "index_count": 90
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 1724,
+          "count": 107,
+          "index_count": 540
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 1831,
+          "count": 56,
+          "index_count": 312
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 1887,
+          "count": 56,
+          "index_count": 312
+        }
+      ]
+    },
+    "native_head/baseline_mobile_fixture_idle.bin": {
+      "sha256": "94ca23453537f76932f0d930b50cec5a0dafd2b3311ead74c872fb6fd35017e8",
+      "bytes": 4220196
+    },
+    "native_head/baseline_mobile_fixture_deal.bin": {
+      "sha256": "61c8b18f6c0434dfdcdb596955d1926330acbba46d0a2c9e647745cbf3d6864a",
+      "bytes": 1422276
+    },
+    "native_head/baseline_mobile_fixture_taunt.bin": {
+      "sha256": "a3fe902309ca204efc2ac1d6273fa17e6fc1a919e38fea381b0a78e02dfafff6",
+      "bytes": 1981860
+    },
+    "native_head/baseline_mobile_fixture_grudging.bin": {
+      "sha256": "96c55fc3e45981bd9624aadd09a98d2ad894611977a823e2e6ad8ffe3ffd03b2",
+      "bytes": 2261652
+    },
+    "native_head/baseline_mobile_fixture_cheat.bin": {
+      "sha256": "566ee57a9d0409059d09673527e75eda5a515c5d46277c90494933d190cc219b",
+      "bytes": 1702068
+    },
+    "native_head/baseline_mobile_fixture_mc_idle.bin": {
+      "sha256": "b3814bd8bd20ca3dd8c068aa8a482f48f96a4d622a402062da6b933bde66002b",
+      "bytes": 3380820
+    },
+    "native_head/baseline_mobile_fixture_mc_cheer.bin": {
+      "sha256": "3af55114cf2d5fa87c41532fb37e6cfbc286d88ac381fddd2cafa633b832b16f",
+      "bytes": 1702068
+    },
+    "v188_pc_production.json": {
+      "sha256": "a93f5f17f534a056995b5656bff87f146a8a18f0c48fd36137fe95e727ffee06",
+      "bytes": 191084,
+      "vertices": 4294,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 713,
+          "index_count": 4023
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 713,
+          "count": 612,
+          "index_count": 3153
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 1325,
+          "count": 407,
+          "index_count": 2019
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1732,
+          "count": 243,
+          "index_count": 954
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1975,
+          "count": 33,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 2008,
+          "count": 42,
+          "index_count": 240
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 2050,
+          "count": 40,
+          "index_count": 120
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 2090,
+          "count": 545,
+          "index_count": 3210
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 2635,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 2705,
+          "count": 335,
+          "index_count": 1890
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 3040,
+          "count": 232,
+          "index_count": 1368
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 3272,
+          "count": 172,
+          "index_count": 1008
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 3444,
+          "count": 223,
+          "index_count": 1314
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 3667,
+          "count": 116,
+          "index_count": 336
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 3783,
+          "count": 50,
+          "index_count": 150
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 3833,
+          "count": 277,
+          "index_count": 1500
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 4110,
+          "count": 92,
+          "index_count": 528
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 4202,
+          "count": 92,
+          "index_count": 528
+        }
+      ]
+    },
+    "native_head/v188_pc_production_idle.bin": {
+      "sha256": "eb0a60e4c889cb7992d8eb1e6db0b6dd38e8d9ce486426acd234e3bf486da07b",
+      "bytes": 9326568
+    },
+    "native_head/v188_pc_production_deal.bin": {
+      "sha256": "d49b976d176ccf06b6afb4c48e0121082d0649d8f1e59e5db8e6b16e6304da03",
+      "bytes": 3143208
+    },
+    "native_head/v188_pc_production_taunt.bin": {
+      "sha256": "ab41706dddda572fa343800c1e06526886995dc96c8afe55172e206291689369",
+      "bytes": 4379880
+    },
+    "native_head/v188_pc_production_grudging.bin": {
+      "sha256": "e8ddf5b808f5836010ad70a30ecb01556db3ad8a96adb7bdea185e6d4d7a6810",
+      "bytes": 4998216
+    },
+    "native_head/v188_pc_production_cheat.bin": {
+      "sha256": "829106ff38c3379d4d78bab3097c0a914929e933b51eb45fc96407a07a816af7",
+      "bytes": 3761544
+    },
+    "native_head/v188_pc_production_mc_idle.bin": {
+      "sha256": "514c92468c811336c39cabdbec71417d0d1506ee67766cc7c5c1012739de718c",
+      "bytes": 7471560
+    },
+    "native_head/v188_pc_production_mc_cheer.bin": {
+      "sha256": "6313a6fb4e6b56d557a78b6fe137858f6431a2e7f13e6b7f8bd11a47d1e144fd",
+      "bytes": 3761544
+    },
+    "v188_pc_fixture.json": {
+      "sha256": "eeff358573ac02d4bee1773a571741fa1821b94c42abb49752b9979e37ead0cd",
+      "bytes": 191081,
+      "vertices": 4294,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 713,
+          "index_count": 4023
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 713,
+          "count": 612,
+          "index_count": 3153
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 1325,
+          "count": 407,
+          "index_count": 2019
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1732,
+          "count": 243,
+          "index_count": 954
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1975,
+          "count": 33,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 2008,
+          "count": 42,
+          "index_count": 240
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 2050,
+          "count": 40,
+          "index_count": 120
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 2090,
+          "count": 545,
+          "index_count": 3210
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 2635,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 2705,
+          "count": 335,
+          "index_count": 1890
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 3040,
+          "count": 232,
+          "index_count": 1368
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 3272,
+          "count": 172,
+          "index_count": 1008
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 3444,
+          "count": 223,
+          "index_count": 1314
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 3667,
+          "count": 116,
+          "index_count": 336
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 3783,
+          "count": 50,
+          "index_count": 150
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 3833,
+          "count": 277,
+          "index_count": 1500
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 4110,
+          "count": 92,
+          "index_count": 528
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 4202,
+          "count": 92,
+          "index_count": 528
+        }
+      ]
+    },
+    "native_head/v188_pc_fixture_idle.bin": {
+      "sha256": "f396d89c2468bdd9e2407dd959abca855102e3d015e53858096038e366f633ef",
+      "bytes": 9326568
+    },
+    "native_head/v188_pc_fixture_deal.bin": {
+      "sha256": "a0902d8fc749aa97b0fd064a9a0a86cde9c531c9832a5b37485ac112f063b419",
+      "bytes": 3143208
+    },
+    "native_head/v188_pc_fixture_taunt.bin": {
+      "sha256": "4679ac6cc5ad34510fbcdc4ae4ec33b0b5b07594d941fb21ed0d785c377a74bc",
+      "bytes": 4379880
+    },
+    "native_head/v188_pc_fixture_grudging.bin": {
+      "sha256": "69094b8a55e6a4fe4adbf32e37da7ee20ee04d1358cce5c28622c513423f55d1",
+      "bytes": 4998216
+    },
+    "native_head/v188_pc_fixture_cheat.bin": {
+      "sha256": "f998031a8b90aa3db03eb8a1d36822670d0630fdc0ba89822a39e5d2ea2833dc",
+      "bytes": 3761544
+    },
+    "native_head/v188_pc_fixture_mc_idle.bin": {
+      "sha256": "0ea2f31d1606d0f3c01b8fce99f502044e367eb99902d6f53311d6ecaedabb8b",
+      "bytes": 7471560
+    },
+    "native_head/v188_pc_fixture_mc_cheer.bin": {
+      "sha256": "7395d92a7ad6153897c03b7d33eadaeafccd8668ec037281cf8c0c65911de75e",
+      "bytes": 3761544
+    },
+    "v188_mobile_production.json": {
+      "sha256": "a0f7db3d654dcc8f5fc9e38dc1197557978a5e2b3085ce5ebfb0fe3d3468bf3f",
+      "bytes": 97546,
+      "vertices": 2040,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 395,
+          "index_count": 2142
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 395,
+          "count": 303,
+          "index_count": 1476
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 698,
+          "count": 197,
+          "index_count": 966
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 895,
+          "count": 136,
+          "index_count": 471
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1031,
+          "count": 19,
+          "index_count": 63
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 1050,
+          "count": 25,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 1075,
+          "count": 24,
+          "index_count": 72
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1099,
+          "count": 207,
+          "index_count": 1182
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 1306,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1352,
+          "count": 143,
+          "index_count": 738
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1495,
+          "count": 120,
+          "index_count": 696
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 1615,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 1661,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 1731,
+          "count": 60,
+          "index_count": 168
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1791,
+          "count": 30,
+          "index_count": 90
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 1821,
+          "count": 107,
+          "index_count": 540
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 1928,
+          "count": 56,
+          "index_count": 312
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 1984,
+          "count": 56,
+          "index_count": 312
+        }
+      ]
+    },
+    "native_head/v188_mobile_production_idle.bin": {
+      "sha256": "66677511235e3b662de13efa9a8189c5b6c772b376863ab907ecc716912fb5c3",
+      "bytes": 4430880
+    },
+    "native_head/v188_mobile_production_deal.bin": {
+      "sha256": "e39a91ebfc2109bc3ed0908476f5c66f54222e00f1d90ce24ba87296df16066c",
+      "bytes": 1493280
+    },
+    "native_head/v188_mobile_production_taunt.bin": {
+      "sha256": "5bb89a384686eea4359a692a0b10d4b4e805fea8f71380c812f346548dfb21ac",
+      "bytes": 2080800
+    },
+    "native_head/v188_mobile_production_grudging.bin": {
+      "sha256": "23bec81e06eac24d3c51e39ff496aef97864c3783acb4e60df5adaf7e73ea962",
+      "bytes": 2374560
+    },
+    "native_head/v188_mobile_production_cheat.bin": {
+      "sha256": "a1cb03de36556997b6834cd62979f1f8c2b8d94364f10f6cff33e9e79b3026c3",
+      "bytes": 1787040
+    },
+    "native_head/v188_mobile_production_mc_idle.bin": {
+      "sha256": "e028f89693a5461ed886a270cd0e0a6dcac3db652f93326f0205a6daab82ae6f",
+      "bytes": 3549600
+    },
+    "native_head/v188_mobile_production_mc_cheer.bin": {
+      "sha256": "0e902873070006165d253c0382ba3b5a6056fd87e9e0d55de840bb748dbaae0f",
+      "bytes": 1787040
+    },
+    "v188_mobile_fixture.json": {
+      "sha256": "7ed912d07dddcf03d7c06b5acddf2120ba658f608bf8a6727512fcd8169c9299",
+      "bytes": 97543,
+      "vertices": 2040,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 395,
+          "index_count": 2142
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 395,
+          "count": 303,
+          "index_count": 1476
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 698,
+          "count": 197,
+          "index_count": 966
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 895,
+          "count": 136,
+          "index_count": 471
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1031,
+          "count": 19,
+          "index_count": 63
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 1050,
+          "count": 25,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 1075,
+          "count": 24,
+          "index_count": 72
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1099,
+          "count": 207,
+          "index_count": 1182
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 1306,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1352,
+          "count": 143,
+          "index_count": 738
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1495,
+          "count": 120,
+          "index_count": 696
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 1615,
+          "count": 46,
+          "index_count": 252
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 1661,
+          "count": 70,
+          "index_count": 396
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 1731,
+          "count": 60,
+          "index_count": 168
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1791,
+          "count": 30,
+          "index_count": 90
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 1821,
+          "count": 107,
+          "index_count": 540
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 1928,
+          "count": 56,
+          "index_count": 312
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 1984,
+          "count": 56,
+          "index_count": 312
+        }
+      ]
+    },
+    "native_head/v188_mobile_fixture_idle.bin": {
+      "sha256": "5f0bf34bc3331f5b92a0cf7a14e360729592546d5914c0742fe549565abc0845",
+      "bytes": 4430880
+    },
+    "native_head/v188_mobile_fixture_deal.bin": {
+      "sha256": "55932a4f136d3c10ab491b8676c460e666107997229c8f75324a885b81f46caf",
+      "bytes": 1493280
+    },
+    "native_head/v188_mobile_fixture_taunt.bin": {
+      "sha256": "8afda26cd9bb1c365d8da8484ca3b4273e9e36777c8b5fc9b7413ec59d7d3cd6",
+      "bytes": 2080800
+    },
+    "native_head/v188_mobile_fixture_grudging.bin": {
+      "sha256": "2a869972a5137867415bc138b4f5f5cebc14e8ca2453b6ae5ce8f755f8a7094a",
+      "bytes": 2374560
+    },
+    "native_head/v188_mobile_fixture_cheat.bin": {
+      "sha256": "9a4499de21f37b50b81fabb355bbe4c752aa61cd5ec5a7bd16437df534b1b538",
+      "bytes": 1787040
+    },
+    "native_head/v188_mobile_fixture_mc_idle.bin": {
+      "sha256": "a197aa69bb09e26a371a8eebaa47287eab9dee99cced279472b2d60a63e4f635",
+      "bytes": 3549600
+    },
+    "native_head/v188_mobile_fixture_mc_cheer.bin": {
+      "sha256": "445af92df07ae926241225a0f12ab63876dc6c57148c0f8a6df2c6dbb465e2c1",
+      "bytes": 1787040
+    },
+    "v194_pc_production.json": {
+      "sha256": "ea5e1d4eefcece66b36b937f6b3e20c954effe7399a3d1f3a5bdaf6f1ddbd6c2",
+      "bytes": 272649,
+      "vertices": 10231,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 713,
+          "index_count": 4023
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 713,
+          "count": 612,
+          "index_count": 3153
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 1325,
+          "count": 407,
+          "index_count": 2019
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1732,
+          "count": 243,
+          "index_count": 954
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1975,
+          "count": 33,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 2008,
+          "count": 42,
+          "index_count": 240
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 2050,
+          "count": 40,
+          "index_count": 120
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 2090,
+          "count": 2990,
+          "index_count": 3258
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 5080,
+          "count": 510,
+          "index_count": 510
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 5590,
+          "count": 2643,
+          "index_count": 2643
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 8233,
+          "count": 232,
+          "index_count": 1368
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 8465,
+          "count": 273,
+          "index_count": 273
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 8738,
+          "count": 866,
+          "index_count": 1284
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 9604,
+          "count": 116,
+          "index_count": 336
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 9720,
+          "count": 50,
+          "index_count": 150
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 9770,
+          "count": 277,
+          "index_count": 1500
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 10047,
+          "count": 92,
+          "index_count": 528
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 10139,
+          "count": 92,
+          "index_count": 528
+        }
+      ]
+    },
+    "native_head/v194_pc_production_idle.bin": {
+      "sha256": "bb47c678dcb7216252682ccb71bdb9bf2347652f78b1c4285e08e403425835c0",
+      "bytes": 22221732
+    },
+    "native_head/v194_pc_production_deal.bin": {
+      "sha256": "78f22f521afaa0ab3ed2f93e2d591fc23a31dfc5861340555031e2eb8e387cba",
+      "bytes": 7489092
+    },
+    "native_head/v194_pc_production_taunt.bin": {
+      "sha256": "af5c308292927581de3ba5b50ebc6429577602784d942b0c1e79019394f001d9",
+      "bytes": 10435620
+    },
+    "native_head/v194_pc_production_grudging.bin": {
+      "sha256": "26b7041302992af7e7dad365104fc39fea899b4ccb6cf6f61a6d38b2bfc16d98",
+      "bytes": 11908884
+    },
+    "native_head/v194_pc_production_cheat.bin": {
+      "sha256": "cc25208f6cc70ab6849d92cd486985b22b52ee1307258ddd970af393b0fe49f4",
+      "bytes": 8962356
+    },
+    "native_head/v194_pc_production_mc_idle.bin": {
+      "sha256": "e72c2fd973a968220de9e658d952e2ff797e07ee71cb5ca5201b65be244dc29e",
+      "bytes": 17801940
+    },
+    "native_head/v194_pc_production_mc_cheer.bin": {
+      "sha256": "ee3a377453572d05a5912b33569cc466d5eea2152379059029387a5d997be17f",
+      "bytes": 8962356
+    },
+    "v194_pc_fixture.json": {
+      "sha256": "0f32ab681cdf427d447ebdc314aa0cb9e11e3343d2d8398d03dce862042ff665",
+      "bytes": 272646,
+      "vertices": 10231,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 713,
+          "index_count": 4023
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 713,
+          "count": 612,
+          "index_count": 3153
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 1325,
+          "count": 407,
+          "index_count": 2019
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 1732,
+          "count": 243,
+          "index_count": 954
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1975,
+          "count": 33,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 2008,
+          "count": 42,
+          "index_count": 240
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 2050,
+          "count": 40,
+          "index_count": 120
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 2090,
+          "count": 2990,
+          "index_count": 3258
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 5080,
+          "count": 510,
+          "index_count": 510
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 5590,
+          "count": 2643,
+          "index_count": 2643
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 8233,
+          "count": 232,
+          "index_count": 1368
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 8465,
+          "count": 273,
+          "index_count": 273
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 8738,
+          "count": 866,
+          "index_count": 1284
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 9604,
+          "count": 116,
+          "index_count": 336
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 9720,
+          "count": 50,
+          "index_count": 150
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 9770,
+          "count": 277,
+          "index_count": 1500
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 10047,
+          "count": 92,
+          "index_count": 528
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 10139,
+          "count": 92,
+          "index_count": 528
+        }
+      ]
+    },
+    "native_head/v194_pc_fixture_idle.bin": {
+      "sha256": "47ad7575ee25253fabd9844fd5d5788ecaa3acc3e16401284ae781b2ff6fddde",
+      "bytes": 22221732
+    },
+    "native_head/v194_pc_fixture_deal.bin": {
+      "sha256": "90ede85fd9f2a1c5877be4b4ffeb9f25d428355b494d29048f66c5f8a6c59998",
+      "bytes": 7489092
+    },
+    "native_head/v194_pc_fixture_taunt.bin": {
+      "sha256": "6788c1b3370461f99c519da21ba4a53320660352ece883ef2f4c008ac151fb93",
+      "bytes": 10435620
+    },
+    "native_head/v194_pc_fixture_grudging.bin": {
+      "sha256": "8723d89cb8ee324d2c1ae2c3cab9ac17b80df801394349e9bb94d97872b47f3d",
+      "bytes": 11908884
+    },
+    "native_head/v194_pc_fixture_cheat.bin": {
+      "sha256": "d27897e254183f01891dd8d350198c4a35747ed34deae678a6c78b91a245ee99",
+      "bytes": 8962356
+    },
+    "native_head/v194_pc_fixture_mc_idle.bin": {
+      "sha256": "d91c9c9e17455927addd287888788e4f671d40b80ab059db4b91c5a28910266a",
+      "bytes": 17801940
+    },
+    "native_head/v194_pc_fixture_mc_cheer.bin": {
+      "sha256": "82da3efe3003e97db958a30a2adbc71cbd482a34cfc9c96c706ab0dfca301d3d",
+      "bytes": 8962356
+    },
+    "v194_mobile_production.json": {
+      "sha256": "53b685c298c63a00d287ceb49b8f9bb4959f41ac525d9e5ba3e06397c4c968d7",
+      "bytes": 126267,
+      "vertices": 4091,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 395,
+          "index_count": 2142
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 395,
+          "count": 303,
+          "index_count": 1476
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 698,
+          "count": 197,
+          "index_count": 966
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 895,
+          "count": 136,
+          "index_count": 471
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1031,
+          "count": 19,
+          "index_count": 63
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 1050,
+          "count": 25,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 1075,
+          "count": 24,
+          "index_count": 72
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1099,
+          "count": 998,
+          "index_count": 1146
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 2097,
+          "count": 276,
+          "index_count": 276
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 2373,
+          "count": 972,
+          "index_count": 972
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 3345,
+          "count": 120,
+          "index_count": 696
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 3465,
+          "count": 57,
+          "index_count": 57
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 3522,
+          "count": 260,
+          "index_count": 363
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 3782,
+          "count": 60,
+          "index_count": 168
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 3842,
+          "count": 30,
+          "index_count": 90
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 3872,
+          "count": 107,
+          "index_count": 540
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 3979,
+          "count": 56,
+          "index_count": 312
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 4035,
+          "count": 56,
+          "index_count": 312
+        }
+      ]
+    },
+    "native_head/v194_mobile_production_idle.bin": {
+      "sha256": "351be8efaeb0f678e22104cf147430d761cc88120083dacb7947994edbe557a4",
+      "bytes": 8885652
+    },
+    "native_head/v194_mobile_production_deal.bin": {
+      "sha256": "e30572f8c3a9a2a720ae9bacdf156b1c8f5399373633bd524f07c9da639f204e",
+      "bytes": 2994612
+    },
+    "native_head/v194_mobile_production_taunt.bin": {
+      "sha256": "74ef3a2186082b05d5f49778e1c533176b9472fd933892504e49dd4c8a4488a5",
+      "bytes": 4172820
+    },
+    "native_head/v194_mobile_production_grudging.bin": {
+      "sha256": "72d05b9ba4f600b24531a7b7dc0f60c49d2d0b2624f33df2ab1488925183397d",
+      "bytes": 4761924
+    },
+    "native_head/v194_mobile_production_cheat.bin": {
+      "sha256": "b0c6563056f98c46fd0b20e947d79a2f79a18acd4178fcdbae3c852de67d73a2",
+      "bytes": 3583716
+    },
+    "native_head/v194_mobile_production_mc_idle.bin": {
+      "sha256": "548929b2f6621b9ecf70a057474487e575ff2afbe4d1f825a4fe89e9886f40c6",
+      "bytes": 7118340
+    },
+    "native_head/v194_mobile_production_mc_cheer.bin": {
+      "sha256": "e4b39004af9255076494405071cb007543746ad522a84f69869d143f66e86fbb",
+      "bytes": 3583716
+    },
+    "v194_mobile_fixture.json": {
+      "sha256": "10fcdac564e28f5b6126312dd2864a4629ccfe737642f841887897771c6b671e",
+      "bytes": 126264,
+      "vertices": 4091,
+      "surfaces": [
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 0,
+          "count": 395,
+          "index_count": 2142
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_shirt.tres",
+          "start": 395,
+          "count": 303,
+          "index_count": 1476
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_vest.tres",
+          "start": 698,
+          "count": 197,
+          "index_count": 966
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 895,
+          "count": 136,
+          "index_count": 471
+        },
+        {
+          "mesh": "Smiles_Body",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 1031,
+          "count": 19,
+          "index_count": 63
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip.tres",
+          "start": 1050,
+          "count": 25,
+          "index_count": 138
+        },
+        {
+          "mesh": "Smiles_Chip",
+          "material": "res://art/models/characters/smiles/materials/smiles_chip_edge.tres",
+          "start": 1075,
+          "count": 24,
+          "index_count": 72
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_skin.tres",
+          "start": 1099,
+          "count": 998,
+          "index_count": 1146
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_horn.tres",
+          "start": 2097,
+          "count": 276,
+          "index_count": 276
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 2373,
+          "count": 972,
+          "index_count": 972
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_gold.tres",
+          "start": 3345,
+          "count": 120,
+          "index_count": 696
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_eye.tres",
+          "start": 3465,
+          "count": 57,
+          "index_count": 57
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_mouth.tres",
+          "start": 3522,
+          "count": 260,
+          "index_count": 363
+        },
+        {
+          "mesh": "Smiles_Head",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_gold.tres",
+          "start": 3782,
+          "count": 60,
+          "index_count": 168
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_black.tres",
+          "start": 3842,
+          "count": 30,
+          "index_count": 90
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor.tres",
+          "start": 3872,
+          "count": 107,
+          "index_count": 540
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_visor_rim.tres",
+          "start": 3979,
+          "count": 56,
+          "index_count": 312
+        },
+        {
+          "mesh": "Smiles_Visor",
+          "material": "res://art/models/characters/smiles/materials/smiles_glow_rim.tres",
+          "start": 4035,
+          "count": 56,
+          "index_count": 312
+        }
+      ]
+    },
+    "native_head/v194_mobile_fixture_idle.bin": {
+      "sha256": "003b370ef0257088bc3d21fcff25e0d825ea1accfb3681fd9a5ab0571e0922da",
+      "bytes": 8885652
+    },
+    "native_head/v194_mobile_fixture_deal.bin": {
+      "sha256": "771d7403df5580d50a1f43825175772f6b9e9a18dbcd8b299bc9b9b0eba32942",
+      "bytes": 2994612
+    },
+    "native_head/v194_mobile_fixture_taunt.bin": {
+      "sha256": "558c5133cead7c326947e6af9d04c8c9298c17db251f394ec0c83eda5e40086f",
+      "bytes": 4172820
+    },
+    "native_head/v194_mobile_fixture_grudging.bin": {
+      "sha256": "f4c57811291e02e13658798ffebe672bed5a3172a8e78a0fda6468d75acfd4c7",
+      "bytes": 4761924
+    },
+    "native_head/v194_mobile_fixture_cheat.bin": {
+      "sha256": "2f00de699657f0bfc31369b00a05ab747170c4582ae1fa9688b97e4cfe142131",
+      "bytes": 3583716
+    },
+    "native_head/v194_mobile_fixture_mc_idle.bin": {
+      "sha256": "16dbd7c603548234ea95a086b9d22e835c4e2d1b1fb0c866dbbf3159ccce2ce6",
+      "bytes": 7118340
+    },
+    "native_head/v194_mobile_fixture_mc_cheer.bin": {
+      "sha256": "ec21a06f5812eebe953cda0def4d6818ddbab7b5168133ed28bfd5e9b39e187b",
+      "bytes": 3583716
+    },
+    "geometry_pc.json": {
+      "sha256": "26206ad8478b8494ec2578ece7226ed552414c49d6039909b3d78664105e6dc4",
+      "bytes": 1681458
+    },
+    "geometry_mobile.json": {
+      "sha256": "2954809cc9cbe85bffcbce071b1d47f332368b018eed1a826bfd1c9c979c5f32",
+      "bytes": 971123
+    }
+  }
+}
