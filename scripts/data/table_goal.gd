@@ -26,3 +26,6 @@ extends Resource
 @export var fixed_payout: bool = false
 ## Last table of the run: finality overrides type (pays final_table_embers).
 @export var is_final: bool = false
+## Map node type (MapGenData.NodeType) so the HUD payout line can say
+## Table / Elite / Boss / Final. 0 = TABLE; unused when fixed_payout is false.
+@export var table_type: int = 0

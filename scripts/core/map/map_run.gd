@@ -138,6 +138,7 @@ func make_goal(t: NT) -> TableGoal:
 	# Finality is the last playable floor's boss, not "any BOSS".
 	g.fixed_payout = true
 	g.is_final = is_final_table(t)
+	g.table_type = t
 	g.clear_embers = table_clear_embers(t, g.is_final)
 	return g
 

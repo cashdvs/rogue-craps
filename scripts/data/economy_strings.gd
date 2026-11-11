@@ -14,7 +14,7 @@ const TEXT: Dictionary[String, String] = {
 	"table_payout_clear": "Table beaten: +{n} Embers.",
 	"table_payout_elite": "Elite beaten: +{n} Embers.",
 	"table_payout_boss": "Boss beaten: +{n} Embers.",
-	"table_payout_final": "Final table beaten: run complete.",
+	"table_payout_final": "Final table beaten: +{n} Embers, run complete.",
 	"table_payout_continue": "Continue",
 }
 const TABLE_PAYOUT_CONTINUE: String = TEXT["table_payout_continue"]
@@ -28,13 +28,41 @@ static func text(id: String, args: Dictionary = {}) -> String:
 ## Payout summary line for a cleared map table.
 static func table_payout_line(table_type: int, n: int, is_final: bool = false) -> String:
 	if is_final:
-		return text("table_payout_final")
+		return text("table_payout_final", {"n": n})
 	var id := "table_payout_clear"
 	if table_type == MapGenData.NodeType.ELITE:
 		id = "table_payout_elite"
 	elif table_type == MapGenData.NodeType.BOSS:
 		id = "table_payout_boss"
 	return text(id, {"n": n})
+
+
+## Legacy / miss conversion line on the table end panel.
+const POINTS_BECAME_EMBERS := "%d points became %d Embers%s.  Embers %d."
+
+
+## Live points-line preview (HUD top-right). A fixed-payout goal shows the
+## table_payout_* string; otherwise the miss / legacy conversion preview.
+static func points_preview_line(run: BonfireRun, pts: int) -> String:
+	var g := run.goal
+	# Mid-table and a successful clear: the fixed payout. A miss still
+	# converts, so the preview falls back to the cap line.
+	if g != null and g.fixed_payout and (not run.is_over() or run.cleared):
+		return table_payout_line(g.table_type, g.clear_embers, g.is_final)
+	return "points %d → +%d Embers" % [pts, BonfireRun.points_to_embers(run.tuning, pts)]
+
+
+## End-panel Ember line: fixed payout string when `table_summary.fixed_payout`
+## is true, otherwise the miss / legacy "points became Embers" line.
+static func end_ember_line(run: BonfireRun) -> String:
+	var sm := run.table_summary
+	if bool(sm.get("fixed_payout", false)):
+		var g := run.goal
+		var t: int = g.table_type if g != null else MapGenData.NodeType.TABLE
+		return table_payout_line(t, int(sm.get("clear_embers", 0)), g != null and g.is_final)
+	var clear := int(sm.get("clear_embers", 0))
+	return POINTS_BECAME_EMBERS % [run.points, int(sm.get("points_embers", 0)),
+		(", clear +%d" % clear) if clear > 0 else "", run.embers]
 
 
 ## "Points: 1 Ember per 100, up to 5 per table." from `t`; uncapped tuning

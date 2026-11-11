@@ -28,6 +28,7 @@ func _initialize() -> void:
 	_test_final_score()
 	_test_shop_after()
 	_test_strings()
+	_test_hud_ember_line()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	_data = null
 	_tuning = null
@@ -136,6 +137,7 @@ func _map_goal(target: int = 1, hands: int = 8) -> TableGoal:
 	g.clear_embers = 26
 	g.miss_soul = 5
 	g.fixed_payout = true
+	g.table_type = NT.TABLE
 	return g
 
 
@@ -244,10 +246,90 @@ func _test_strings() -> void:
 	_check(EconomyStrings.table_payout_line(NT.TABLE, 26) == "Table beaten: +26 Embers."
 		and EconomyStrings.table_payout_line(NT.ELITE, 42) == "Elite beaten: +42 Embers."
 		and EconomyStrings.table_payout_line(NT.BOSS, 56) == "Boss beaten: +56 Embers."
-		and EconomyStrings.table_payout_line(NT.BOSS, 45, true) == "Final table beaten: run complete.",
+		and EconomyStrings.table_payout_line(NT.BOSS, 45, true) == "Final table beaten: +45 Embers, run complete.",
 		"strings: payout lines match fixed_table_payout_v1")
 	var md := FileAccess.get_file_as_string("res://design/strings_v1.md")
 	var ok := true
 	for id in EconomyStrings.TEXT:
 		ok = ok and md.contains("| %s | (new) | %s |" % [id, EconomyStrings.TEXT[id]])
 	_check(ok, "strings: EconomyStrings.TEXT matches design/strings_v1.md verbatim")
+
+
+func _test_hud_ember_line() -> void:
+	# Fixed clear: HUD shows the GD payout string, not "points became".
+	var r := BonfireRun.new(_tuning, _map_goal(), 30, 5)
+	_clear_once(r)
+	r.leave()
+	var want := EconomyStrings.table_payout_line(NT.TABLE, 26)
+	_check(want == "Table beaten: +26 Embers." and EconomyStrings.end_ember_line(r) == want
+		and not want.contains("points became"),
+		"hud helper: fixed clear uses table_payout_clear")
+	var hud := BonfireHud.new()
+	root.add_child(hud)
+	hud.show_end(r)
+	_check(hud.end_body.text.contains(want) and not hud.end_body.text.contains("points became"),
+		"hud panel: fixed clear shows '%s'" % want)
+	# Elite and final use their own keys.
+	var elite_g := _map_goal()
+	elite_g.table_type = NT.ELITE
+	elite_g.clear_embers = 42
+	var elite := BonfireRun.new(_tuning, elite_g, 30, 5)
+	_clear_once(elite)
+	elite.leave()
+	_check(EconomyStrings.end_ember_line(elite) == "Elite beaten: +42 Embers.",
+		"hud helper: Elite clear uses table_payout_elite")
+	var fin_g := _map_goal()
+	fin_g.table_type = NT.BOSS
+	fin_g.is_boss = true
+	fin_g.is_final = true
+	fin_g.clear_embers = 45
+	var fin := BonfireRun.new(_tuning, fin_g, 30, 5)
+	_clear_once(fin)
+	fin.leave()
+	_check(EconomyStrings.end_ember_line(fin) == "Final table beaten: +45 Embers, run complete.",
+		"hud helper: final clear uses table_payout_final")
+	# Miss / legacy keep the old conversion line.
+	var miss := BonfireRun.new(_tuning, _map_goal(350, 5), 30, 5)
+	miss.points = 750
+	miss.forfeit()
+	var miss_line := EconomyStrings.end_ember_line(miss)
+	_check(not bool(miss.table_summary.get("fixed_payout", false))
+		and miss_line == "750 points became 6 Embers.  Embers 6."
+		and miss_line.contains("points became"),
+		"hud helper: miss still uses the conversion line")
+	hud.show_end(miss)
+	_check(hud.end_body.text.contains("750 points became 6 Embers") and not hud.end_body.text.contains("Table beaten"),
+		"hud panel: miss keeps the conversion line")
+	var leg := BonfireRun.new(_tuning, _tuning.table_goal, 30, 5)
+	leg.points = 500
+	leg.cleared = true
+	leg.embers = _tuning.table_goal.clear_embers
+	leg.state = BonfireRun.State.AIM
+	leg.throws_this_hand = 0
+	leg.leave()
+	var leg_line := EconomyStrings.end_ember_line(leg)
+	_check(leg_line.contains("points became") and leg_line.contains("clear +%d" % _tuning.table_goal.clear_embers)
+		and not bool(leg.table_summary.get("fixed_payout", false)),
+		"hud helper: legacy clear still converts points")
+	hud.show_end(leg)
+	_check(hud.end_body.text.contains("points became") and not hud.end_body.text.contains("Table beaten"),
+		"hud panel: legacy clear keeps the conversion line")
+	# Live points preview (bonfire_hud_goal.gd): same split.
+	var mid := BonfireRun.new(_tuning, _map_goal(350, 5), 30, 5)
+	mid.points = 200
+	hud.refresh(mid, true)
+	_check(hud.points_label.text == want and not hud.points_label.text.contains("→ +"),
+		"hud preview: a fixed-payout goal shows '%s', not a conversion" % want)
+	_check(EconomyStrings.points_preview_line(mid, 200) == want
+		and EconomyStrings.points_preview_line(elite, elite.points) == "Elite beaten: +42 Embers."
+		and EconomyStrings.points_preview_line(fin, fin.points) == "Final table beaten: +45 Embers, run complete.",
+		"hud preview helper: Table / Elite / Final keys")
+	hud.refresh(r, true)
+	_check(hud.points_label.text == want, "hud preview: a fixed clear keeps the payout string")
+	hud.refresh(miss, true)
+	_check(hud.points_label.text == "points 750 → +6 Embers",
+		"hud preview: a miss still shows the conversion cap line")
+	hud.refresh(leg, true)
+	_check(hud.points_label.text == "points 500 → +5 Embers",
+		"hud preview: a legacy clear still shows the conversion line")
+	hud.free()

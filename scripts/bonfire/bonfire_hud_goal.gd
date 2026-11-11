@@ -14,9 +14,10 @@ extends BonfireHudBuild
 
 func refresh(run: BonfireRun, can_act: bool) -> void:
 	coin_label.text = "EMBERS %d" % (_run_embers() + int(display_hold.get("embers", run.embers)))
-	# Points are income (section 4): "points 572 → +5 Embers".
+	# Points are income (section 4): "points 572 → +5 Embers" on miss /
+	# legacy tables; a fixed-payout goal shows the table_payout_* string.
 	var pts := int(display_hold.get("points", run.points))
-	points_label.text = "points %d → +%d Embers" % [pts, BonfireRun.points_to_embers(run.tuning, pts)]  # capped like the payout
+	points_label.text = EconomyStrings.points_preview_line(run, pts)
 	hands_label.text = "Hands left: %d" % run.hands_left
 	_refresh_checklist(run)
 	portrait_goal.refresh(run)
