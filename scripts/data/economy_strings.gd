@@ -4,13 +4,42 @@
 class_name EconomyStrings
 extends RefCounted
 
-## strings_v1 table_points_embers (P1).
+## strings_v1 table_points_embers (P1). Miss / standalone-legacy context
+## only: a cleared map table pays a fixed amount instead
+## (fixed_table_payout_v1).
 const TABLE_POINTS_EMBERS := "Points: 1 Ember per %d, up to %d per table."
+
+## strings_v1 table_payout_* (fixed_table_payout_v1). Copied verbatim.
+const TEXT: Dictionary[String, String] = {
+	"table_payout_clear": "Table beaten: +{n} Embers.",
+	"table_payout_elite": "Elite beaten: +{n} Embers.",
+	"table_payout_boss": "Boss beaten: +{n} Embers.",
+	"table_payout_final": "Final table beaten: run complete.",
+	"table_payout_continue": "Continue",
+}
+const TABLE_PAYOUT_CONTINUE: String = TEXT["table_payout_continue"]
+
+
+## strings_v1 row [param id] with [param args] filled ("" if unknown).
+static func text(id: String, args: Dictionary = {}) -> String:
+	return TEXT.get(id, "").format(args)
+
+
+## Payout summary line for a cleared map table.
+static func table_payout_line(table_type: int, n: int, is_final: bool = false) -> String:
+	if is_final:
+		return text("table_payout_final")
+	var id := "table_payout_clear"
+	if table_type == MapGenData.NodeType.ELITE:
+		id = "table_payout_elite"
+	elif table_type == MapGenData.NodeType.BOSS:
+		id = "table_payout_boss"
+	return text(id, {"n": n})
 
 
 ## "Points: 1 Ember per 100, up to 5 per table." from `t`; uncapped tuning
-## drops the cap clause. Not shown run-side yet: points are explained on the
-## table HUD (bonfire_hud.gd, Godot Dev's).
+## drops the cap clause. Miss / standalone-legacy conversion only; the
+## table HUD (bonfire_hud.gd, Godot Dev's) still shows this preview.
 static func table_points_embers(t: BonfireTuning) -> String:
 	if t.points_embers_cap <= 0:
 		return "Points: 1 Ember per %d." % t.points_per_ember

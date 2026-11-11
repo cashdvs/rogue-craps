@@ -123,7 +123,7 @@ func _m2_tutorial() -> void:
 				t.bhud.continue_pressed.emit()
 				await process_frame
 			MapRun.Screen.REWARD:
-				run.take_seal(-1)
+				run.confirm_payout()
 			MapRun.Screen.EVENT:
 				for i in run.event.choices.size():
 					if run.screen == MapRun.Screen.EVENT and EventApplier.can_choose(run.event.choices[i], run.progress) \

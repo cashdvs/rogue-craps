@@ -1,5 +1,5 @@
 ## Headless tests for MapRun (map/events spec §1): table goals per floor,
-## Elite / Boss rewards, Seal pick or skip, boss re-sit, Rest, Shop prices,
+## fixed table payouts, boss re-sit, Rest, Shop prices,
 ## and a full seeded run through all 3 floors with the stub table.
 ##
 ## Run:
@@ -81,25 +81,20 @@ func _test_rewards() -> void:
 	var run := MapRun.new(_data, 2)
 	_enter(run, NT.TABLE)
 	run.quick_resolve(true)
-	_check(run.screen == S.REWARD and run.seal_options.size() == 3 and run.dice_options.is_empty() and run.progress.embers == 14,
-		"reward: cleared table pays 14 Embers, pick 1 of 3 Seals")
-	run.seal_options[0] = &"trips"
-	run.take_seal(0)
-	_check(run.screen == S.MAP and run.progress.seal_level(&"trips") == 1, "reward: taking a Seal levels it")
-	_enter(run, NT.TABLE)
-	run.quick_resolve(true)
-	var e: int = run.progress.embers
-	run.take_seal(-1)
-	_check(run.progress.embers == e + 3, "reward: skip for 3 Embers")
+	_check(run.screen == S.REWARD and run.seal_options.is_empty() and run.dice_options.is_empty() and run.progress.embers == 26
+		and run.goal.clear_embers == 26 and run.goal.fixed_payout and not run.goal.is_final,
+		"payout: cleared table pays 26 Embers, no Seal or die pick")
+	run.confirm_payout()
+	_check(run.screen == S.MAP, "payout: Continue returns to the map")
 	_enter(run, NT.ELITE)
 	_check(run.rules.size() == 1 and _data.floors[0].elite_twists.has(run.rules[0]), "elite: one twist from the pool")
+	var e0: int = run.progress.embers
 	run.quick_resolve(true)
-	_check(run.seal_options.size() == 3 and run.dice_options.size() == 2, "elite: 1 of 2 special dice + a 3-option Seal pick")
-	_check(run.take_die(1) and run.progress.dice.size() == 6 and not run.take_die(0), "elite: take one die only")
-	if run.is_rare_seal(run.seal_options[0]):
-		run.seal_options[0] = &"pair"
+	_check(run.screen == S.REWARD and run.seal_options.is_empty() and run.dice_options.is_empty()
+		and run.progress.embers == e0 + 42 and run.goal.clear_embers == 42,
+		"payout: Elite pays 42 Embers, no die or Seal pick")
 	var soul: int = run.progress.soul
-	run.take_seal(0)
+	run.confirm_payout()
 	_enter(run, NT.TABLE)
 	run.quick_resolve(false)
 	_check(run.screen == S.MAP and run.progress.soul == soul - 5, "miss: back to the map, -5 Soul")
@@ -116,12 +111,11 @@ func _test_boss() -> void:
 	var win := MapRun.new(_data, 4)
 	_enter(win, NT.BOSS)
 	win.quick_resolve(true)
-	var rare: bool = win.is_rare_seal(win.seal_options[win.seal_options.size() - 1])
-	_check(win.progress.embers == 14 + 25 and win.progress.contract_pieces == 1 and rare and win.seal_options.size() == 3,
-		"boss: 25 Embers, a contract piece, Seal pick with a guaranteed rare")
+	_check(win.screen == S.REWARD and win.progress.embers == 56 and win.progress.contract_pieces == 1
+		and win.seal_options.is_empty() and win.dice_options.is_empty() and not win.goal.is_final,
+		"boss: 56 Embers, a contract piece, no Seal or die pick")
 	_check(win.progress.max_soul == 40 and win.progress.soul == 40, "boss: contract piece +5 max Soul, heals to full")
-	win.seal_options[0] = &"pair"
-	win.take_seal(0)
+	win.confirm_payout()
 	_check(win.floor_index == 1 and win.screen == S.MAP and win.map.current_id == -1, "boss: clearing it opens the next floor")
 
 
@@ -186,8 +180,8 @@ func _play(seed_value: int) -> MapRun:
 			S.TABLE:
 				run.quick_resolve(true)
 			S.REWARD:
-				if not run.take_seal(0):
-					run.take_seal(-1)
+				if run.screen == S.REWARD:
+					run.confirm_payout()
 			S.EVENT:
 				for i in run.event.choices.size():
 					var c := run.event.choices[i]
@@ -247,7 +241,7 @@ func _test_rules_and_seals() -> void:
 	var e0 := run.progress.embers
 	var s0 := run.progress.soul
 	run.apply_outcome(o)
-	_check(run.screen == S.REWARD and run.progress.embers == e0 + 17 and run.progress.soul == s0 - 2, "outcome: cleared -> Soul / Embers applied, Seal reward")
+	_check(run.screen == S.REWARD and run.progress.embers == e0 + 17 and run.progress.soul == s0 - 2, "outcome: cleared -> Soul / Embers applied, payout panel")
 	_check(run.progress.banked.get(&"trips", 0) == 2 and run.progress.banked.get(&"pair", 0) == 1 and run.progress.most_banked() == &"trips",
 		"outcome: banked_combos counted per pot -> Black Seal target")
 	var rb := MapRun.new(_data, 8)
@@ -268,7 +262,7 @@ func _test_rules_and_seals() -> void:
 	plain.soul_after = rc.progress.soul
 	rc.apply_outcome(plain)
 	_check(rc.progress.dice.size() == 6, "outcome: nothing shattered -> handful unchanged")
-	rc.take_seal(-1)
+	rc.confirm_payout()
 	_enter(rc, NT.TABLE)
 	var cracked_id: StringName = rc.progress.dice[5].id
 	var sh := TableOutcome.new()

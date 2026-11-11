@@ -68,7 +68,15 @@ extends Resource
 	&"trips": 1, &"run4": 2, &"full_house": 2, &"run5": 2, &"quads": 3, &"five_kind": 4}
 
 @export_group("Rewards (spec 1)")
+## Fixed shop-money payout after a cleared table (fixed_table_payout_v1).
+## Replaces floor clear + points conversion + reward-skip cash + boss_embers.
+## Finality overrides type. Non-final boss (56) is inactive in the one-floor run.
+@export var ordinary_table_embers: int = 26
+@export var elite_table_embers: int = 42
+@export var boss_table_embers: int = 56
+@export var final_table_embers: int = 45
 ## Free Seal pick after every cleared Table/Elite/Boss: options, or skip for Embers.
+## Unused after a successful clear (payout replaces the reward panel); shop Seals stay.
 @export var seal_pick_options: int = 3
 @export var elite_seal_pick_options: int = 3
 ## Hard cap on after-table reward choices shown (Seal picks, and Elite dice).

@@ -50,7 +50,7 @@ func _test_m3_boss_resit() -> void:
 		var run := MapRun.new(_data, seed_v)
 		_enter(run, NT.TABLE)
 		run.quick_resolve(true)
-		run.take_seal(-1)
+		run.confirm_payout()
 		_enter(run, NT.BOSS)
 		run.quick_resolve(false)
 		_check(run.screen == S.TABLE and run.boss_misses == 1, "M3 [%d]: first boss miss -> re-sit" % seed_v)
@@ -85,7 +85,7 @@ func _test_m3_soul_and_won() -> void:
 	for f in 3:
 		_enter(won, NT.BOSS)
 		won.quick_resolve(true)
-		won.take_seal(-1)
+		won.confirm_payout()
 	_check(won.screen == S.RUN_WON and won.end_reason == &"won" and RunSummary.title(won) == "Run Won" and won.tables_cleared == 3,
 		"M3: three boss clears -> Run Won, 3 tables cleared")
 

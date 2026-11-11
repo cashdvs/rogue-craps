@@ -48,3 +48,8 @@ Repo copy: only the rows the game loads by id from this file so far; the full ta
 | Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | shop_swap_no_refund | (new) | No refund: it's gone for the run. | 7 |
 | Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | reward_keep_dice | (new) | Keep my dice | 3 |
 | Bag of 5 (bag5_sacrifice_v1 §6) | scripts/map/shop/shop_side_card.gd SWAP_TEXT | label | hud_dice_count | (new) | YOUR DICE · {n} | 3 |
+| Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_clear | (new) | Table beaten: +{n} Embers. | 4 |
+| Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_elite | (new) | Elite beaten: +{n} Embers. | 4 |
+| Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_boss | (new) | Boss beaten: +{n} Embers. | 4 |
+| Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_final | (new) | Final table beaten: run complete. | 5 |
+| Fixed table payout (fixed_table_payout_v1) | scripts/data/economy_strings.gd TEXT | label | table_payout_continue | (new) | Continue | 1 |

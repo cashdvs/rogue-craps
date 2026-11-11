@@ -1,7 +1,8 @@
 ## Drives a Bonfire run across its floors (map/events spec §1): travel on the
 ## map, then the node's screen (Table / Elite / Boss, Event, Shop, Rest), the
-## Seal reward after a cleared fight, the boss re-sit, contract pieces and
-## the next floor. Pure logic: RunScreen shows `screen` and calls these.
+## fixed Ember payout after a cleared fight (fixed_table_payout_v1), the boss
+## re-sit, contract pieces and the next floor. Pure logic: RunScreen shows
+## `screen` and calls these.
 ##
 ## Seeds: every random choice uses an RNG seeded from hash([run seed, floor,
 ## node id, purpose]), so a run replays identically and nothing is shared.
@@ -105,7 +106,6 @@ func make_goal(t: NT) -> TableGoal:
 	var f := floor_data()
 	var rng := _rng(&"goal", boss_misses)
 	var g := TableGoal.new()
-	g.clear_embers = f.clear_embers
 	g.timeout_soul_per_bounty = f.timeout_soul_per_bounty
 	g.hands = f.hands
 	g.display_name = "Table"
@@ -134,7 +134,37 @@ func make_goal(t: NT) -> TableGoal:
 	g.target = f.target_boss if t == NT.BOSS else (f.target_elite if t == NT.ELITE else f.target_table)
 	g.miss_soul = f.miss_soul
 	g.is_boss = t == NT.BOSS
+	# fixed_table_payout_v1: type + finality, not the floor's clear_embers.
+	# Finality is the last playable floor's boss, not "any BOSS".
+	g.fixed_payout = true
+	g.is_final = is_final_table(t)
+	g.clear_embers = table_clear_embers(t, g.is_final)
 	return g
+
+
+## Last playable floor index (floors_in_run cap, or every floor when 0).
+func last_playable_floor() -> int:
+	if data.floors_in_run > 0:
+		return mini(data.floors_in_run, data.floors.size()) - 1
+	return data.floors.size() - 1
+
+
+## True when this node is the run's last table. Not inferred from NT.BOSS alone.
+func is_final_table(t: NT = table_type) -> bool:
+	return t == NT.BOSS and floor_index == last_playable_floor()
+
+
+## Fixed clear payout for this table type (finality overrides type).
+func table_clear_embers(t: NT, is_final: bool) -> int:
+	if is_final:
+		return data.final_table_embers
+	match t:
+		NT.ELITE:
+			return data.elite_table_embers
+		NT.BOSS:
+			return data.boss_table_embers
+		_:
+			return data.ordinary_table_embers
 
 
 ## What the table gets for this node (dice, mods, goal, Soul, seed, rules).
@@ -184,14 +214,18 @@ func finish_table(cleared: bool, soul_after: int, embers: int, banked: Array[Str
 		_set_screen(Screen.MAP)
 		return
 	tables_cleared += 1
-	if table_type == NT.BOSS and data.is_last_floor(floor_index):
-		progress.change_embers(data.boss_embers)
-		_end(&"complete")
+	# fixed_table_payout_v1: the table already paid the fixed clear amount
+	# in `embers` (goal.clear_embers). Do not add boss_embers or roll a
+	# Seal / die reward. Final tables skip the payout panel.
+	if is_final_table(table_type):
+		if data.floors_in_run > 0 and data.is_last_floor(floor_index):
+			_end(&"complete")
+			return
+		progress.gain_contract_piece()
+		_end(&"won" if progress.contract_pieces >= data.contract_pieces_to_win else &"contract")
 		return
 	if table_type == NT.BOSS:
-		progress.change_embers(data.boss_embers)
 		progress.gain_contract_piece()
-	_roll_rewards()
 	_set_screen(Screen.REWARD)
 
 
@@ -206,7 +240,7 @@ func apply_outcome(o: TableOutcome) -> void:
 	finish_table(o.cleared and not o.forfeited, o.soul_after, o.embers, o.banked_combos)
 
 
-## STUB table: resolve instantly. A clear pays the floor's clear Embers; a
+## STUB table: resolve instantly. A clear pays the goal's fixed clear Embers; a
 ## miss costs the goal's flat miss Soul.
 func quick_resolve(cleared: bool) -> void:
 	if goal == null:
@@ -249,7 +283,22 @@ func take_die(i: int, give_up_i: int = -1) -> bool:
 	return true
 
 
+## Payout panel Continue: go back to the map, or advance the floor after a
+## non-final boss. Final tables never show this panel.
+func confirm_payout() -> void:
+	if screen != Screen.REWARD:
+		return
+	if table_type == NT.BOSS:
+		if floor_index + 1 >= data.floors.size():
+			_end(&"won" if progress.contract_pieces >= data.contract_pieces_to_win else &"contract")
+		else:
+			_start_floor(floor_index + 1)
+		return
+	_set_screen(Screen.MAP)
+
+
 ## Take Seal option i (rare Seals need params), or i = -1 to skip for Embers.
+## Reward-choice is retired; kept so older unit tests can still drive the API.
 func take_seal(i: int, params: Dictionary = {}) -> bool:
 	if screen != Screen.REWARD or i >= seal_options.size():
 		return false

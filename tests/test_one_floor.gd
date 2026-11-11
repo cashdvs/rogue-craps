@@ -73,8 +73,7 @@ func _test_run_complete(data: RunData) -> void:
 				o.banked_combos = [&"pair", &"full_house", &"trips"]
 				run.apply_outcome(o)
 			S.REWARD:
-				if not run.take_seal(0):
-					run.take_seal(-1)
+				run.confirm_payout()
 			S.EVENT:
 				run.choose_event(run.event.choices.size() - 1)
 				if run.screen == S.EVENT:
@@ -88,7 +87,7 @@ func _test_run_complete(data: RunData) -> void:
 	_check(run.screen == S.RUN_WON and run.end_reason == &"complete", "run: F1 boss win -> RUN COMPLETE")
 	_check(run.floor_index == 0, "run: no F2 load")
 	_check(RunSummary.title(run) == "RUN COMPLETE", "run: title RUN COMPLETE")
-	_check(run.progress.embers >= boss_embers_before + data.boss_embers, "run: boss Embers paid before the score")
+	_check(run.progress.embers >= boss_embers_before + data.final_table_embers, "run: final table pays 45 Embers before the score")
 	_check(RunSummary.final_score(run) == run.run_points + 10 * run.progress.embers and run.progress.embers > 0, "score: points + 10 x Embers left")
 	_check(run.best_combo == &"full_house", "score: best hand is the highest combo banked")
 	var lines := RunSummary.lines(run)

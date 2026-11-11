@@ -107,10 +107,10 @@ func _test_map(scene: RunScreen) -> void:
 	await process_frame
 	_press(scene, "Stub: clear")
 	await process_frame
-	_check(scene.run.screen == S.REWARD, "table: stub clear -> Seal reward")
-	_press(scene, "Skip")
+	_check(scene.run.screen == S.REWARD, "table: stub clear -> payout summary")
+	_press(scene, "Continue")
 	await process_frame
-	_check(scene.run.screen == S.MAP and scene.map_view.visible, "reward: skip -> back to the map")
+	_check(scene.run.screen == S.MAP and scene.map_view.visible, "payout: Continue -> back to the map")
 
 
 func _test_event(scene: RunScreen) -> void:
@@ -228,9 +228,7 @@ func _test_floor(scene: RunScreen) -> void:
 			S.TABLE:
 				_press(scene, "Stub: clear")
 			S.REWARD:
-				# Elite shows dice first (no Skip yet); Keep clears them, then Skip.
-				if not _press(scene, "Skip"):
-					_press(scene, ShopSideCard.SWAP_TEXT.reward_keep_dice)
+				_press(scene, "Continue")
 			S.REST:
 				_press(scene, "Heal")
 			S.SHOP:
