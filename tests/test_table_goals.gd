@@ -83,16 +83,18 @@ func _test_data() -> void:
 	for f in 3:
 		var fd: FloorData = _data.floors[f]
 		_check([fd.target_table, fd.target_elite, fd.target_boss, fd.clear_embers] == want[f] and fd.miss_soul == 5,
-			"data: floor %d targets %s and clear Embers" % [f + 1, want[f]])
+			"data: floor %d targets %s and floor clear Embers (legacy)" % [f + 1, want[f]])
 		var run := MapRun.new(_data, 11)
 		run._start_floor(f)
 		for t in [NT.TABLE, NT.ELITE, NT.BOSS]:
 			_enter(run, t)
 			var g := run.goal
 			var tw: int = want[f][[NT.TABLE, NT.ELITE, NT.BOSS].find(t)]
+			var pay: int = run.table_clear_embers(t, run.is_final_table(t))
 			_check(g.required.is_empty() and g.bonus.is_empty() and g.target == tw and g.miss_soul == 5
-				and g.clear_embers == want[f][3] and g.is_boss == (t == NT.BOSS),
-				"make_goal: floor %d type %d -> target %d, no bounties" % [f + 1, t, tw])
+				and g.clear_embers == pay and g.fixed_payout and g.is_final == (t == NT.BOSS and f == 0)
+				and g.is_boss == (t == NT.BOSS),
+				"make_goal: floor %d type %d -> target %d, fixed payout %d" % [f + 1, t, tw, pay])
 	var f0: FloorData = _data.floors[0]
 	f0.miss_soul = 7
 	var m := MapRun.new(_data, 11)
@@ -195,7 +197,7 @@ func _test_map_flow() -> void:
 	_enter(w, NT.TABLE)
 	var e0 := w.progress.embers
 	w.quick_resolve(true)
-	_check(w.screen == S.REWARD and w.progress.embers - e0 == 14, "stub clear: pays the floor's 14 clear Embers")
+	_check(w.screen == S.REWARD and w.progress.embers - e0 == 26, "stub clear: pays the fixed 26 clear Embers")
 
 
 func _test_rules() -> void:
@@ -247,14 +249,9 @@ func _test_state() -> void:
 	gs.bounties.append({})
 	_check(gs.bounties.is_empty(), "state: bounties is a read-only copy")
 	run.quick_resolve(true)
-	var i := 0
-	while i < run.seal_options.size() and not _data.seal_combos.has(run.seal_options[i]):
-		i += 1
-	if i >= run.seal_options.size():
-		run.seal_options[0] = _data.seal_combos[0]
-		i = 0
-	run.take_seal(i)
-	_check(gs.seals == 1 and got["seals"] == [1], "state: taking a Seal -> seals 1, seals_changed (%s)" % [got["seals"]])
+	run.progress.add_seal_levels(&"pair", 1)
+	run.confirm_payout()
+	_check(gs.seals == 1 and got["seals"] == [1], "state: adding a Seal -> seals 1, seals_changed (%s)" % [got["seals"]])
 	_enter(run, NT.BOSS)
 	var bs := TableGoalState.watch(BonfireRun.new(_tuning, run.goal, 30, 5))
 	_check(bs.is_boss and bs.target == 1400 and bs.seals == 0, "state: boss table, no map run -> seals 0")

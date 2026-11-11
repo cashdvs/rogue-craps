@@ -1,7 +1,8 @@
 ## The run's screen director: shows the map, then the screen of the node
-## you picked (Event, Shop, Rest, Table / Elite / Boss, Seal reward), and
-## the run's Soul / Embers / Seals on a top bar. All rules live in MapRun;
-## this only displays them and forwards clicks.
+## you picked (Event, Shop, Rest, Table / Elite / Boss, the fixed payout
+## summary after a cleared fight), and the run's Soul / Embers / Seals on a
+## top bar. All rules live in MapRun; this only displays them and forwards
+## clicks.
 ##
 ## Tables: "Play at the table" opens Bonfire3D in run mode with a TableSetup
 ## (the run's dice and mods, Soul, Seal-leveled combos, this node's goal) and
@@ -285,27 +286,13 @@ func _on_table_finished(o: TableOutcome) -> void:
 
 
 func _show_reward() -> void:
-	var buttons: Array = []
-	## Cash (0.1.6/0.1.7): at most reward_choice_cap picks on screen. Skip /
-	## "Keep my dice" do not count. Elite dice show alone first so Seals do
-	## not stack on the same panel.
-	var cap: int = maxi(1, run_data.reward_choice_cap)
-	if not run.dice_options.is_empty():
-		var lines_die: Array = ["Elite spoils: take one special die."]
-		for i in mini(run.dice_options.size(), cap):
-			buttons.append(["Take the %s (%s)" % [run.dice_options[i].display_name, run.dice_options[i].description], func() -> void: _take_die(i)])
-		buttons.append([ShopSideCard.SWAP_TEXT.reward_keep_dice, func() -> void: run.dice_options.clear(); _show_reward()])
-		_panel("Seal Reward", lines_die, buttons)
-		return
-	var lines: Array = ["Cleared! Take a free Seal, or skip for %d Embers." % run_data.seal_skip_embers]
-	for i in mini(run.seal_options.size(), cap):
-		var id := run.seal_options[i]
-		var txt: String = ("%s (rare Seal)" % String(id).capitalize()) if run.is_rare_seal(id) \
-			else "%s Seal -> Lv%d" % [String(id).capitalize(), run.progress.seal_level(id) + 1]
-		buttons.append([txt, func() -> void: _seal_with_params(id, func(params: Dictionary) -> bool: return run.take_seal(i, params)),
-			not _seal_possible(id)])
-	buttons.append(["Skip (+%d Embers)" % run_data.seal_skip_embers, func() -> void: run.take_seal(-1)])
-	_panel("Seal Reward", lines, buttons)
+	## fixed_table_payout_v1: a non-interactive payout summary, then Continue
+	## back to the map (or the next floor after a non-final boss). No Seal or
+	## die pick. Final tables skip this screen.
+	var n := run.goal.clear_embers if run.goal != null else 0
+	var is_final := run.goal != null and run.goal.is_final
+	var line := EconomyStrings.table_payout_line(run.table_type, n, is_final)
+	_panel(line, [], [[EconomyStrings.TABLE_PAYOUT_CONTINUE, func() -> void: run.confirm_payout()]])
 
 
 ## Elite die with a full bag (bag5_sacrifice_v1 §2): pick a die to give up,

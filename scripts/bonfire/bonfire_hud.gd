@@ -283,8 +283,7 @@ func _miss_body(run: BonfireRun, sm: Dictionary, ember_line: String) -> String:
 
 func show_end(run: BonfireRun) -> void:
 	var sm := run.table_summary
-	var ember_line := "%d points became %d Embers%s.  Embers %d." % [run.points, int(sm.get("points_embers", 0)),
-		(", clear +%d" % int(sm["clear_embers"])) if int(sm.get("clear_embers", 0)) > 0 else "", run.embers]
+	var ember_line := EconomyStrings.end_ember_line(run)
 	match run.state:
 		BonfireRun.State.CLEARED:
 			end_title.text = "Table cleared"

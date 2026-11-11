@@ -20,3 +20,12 @@ extends Resource
 @export var miss_soul: int = 5
 ## The run's boss table (constant per table; the HUD plate's boss label).
 @export var is_boss: bool = false
+## Map-run fixed payout (fixed_table_payout_v1): a cleared table pays
+## `clear_embers` only (no points-to-Embers). Misses still convert. False
+## keeps standalone / legacy accounting (floor clear + points conversion).
+@export var fixed_payout: bool = false
+## Last table of the run: finality overrides type (pays final_table_embers).
+@export var is_final: bool = false
+## Map node type (MapGenData.NodeType) so the HUD payout line can say
+## Table / Elite / Boss / Final. 0 = TABLE; unused when fixed_payout is false.
+@export var table_type: int = 0

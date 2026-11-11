@@ -22,8 +22,8 @@ func _initialize() -> void:
 		scene.run.choose_node(scene.run.map.reachable()[0])
 		if scene.run.screen == MapRun.Screen.TABLE:
 			scene.run.quick_resolve(true)
-			if not scene.run.take_seal(0):
-				scene.run.take_seal(-1)
+			if scene.run.screen == MapRun.Screen.REWARD:
+				scene.run.confirm_payout()
 		elif scene.run.screen != MapRun.Screen.MAP:
 			scene.run.screen = MapRun.Screen.MAP
 			scene.refresh()

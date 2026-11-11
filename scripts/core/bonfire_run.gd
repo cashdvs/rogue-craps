@@ -272,7 +272,11 @@ func _goal_met() -> bool:
 
 
 func _end_table(st: State) -> void:
-	var converted := points_to_embers(tuning, points)
+	# fixed_table_payout_v1: a cleared map table already got its fixed
+	# clear pay in _finish; do not also convert points. Misses and
+	# standalone / legacy goals (fixed_payout = false) still convert.
+	var fixed := goal != null and goal.fixed_payout and cleared
+	var converted := 0 if fixed else points_to_embers(tuning, points)
 	# The clear Embers were already paid at the clearing bank (see _finish).
 	var clear := goal.clear_embers if cleared else 0
 	var soul_lost := 0
@@ -286,7 +290,8 @@ func _end_table(st: State) -> void:
 	# more (else hand_pot() shows the last pot twice on the end panel; QA).
 	pot = 0
 	potted.clear()
-	table_summary = {"points_embers": converted, "clear_embers": clear, "timeout_soul": soul_lost, "points": points}
+	table_summary = {"points_embers": converted, "clear_embers": clear, "timeout_soul": soul_lost, "points": points,
+		"fixed_payout": fixed}
 	state = st
 	table_event.emit(&"table_end", {"state": st})
 

@@ -170,8 +170,7 @@ func _run() -> void:
 					break
 				print("table %d (%s): cleared=%s soul %d -> %d, +%d Embers, hands %d" % [tables, o.cleared, o.cleared, soul_before, o.soul_after, o.embers, o.hands_used])
 			S.REWARD:
-				if not run.take_seal(0):
-					run.take_seal(-1)
+				run.confirm_payout()
 			S.EVENT:
 				var done := false
 				for i in run.event.choices.size():
