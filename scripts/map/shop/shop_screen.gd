@@ -62,6 +62,11 @@ var swap_offer := -1
 var bag_label: Label
 ## "Pick a die to sell." in sell mode (hidden otherwise).
 var sell_hint: Label
+## Second swap-mode hint: click the counter to keep your dice.
+var exit_hint: Label
+## "{old} out, {new} in." after a swap, shown for about 2 s.
+var done_line := ""
+var _done_timer: Timer
 ## Phone layouts (landscape / portrait): taps select, only the card buys.
 var touch_mode := false
 ## Tests force touch on (1) or off (0); -1 asks the device. Any phone or
@@ -86,6 +91,8 @@ func pick_layout() -> void:
 func build(s: RunScreen) -> void:
 	screen = s
 	for c in get_children():
+		if c == _done_timer:
+			continue
 		remove_child(c)
 		c.queue_free()
 	items.clear()
@@ -111,10 +118,77 @@ func build(s: RunScreen) -> void:
 	add_child(card)
 
 
-## A tap or click on empty counter closes the open card.
+## A tap or click on empty counter closes the open card, or exits swap mode for free.
 func _gui_input(e: InputEvent) -> void:
-	if card != null and e is InputEventMouseButton and e.pressed:
+	if card == null or not (e is InputEventMouseButton and e.pressed):
+		return
+	if swap_offer >= 0:
+		exit_swap()
+	else:
 		card.close()
+
+
+func _unhandled_input(e: InputEvent) -> void:
+	if not visible or swap_offer < 0:
+		return
+	if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE:
+		exit_swap()
+		get_viewport().set_input_as_handled()
+
+
+## Enter (or re-target) swap mode for die offer `index`. Nothing is paid.
+func enter_swap(index: int) -> void:
+	selling = false
+	var same := swap_offer == index
+	swap_offer = index
+	if not same:
+		build(screen)
+	_show_pending_offer()
+
+
+## Leave swap mode without paying; the bag and offer stay as they were.
+func exit_swap() -> void:
+	if swap_offer < 0:
+		return
+	swap_offer = -1
+	if card != null:
+		card.close()
+	build(screen)
+
+
+## Pay and swap `die_i` for the pending offer, then show the done line.
+func commit_swap(die_i: int) -> void:
+	if swap_offer < 0 or die_i < 0:
+		return
+	var run := screen.run
+	var offer := swap_offer
+	var old_name := run.progress.die_name(die_i)
+	var new_name := run.shop_dice[offer].display_name
+	swap_offer = -1
+	if card != null:
+		card.close()
+	run.buy_die(offer, die_i)
+	done_line = ShopSideCard.SWAP_TEXT.shop_swap_done.format({"old": old_name, "new": new_name})
+	build(screen)
+	if _done_timer == null:
+		_done_timer = Timer.new()
+		_done_timer.one_shot = true
+		_done_timer.timeout.connect(func() -> void:
+			done_line = ""
+			var n := get_node_or_null("DoneLine")
+			if n != null:
+				n.visible = false)
+		add_child(_done_timer)
+	_done_timer.start(2.0)
+
+
+func _show_pending_offer() -> void:
+	if card == null or swap_offer < 0:
+		return
+	for it in items:
+		if it.offer.kind == ShopOffer.Kind.DIE and it.offer.index == swap_offer:
+			card.show_for(it)
+			return
 
 
 func _rect(r: Rect2, c: Color) -> ColorRect:
@@ -256,8 +330,19 @@ func _on_focus(it: ShopItem) -> void:
 	if touch_mode:
 		if card.item != it:
 			card.show_for(it)
+		_maybe_enter_swap(it)
 	else:
 		card.hover(it)
+
+
+## Phone: opening a die card at a full bag also enters swap mode (no extra Buy tap).
+func _maybe_enter_swap(it: ShopItem) -> void:
+	var o := it.offer
+	if o.kind != ShopOffer.Kind.DIE or screen.run.progress.can_add_die():
+		return
+	if not o.affordable(screen.run.progress.embers) or swap_offer == o.index:
+		return
+	enter_swap(o.index)
 
 
 func _add_buttons(vis: Vector2, y: float) -> void:
@@ -271,18 +356,25 @@ func _add_buttons(vis: Vector2, y: float) -> void:
 	reroll_button.mouse_entered.connect(func() -> void: if not touch_mode: card.show_reroll(reroll_button, false))
 	reroll_button.mouse_exited.connect(card.leave)
 	leave_button = _button("Leave", px, func() -> void: selling = false; swap_offer = -1; run.leave())
-	# PC: Sell / Swap sits right of the bag row; phones put all three in one row.
-	var row: Array[Button] = [sell_button, reroll_button, leave_button]
+	var at_floor := run.progress.dice.size() <= run.progress.data.starting_dice
+	sell_button.visible = not at_floor
+	# PC: Sell / Swap sits right of the bag row when selling is possible.
+	var row: Array[Button] = []
+	if not at_floor:
+		row.append(sell_button)
+	row.append_array([reroll_button, leave_button] as Array[Button])
 	if pc:
-		row.pop_front()
-		sell_button.custom_minimum_size = PC_BUTTONS[0] * k
-		sell_button.size = sell_button.get_combined_minimum_size()
-		var last := bag[bag.size() - 1]
-		sell_button.position = Vector2(last.position.x + last.size.x + 30 * k, last.position.y + (last.size.y - sell_button.size.y) / 2.0)
-	if layout == Layout.PORTRAIT:  # Three equal buttons across the width, 8 px gaps.
+		if not at_floor:
+			sell_button.custom_minimum_size = PC_BUTTONS[0] * k
+			sell_button.size = sell_button.get_combined_minimum_size()
+			var last := bag[bag.size() - 1]
+			sell_button.position = Vector2(last.position.x + last.size.x + 30 * k, last.position.y + (last.size.y - sell_button.size.y) / 2.0)
+		row = [reroll_button, leave_button]
+	if layout == Layout.PORTRAIT:  # Equal buttons across the width, 8 px gaps.
 		var gap := 8 * k
-		var w := (vis.x - 32 * k - 2 * gap) / 3.0
-		for i in row.size():
+		var n := row.size()
+		var w := (vis.x - 32 * k - (n - 1) * gap) / float(n)
+		for i in n:
 			row[i].custom_minimum_size = Vector2(0, 44 * k)
 			row[i].clip_text = true
 			row[i].position = Vector2(16 * k + i * (w + gap), y)
@@ -291,7 +383,9 @@ func _add_buttons(vis: Vector2, y: float) -> void:
 	var x := vis.x - (40 if pc else 16) * k
 	for i in range(row.size() - 1, -1, -1):
 		var b := row[i]
-		b.custom_minimum_size = PC_BUTTONS[i + 1] * k if pc else Vector2(0, 44 * k)  # +1: Sell / Swap is PC_BUTTONS[0].
+		# PC right-side buttons use the Reroll / Leave sizes (PC_BUTTONS[1], [2]).
+		var pi := (1 if b == reroll_button else 2) if pc else -1
+		b.custom_minimum_size = PC_BUTTONS[pi] * k if pc else Vector2(0, 44 * k)
 		b.size = b.get_combined_minimum_size()
 		x -= b.size.x
 		b.position = Vector2(x, y)
@@ -331,18 +425,40 @@ func _add_bag(y: float, px: float) -> void:
 	bag_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	bag_label.position = Vector2(x, y - label_px * 1.5)
 	add_child(bag_label)
-	var hint := ShopSideCard.SWAP_TEXT.shop_swap_pick if swap_offer >= 0 else ShopCardStrings.get_text("shop_hint_pick_sell")
+	var T := ShopSideCard.SWAP_TEXT
+	var hint := ShopSideCard.plat(T.shop_swap_pick, touch_mode) if swap_offer >= 0 else ShopCardStrings.get_text("shop_hint_pick_sell")
 	sell_hint = RunTheme.label(hint, label_px, BRASS)
 	sell_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
 	var lw := bag_label.get_theme_font(&"font").get_string_size(bag_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label_px).x
 	sell_hint.position = Vector2(x + lw + 24 * k, bag_label.position.y)
 	sell_hint.visible = selling or swap_offer >= 0
 	add_child(sell_hint)
+	exit_hint = RunTheme.label(ShopSideCard.plat(T.shop_swap_exit, touch_mode), label_px, BRASS)
+	exit_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
+	var hw := sell_hint.get_theme_font(&"font").get_string_size(sell_hint.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label_px).x
+	exit_hint.position = Vector2(sell_hint.position.x + hw + 16 * k, bag_label.position.y)
+	exit_hint.visible = swap_offer >= 0
+	add_child(exit_hint)
+	if done_line != "":
+		var done := RunTheme.label(done_line, label_px, BRASS)
+		done.name = "DoneLine"
+		done.autowrap_mode = TextServer.AUTOWRAP_OFF
+		done.position = Vector2(x, bag_label.position.y - label_px * 1.3)
+		add_child(done)
 	for i in p.data.max_dice:  # 5 (bag5_sacrifice_v1)
-		var s := BagSlot.new()
-		s.setup(screen.run, i, px, k)
-		s.position = Vector2(x + i * (px + gap), y)
-		s.opened.connect(func(slot: BagSlot, pin: bool) -> void: card.show_sell(slot, pin or touch_mode))
-		s.left.connect(func(_slot: BagSlot) -> void: card.leave())
-		add_child(s)
-		bag.append(s)
+		var slot := BagSlot.new()
+		slot.setup(screen.run, i, px, k)
+		slot.position = Vector2(x + i * (px + gap), y)
+		slot.opened.connect(func(b: BagSlot, pin: bool) -> void: card.show_sell(b, pin or touch_mode))
+		slot.left.connect(func(_b: BagSlot) -> void: card.leave())
+		slot.clicked.connect(_on_bag_clicked)
+		add_child(slot)
+		bag.append(slot)
+
+
+## PC: a mouse-up on a plain uncarved, non-rare die in swap mode commits at once.
+func _on_bag_clicked(slot: BagSlot) -> void:
+	if swap_offer < 0 or touch_mode or slot.die_i < 0:
+		return
+	if not ShopSideCard.needs_confirm(screen.run.progress, slot.die_i, false):
+		commit_swap(slot.die_i)

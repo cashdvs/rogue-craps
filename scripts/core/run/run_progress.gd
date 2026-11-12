@@ -174,9 +174,22 @@ func gain_die(offer_id: StringName, give_up_i: int = -1) -> bool:
 	return add_die(offer_id) if can_add_die() else swap_die(give_up_i, offer_id)
 
 
-## Does die i carry carved faces or mods that a swap would lose?
+## Does die i carry faces the player carved? Blanks and a rare die's
+## forge-carved faces don't count (die_buy_flow_v1 §2c / Game Designer).
 func die_has_mods(die_i: int) -> bool:
-	return die_i >= 0 and die_i < dice.size() and not dice[die_i].modded_faces().is_empty()
+	if die_i < 0 or die_i >= dice.size():
+		return false
+	for f in dice[die_i].faces.size():
+		var mod := dice[die_i].faces[f]
+		if mod != &"" and mod != RunDie.BLANK and not face_locked(die_i, f):
+			return true
+	return false
+
+
+## True when die i is a rare die (its definition's is_rare).
+func die_is_rare(die_i: int) -> bool:
+	var d := die_def(die_i)
+	return d != null and d.is_rare()
 
 
 ## A new die for offer id: a special die, or a shape with its preset faces.

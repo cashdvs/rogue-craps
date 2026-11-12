@@ -9,6 +9,7 @@ extends RefCounted
 ## strings_v1 id -> text (copied verbatim; check_strings.py owns the source).
 const TEXT: Dictionary[String, String] = {
 	"shop_card_buy": "Buy",
+	"shop_card_swap": "Swap",
 	"shop_card_price": "{n} Embers",
 	"shop_card_cant_afford": "Need {n} more Embers.",
 	"shop_card_no_free_face": "No free face to carve.",

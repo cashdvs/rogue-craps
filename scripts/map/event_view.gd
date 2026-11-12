@@ -12,6 +12,8 @@ var _box: VBoxContainer
 var _event: EventData
 var _progress: RunProgress
 var _table_ahead: bool = true
+## Tests force touch on (1) or off (0); -1 asks the device.
+var touch_override := -1
 
 
 func _ready() -> void:
@@ -98,10 +100,14 @@ func _on_choice(i: int) -> void:
 	for e in c.effects:
 		if not e.needs_pick():
 			continue
+		# die_buy_flow_v1: a GIVE_DIE into a bag with room just adds, no picker.
+		if e.kind == EventEffectData.Kind.GIVE_DIE and _progress.can_add_die():
+			continue
 		var picker := DicePanel.new()
+		var new_name := DiceIds.display_name(e.die if e.die != &"" else DiceIds.DIE_BONE)
 		var verb: String = "Pick a face mod to give up." if e.kind == EventEffectData.Kind.REMOVE_FACE_MOD \
-			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else ShopSideCard.SWAP_TEXT.shop_swap_pick if e.kind == EventEffectData.Kind.GIVE_DIE else "Pick a face for the %s" % e.mod.display_name)
-		picker.build(_progress, {"prompt": verb, "seals": false, "allowed": func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks)})
+			else ("Pick a die to give up." if e.kind == EventEffectData.Kind.SELL_DIE else ShopSideCard.plat(ShopSideCard.SWAP_TEXT.event_swap_pick, _touch()).format({"new": new_name}) if e.kind == EventEffectData.Kind.GIVE_DIE else "Pick a face for the %s" % e.mod.display_name)
+		picker.build(_progress, {"prompt": verb, "seals": false, "die_pick": e.kind == EventEffectData.Kind.GIVE_DIE, "allowed": func(at: Vector2i) -> bool: return _pick_allowed(e, at, picks)})
 		_clear()
 		_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
 		_box.add_child(picker)
@@ -112,25 +118,39 @@ func _on_choice(i: int) -> void:
 		back.pressed.connect(func() -> void: show_event(_event, _progress, _table_ahead))
 		_box.add_child(back)
 		picks.append(await picker.picked)
-		if e.kind == EventEffectData.Kind.GIVE_DIE and not _progress.can_add_die() and not await _confirm_swap(e, picks[-1].x):
+		if e.kind == EventEffectData.Kind.GIVE_DIE and not _progress.can_add_die() and ShopSideCard.needs_confirm(_progress, picks[-1].x, _touch()) and not await _confirm_swap(e, picks[-1].x):
 			show_event(_event, _progress, _table_ahead)
 			return
 	choice_made.emit(i, picks)
 
 
-## bag5_sacrifice_v1: the shop's swap confirm (no refund, carved faces
-## warning). True on SWAP; CANCEL changes nothing.
+## Shared swap confirm (strips, carved / rare warnings, no refund).
+## True on SWAP; KEEP IT changes nothing.
 func _confirm_swap(e: EventEffectData, die_i: int) -> bool:
 	var T := ShopSideCard.SWAP_TEXT
+	var def: SpecialDieData = _progress.special_die(e.die) if e.die != &"" else null
+	if def == null:
+		def = _progress.shape_data(e.die if e.die != &"" else DiceIds.DIE_BONE)
+	if def == null:
+		def = SpecialDieData.new()
+		def.display_name = DiceIds.display_name(e.die if e.die != &"" else DiceIds.DIE_BONE)
+	var new_name := def.display_name
 	_clear()
 	_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
-	for line in ShopSideCard.swap_lines(_progress, die_i, DiceIds.display_name(e.die if e.die != &"" else DiceIds.DIE_BONE)):
-		_box.add_child(RunTheme.label(line, 22, RunTheme.EMBER if line == T.shop_swap_mods_warn else RunTheme.GOLD))
-	for b: Array in [[T.shop_swap_btn, true], [T.shop_swap_cancel, false]]:
+	_box.add_child(RunTheme.label(T.shop_swap_confirm.format({"old": _progress.die_name(die_i), "new": new_name}), 22, RunTheme.GOLD))
+	_box.add_child(SwapPreview.make(DieCardInfo.from_run(_progress, die_i), SwapPreview.from_def(_progress, def), 24.0, 1.0, 900.0, _touch()))
+	for line in ShopSideCard.swap_lines(_progress, die_i, new_name).slice(1):
+		var warn: bool = line in [T.shop_swap_mods_warn, T.shop_swap_rare_warn]
+		_box.add_child(RunTheme.label(line, 22, RunTheme.EMBER if warn else RunTheme.GOLD))
+	for b: Array in [[ShopSideCard.swap_btn(0), true], [T.shop_swap_cancel, false]]:
 		var btn := RunTheme.button(b[0])
 		btn.pressed.connect(func() -> void: _swap_answer.emit(b[1]))
 		_box.add_child(btn)
 	return await _swap_answer
+
+
+func _touch() -> bool:
+	return touch_override == 1 if touch_override >= 0 else DisplayServer.is_touchscreen_available()
 
 
 ## A legal, unused pick (a sold die can't be picked twice).

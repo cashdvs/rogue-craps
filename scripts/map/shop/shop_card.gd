@@ -40,11 +40,14 @@ func hover(it: ShopItem) -> void:
 	_timer.start()
 
 ## PC: the mouse left `it`; cancel the wait and close its card.
+## The pending swap offer stays lifted with its card open.
 func unhover(it: ShopItem) -> void:
 	if _waiting == it:
 		_waiting = null
 		_timer.stop()
 	if item == it:
+		if shop.swap_offer >= 0 and it.offer.kind == ShopOffer.Kind.DIE and it.offer.index == shop.swap_offer:
+			return
 		close()
 
 func close() -> void:
@@ -228,6 +231,8 @@ func _action_row(o: ShopOffer) -> void:
 	blocker_id = blocker(o, shop.screen)
 	var short := o.price_lo - shop.screen.run.progress.embers
 	var text := ShopCardStrings.get_text("shop_card_buy") if blocker_id == &"" else ShopCardStrings.fill(blocker_id, short)
+	if blocker_id == &"" and o.kind == ShopOffer.Kind.DIE and not shop.screen.run.progress.can_add_die():
+		text = ShopCardStrings.get_text("shop_card_swap")
 	action = RunTheme.button(text, _px(23))
 	action.custom_minimum_size.y = 40 * shop.k * TEXT_SCALE[shop.layout]
 	action.disabled = blocker_id != &""

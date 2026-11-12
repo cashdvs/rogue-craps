@@ -329,6 +329,8 @@ func _show_shop() -> void:
 
 
 func _pick(prompt: String, done: Callable, allowed: Callable = Callable(), price: Callable = Callable()) -> void:
+	if shop_screen != null:
+		shop_screen.swap_offer = -1
 	var picker := DicePanel.new()
 	picker.build(run.progress, {"prompt": prompt, "seals": false, "price": price,
 		"allowed": allowed if allowed.is_valid() else func(at: Vector2i) -> bool: return run.free_face(at)})

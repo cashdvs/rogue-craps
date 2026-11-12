@@ -112,6 +112,9 @@ func _test_swap_lines() -> void:
 	p.set_face(0, 2, &"wild")
 	var carved := ShopSideCard.swap_lines(p, 0, "Mirror Die")
 	_check(carved.has(T.shop_swap_no_refund) and carved.has(T.shop_swap_mods_warn), "swap_lines: a carved die adds the carved-faces warning")
+	p.set_face(1, 0, RunDie.BLANK)
+	var blank := ShopSideCard.swap_lines(p, 1, "Mirror Die")
+	_check(not p.die_has_mods(1) and not blank.has(T.shop_swap_mods_warn) and blank.has(T.shop_swap_no_refund), "swap_lines: a blank face is not carved")
 
 
 func _button(v: Node, text: String) -> Button:
@@ -150,7 +153,7 @@ func _test_event_confirm() -> void:
 			lines.append((l as Label).text)
 		_check(lines.has(ShopSideCard.SWAP_TEXT.shop_swap_no_refund) and lines.has(ShopSideCard.SWAP_TEXT.shop_swap_mods_warn),
 			"event: the confirm shows both warnings for a carved die")
-		_button(view, ShopSideCard.SWAP_TEXT.shop_swap_btn if ok else ShopSideCard.SWAP_TEXT.shop_swap_cancel).pressed.emit()
+		_button(view, ShopSideCard.swap_btn(0) if ok else ShopSideCard.SWAP_TEXT.shop_swap_cancel).pressed.emit()
 		await process_frame
 		if not ok:
 			_check(got.is_empty() and p.dice.map(func(d: RunDie) -> StringName: return d.id) == before, "event: CANCEL emits nothing and leaves the bag")

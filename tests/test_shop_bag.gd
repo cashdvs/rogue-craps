@@ -94,8 +94,12 @@ func _test_bag_row() -> void:
 		_check(ss.bag[1].position.x > ss.bag[0].position.x + ss.bag[0].size.x, "%s: slots sit side by side" % win)
 		_check(ss.bag_label.text == "YOUR DICE · 5", "%s: bag label counts dice" % win)
 	_show(PC)
+	_check(not ss.sell_button.visible, "PC: Sell / Swap is hidden at the 5-die floor")
+	_bag_with_mirror()
+	_show(PC)
 	var last := ss.bag[5]
-	_check(ss.sell_button.position.x > last.position.x + last.size.x, "PC: Sell / Swap sits right of the bag")
+	_check(ss.sell_button.visible and ss.sell_button.position.x > last.position.x + last.size.x, "PC: Sell / Swap sits right of the bag when above the floor")
+	run.progress.dice.resize(5)
 
 
 ## The Mirror's card: name, strip, effect, value line, no price, Sell sells.
@@ -119,22 +123,22 @@ func _test_sell_card() -> void:
 	_check(not c.visible and ss.bag[5].die_i == -1, "after selling: card closed, bag redrawn")
 
 
-## At 5 dice the button greys to the floor reason; Bone dice get none.
+## At 5 dice sell lines and the Sell / Swap button are hidden; Bone dice get none.
 func _test_sell_floor_and_bone() -> void:
 	run.progress.dice.resize(4)
 	run.progress.add_die(&"mirror")
 	_show(PC)
 	_tap(ss.bag[4])
-	var a := ss.card.action
-	_check(a != null and a.disabled and a.text == ShopCardStrings.fill("shop_card_cant_sell", 5), "5 dice: greyed shop_card_cant_sell")
-	var n := run.progress.dice.size()
-	ss.card.sell()
-	_check(run.progress.dice.size() == n, "the greyed sell does nothing")
+	var t := _texts(ss.card)
+	_check(ss.card.action == null, "5 dice: no sell button on the bag card")
+	var sell_line := ShopCardStrings.fill("shop_card_sell_value", run.progress.sell_value(4))
+	_check(not t.has(ShopCardStrings.fill("shop_card_cant_sell", 5)) and not t.has(sell_line), "5 dice: no sell-value or can't-sell line")
+	_check(not ss.sell_button.visible, "5 dice: Sell / Swap is hidden")
 	_bag_with_mirror()
 	_show(PC)
 	_tap(ss.bag[0])
 	_check(ss.card.visible and ss.card.action == null, "Bone: no sell button")
-	_check(_texts(ss.card).has("Bone Die"), "Bone card is named Bone Die")
+	_check(_texts(ss.card).has("Bone"), "Bone card is named Bone")
 
 
 ## Sell / Swap lifts the bag and shows the hint, on the counter; it lasts
@@ -245,6 +249,7 @@ func _test_reroll_phone() -> void:
 
 ## Portrait: Sell / Swap, Reroll, Leave span the width as three equal buttons, 8 px apart.
 func _test_portrait_buttons() -> void:
+	_bag_with_mirror()
 	_show(PORTRAIT)
 	var row: Array[Button] = [ss.sell_button, ss.reroll_button, ss.leave_button]
 	var w := row[0].size.x
