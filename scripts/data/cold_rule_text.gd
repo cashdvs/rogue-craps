@@ -22,6 +22,14 @@ static func note(rule_name: String, face: int) -> String:
 	return get_text("cold_face_note").format({"rule": rule_name, "face": face})
 
 
+## True when no table rule keeps a die showing [param value] from lighting.
+## This is TableRule.can_light (Cold Sixes, the Pit Boss lock, and every
+## other rule that overrides it). The dead-face look uses the same answer
+## as scoring, so the two cannot disagree.
+static func can_score(run: BonfireRun, value: int) -> bool:
+	return blocker(run, value) == null
+
+
 ## The first table rule that keeps a die showing [param value] dark, or
 ## null when no rule does (then the die is just an ordinary cold die).
 static func blocker(run: BonfireRun, value: int) -> TableRule:

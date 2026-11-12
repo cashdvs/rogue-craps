@@ -292,15 +292,16 @@ func _set_lit(d: DieVisual, on: bool) -> void:
 
 
 ## A thrown die that did not score goes matte grey ("cold") once it settles.
+## A face the rules will not light (ColdRuleText.can_score, the same
+## can_light check scoring uses) also gets the dead frost look.
 func _set_cold(d: DieVisual) -> void:
 	if _lights.has(d) and events != null:
 		events.die_lit_changed.emit(event_id(d), false)
 	_lights.erase(d)
 	d.set_glow_state(false, true)
-	## A die a table rule keeps dark (Cold Sixes) also gets the frost.
 	var i := throw_dice.find(d)
 	var v := run.throw_faces[i] if run != null and i >= 0 and i < run.throw_faces.size() else 0
-	FrostLook.set_frost(d, ColdRuleText.blocker(run, v) != null)
+	FrostLook.set_frost(d, not ColdRuleText.can_score(run, v))
 	RareDieLook.set_marks_lit(d, false)
 
 

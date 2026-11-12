@@ -315,12 +315,24 @@ func _check_shader_cap_and_rim(code: String) -> void:
 	if m == null or cap == null:
 		check(false, "toon_noir: lit_albedo_mix_max uniform found")
 		return
+	var expr := m.get_string(1).strip_edges()
+	# The mix may name a local (lit_k). Evaluate that local's assignment.
+	if expr == "lit_k":
+		var asg := RegEx.create_from_string("float\\s+lit_k\\s*=\\s*(.+?);").search(code)
+		check(asg != null, "toon_noir: lit_k assignment found")
+		if asg == null:
+			return
+		expr = asg.get_string(1).strip_edges()
 	var e := Expression.new()
-	var ok := e.parse(m.get_string(1), ["die_lit", "lit_albedo_mix_max"]) == OK
-	var w_full: float = e.execute([1.0, float(cap.get_string(1))]) if ok else -1.0
-	var w_low: float = e.execute([0.2, float(cap.get_string(1))]) if ok else -1.0
+	var names: PackedStringArray = ["die_lit", "lit_albedo_mix_max", "die_frost"]
+	var ok := e.parse(expr, names) == OK
+	var cap_v := float(cap.get_string(1))
+	var w_full: float = e.execute([1.0, cap_v, 0.0]) if ok else -1.0
+	var w_low: float = e.execute([0.2, cap_v, 0.0]) if ok else -1.0
 	check(ok and is_equal_approx(w_full, 0.35), "toon_noir: a fully lit die tints its albedo at most 0.35 (got %.2f)" % w_full)
 	check(ok and is_equal_approx(w_low, 0.2), "toon_noir: below the cap the tint follows die_lit (got %.2f)" % w_low)
+	var w_frost: float = e.execute([1.0, cap_v, 1.0]) if ok else -1.0
+	check(ok and is_equal_approx(w_frost, 0.0), "toon_noir: a dead face adds no lit tint (got %.2f)" % w_frost)
 	var rim := RegEx.create_from_string("uniform vec4 state_rim_color\\s*:\\s*source_color\\s*=\\s*vec4\\(([^)]*)\\)").search(code)
 	var rc := Color.BLACK
 	if rim != null:

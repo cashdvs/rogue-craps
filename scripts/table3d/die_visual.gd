@@ -236,27 +236,27 @@ func _apply_glow(lit: float, cold: float) -> void:
 		if m is ShaderMaterial: m.set_shader_parameter("die_lit", lit); m.set_shader_parameter("die_cold", cold)
 	if pip_material == null:
 		return
-	# Cold pips are pulled 55% toward the (cold) body colour; lit pips keep their ink.
 	var body_col: Color = body_material.get_shader_parameter("albedo")
 	var cold_body := Color(body_col.get_luminance(), body_col.get_luminance() * 0.96, body_col.get_luminance() * 0.90) * Color(0.80, 0.78, 0.76)
-	var pip := _pip_color.lerp(cold_body, COLD_PIP_TO_BODY * cold * (1.0 - lit))
+	var mix := COLD_PIP_TO_BODY * cold * (1.0 - lit)
+	var pip := FrostLook.pip_albedo(self, _pip_color, cold_body, mix)
 	pip_material.set_shader_parameter("albedo", pip)
 	pip_material.set_shader_parameter("emission_color", EMBER_MID)
-	pip_material.set_shader_parameter("emission_energy", PIP_MID_ENERGY * lit)
+	pip_material.set_shader_parameter("emission_energy", FrostLook.pip_glow(self, PIP_MID_ENERGY * lit))
 	pip_core_material.set_shader_parameter("energy", PIP_CORE_ENERGY * lit * (1.0 + 0.7 * glow_boost))
 	for c in _pip_cores:
 		c.visible = PIP_CORE_ENERGY > 0.0 and lit > 0.01
 	_apply_outline_state()
 
 
-## Outline: ember while lit, grey and non-emissive while dimmed, else hidden.
+## Outline: ember while lit, grey while dimmed, hidden when plain or dead.
 func _apply_outline_state() -> void:
 	if hull_outline == null:
 		return
 	var m := hull_outline.material_override as ShaderMaterial
 	var spec: Dictionary = HULL_OUTLINE_FAMILIES.get(material, HULL_OUTLINE)
 	var dim := outline_dimmed and glow_lit <= 0.01
-	hull_outline.visible = glow_lit > 0.01 or dim
+	hull_outline.visible = not bool(get_meta(&"frosted", false)) and (glow_lit > 0.01 or dim)
 	m.set_shader_parameter("color", DIM_OUTLINE_COLOR if dim else (spec["color"] as Color))
 	m.set_shader_parameter("emission_energy", 0.0 if dim else float(spec["emission"]))
 
