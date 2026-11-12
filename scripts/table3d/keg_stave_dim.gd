@@ -20,6 +20,8 @@ extends Node
 const PARAM_LIT := &"lit_stave"
 ## Shader instance uniform: 0 = full ink, 1 = other staves faded.
 const PARAM_DIM := &"stave_dim"
+## Shader instance uniform: 1 on this mesh so numeral ink skips the lamp specular.
+const PARAM_BODY := &"keg_body"
 ## How long the other numerals take to fade after settle (seconds).
 const FADE_SEC := 0.15
 ## Ink mix a dimmed numeral keeps. Matches KEG_DIM_KEEP in the shader include.
@@ -66,6 +68,17 @@ static func cell_of_uv(uv: Vector2) -> int:
 	return y * 5 + x
 
 
+## 1 = the lamp specular stays. 0 = a Powder Keg numeral cell (0, 1 or 2),
+## wood included, so the inherited bone highlight cannot paint that stave
+## white. Lids and hoops (cell > 2) stay at 1. Not a keg: always 1.
+## [param ink_alpha] is unused; the cell is what the shader tests. Matches
+## keg_spec_keep in the shader include.
+static func spec_keep(is_keg: bool, cell: int, _ink_alpha: float) -> float:
+	if not is_keg or cell > 2:
+		return 1.0
+	return 0.0
+
+
 ## True when this atlas cell's ink stays at full strength.
 ## [param lit_value] is the uniform (the face value, not the slot and not
 ## the cell). Among cells 0, 1 and 2 only cell (lit_value - 1) stays full
@@ -81,6 +94,7 @@ static func cell_is_full(lit_value: float, dim: float, cell: int) -> bool:
 func _ready() -> void:
 	if die == null:
 		die = get_parent() as DieVisual
+	_push(PARAM_BODY, 1.0)
 	if die != null and not die.settled.is_connected(_on_settled):
 		die.settled.connect(_on_settled)
 	var table := _table()

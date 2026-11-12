@@ -177,6 +177,11 @@ void fragment() {
 }
 
 void light() {
+	// 1 on every prop. A keg's numeral ink drops specular and rim (no extra sample otherwise).
+	float keg_s = 1.0;
+	if (keg_body > 0.5 && use_overlay) {
+		keg_s = keg_spec_keep(keg_cell_index(UV), texture(overlay_tex, UV).a);
+	}
 	float ndl = dot(NORMAL, LIGHT);
 	float w = (ndl + wrap) / (1.0 + wrap);
 	float att = clamp(ATTENUATION / att_ref, 0.0, 1.0);
@@ -198,10 +203,11 @@ void light() {
 		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
 		// A cold die has no gloss at all (specular 0).
 		float gloss = 1.0 - max(die_cold * (1.0 - die_lit), die_frost);
-		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * gloss;
+		// Keg numeral ink skips this lobe (keg_spec_keep is 1 on every other prop).
+		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * gloss * keg_s;
 	}
 	if (rim_strength > 0.0) {
 		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
-		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc;
+		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc * keg_s;
 	}
 }

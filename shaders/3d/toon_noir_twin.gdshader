@@ -119,6 +119,10 @@ void fragment() {
 }
 
 void light() {
+	float keg_s = 1.0;
+	if (keg_body > 0.5 && use_overlay) {
+		keg_s = keg_spec_keep(keg_cell_index(UV), texture(overlay_tex, UV).a);
+	}
 	float ndl = dot(NORMAL, LIGHT);
 	float w = (ndl + wrap) / (1.0 + wrap);
 	float att = clamp(ATTENUATION / att_ref, 0.0, 1.0);
@@ -136,10 +140,10 @@ void light() {
 	if (spec_size > 0.0) {
 		vec3 h = normalize(VIEW + LIGHT);
 		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
-		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att;
+		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * keg_s;
 	}
 	if (rim_strength > 0.0) {
 		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
-		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc;
+		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc * keg_s;
 	}
 }

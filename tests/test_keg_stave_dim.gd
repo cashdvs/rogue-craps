@@ -56,10 +56,16 @@ func _check_shader() -> void:
 	check("lit_stave - 1.0" in inc, "shader lights cell lit_stave - 1 (the value's atlas cell)")
 	check("KEG_DIM_KEEP = 0.30" in inc, "dimmed numerals keep about 30% contrast")
 	check("EMISSION" not in inc, "the dim include adds no emission")
+	check("keg_spec_keep" in inc and "keg_body" in inc, "numeral ink can drop the lamp specular")
+	check(is_equal_approx(KegStaveDim.spec_keep(true, 0, 1.0), 0.0), "keg numeral cell keeps no specular")
+	check(is_equal_approx(KegStaveDim.spec_keep(true, 2, 0.0), 0.0), "wood in a numeral cell skips specular too")
+	check(is_equal_approx(KegStaveDim.spec_keep(true, 24, 1.0), 1.0), "hoop cell keeps specular")
+	check(is_equal_approx(KegStaveDim.spec_keep(false, 0, 1.0), 1.0), "a non-keg keeps specular on every cell")
 	for path in [TOON, TWIN]:
 		var src := FileAccess.get_file_as_string(path)
 		check("keg_stave_dim.gdshaderinc" in src, "%s includes the dim" % path.get_file())
 		check("keg_ink_keep" in src, "%s fades overlay ink through keg_ink_keep" % path.get_file())
+		check("keg_spec_keep" in src, "%s clamps specular on keg numeral ink" % path.get_file())
 
 
 ## Each stave's mesh UV really is that value's cell. A flipped V, or cell = value, fails.
@@ -101,6 +107,7 @@ func _check_pair(a: DieVisual, b: DieVisual) -> void:
 	var before := _energy(a)
 	da.set_read(1, true)
 	db.set_read(3, true)
+	check(is_equal_approx(_uniform(a, KegStaveDim.PARAM_BODY), 1.0), "keg A is marked so numeral ink skips specular")
 	check(is_equal_approx(_uniform(a, KegStaveDim.PARAM_LIT), 1.0), "keg A lit_stave is 1")
 	check(is_equal_approx(_uniform(b, KegStaveDim.PARAM_LIT), 3.0), "keg B lit_stave is 3")
 	check(is_equal_approx(_uniform(a, KegStaveDim.PARAM_DIM), 1.0), "keg A is faded")
@@ -151,6 +158,8 @@ func _check_other(bone: DieVisual) -> void:
 	var body := bone.faces.get_node("Body") as MeshInstance3D
 	var raw: Variant = body.get_instance_shader_parameter(KegStaveDim.PARAM_LIT)
 	check(raw == null, "a d6 lit_stave uniform is left unset")
+	raw = body.get_instance_shader_parameter(KegStaveDim.PARAM_BODY)
+	check(raw == null, "a d6 is not marked as a keg body")
 	raw = body.get_instance_shader_parameter(KegStaveDim.PARAM_DIM)
 	check(raw == null, "a d6 stave_dim uniform is left unset")
 

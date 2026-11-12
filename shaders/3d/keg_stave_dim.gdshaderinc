@@ -12,12 +12,19 @@
 // no V flip: value 1 sits near (0.1, 0.1), which is cell 0. Same rule as
 // KegStaveDim.cell_of_uv. Lids and hoops (cells 23 and 24) are not numerals.
 // This only scales existing ink. It adds no emission.
+//
+// keg_body is 1 on a Powder Keg mesh and 0 everywhere else. The keg body
+// keeps the bone die's specular (spec_size 0.97, cream white). When the up
+// stave reflects the lamp toward the camera, that lobe paints the whole
+// stave white and the scored digit disappears. keg_spec_keep drops specular
+// and rim on numeral ink only. The wood around the digit can still glint.
 
 #ifndef KEG_STAVE_DIM_INC
 #define KEG_STAVE_DIM_INC
 
 instance uniform float lit_stave = 0.0;
 instance uniform float stave_dim = 0.0;
+instance uniform float keg_body = 0.0;
 
 // Share of ink contrast a dimmed numeral keeps against the stave wood.
 const float KEG_DIM_KEEP = 0.30;
@@ -41,6 +48,17 @@ float keg_ink_keep(vec2 uv) {
 		}
 	}
 	return keep;
+}
+
+// 1 = keep specular / rim. On a keg the whole numeral cell (0-2) returns 0.
+// Dropping only the dark texels is not enough: the lobe covers the stave and
+// the blurred ink alpha still lets it through, so the digit stays white.
+// Lids and hoops (cell > 2) keep the highlight. Every other prop stays at 1.
+float keg_spec_keep(float cell, float _ink_a) {
+	if (keg_body < 0.5 || cell > 2.5) {
+		return 1.0;
+	}
+	return 0.0;
 }
 
 #endif
