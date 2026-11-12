@@ -142,6 +142,12 @@ Tests for an area live next to it in `tests/test_<area>*.gd` (e.g. `test_map_run
   - `ShopScreen`: the header, the Embers total, the wood counter with felt shelves, and
     Reroll / Sell / Leave. `LAYOUTS` picks PC, landscape or portrait from the window shape,
     and sizes are spec px times `k`.
+  - Shelf chips (`ShopChipBuild.present_for_shop`, from `ShopItem` when the offer is a chip):
+    the face turns toward `ShopDieRender.CAM_OFFSET` and stays aimed there when the item
+    lifts (the lift moves the Control, not the chip's basis). The rim uses `RARITY_TINT`,
+    one colour per existing `ChipLooks` tier. `SHOP_CHIP_SCALE` draws the chip larger
+    inside the same icon. The HUD chip row does not call this. No new signals. Prices,
+    odds and `ChipLooks.TIER` are unchanged.
   (for selling, until the bag row lands) in place of the counter. Back clears it, and
   `refresh()` clears it whenever the screen is not the shop, so the next shop opens on the
   counter. The top bar (`_bar`) is hidden on the shop screen.
