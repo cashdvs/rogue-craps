@@ -62,6 +62,7 @@ func _layout(canvas: Vector2i, screen: Vector2, tag: String, scaled_window: bool
 	if scaled_window:
 		_scaled_1024(s, die, tag)
 		_two_dice(s)
+		_edge_cluster(s)
 	# A die in the middle of the felt is not dragged.
 	var mid := s.all_dice[2]
 	var home := Vector3(0.0, s.tuning.die_size * 0.5, 0.0)
@@ -81,6 +82,40 @@ func _scaled_1024(s: Bonfire3D, die: DieVisual, tag: String) -> void:
 	for b: Rect2 in _buttons(s):
 		var r := Rect2(b.position * k, b.size * k)
 		check(not d.intersects(r), "%s: 1024x576 window keeps the die clear of a button" % tag)
+
+
+## Five dice piled on the felt's near-left edge, under the buttons.
+## They must finish apart and still on the felt: the crowd guard and the
+## felt bound are what keep them there.
+func _edge_cluster(s: Bonfire3D) -> void:
+	var size := s.tuning.die_size
+	var y := size * 0.5
+	var cam := s.camera.cam
+	var btn := s.bhud.throw_button.get_global_rect()
+	var edge := Vector3(-Table3DBuilder.FELT_HALF.x + size, y, Table3DBuilder.FELT_HALF.y - size)
+	var inward := _ray(cam, btn.get_center(), y)
+	var spot := edge
+	var found := false
+	for k in 21:
+		var p := edge.lerp(inward, float(k) / 20.0)
+		p.y = y
+		s.all_dice[0].global_position = p
+		if _overlaps_buttons(s, s.all_dice[0]):
+			spot = p
+			found = true
+			break
+	check(found, "edge cluster: a felt-edge spot sits under Throw / Bank (%s)" % spot)
+	var offs: Array[Vector3] = [Vector3.ZERO, Vector3(0.006, 0, 0), Vector3(-0.006, 0, 0), Vector3(0, 0, 0.006), Vector3(0, 0, -0.006)]
+	for i in 5:
+		s.all_dice[i].global_position = spot + offs[i]
+	HudRestClear.clear(cam, s.all_dice, HudRestClear.blockers(s), size)
+	var felt := Table3DBuilder.FELT_HALF
+	for i in 5:
+		var p := s.all_dice[i].global_position
+		check(absf(p.x) <= felt.x + 0.001 and absf(p.z) <= felt.y + 0.001, "edge cluster: die %d stays on the felt %s" % [i, p])
+		for j in range(i + 1, 5):
+			var gap := Vector2(p.x - s.all_dice[j].global_position.x, p.z - s.all_dice[j].global_position.z)
+			check(gap.length() >= size, "edge cluster: dice %d and %d stay apart (%.3f m)" % [i, j, gap.length()])
 
 
 ## Two dice under the same button both end visible, apart, faces unchanged.

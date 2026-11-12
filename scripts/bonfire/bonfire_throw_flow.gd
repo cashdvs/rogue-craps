@@ -5,7 +5,6 @@
 class_name BonfireThrowFlow
 extends BonfireTableLayout
 
-
 # Declared here, written in a later layer (the chain ends at Bonfire3D).
 # "@abstract" only promises the function exists so this file can call it.
 @abstract func fast_forward_juice() -> bool

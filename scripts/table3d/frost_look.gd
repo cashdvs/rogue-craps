@@ -95,6 +95,8 @@ static func _mark(d: DieVisual, on: bool) -> void:
 	if axis.length_squared() < 0.5:
 		axis = Vector3.UP
 	var hint := Vector3.FORWARD if absf(axis.dot(Vector3.UP)) > 0.9 else Vector3.UP
-	m.basis = Basis.looking_at(axis, hint)
+	# Label3D reads from local +Z. looking_at aims local -Z at its target,
+	# so the target has to be the inward axis or the ✕ faces into the die.
+	m.basis = Basis.looking_at(-axis, hint)
 	m.position = axis * d.edge * 0.54
 	m.visible = true
