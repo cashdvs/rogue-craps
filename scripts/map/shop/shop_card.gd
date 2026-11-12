@@ -110,22 +110,65 @@ func _box(c: Color, radius: float, margin: float) -> StyleBoxFlat:
 	b.set_content_margin_all(margin * shop.k)
 	return b
 
+## Line 1 name. The Soul Draught uses its strings_v1 name; other goods use the offer name.
+static func title_text(o: ShopOffer) -> String:
+	return ShopCardStrings.get_text("shop_card_soul_name") if o.kind == ShopOffer.Kind.SOUL else o.display_name
+
+
+## One-line title size. Steps down from `start` until `text` fits in `width`,
+## but not below `min_px` (16 spec px still reads on a phone). Overrun stays off,
+## so a name is never clipped down to "Double Dow".
+static func fit_title_px(text: String, width: float, start: int, min_px: int) -> int:
+	var font := RunTheme.title_font
+	var size := maxi(min_px, start)
+	var guard := 0
+	while size > min_px and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and guard < 64:
+		size -= 1
+		guard += 1
+	return size
+
+
+## Card width inside the plate's side padding (design px). The title row is this wide.
+func _content_width() -> float:
+	return (WIDTH[shop.layout] - 32.0) * shop.k
+
+
 ## Line 1: name, the RARE chip for anything rare, and the price at the right.
+## A long name shrinks (it does not clip) so the whole row stays inside the plate.
 func _title_row(o: ShopOffer) -> void:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", int(8 * shop.k))
+	row.name = "TitleRow"
+	var sep := int(8 * shop.k)
+	row.add_theme_constant_override("separation", sep)
 	lines.add_child(row)
-	var name_text := ShopCardStrings.get_text("shop_card_soul_name") if o.kind == ShopOffer.Kind.SOUL else o.display_name
-	var title := RunTheme.label(name_text, _px(32), CREAM, true)
-	title.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title.clip_text = true
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(title)
+	var rare: Control = null
 	if o.rare:
-		row.add_child(RareMarks.chip(_px(16), shop.k * TEXT_SCALE[shop.layout]))
+		rare = RareMarks.chip(_px(16), shop.k * TEXT_SCALE[shop.layout])
+		row.add_child(rare)
 	var tag := PriceTag.new()
+	tag.name = "TitlePrice"
 	tag.setup(o.price_text(), o.affordable(shop.screen.run.progress.embers), _px(32), shop.k * TEXT_SCALE[shop.layout])
 	row.add_child(tag)
+	var inner := _content_width()
+	var used := tag.get_combined_minimum_size().x
+	if used < 1.0:
+		used = tag.custom_minimum_size.x
+	if rare != null:
+		var rare_w := rare.get_combined_minimum_size().x
+		used += rare_w if rare_w >= 1.0 else rare.custom_minimum_size.x
+	var gaps := float(sep) * (2.0 if rare != null else 1.0)
+	var slot := maxf(8.0, inner - used - gaps)
+	var name_text := title_text(o)
+	var px := fit_title_px(name_text, slot, _px(32), maxi(8, int(round(16.0 * shop.k))))
+	var title := RunTheme.label(name_text, px, CREAM, true)
+	title.name = "ItemTitle"
+	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title.clip_text = false
+	title.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(title)
+	row.move_child(title, 0)
+	row.custom_minimum_size.x = inner
 
 ## Lines 2-4 by item type (shop_cards_v1 §3) as [text, colour]; adds strip / token.
 func _body(o: ShopOffer) -> Array:
