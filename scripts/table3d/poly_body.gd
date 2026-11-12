@@ -7,8 +7,11 @@
 ## (a d4 by its top POINT, a d8 by its top face, so Beacon's 7 and 8 show).
 ## The collider hull comes from the same PC mesh (pc_hull).
 ## d4, d8 and the Powder Keg barrel (keg); the other shaped dice stay on
-## the cube until their own pass (they are not sold yet). Body-key art loading (Table3D.apply_art_body) is separate
-## and untouched: a shaped die simply keeps its shape's own mesh.
+## the cube until their own pass (they are not sold yet). The keg also gets
+## a camera-facing value tag (KegValueTag): its scoring stave points up, so
+## the printed pips are hard to read from the table camera. Body-key art
+## loading (Table3D.apply_art_body) is separate and untouched: a shaped die
+## simply keeps its shape's own mesh.
 class_name PolyBody
 extends RefCounted
 
@@ -146,6 +149,11 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 		D4FlatPass.add(d.body_material)
 		if d.get_node_or_null("D4ValueTag") == null:
 			D4ValueTag.attach(d)
+	elif s == &"keg":
+		# Scoring stave points at the sky, so the camera sees the next stave
+		# (a different number) more face-on. The tag shows the read value.
+		if d.get_node_or_null("KegValueTag") == null:
+			KegValueTag.attach(d)
 	return true
 
 
