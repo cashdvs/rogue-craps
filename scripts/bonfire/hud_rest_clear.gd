@@ -23,7 +23,12 @@ const COMPASS: Array[Vector3] = [
 
 
 ## Phone-landscape row clamp, then the HUD slide. True if a die moved.
+## Records rules_pose first: the slide is visual-only, so a Mirror still
+## copies the die that was nearest where the dice actually settled.
 static func apply(t: BonfireTableLayout) -> bool:
+	t.rules_pose.clear()
+	for d in t.throw_dice:
+		t.rules_pose.append(d.global_position)
 	var moved := false
 	if t.phone_screen.y > 0.0 and t.phone_screen.x >= t.phone_screen.y:
 		moved = PhoneFrame.clamp_rest(t.throw_dice, t.tuning.die_size)

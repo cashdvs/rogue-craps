@@ -1,6 +1,4 @@
-## Layer 4 of the Bonfire table: one throw from launch to settle.
-## Launching the handful, the pre-sim faces, landing / scoring rule
-## triggers, face changes, lighting the scoring dice, and the bust.
+## Layer 4: one throw from launch to settle (faces, rules, lighting, bust).
 @abstract
 class_name BonfireThrowFlow
 extends BonfireTableLayout
@@ -151,17 +149,8 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	_punch_dice()
 	events.dice_settled.emit()
 	sfx.play(&"dice_settle", 1.0, -3.0)
-	_felt_pos.clear()
-	for d in throw_dice:
-		_felt_pos.append(d.global_position)
-	var tds: Array = []
-	for i in throw_dice.size():
-		tds.append(_td(i))
-	var th := TableThrow.make(values, mods, tds, run.rng)
-	th.slots = slots.duplicate()
-	th.positions = _felt_pos.duplicate()
-	nerve.landed = slots.duplicate()
-	var ok := run.land_throw(th)
+	var ok := _land_settled(values, mods)
+	var th := run.last_throw
 	_compute_throw_claims()
 	events.triggers_resolved.emit(landing_triggers(th, ok))
 	if not th.changes.is_empty():
@@ -217,10 +206,22 @@ func _play_total_roll(slots: Array[int], velocity: Vector2, release_pos: Vector2
 	_refresh_hud()
 	sequence_finished.emit()
 
+## Rules pose is rules_pose (pre-slide). _felt_pos is where the dice sit now.
+func _land_settled(values: Array, mods: Array) -> bool:
+	_felt_pos.clear()
+	for d in throw_dice:
+		_felt_pos.append(d.global_position)
+	var tds: Array = []
+	for i in throw_dice.size():
+		tds.append(_td(i))
+	var th := TableThrow.make(values, mods, tds, run.rng)
+	th.slots = throw_slots.duplicate()
+	th.positions = rules_pose.duplicate()
+	nerve.landed = throw_slots.duplicate()
+	return run.land_throw(th)
 
-## Throw momentum: the flick's speed scales the launch speed, its arc and
-## the spin (bonfire_tuning "Throw momentum"). Direction is Table3D's (flick
-## direction kept in the aim cone).
+
+## Flick speed scales launch speed, arc and spin (bonfire_tuning). Aim stays Table3D's.
 func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 	var base := super(velocity, release_pos)
 	var bt := bonfire_tuning
@@ -247,8 +248,7 @@ func launch_for(velocity: Vector2, release_pos: Vector2) -> Dictionary:
 		axis = axis.normalized() if axis.length() > 0.001 else Vector3.RIGHT
 		spin.append(axis * spin_mag * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter)))
 		if i < n and dice[i].shape == &"coin":
-			# Ferryman's Coin: a hard end-over-end flip about a diameter plus
-			# extra lift, both growing with the flick, so it visibly flips.
+			# Ferryman's Coin: end-over-end flip plus extra lift, both growing with the flick.
 			var cn := dice[i].global_transform.basis.orthonormalized() * Vector3.UP
 			var flip := CoinPhysics.flip_axis(cn, lin[i], _fx_rng, deg_to_rad(bt.coin_axis_jitter_deg))
 			spin[i] = flip * lerpf(bt.coin_flip_min_rad_s, bt.coin_flip_max_rad_s, k) * (1.0 + _fx_rng.randf_range(-bt.spin_jitter, bt.spin_jitter))
