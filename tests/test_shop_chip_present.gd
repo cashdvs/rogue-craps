@@ -14,6 +14,7 @@ func _initialize() -> void:
 	_test_palette()
 	await _test_shelf()
 	_test_plain_chip_unchanged()
+	await _test_every_shop_path()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -101,6 +102,89 @@ func _test_shelf() -> void:
 	_check(after > 0.95, "hover lift and a slide keep the face toward the camera (dot %.3f)" % after)
 	for it: ShopItem in items:
 		it.free()
+
+
+## Every shop path that can show a modifier chip: the shelf item and the hover card.
+## Soul, mods and Seals are bone tokens and do not take the chip presentation.
+func _test_every_shop_path() -> void:
+	var scene: RunScreen = (load("res://scenes/run.tscn") as PackedScene).instantiate()
+	scene.run_seed = 7
+	root.add_child(scene)
+	await process_frame
+	var run := scene.run
+	run.screen = MapRun.Screen.SHOP
+	run._roll_shop()
+	run.shop_chips = [&"thumb", &"fuse_cord", &"double_down"]
+	run.progress.embers = 100
+	scene.shop_screen.window_override = Vector2i(1920, 1080)
+	scene.refresh()
+	await process_frame
+	var seen: Array[StringName] = []
+	var chip_items: Array[ShopItem] = []
+	for it: ShopItem in scene.shop_screen.items:
+		var o := it.offer
+		if o.kind == ShopOffer.Kind.CHIP:
+			chip_items.append(it)
+			seen.append(o.id)
+			_check(ChipLooks.has(o.id), "shelf chip %s is a ChipLooks id" % o.id)
+			_assert_presented(it, "shelf %s" % o.id)
+		else:
+			_check(it.find_child("ShopChipPivot", true, false) == null,
+				"%s (%s) is not a chip, so it stays a plain token" % [o.display_name, o.kind])
+	_check(seen.has(&"thumb") and seen.has(&"fuse_cord") and seen.has(&"double_down"),
+		"shelf shows one chip of each tier (got %s)" % [seen])
+	# The other offer kinds that share the counter: soul, mods, seals, rare seal.
+	var kinds: Array[int] = []
+	for it: ShopItem in scene.shop_screen.items:
+		if not kinds.has(it.offer.kind):
+			kinds.append(it.offer.kind)
+	for need: int in [ShopOffer.Kind.SOUL, ShopOffer.Kind.MOD, ShopOffer.Kind.SEAL, ShopOffer.Kind.RARE_SEAL, ShopOffer.Kind.DIE]:
+		_check(kinds.has(need), "shop still offers kind %s" % need)
+	# Hover card is the other shop view of a chip.
+	for it: ShopItem in chip_items:
+		scene.shop_screen.card.show_for(it)
+		await process_frame
+		var icons := scene.shop_screen.card.find_children("*", "ShopIcon", true, false)
+		var icon: ShopIcon = icons[0] if not icons.is_empty() else null
+		_check(icon != null and icon.offer.id == it.offer.id, "card shows %s" % it.offer.id)
+		if icon != null:
+			_assert_presented_icon(icon, "card %s" % it.offer.id)
+	scene.queue_free()
+
+
+func _assert_presented(it: ShopItem, what: String) -> void:
+	_assert_presented_icon(it.icon as ShopIcon, what)
+
+
+func _assert_presented_icon(icon: ShopIcon, what: String) -> void:
+	var id := icon.offer.id
+	var chip := icon.find_child("Chip_%s" % id, true, false) as Node3D
+	_check(chip != null, "%s has a chip node" % what)
+	if chip == null:
+		return
+	var tier: StringName = ChipLooks.look(id).tier
+	var rim := _rim(chip)
+	var albedo: Color = (rim.material_override as ShaderMaterial).get_shader_parameter("albedo")
+	_check(albedo.is_equal_approx(ShopChipBuild.RARITY_TINT[tier]), "%s rim is the %s tint" % [what, tier])
+	_check(is_equal_approx(chip.scale.x, ShopChipBuild.SHOP_CHIP_SCALE), "%s scale is 1.32" % what)
+	var dot := _face_dot_icon(icon, chip)
+	_check(dot > 0.95, "%s faces the camera (dot %.3f)" % [what, dot])
+
+
+func _face_dot_icon(icon: ShopIcon, chip: Node3D) -> float:
+	var face := _face(chip)
+	var cam := icon.rig.view.get_camera_3d()
+	if face == null or cam == null:
+		# Camera may not be current yet; the rig still has one.
+		for c: Node in icon.rig.view.get_children():
+			if c is Camera3D:
+				cam = c
+				break
+	if face == null or cam == null:
+		return 0.0
+	var normal := face.global_transform.basis.y.normalized()
+	var to_cam := (cam.global_position - face.global_position).normalized()
+	return normal.dot(to_cam)
 
 
 ## The HUD path (shop_chip false) keeps the clay / brass / bone rim and the fit scale.
