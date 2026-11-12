@@ -196,9 +196,14 @@ func _face_strip(d: SpecialDieData) -> Control:
 		strip.add_child(face)
 	return strip
 
-static func pips(v: int) -> Array:  # Pip spots: DiceIcons' 1-6, plus 7 and 8.
-	var extra := {7: [Vector2.ZERO], 8: [Vector2(0, -1), Vector2(0, 1)]}
-	return DiceIcons.PIPS[6] + extra[v] if v > 6 else DiceIcons.PIPS.get(v, [])
+static func pips(v: int) -> Array:  # Pip spots: DiceIcons' 1-6, plus 7 and 8. 9+ have no pip pattern.
+	if v <= 6:
+		return DiceIcons.PIPS.get(v, [])
+	if v == 7:
+		return DiceIcons.PIPS[6] + [Vector2.ZERO]
+	if v == 8:
+		return DiceIcons.PIPS[6] + [Vector2(0, -1), Vector2(0, 1)]
+	return []
 
 func _draw_face(f: Control, v: int) -> void:
 	var s := f.size.x

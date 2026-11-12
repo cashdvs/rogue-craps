@@ -92,7 +92,7 @@ func show_sell(s: BagSlot, pin: bool) -> void:
 	_frame()
 	_title(p.die_name(s.die_i), "")
 	_die_tags(p, s.die_i)
-	_add_strip(DieCardInfo.from_run(p, s.die_i))
+	_add_strip(SwapPreview.from_run(p, s.die_i))
 	var def := p.die_def(s.die_i)
 	var bone := p.shape_data(DiceIds.DIE_BONE)
 	var effect := def.description if def != null else (bone.description if bone != null else "")
@@ -118,7 +118,7 @@ func show_swap(s: BagSlot, pin: bool) -> void:
 	var p := run.progress
 	var offer: SpecialDieData = run.shop_dice[shop.swap_offer]
 	var new_name := offer.display_name
-	var old_info := DieCardInfo.from_run(p, s.die_i)
+	var old_info := SwapPreview.from_run(p, s.die_i)
 	var new_info := SwapPreview.from_def(p, offer)
 	var confirm := pin and needs_confirm(p, s.die_i, shop.touch_mode)
 	_frame()

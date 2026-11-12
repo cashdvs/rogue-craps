@@ -34,13 +34,36 @@ static func from_def(p: RunProgress, def: SpecialDieData) -> DieCardInfo:
 		var v: int = def.faces[f]
 		var mod := StringName(presets.get(v, &""))
 		var face := {"value": v, "mod": mod, "mod_name": DieCardInfo.mod_name(p, mod)}
-		if def.is_rare() and def is DieShape and (def as DieShape).is_preset(f, mod):
-			face["locked"] = true
+		if def is DieShape and (def as DieShape).is_preset(f, mod):
+			face["preset"] = true
+			if def.is_rare():
+				face["locked"] = true
 		info.faces.append(face)
 	return info
 
 
-## Face cells are at least 24 px. d10+: a range line plus a carved/locked highlight.
+## Stamp player-carved / preset flags from the run onto a DieCardInfo.
+static func from_run(p: RunProgress, die_i: int) -> DieCardInfo:
+	var info := DieCardInfo.from_run(p, die_i)
+	for f in info.faces.size():
+		if p.face_player_carved(die_i, f):
+			info.faces[f]["carved"] = true
+		var d := p.dice[die_i]
+		var sh := p.shape_data(d.shape) if d.shape != DiceIds.DIE_BONE else null
+		if sh != null and sh.is_preset(f, d.faces[f]):
+			info.faces[f]["preset"] = true
+	return info
+
+
+## True when this face was carved by the player (not a blank or a built-in preset).
+static func is_player_carved(face: Dictionary) -> bool:
+	if bool(face.get("carved", false)):
+		return true
+	var mod: StringName = face.get("mod", &"")
+	return mod != &"" and mod != RunDie.BLANK and not bool(face.get("locked", false)) and not bool(face.get("preset", false))
+
+
+## Face cells are at least 24 px. d10+: a range line plus a player-carved highlight.
 static func face_strip(info: DieCardInfo, cell: float, k: float, max_w: float = 0.0, phone: bool = false) -> Control:
 	cell = maxf(24.0, cell)
 	var gap := maxf(4.0, 6.0 * k)
@@ -54,8 +77,7 @@ static func face_strip(info: DieCardInfo, cell: float, k: float, max_w: float = 
 		box.add_child(lab)
 		var carved: Array[Dictionary] = []
 		for face in info.faces:
-			var mod: StringName = face.get("mod", &"")
-			if mod != &"" and (bool(face.get("locked", false)) or mod != RunDie.BLANK):
+			if is_player_carved(face):
 				carved.append(face)
 		if not carved.is_empty():
 			box.add_child(_grid(carved, cell, gap, max_w, phone, carved.size()))
@@ -85,9 +107,9 @@ static func _face(face: Dictionary, cell: float) -> Control:
 	var value: int = int(face.get("value", 0))
 	var mod: StringName = face.get("mod", &"")
 	var locked := bool(face.get("locked", false))
-	var carved := mod != &"" and mod != RunDie.BLANK and not locked
+	var carved := is_player_carved(face)
 	f.draw.connect(_draw_face.bind(f, value, carved, locked))
-	if carved or (mod != &"" and locked):
+	if carved or (mod != &"" and (locked or bool(face.get("preset", false)))):
 		_badge(f, "ModIcon", 0.0, cell, mod, false)
 	if locked:
 		_badge(f, "Lock", 1.0, cell, mod, true)

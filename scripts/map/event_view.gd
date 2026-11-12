@@ -138,7 +138,7 @@ func _confirm_swap(e: EventEffectData, die_i: int) -> bool:
 	_clear()
 	_box.add_child(RunTheme.label(_event.title, 40, RunTheme.EMBER, true))
 	_box.add_child(RunTheme.label(T.shop_swap_confirm.format({"old": _progress.die_name(die_i), "new": new_name}), 22, RunTheme.GOLD))
-	_box.add_child(SwapPreview.make(DieCardInfo.from_run(_progress, die_i), SwapPreview.from_def(_progress, def), 24.0, 1.0, 900.0, _touch()))
+	_box.add_child(SwapPreview.make(SwapPreview.from_run(_progress, die_i), SwapPreview.from_def(_progress, def), 24.0, 1.0, 900.0, _touch()))
 	for line in ShopSideCard.swap_lines(_progress, die_i, new_name).slice(1):
 		var warn: bool = line in [T.shop_swap_mods_warn, T.shop_swap_rare_warn]
 		_box.add_child(RunTheme.label(line, 22, RunTheme.EMBER if warn else RunTheme.GOLD))

@@ -200,6 +200,7 @@ func _test_die_render_and_pips() -> void:
 			digits += 1 if c is Label else 0
 	_check(digits == 0 and ss.card.find_children("Badge", "", true, false).is_empty(), "faces draw pips: no numeral labels, no letter badges")
 	_check(ShopCard.pips(1).size() == 1 and ShopCard.pips(6).size() == 6 and ShopCard.pips(8).size() == 8, "pip count matches the face value")
+	_check(ShopCard.pips(9).is_empty() and ShopCard.pips(10).is_empty() and ShopCard.pips(20).is_empty(), "pips is safe for 9 faces and up")
 	var carved := (d as DieShape).preset_mods.size() if d is DieShape else 0
 	_check(carved > 0 and ss.card.find_children("ModIcon", "", true, false).size() == carved, "each carved face gets its mod icon")
 	_check(ss.card.find_children("Lock", "", true, false).size() == carved, "each pre-carved face gets a lock")

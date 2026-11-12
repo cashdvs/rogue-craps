@@ -356,12 +356,15 @@ func _test_confirm_edges() -> void:
 			cells += 1
 	_check(cells >= 8, "QA12: lantern's strip has 8 face cells of at least 24 px (got %d)" % cells)
 	run.progress.swap_die(3, &"tithe")
+	_check(not run.progress.die_has_mods(3), "QA12: Tithe's built-in Gilded face is not a player carve")
 	run.progress.set_face(3, 0, &"wild")
 	_show(PC)
 	ss.bag[3].mouse_entered.emit()
 	var t := _texts(ss.card)
 	_check(t.has(ShopCardStrings.fill("shop_card_faces_range", 10)), "QA12: d10+ shows the range line")
-	_check(ss.card.find_children("ModIcon", "", true, false).size() >= 1, "QA12: d10+ shows the carved highlight")
+	# Only the player-carved face is highlighted, not the preset Gilded 10 (which would also trip pips(10)).
+	var mods := ss.card.find_children("ModIcon", "", true, false)
+	_check(mods.size() == 1, "QA12: d10+ highlights only the player-carved face, not preset Gilded (got %d)" % mods.size())
 
 
 ## 13. Event GIVE_DIE: prompt, whole-card click, confirm rule, cancel, skip picker.
