@@ -211,9 +211,11 @@ func _body(o: ShopOffer) -> Array:
 	return out
 
 ## The counter token (mod icon / Seal combo mark) at 42 spec px.
+## A modifier chip uses the same shelf presentation as the counter (tier rim,
+## larger, face toward the camera). Mods and Seals stay bone tokens.
 func _token(o: ShopOffer) -> Control:
 	var icon := ShopIcon.new()
-	icon.setup(o, _px(42))
+	icon.setup(o, _px(42), o.kind == ShopOffer.Kind.CHIP)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	return icon
 
