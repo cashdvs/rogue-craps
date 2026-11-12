@@ -8,10 +8,10 @@
 ## The collider hull comes from the same PC mesh (pc_hull).
 ## d4, d8 and the Powder Keg barrel (keg); the other shaped dice stay on
 ## the cube until their own pass (they are not sold yet). The keg also gets
-## a camera-facing value tag (KegValueTag): its scoring stave points up, so
-## the printed pips are hard to read from the table camera. Body-key art
-## loading (Table3D.apply_art_body) is separate and untouched: a shaped die
-## simply keeps its shape's own mesh.
+## a camera-facing value tag (KegValueTag) and, after it settles, a numeral
+## fade (KegStaveDim): the scoring stave points up, so a neighbouring number
+## faces the camera. Body-key art loading (Table3D.apply_art_body) is
+## separate and untouched: a shaped die simply keeps its shape's own mesh.
 class_name PolyBody
 extends RefCounted
 
@@ -152,8 +152,11 @@ static func dress(d: DieVisual, td: TableDie) -> bool:
 	elif s == &"keg":
 		# Scoring stave points at the sky, so the camera sees the next stave
 		# (a different number) more face-on. The tag shows the read value.
+		# After settle, the other numerals fade toward the wood.
 		if d.get_node_or_null("KegValueTag") == null:
 			KegValueTag.attach(d)
+		if d.get_node_or_null("KegStaveDim") == null:
+			KegStaveDim.attach(d)
 	return true
 
 

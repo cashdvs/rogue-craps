@@ -7,6 +7,8 @@ shader_type spatial;
 render_mode specular_disabled, ambient_light_disabled;
 
 #include "res://shaders/3d/twin_face_mask.gdshaderinc"
+// Same stave-dim uniforms as toon_noir, so a Twin Face material swap keeps the fade.
+#include "res://shaders/3d/keg_stave_dim.gdshaderinc"
 
 uniform vec4 albedo : source_color = vec4(0.91, 0.86, 0.75, 1.0);
 uniform vec4 shadow_color : source_color = vec4(0.165, 0.039, 0.063, 1.0); // #2A0A10
@@ -80,7 +82,7 @@ void fragment() {
 	}
 	if (use_overlay) {
 		vec4 ink = texture(overlay_tex, UV);
-		col = mix(col, ink.rgb, ink.a * overlay_tint.a);
+		col = mix(col, ink.rgb, ink.a * overlay_tint.a * keg_ink_keep(UV));
 	}
 	// Twin Face: unlit inlay (twin_unlit / atlas) when R; when gated lit,
 	// lerp core albedo to near-black so the lamp does not wash the Ember emission.

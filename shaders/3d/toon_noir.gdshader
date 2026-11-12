@@ -7,6 +7,9 @@
 shader_type spatial;
 render_mode specular_disabled, ambient_light_disabled;
 
+// Powder Keg only: off unless that die sets lit_stave / stave_dim. Other props stay as they are.
+#include "res://shaders/3d/keg_stave_dim.gdshaderinc"
+
 uniform vec4 albedo : source_color = vec4(0.91, 0.86, 0.75, 1.0);
 uniform vec4 shadow_color : source_color = vec4(0.165, 0.039, 0.063, 1.0); // #2A0A10
 uniform float mid_tint = 0.62;
@@ -125,8 +128,10 @@ void fragment() {
 		vec4 ink = texture(overlay_tex, ouv);
 		ink.a *= step(0.0, ouv.x) * step(ouv.x, 1.0) * step(0.0, ouv.y) * step(ouv.y, 1.0);
 		if (ink_from_tint) { ink.rgb = overlay_tint.rgb; }
-		col = mix(col, ink.rgb, ink.a * overlay_tint.a);
-		overlay_emit = ink.rgb * ink.a * overlay_tint.a * overlay_emission;
+		// 1 on every prop except a settled keg's non-scoring staves.
+		float keg_keep = keg_ink_keep(ouv);
+		col = mix(col, ink.rgb, ink.a * overlay_tint.a * keg_keep);
+		overlay_emit = ink.rgb * ink.a * overlay_tint.a * overlay_emission * keg_keep;
 	}
 	if (chip_mode) {
 		float r = length(obj_pos.xz) / chip_radius;
