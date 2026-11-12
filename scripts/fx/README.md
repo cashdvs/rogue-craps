@@ -123,10 +123,10 @@ Lit core: albedo lerps to near-black (`0.02`) by `R * gate` so the lamp does not
 
 ### Hookup for 3D Artist (Powder Keg body)
 
-1. Ship `powder_keg_twin_mask.png` + `powder_keg_faces.png` on **UV1** (mark in the **3's cell**, index 2). Replace the stand-in.
-2. Point the keg **body** slot (`powder_keg_body` → `powder_keg_d6`) at `res://shaders/3d/toon_noir_twin.gdshader`. Keep ink outline `next_pass`. Keep `use_overlay` + face atlas; ink stays in albedo, not in the mask.
-3. Assign `twin_mask` (non-colour import). Defaults above match AD-approved VALUES.md.
-4. Runtime: `TwinFaceGlow` → `bind_material(body_mat)` → `bind_events(table.events)` (or `bind_die` until TableEvents). Stave normals outward.
+1. `art/fx/twin_face/powder_keg_twin_mask.png` is the shipped UV1 mask (mark in the **3's cell**, index 2). The stand-in stays for the older glow tests. Import is non-colour / lossless / mipmaps.
+2. `powder_keg_body.tres` points at `res://shaders/3d/toon_noir_twin.gdshader` with `twin_mask` set. Ink outline `next_pass` and the face atlas stay. Ink stays in albedo, not in the mask.
+3. `DieArtMaterial` uses that material only when the die has a Twin carve. A keg with no Twin carve keeps `toon_noir` and the same body colours. Glow / unlit stay the defaults in the table above (`TwinFaceGlow.bind_material`). `emission_energy` is not raised.
+4. Runtime: `TwinFaceGlow` → `bind_material(body_mat)` → `bind_die(die_visual)` (settled lights it, impact clears it). Stave normals outward.
 
 ### Tests / capture
 

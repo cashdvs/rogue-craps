@@ -64,7 +64,11 @@ func _run() -> void:
 		# ... and it is its OWN material: the albedo authored in its .tres.
 		var art := load(DieArtMaterial.body_path(id)) as ShaderMaterial
 		check(col.is_equal_approx(art.get_shader_parameter("albedo")), "%s: body is its own .tres colour" % id)
-		check(d.body_material.shader == art.shader, "%s: its own shader" % id)
+		if id == DiceIds.DIE_POWDER_KEG:
+			# No Twin carve on this die: the live body stays the plain toon shader.
+			check(d.body_material.shader.resource_path.ends_with("toon_noir.gdshader"), "powder_keg without Twin stays on toon_noir")
+		else:
+			check(d.body_material.shader == art.shader, "%s: its own shader" % id)
 		var body := d.faces.get_node("Body") as MeshInstance3D
 		check(body.material_override == d.body_material, "%s: the body shows that material" % id)
 		# A d6 special with a built .glb wears that body, not the plain cube.
