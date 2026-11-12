@@ -31,6 +31,7 @@ func _initialize() -> void:
 	_test_cancel_free()
 	_test_retarget()
 	_test_phone_confirms()
+	_test_phone_card_fit()
 	_test_cant_afford()
 	_test_sell_hidden()
 	_test_stale_state()
@@ -281,6 +282,35 @@ func _test_phone_confirms() -> void:
 	_check(run.progress.dice[0].id == old and run.progress.embers == e, "QA8: nothing swaps on the first bag tap")
 	ss.card.action.pressed.emit()
 	_check(run.progress.dice[0].id != old and run.progress.embers < e, "QA8: SWAP on the third tap commits")
+
+
+## Phone confirm stays 8 px inside a 390-wide viewport; closing it shows the bag hint again.
+func _test_phone_card_fit() -> void:
+	_stock()
+	# Use the real window size so vis.x is 390, matching the phone shot.
+	DisplayServer.window_set_size(PORTRAIT)
+	_show(PORTRAIT, true)
+	ss.enter_swap(0)
+	_tap(ss.bag[1])
+	var vis := ss.get_viewport().get_visible_rect()
+	var r := ss.card.get_global_rect()
+	var m := 8.0 * ss.k
+	_check(r.position.x >= m - 0.5 and r.end.x <= vis.size.x - m + 0.5, "phone confirm: card x stays 8 px inside the viewport (%s vis %s)" % [r, vis.size])
+	_check(r.position.y >= m - 0.5 and r.end.y <= vis.size.y - m + 0.5, "phone confirm: card y stays 8 px inside the viewport (%s vis %s)" % [r, vis.size])
+	_check(ss.card.size.x <= vis.size.x - 2.0 * m + 0.5, "phone confirm: card width fits with 8 px side margins")
+	var title := ss.card.find_child("CardTitle", true, false) as Label
+	_check(title != null and r.grow(0.5).encloses(title.get_global_rect()), "phone confirm: the title is fully inside the card (%s)" % (title.text if title else "missing"))
+	_check(title != null and not title.clip_text and (title.text == "Swap Bone for Mirror Die?" or title.text == "Swap Bone for Mirror?"), "phone confirm: title is the full or short form, never clipped")
+	for b in ss.card.find_children("*", "Button", true, false):
+		_check(r.grow(0.5).encloses((b as Control).get_global_rect()) and vis.grow(-m + 0.5).encloses((b as Control).get_global_rect()) or vis.encloses((b as Control).get_global_rect()), "phone confirm: %s stays on screen" % (b as Button).text)
+	_check(ss.card.find_children("SwapArrow", "", true, false).size() == 1, "phone confirm: one drawn cream arrow, not a '->' glyph")
+	for l in ss.card.find_children("*", "Label", true, false):
+		_check((l as Label).text != "->", "phone confirm: no wrapping '->' label")
+	ss.card.close()
+	_check(not ss.card.visible and ss.swap_offer == 0, "phone confirm: close leaves swap mode on")
+	_check(ss.bag_label.visible and "YOUR DICE" in ss.bag_label.text, "phone confirm: YOUR DICE shows after the card closes")
+	_check(ss.sell_hint.visible and ss.sell_hint.text.find("die to give up") >= 0, "phone confirm: the swap hint shows after the card closes")
+	DisplayServer.window_set_size(Vector2i(1920, 1080))
 
 
 ## 9. Can't afford: greyed Need n, no swap mode, bag doesn't lift.

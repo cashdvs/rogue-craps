@@ -92,7 +92,7 @@ func _build(o: ShopOffer) -> void:
 	sb.border_color = CREAM
 	sb.set_border_width_all(maxi(1, int(2 * shop.k)))
 	add_theme_stylebox_override("panel", sb)
-	custom_minimum_size.x = WIDTH[shop.layout] * shop.k
+	custom_minimum_size.x = _fitted_width()
 	lines = VBoxContainer.new()
 	lines.add_theme_constant_override("separation", int(6 * shop.k))
 	add_child(lines)
@@ -101,7 +101,7 @@ func _build(o: ShopOffer) -> void:
 		var text: String = l[0]
 		var lab := RunTheme.label(text, _px(23), l[1])
 		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lab.custom_minimum_size.x = (WIDTH[shop.layout] - 32.0) * shop.k  # Wrap needs a width.
+		lab.custom_minimum_size.x = _content_width()  # Wrap needs a width.
 		lines.add_child(lab)
 	_action_row(o)
 
@@ -257,13 +257,34 @@ func buy() -> void:
 	close()
 	o.buy(shop.screen)
 
+## Width that leaves 8 px side margins in the viewport, capped at the layout width.
+func _fitted_width() -> float:
+	var vis := get_viewport().get_visible_rect().size
+	return minf(WIDTH[shop.layout] * shop.k, maxf(1.0, vis.x - 16.0 * shop.k))
+
+
+func _content_width() -> float:
+	return maxf(1.0, _fitted_width() - 32.0 * shop.k)
+
+
 ## Centre the card above `anchor` (below if no room), clamped 8 px inside the screen.
+## If the card is wider than the viewport, shrink it first so the right edge never clips.
 func _place(anchor: Rect2) -> void:
 	var vis := get_viewport().get_visible_rect().size
+	var margin := 8.0 * shop.k
+	var max_w := maxf(1.0, vis.x - 2.0 * margin)
+	if size.x > max_w + 0.5:
+		custom_minimum_size.x = max_w
+		size.x = max_w
 	var gap := 10 * shop.k
 	var pos := Vector2(anchor.get_center().x - size.x / 2.0, anchor.position.y - size.y - gap)
-	if pos.y < 8 * shop.k:
+	if pos.y < margin:
 		pos.y = anchor.end.y + gap
-	pos.x = clampf(pos.x, 8 * shop.k, vis.x - size.x - 8 * shop.k)
-	pos.y = clampf(pos.y, 8 * shop.k, maxf(8 * shop.k, vis.y - size.y - 8 * shop.k))
+	# Keep the card above the bag label when it fits, so YOUR DICE / hints stay visible.
+	if shop.bag_label != null:
+		var bag_top: float = shop.bag_label.get_global_rect().position.y
+		if pos.y + size.y > bag_top - gap and size.y + 2.0 * margin <= bag_top:
+			pos.y = bag_top - gap - size.y
+	pos.x = clampf(pos.x, margin, maxf(margin, vis.x - size.x - margin))
+	pos.y = clampf(pos.y, margin, maxf(margin, vis.y - size.y - margin))
 	global_position = pos

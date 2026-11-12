@@ -10,18 +10,65 @@ const DARK := Color("#141210")
 const FILL := Color(0.788, 0.635, 0.290, 0.2)  # #C9A24A at 20%.
 
 
-## Side-by-side old and new strips with an arrow. `phone`: wrap a 6-face
-## strip to 2x3 when 6 cells will not fit across `max_w`.
-static func make(old: DieCardInfo, new_info: DieCardInfo, cell: float, k: float, max_w: float, phone: bool) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.name = "SwapPreview"
-	row.add_theme_constant_override("separation", int(8 * k))
-	row.add_child(face_strip(old, cell, k, max_w * 0.45, phone))
-	var arrow := RunTheme.label("->", maxi(11, int(22 * k)), BRASS, true)
-	arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(arrow)
-	row.add_child(face_strip(new_info, cell, k, max_w * 0.45, phone))
-	return row
+## Old and new strips with one cream arrow. Side by side when they fit;
+## otherwise stacked (old above new) with a down arrow. `phone`: wrap a
+## 6-face strip to 2x3 when 6 cells will not fit across the given width.
+static func make(old: DieCardInfo, new_info: DieCardInfo, cell: float, k: float, max_w: float, phone: bool) -> Control:
+	cell = maxf(24.0, cell)
+	var gap := maxf(4.0, 6.0 * k)
+	var arrow_w := maxf(20.0, 24.0 * k)
+	var sep := maxf(8.0, 8.0 * k)
+	var side_w := (max_w - arrow_w - 2.0 * sep) * 0.5
+	var side_by_side := (not phone or side_w >= 3.0 * cell + 2.0 * gap) and side_w >= cell
+	if side_by_side:
+		var row := HBoxContainer.new()
+		row.name = "SwapPreview"
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", int(sep))
+		row.add_child(face_strip(old, cell, k, side_w, phone))
+		row.add_child(_arrow(k, false))
+		row.add_child(face_strip(new_info, cell, k, side_w, phone))
+		return row
+	var col := VBoxContainer.new()
+	col.name = "SwapPreview"
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", int(sep))
+	col.add_child(face_strip(old, cell, k, max_w, phone))
+	col.add_child(_arrow(k, true))
+	col.add_child(face_strip(new_info, cell, k, max_w, phone))
+	return col
+
+
+## A single cream arrow, centred in its box (right or down). Drawn, not a font glyph.
+static func _arrow(k: float, down: bool) -> Control:
+	var a := Control.new()
+	a.name = "SwapArrow"
+	var s := maxf(20.0, 24.0 * k)
+	a.custom_minimum_size = Vector2(s, s)
+	a.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	a.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Centre between the two 2x3 strips.
+	a.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	a.draw.connect(_draw_arrow.bind(a, down))
+	return a
+
+
+static func _draw_arrow(a: Control, down: bool) -> void:
+	var s := a.size
+	var mid := s * 0.5
+	var w := minf(s.x, s.y)
+	var thick := maxf(2.0, w * 0.12)
+	if down:
+		var tail := Vector2(mid.x, s.y * 0.12)
+		var tip := Vector2(mid.x, s.y * 0.88)
+		var hw := w * 0.32
+		a.draw_line(tail, tip - Vector2(0, hw * 0.35), CREAM, thick, true)
+		a.draw_colored_polygon(PackedVector2Array([tip, Vector2(mid.x - hw, tip.y - hw), Vector2(mid.x + hw, tip.y - hw)]), CREAM)
+	else:
+		var tail := Vector2(s.x * 0.12, mid.y)
+		var tip := Vector2(s.x * 0.88, mid.y)
+		var hw := w * 0.32
+		a.draw_line(tail, tip - Vector2(hw * 0.35, 0), CREAM, thick, true)
+		a.draw_colored_polygon(PackedVector2Array([tip, Vector2(tip.x - hw, mid.y - hw), Vector2(tip.x - hw, mid.y + hw)]), CREAM)
 
 
 ## A DieCardInfo built from a shop / event offer (the incoming die).

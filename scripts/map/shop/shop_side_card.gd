@@ -38,6 +38,14 @@ func close() -> void:
 	reroll_open = false
 	pinned = false
 	super()
+	# The open card can cover the bag chrome; show it again once the card is gone.
+	if shop != null and is_instance_valid(shop):
+		if shop.bag_label != null:
+			shop.bag_label.visible = true
+		if shop.sell_hint != null:
+			shop.sell_hint.visible = shop.selling or shop.swap_offer >= 0
+		if shop.exit_hint != null:
+			shop.exit_hint.visible = shop.swap_offer >= 0
 
 
 ## An item card replaces any open sell or reroll card.
@@ -77,6 +85,12 @@ static func swap_lines(p: RunProgress, die_i: int, new_name: String) -> Array[St
 		out.append(SWAP_TEXT.shop_swap_rare_warn)
 	out.append(SWAP_TEXT.shop_swap_no_refund)
 	return out
+
+
+## "Swap {old} for {new}?", or the shorter "Swap Bone for Mirror?" form when `new` ends in " Die".
+static func confirm_title(old: String, new_name: String, short := false) -> String:
+	var shown := new_name.trim_suffix(" Die") if short else new_name
+	return SWAP_TEXT.shop_swap_confirm.format({"old": old, "new": shown})
 
 
 ## The inspect / sell card for bag slot `s`, or the swap card in swap mode.
@@ -123,10 +137,9 @@ func show_swap(s: BagSlot, pin: bool) -> void:
 	var confirm := pin and needs_confirm(p, s.die_i, shop.touch_mode)
 	_frame()
 	if confirm:
-		_title(SWAP_TEXT.shop_swap_confirm.format({"old": p.die_name(s.die_i), "new": new_name}), "")
+		_title(_fit_confirm_title(p.die_name(s.die_i), new_name), "")
 		_die_tags(p, s.die_i)
-		var max_w: float = (WIDTH[shop.layout] - 32.0) * shop.k
-		lines.add_child(SwapPreview.make(old_info, new_info, _face_px(), shop.k, max_w, shop.touch_mode))
+		lines.add_child(SwapPreview.make(old_info, new_info, _face_px(), shop.k, _content_width(), shop.touch_mode))
 		for t in swap_lines(p, s.die_i, new_name).slice(1):
 			_line(t, RED if t in [SWAP_TEXT.shop_swap_mods_warn, SWAP_TEXT.shop_swap_rare_warn] else DIM)
 		_button(swap_btn(run.die_price(shop.swap_offer)), true, GREY, swap)
@@ -204,7 +217,7 @@ func _frame() -> void:
 	sb.border_color = CREAM
 	sb.set_border_width_all(maxi(1, int(2 * shop.k)))
 	add_theme_stylebox_override("panel", sb)
-	custom_minimum_size.x = WIDTH[shop.layout] * shop.k
+	custom_minimum_size.x = _fitted_width()
 	lines = VBoxContainer.new()
 	lines.add_theme_constant_override("separation", int(6 * shop.k))
 	add_child(lines)
@@ -216,8 +229,11 @@ func _title(text: String, price: String) -> void:
 	var row := HBoxContainer.new()
 	lines.add_child(row)
 	var title := RunTheme.label(text, _px(32), CREAM, true)
-	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title.name = "CardTitle"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.clip_text = false
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.custom_minimum_size.x = _content_width() - (80.0 * shop.k if price != "" else 0.0)
 	row.add_child(title)
 	if price != "":
 		var tag := PriceTag.new()
@@ -243,20 +259,32 @@ func _die_tags(p: RunProgress, die_i: int) -> void:
 	lines.add_child(row)
 
 
+## Full confirm title, wrapped on the card. Shorten only when a single word
+## of the full form is wider than the content (wrapping cannot save it).
+func _fit_confirm_title(old: String, new_name: String) -> String:
+	var font := RunTheme.title_font
+	var px := _px(32)
+	var max_w := _content_width()
+	var full := confirm_title(old, new_name)
+	for word in full.split(" "):
+		if font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x > max_w + 0.5:
+			return confirm_title(old, new_name, true)
+	return full
+
+
 func _face_px() -> float:
 	return maxf(24.0, float(_px(42)))
 
 
 func _add_strip(info: DieCardInfo) -> void:
-	var max_w: float = (WIDTH[shop.layout] - 32.0) * shop.k
-	lines.add_child(SwapPreview.face_strip(info, _face_px(), shop.k, max_w, shop.touch_mode))
+	lines.add_child(SwapPreview.face_strip(info, _face_px(), shop.k, _content_width(), shop.touch_mode))
 
 
 ## One wrapped body line in colour `c`.
 func _line(text: String, c: Color) -> void:
 	var lab := RunTheme.label(text, _px(23), c)
 	lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lab.custom_minimum_size.x = (WIDTH[shop.layout] - 32.0) * shop.k
+	lab.custom_minimum_size.x = _content_width()
 	lines.add_child(lab)
 
 
