@@ -75,11 +75,12 @@ uniform vec3 cold_warm_grey = vec3(1.00, 0.96, 0.90);
 // How much a cold die greys the lights on it too (the lamp and the rail
 // glow are warm / red: without this a cold die reads brown, not grey).
 uniform float cold_light_desat = 0.8;
-// die_frost 1 = a die a table rule keeps dark (Cold Sixes): on top of the
-// cold grey it is dimmed and tinted cool blue. No emission (FrostLook).
+// die_frost 1 = a face the rules will not light (Cold Sixes, Pit Boss lock,
+// any TableRule.can_light that says no). Dim desaturated frost, no emission.
+// Frost wins over die_lit so a dead die cannot read as lit.
 uniform float die_frost = 0.0;
-uniform vec3 frost_tint = vec3(0.72, 0.88, 1.30);
-uniform float frost_dim = 1.0;
+uniform vec3 frost_tint = vec3(0.55, 0.64, 0.74);
+uniform float frost_dim = 0.58;
 uniform vec4 state_rim_color : source_color = vec4(0.910, 0.384, 0.165, 1.0); // #E8622A
 uniform float state_rim_energy = 0.6;
 uniform float state_rim_power = 5.0;
@@ -146,23 +147,24 @@ void fragment() {
 		col *= 1.0 - 0.5 * scorch;
 	}
 	float cold_k = die_cold * (1.0 - die_lit);
-	if (die_lit > 0.0 || die_cold > 0.0) {
+	if (die_lit > 0.0 || die_cold > 0.0 || die_frost > 0.0) {
 		vec3 lit_col = col * lit_albedo_mul;
 		float luma = dot(col, vec3(0.299, 0.587, 0.114));
 		vec3 cold_col = mix(col, luma * cold_warm_grey, cold_desat) * cold_albedo_mul;
-		col = mix(col, lit_col, min(die_lit, lit_albedo_mix_max));
-		col = mix(col, cold_col, cold_k);
-		float frost_k = die_frost * (1.0 - die_lit);
+		float lit_k = min(die_lit, lit_albedo_mix_max) * (1.0 - die_frost);
+		col = mix(col, lit_col, lit_k);
+		col = mix(col, cold_col, cold_k * (1.0 - die_frost));
+		float frost_k = die_frost;
 		col = mix(col, dot(col, vec3(0.299, 0.587, 0.114)) * frost_tint * frost_dim, frost_k);
 	}
 	ALBEDO = col;
-	ROUGHNESS = mix(mix(roughness, 0.5, die_lit), 1.0, cold_k);
+	ROUGHNESS = mix(mix(roughness, 0.5, die_lit * (1.0 - die_frost)), 1.0, max(cold_k, die_frost));
 	vec3 emit = emission_color.rgb * emission_energy + overlay_emit;
 	emit += flash_color.rgb * flash;
 	// Ambient: the shadow band at ambient strength (so unlit sides stay warm).
 	vec3 shade = mix(col, shadow_color.rgb, 0.7);
 	emit += shade * ambient_color.rgb * ambient_energy * 2.0;
-	if (die_lit > 0.0) {
+	if (die_lit > 0.0 && die_frost < 0.5) {
 		float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), state_rim_power);
 		emit += die_lit * state_rim_color.rgb * state_rim_energy * fres;
 	}
@@ -182,7 +184,7 @@ void light() {
 	// Only where this light reaches at all (outside the cone = nothing).
 	float reach = smoothstep(0.0, 0.05, ATTENUATION);
 	vec3 lc = LIGHT_COLOR / PI;
-	float cold_l = max(die_cold * cold_light_desat, die_frost) * (1.0 - die_lit);
+	float cold_l = max(die_cold * cold_light_desat * (1.0 - die_lit), die_frost);
 	lc = mix(lc, vec3(dot(lc, vec3(0.299, 0.587, 0.114))), cold_l);
 	// DIFFUSE_LIGHT is multiplied by ALBEDO later, so divide it back out.
 	DIFFUSE_LIGHT += band / a * lc * light_gain * reach;
@@ -190,7 +192,8 @@ void light() {
 		vec3 h = normalize(VIEW + LIGHT);
 		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
 		// A cold die has no gloss at all (specular 0).
-		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * (1.0 - die_cold * (1.0 - die_lit));
+		float gloss = 1.0 - max(die_cold * (1.0 - die_lit), die_frost);
+		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * gloss;
 	}
 	if (rim_strength > 0.0) {
 		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
