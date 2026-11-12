@@ -311,8 +311,7 @@ func _on_reroll_pressed() -> void:
 		screen.refresh()
 
 
-## The bag row: "YOUR DICE · 5", the sell or swap hint, and max_dice slots of
-## `px` design px from top `y`. Sell mode lifts the row 10 spec px.
+## The bag row: "YOUR DICE · 5", sell/swap hints, and max_dice slots of `px` from `y`. Sell mode lifts the row 10 spec px.
 func _add_bag(y: float, px: float) -> void:
 	var p := screen.run.progress
 	if selling or swap_offer >= 0:
@@ -338,6 +337,7 @@ func _add_bag(y: float, px: float) -> void:
 	exit_hint.position = Vector2(sell_hint.position.x + hw + 16 * k, bag_label.position.y)
 	exit_hint.visible = swap_offer >= 0
 	add_child(exit_hint)
+	_place_bag_hints(x, label_px, lw)
 	if done_line != "":
 		var done := RunTheme.label(done_line, label_px, BRASS)
 		done.name = "DoneLine"
@@ -353,6 +353,63 @@ func _add_bag(y: float, px: float) -> void:
 		slot.clicked.connect(_on_bag_clicked)
 		add_child(slot)
 		bag.append(slot)
+
+
+## Phone: shrink hints to keep the one-line row 8 px inside the viewport,
+## above the bag. Stack under YOUR DICE only if 11 px still clips. PC is unchanged.
+func _place_bag_hints(x: float, label_px: int, bag_w: float) -> void:
+	if layout == Layout.PC:
+		return
+	var right := get_viewport().get_visible_rect().size.x - 8.0 * k
+	var font := sell_hint.get_theme_font(&"font")
+	var px := label_px
+	while px > 11 and _hint_end(font, px, bag_w) > right + 0.5:
+		px -= 1
+	if _hint_end(font, px, bag_w) <= right + 0.5:
+		if sell_hint.visible:
+			_fit_hint(sell_hint, font, px)
+			if exit_hint.visible:
+				exit_hint.position.x = sell_hint.position.x + sell_hint.size.x + 16.0 * k
+		if exit_hint.visible:
+			_fit_hint(exit_hint, font, px)
+		return
+	var line_h := font.get_height(11) + 2.0 * k
+	var max_w := maxf(1.0, right - x)
+	var origin := bag_label.position.y
+	var lines: Array[Label] = [bag_label]
+	if sell_hint.visible:
+		lines.append(sell_hint)
+	if exit_hint.visible:
+		lines.append(exit_hint)
+	var y := origin
+	for i in lines.size():
+		var lab := lines[i]
+		lab.clip_text = false
+		if i > 0:
+			lab.add_theme_font_size_override("font_size", 11)
+			lab.position = Vector2(x, y)
+			lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			lab.size = Vector2(max_w, maxf(line_h, font.get_multiline_string_size(lab.text, HORIZONTAL_ALIGNMENT_LEFT, max_w, 11).y))
+		y += line_h if i == 0 else lab.size.y
+	var shift := lines[lines.size() - 1].position.y - origin
+	for lab in lines:
+		lab.position.y -= shift
+
+
+func _hint_end(font: Font, px: int, bag_w: float) -> float:
+	var end := bag_label.position.x + bag_w
+	if sell_hint.visible:
+		end = sell_hint.position.x + font.get_string_size(sell_hint.text, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
+	if not exit_hint.visible:
+		return end
+	var ew := font.get_string_size(exit_hint.text, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
+	return end + 16.0 * k + ew if sell_hint.visible else exit_hint.position.x + ew
+
+
+func _fit_hint(lab: Label, font: Font, px: int) -> void:
+	lab.add_theme_font_size_override("font_size", px)
+	lab.clip_text = false
+	lab.size = Vector2(font.get_string_size(lab.text, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x, font.get_height(px))
 
 
 ## PC: a mouse-up on a plain uncarved, non-rare die in swap mode commits at once.

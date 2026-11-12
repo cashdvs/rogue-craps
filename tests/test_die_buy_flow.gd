@@ -291,10 +291,16 @@ func _test_phone_card_fit() -> void:
 	DisplayServer.window_set_size(PORTRAIT)
 	_show(PORTRAIT, true)
 	ss.enter_swap(0)
-	_tap(ss.bag[1])
 	var vis := ss.get_viewport().get_visible_rect()
-	var r := ss.card.get_global_rect()
 	var m := 8.0 * ss.k
+	for h in [ss.sell_hint, ss.exit_hint]:
+		var hr: Rect2 = h.get_global_rect()
+		_check(h.visible and not h.clip_text, "phone: %s is visible and unclipped" % h.text)
+		_check(hr.position.x >= m - 0.5 and hr.end.x <= vis.size.x - m + 0.5, "phone: hint x stays 8 px inside the viewport (%s %s vis %s)" % [h.text, hr, vis.size])
+		_check(hr.position.y >= m - 0.5 and hr.end.y <= vis.size.y - m + 0.5, "phone: hint y stays 8 px inside the viewport (%s %s vis %s)" % [h.text, hr, vis.size])
+	_check(ss.exit_hint.text == "Tap the counter to keep your dice.", "phone: the exit hint keeps its full wording")
+	_tap(ss.bag[1])
+	var r := ss.card.get_global_rect()
 	_check(r.position.x >= m - 0.5 and r.end.x <= vis.size.x - m + 0.5, "phone confirm: card x stays 8 px inside the viewport (%s vis %s)" % [r, vis.size])
 	_check(r.position.y >= m - 0.5 and r.end.y <= vis.size.y - m + 0.5, "phone confirm: card y stays 8 px inside the viewport (%s vis %s)" % [r, vis.size])
 	_check(ss.card.size.x <= vis.size.x - 2.0 * m + 0.5, "phone confirm: card width fits with 8 px side margins")
