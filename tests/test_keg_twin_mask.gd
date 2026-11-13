@@ -67,7 +67,7 @@ func _test_material() -> void:
 	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_halo_strength")), 0.0), "keg body twin_halo_strength is 0")
 	_check(art.get_shader_parameter("twin_glow") == null, "keg body does not override twin_glow")
 	var tres_unlit: Variant = art.get_shader_parameter("twin_unlit")
-	_check(tres_unlit is Color and (tres_unlit as Color).is_equal_approx(DieArtMaterial.TWIN_MARK), "keg body twin_unlit is #3A2E24")
+	_check(tres_unlit is Color and (tres_unlit as Color).is_equal_approx(Color("#E8DCC0")), "keg body twin_unlit is cream #E8DCC0")
 	var energy: Variant = art.get_shader_parameter("emission_energy")
 	_check(energy == null or float(energy) <= 0.3, "body emission_energy <= 0.3")
 
@@ -170,7 +170,7 @@ func _test_carved(d: DieVisual) -> void:
 	_check(glow_col is Color and (glow_col as Color).is_equal_approx(Palette.EMBER), "Twin glow colour stays Ember")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), 0.0), "keg twin_strength is 0")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), 0.0), "keg twin_halo_strength is 0")
-	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(Color("#3A2E24")), "keg twin_unlit is #3A2E24")
+	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(Color("#E8DCC0")), "keg twin_unlit is cream #E8DCC0")
 	_check(_energy(m) <= 0.3, "Twin keg emission_energy <= 0.3 (%.3f)" % _energy(m))
 	_check(d.shape == &"keg", "Twin keg still wears the barrel")
 
@@ -211,13 +211,13 @@ func _test_stave_dim(d: DieVisual) -> void:
 	_check(_energy(d.body_material) <= 0.3, "stave dim adds no emission above 0.3")
 
 
-## Powder Keg only: no Twin glow, glyph is dark brass. Reverting either fails.
+## Powder Keg only: no Twin glow, glyph is cream. Reverting the colour fails.
 func _test_keg_mark(d: DieVisual) -> void:
 	var m := d.body_material
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), DieArtMaterial.TWIN_STRENGTH), "keg path twin_strength is 0")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), DieArtMaterial.TWIN_HALO), "keg path twin_halo_strength is 0")
 	var unlit: Variant = m.get_shader_parameter("twin_unlit")
-	_check(unlit is Color and (unlit as Color).is_equal_approx(DieArtMaterial.TWIN_MARK), "keg path twin_unlit is #3A2E24")
+	_check(unlit is Color and (unlit as Color).is_equal_approx(Color("#E8DCC0")), "keg path twin_unlit is cream #E8DCC0")
 	_check(_energy(m) <= 0.3, "keg Twin adds no emission above 0.3")
 
 

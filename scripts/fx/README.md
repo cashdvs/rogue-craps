@@ -125,7 +125,7 @@ Lit core: albedo lerps to near-black (`0.02`) by `R * gate` so the lamp does not
 
 1. `art/fx/twin_face/powder_keg_twin_mask.png` is the shipped UV1 mask (mark in the **3's cell**, index 2). The stand-in stays for the older glow tests. Import is non-colour / lossless / mipmaps.
 2. `powder_keg_body.tres` points at `res://shaders/3d/toon_noir_twin.gdshader` with `twin_mask` set. Ink outline `next_pass` and the face atlas stay. Ink stays in albedo, not in the mask.
-3. `DieArtMaterial` uses that material only when the die has a Twin carve. A keg with no Twin carve keeps `toon_noir` and the same body colours. After `bind_material`, the keg sets `twin_strength` and `twin_halo_strength` to 0 and `twin_unlit` to `#3A2E24`. Other Twin dice keep the defaults in the table above. `emission_energy` is not raised.
+3. `DieArtMaterial` uses that material only when the die has a Twin carve. A keg with no Twin carve keeps `toon_noir` and the same body colours. After `bind_material`, the keg sets `twin_strength` and `twin_halo_strength` to 0 and `twin_unlit` to cream `#E8DCC0`. The G halo is emission only, so it is not given its own colour. Other Twin dice keep the defaults in the table above. `emission_energy` is not raised.
 4. Runtime: `TwinFaceGlow` → `bind_material(body_mat)` → `bind_die(die_visual)` (settled lights it, impact clears it). Stave normals outward.
 
 ### Tests / capture

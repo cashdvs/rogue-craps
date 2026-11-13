@@ -61,13 +61,16 @@ func _run() -> void:
 		_pose(dice[i], spots[i], yaws[i])
 		var screen := cam.unproject_position(dice[i].global_position)
 		print("die %d at %s screen %s" % [i, dice[i].global_position, screen])
-		var glow := dice[i].get_node_or_null("TwinFaceGlow") as TwinFaceGlow
-		if glow != null:
-			glow.set_settled(false)
 	for tw in get_processed_tweens():
 		tw.kill()
 	for i in dice.size():
 		_pose(dice[i], spots[i], yaws[i])
+		# The table emits settled after a landing. KegStaveDim listens and
+		# sets lit_stave to the shown value. Reduced motion (set above) snaps
+		# the fade. The still then holds Twin settled at 0: the keg's glow
+		# strength is already 0, and a settled gate would paint the glyph
+		# near-black instead of the cream the AD picked.
+		_land(dice[i])
 	s.camera.cam.current = true
 	for i in 4:
 		await process_frame
@@ -99,6 +102,20 @@ func _keg(carved: bool) -> TableDie:
 		td.mods[4] = mod
 		td.mods[5] = mod
 	return td
+
+
+## Same settle Table3D sends when a throw lands. Not a hand-written uniform.
+func _land(d: DieVisual) -> void:
+	var slot := d.up_slot() if PolyDie.has_shape(d.shape) else d.up_value()
+	d.settled.emit(d.die_id, slot)
+	var glow := d.get_node_or_null("TwinFaceGlow") as TwinFaceGlow
+	if glow != null:
+		glow.set_settled(false)
+	var dim := d.get_node_or_null("KegStaveDim") as KegStaveDim
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	var lit: Variant = body.get_instance_shader_parameter(&"lit_stave")
+	var fade: Variant = body.get_instance_shader_parameter(&"stave_dim")
+	print("landed die %d shown %d slot %d lit %s dim %s" % [d.die_id, d.shown_value(), slot, str(lit), str(fade)])
 
 
 ## Flat rest, the same way the numeral shots lie: barrel along world X, the
