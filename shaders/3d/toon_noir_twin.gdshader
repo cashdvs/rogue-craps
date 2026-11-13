@@ -53,6 +53,13 @@ uniform vec4 notch_color : source_color = vec4(0.91, 0.86, 0.75, 1.0);
 uniform vec4 ring_color : source_color = vec4(0.43, 0.10, 0.14, 1.0);
 uniform float chip_radius = 0.0275;
 
+// Dark ring around the Twin glyph. twin_halo_tint_strength is 0 by default,
+// so every other Twin die is unchanged: the mask's G still only feeds emission.
+// The keg sets the strength to 1 and the colour to ink #1E1712. This mix is
+// albedo. It does not add glow.
+uniform vec4 twin_halo_color : source_color = vec4(0.1176, 0.0902, 0.0706, 1.0);
+uniform float twin_halo_tint_strength = 0.0;
+
 varying vec3 obj_pos;
 varying vec3 obj_normal;
 varying vec3 world_pos;
@@ -91,6 +98,10 @@ void fragment() {
 	float twin_inlay_w = twin_m.r * twin_gate;
 	float twin_halo_w = twin_m.g * twin_gate;
 	col = mix(col, twin_unlit.rgb, twin_m.r);
+	// Keyline: where the halo (G) is set and the glyph (R) is not, darken the
+	// wood toward twin_halo_color. G * strength, and only outside the glyph.
+	float halo_ink = twin_m.g * (1.0 - twin_m.r) * twin_halo_tint_strength;
+	col = mix(col, twin_halo_color.rgb, clamp(halo_ink, 0.0, 1.0));
 	col = mix(col, vec3(0.02), twin_inlay_w);
 	if (chip_mode) {
 		float r = length(obj_pos.xz) / chip_radius;

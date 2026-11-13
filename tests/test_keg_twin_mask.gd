@@ -62,12 +62,15 @@ func _test_material() -> void:
 	var overlay := art.get_shader_parameter("overlay_tex") as Texture2D
 	_check(overlay != null and overlay.resource_path == FACES, "keg body keeps the face atlas")
 	_check(art.next_pass != null, "keg body keeps the ink outline")
-	# Glow uniforms are not overridden: the shader / TwinFaceGlow defaults stay.
+	# Emission glow stays off. The halo keyline is a separate albedo tint.
 	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_strength")), 0.0), "keg body twin_strength is 0")
 	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_halo_strength")), 0.0), "keg body twin_halo_strength is 0")
 	_check(art.get_shader_parameter("twin_glow") == null, "keg body does not override twin_glow")
 	var tres_unlit: Variant = art.get_shader_parameter("twin_unlit")
 	_check(tres_unlit is Color and (tres_unlit as Color).is_equal_approx(Color("#E8DCC0")), "keg body twin_unlit is cream #E8DCC0")
+	var tres_halo: Variant = art.get_shader_parameter("twin_halo_color")
+	_check(tres_halo is Color and (tres_halo as Color).is_equal_approx(Color("#1E1712")), "keg body twin_halo_color is ink #1E1712")
+	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_halo_tint_strength")), 1.0), "keg body halo tint strength is 1")
 	var energy: Variant = art.get_shader_parameter("emission_energy")
 	_check(energy == null or float(energy) <= 0.3, "body emission_energy <= 0.3")
 
@@ -171,6 +174,9 @@ func _test_carved(d: DieVisual) -> void:
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), 0.0), "keg twin_strength is 0")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), 0.0), "keg twin_halo_strength is 0")
 	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(Color("#E8DCC0")), "keg twin_unlit is cream #E8DCC0")
+	var halo_col: Variant = m.get_shader_parameter("twin_halo_color")
+	_check(halo_col is Color and (halo_col as Color).is_equal_approx(Color("#1E1712")), "keg twin_halo_color is ink #1E1712")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_tint_strength")), 1.0), "keg halo tint strength is 1")
 	_check(_energy(m) <= 0.3, "Twin keg emission_energy <= 0.3 (%.3f)" % _energy(m))
 	_check(d.shape == &"keg", "Twin keg still wears the barrel")
 
@@ -211,13 +217,17 @@ func _test_stave_dim(d: DieVisual) -> void:
 	_check(_energy(d.body_material) <= 0.3, "stave dim adds no emission above 0.3")
 
 
-## Powder Keg only: no Twin glow, glyph is cream. Reverting the colour fails.
+## Powder Keg only: cream glyph, dark ink keyline, no Twin glow.
+## Reverting the glyph colour, the keyline colour, or the keyline strength fails.
 func _test_keg_mark(d: DieVisual) -> void:
 	var m := d.body_material
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), DieArtMaterial.TWIN_STRENGTH), "keg path twin_strength is 0")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), DieArtMaterial.TWIN_HALO), "keg path twin_halo_strength is 0")
 	var unlit: Variant = m.get_shader_parameter("twin_unlit")
 	_check(unlit is Color and (unlit as Color).is_equal_approx(Color("#E8DCC0")), "keg path twin_unlit is cream #E8DCC0")
+	var halo: Variant = m.get_shader_parameter("twin_halo_color")
+	_check(halo is Color and (halo as Color).is_equal_approx(Color("#1E1712")), "keg path twin_halo_color is ink #1E1712")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_tint_strength")), DieArtMaterial.TWIN_HALO_TINT), "keg path halo tint strength is 1")
 	_check(_energy(m) <= 0.3, "keg Twin adds no emission above 0.3")
 
 
@@ -235,6 +245,8 @@ func _test_other_twin() -> void:
 	_check(is_equal_approx(_flt(mat.get_shader_parameter("twin_halo_strength")), 1.6), "non-keg Twin halo stays 1.6")
 	var unlit: Variant = mat.get_shader_parameter("twin_unlit")
 	_check(unlit is Color and (unlit as Color).is_equal_approx(Color("#403440")), "non-keg Twin unlit stays #403440")
+	var tint: Variant = mat.get_shader_parameter("twin_halo_tint_strength")
+	_check(tint == null or is_zero_approx(float(tint)), "non-keg Twin halo tint stays at default 0")
 	glow.queue_free()
 
 
@@ -242,6 +254,8 @@ func _test_other_twin() -> void:
 func _test_glyph_only() -> void:
 	var code := FileAccess.get_file_as_string("res://shaders/3d/toon_noir_twin.gdshader")
 	_check("mix(col, twin_unlit.rgb, twin_m.r)" in code, "unlit tint follows the mask glyph, not the whole body")
+	_check("mix(col, twin_halo_color.rgb, clamp(halo_ink, 0.0, 1.0))" in code, "halo keyline is an albedo mix, not emission")
+	_check("uniform float twin_halo_tint_strength = 0.0" in code, "halo tint strength defaults to 0")
 	_check("mix(col, vec3(0.02), twin_inlay_w)" in code, "settled darkening follows the gated glyph")
 
 

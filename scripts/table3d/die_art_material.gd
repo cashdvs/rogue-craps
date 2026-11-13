@@ -19,16 +19,19 @@ const DIR := "res://art/models/dice/materials/"
 const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 ## Twin Face body shader and the Powder Keg mask. Shared Twin glow stays
 ## the shader default. After bind_material the keg sets strength to 0 and
-## the glyph to cream #E8DCC0. Do not raise glow here.
+## the glyph to cream #E8DCC0 and a dark ink keyline on the halo. Do not
+## raise glow here.
 const TWIN_SHADER := "res://shaders/3d/toon_noir_twin.gdshader"
 const TWIN_MASK := "res://art/fx/twin_face/powder_keg_twin_mask.png"
-## Powder Keg only. The mask's R glyph paints this cream. The G halo has
-## no unlit colour of its own (the shader adds it as emission only), so
-## the halo stays off and the mark is plain cream. Other Twin dice keep
-## TwinFaceGlow's #403440 and strength 1.6.
+## Powder Keg only. The mask's R glyph paints this cream. The G halo, where
+## it is not also R, paints the dark ink keyline. Emission stays 0. Other
+## Twin dice keep TwinFaceGlow's #403440 and strength 1.6, and the keyline
+## strength stays 0 so they do not change.
 const TWIN_MARK := Color("#E8DCC0")
 const TWIN_STRENGTH := 0.0
 const TWIN_HALO := 0.0
+const TWIN_HALO_INK := Color("#1E1712")
+const TWIN_HALO_TINT := 1.0
 ## Dice whose edge outline is drawn 1.5x wide, in this colour.
 ## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
 const EDGE_INK := {
@@ -170,9 +173,9 @@ static func _has_twin_face(td: TableDie) -> bool:
 
 ## Swaps the die's toon body for toon_noir_twin, keeping every shared colour
 ## (albedo, atlas, spec) so the stave matches a plain keg. The mask then
-## paints only its glyph cream, with Twin glow strength 0. The halo
-## channel is emission, so it is left at 0 rather than given a new colour.
-## Shared TwinFaceGlow defaults are not changed. emission_energy is not raised
+## paints only its glyph cream, with Twin glow strength 0. The halo G
+## gets a dark ink keyline (albedo, not emission). Shared TwinFaceGlow
+## defaults are not changed. emission_energy is not raised
 ## here (scoring glow stays <= 0.3).
 ## Adds no signal: TwinFaceGlow listens to the die's settled / impact.
 static func _use_twin_shader(d: DieVisual) -> void:
@@ -198,11 +201,14 @@ static func _use_twin_shader(d: DieVisual) -> void:
 		body.material_override = m
 	_bind_twin_glow(d)
 	# bind_material writes the shared Ember defaults. This keg overrides
-	# them: no Twin glow, and the glyph is cream #E8DCC0. Only where the
-	# mask's R is set (the shader mixes by twin_m.r, not the body).
+	# them: no Twin glow, cream glyph, and a dark ink keyline on the halo.
+	# The keyline is albedo (twin_halo_tint_strength). twin_halo_strength
+	# is the emission halo and stays 0.
 	m.set_shader_parameter("twin_strength", TWIN_STRENGTH)
 	m.set_shader_parameter("twin_halo_strength", TWIN_HALO)
 	m.set_shader_parameter("twin_unlit", TWIN_MARK)
+	m.set_shader_parameter("twin_halo_color", TWIN_HALO_INK)
+	m.set_shader_parameter("twin_halo_tint_strength", TWIN_HALO_TINT)
 
 
 ## Drives the Twin Face mask. Glow colour and strength start at the shared
