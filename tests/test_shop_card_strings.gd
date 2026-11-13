@@ -2,10 +2,11 @@
 ##   godot --headless --path . --script res://tests/test_shop_card_strings.gd
 extends SceneTree
 
-## Golden copy of strings_v1.md's "Shop card" block (22 rows; bag5 retired shop_card_bag_full). Several of
+## Golden copy of strings_v1.md's "Shop card" block (23 rows; die_buy_flow_v1 adds shop_card_swap). Several of
 ## these state economy rules, so any renamed key or changed text must fail.
 const GOLDEN: Dictionary[String, String] = {
 	"shop_card_buy": "Buy",
+	"shop_card_swap": "Swap",
 	"shop_card_price": "{n} Embers",
 	"shop_card_cant_afford": "Need {n} more Embers.",
 	"shop_card_no_free_face": "No free face to carve.",
@@ -45,8 +46,8 @@ func _check(ok: bool, what: String) -> void:
 
 
 func _initialize() -> void:
-	_check(GOLDEN.size() == 22, "golden has 22 rows")
-	_check(ShopCardStrings.TEXT.size() == 22, "22 Shop card rows")
+	_check(GOLDEN.size() == 23, "golden has 23 rows")
+	_check(ShopCardStrings.TEXT.size() == 23, "23 Shop card rows")
 	for id: String in GOLDEN:
 		_check(ShopCardStrings.TEXT.has(id), "missing key " + id)
 		_check(ShopCardStrings.get_text(id) == GOLDEN[id], "text drift " + id)

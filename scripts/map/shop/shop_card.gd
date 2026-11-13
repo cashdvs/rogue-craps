@@ -40,11 +40,14 @@ func hover(it: ShopItem) -> void:
 	_timer.start()
 
 ## PC: the mouse left `it`; cancel the wait and close its card.
+## The pending swap offer stays lifted with its card open.
 func unhover(it: ShopItem) -> void:
 	if _waiting == it:
 		_waiting = null
 		_timer.stop()
 	if item == it:
+		if shop.swap_offer >= 0 and it.offer.kind == ShopOffer.Kind.DIE and it.offer.index == shop.swap_offer:
+			return
 		close()
 
 func close() -> void:
@@ -89,7 +92,7 @@ func _build(o: ShopOffer) -> void:
 	sb.border_color = CREAM
 	sb.set_border_width_all(maxi(1, int(2 * shop.k)))
 	add_theme_stylebox_override("panel", sb)
-	custom_minimum_size.x = WIDTH[shop.layout] * shop.k
+	custom_minimum_size.x = _fitted_width()
 	lines = VBoxContainer.new()
 	lines.add_theme_constant_override("separation", int(6 * shop.k))
 	add_child(lines)
@@ -98,7 +101,7 @@ func _build(o: ShopOffer) -> void:
 		var text: String = l[0]
 		var lab := RunTheme.label(text, _px(23), l[1])
 		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lab.custom_minimum_size.x = (WIDTH[shop.layout] - 32.0) * shop.k  # Wrap needs a width.
+		lab.custom_minimum_size.x = _content_width()  # Wrap needs a width.
 		lines.add_child(lab)
 	_action_row(o)
 
@@ -126,11 +129,6 @@ static func fit_title_px(text: String, width: float, start: int, min_px: int) ->
 		size -= 1
 		guard += 1
 	return size
-
-
-## Card width inside the plate's side padding (design px). The title row is this wide.
-func _content_width() -> float:
-	return (WIDTH[shop.layout] - 32.0) * shop.k
 
 
 ## Line 1: name, the RARE chip for anything rare, and the price at the right.
@@ -238,9 +236,14 @@ func _face_strip(d: SpecialDieData) -> Control:
 		strip.add_child(face)
 	return strip
 
-static func pips(v: int) -> Array:  # Pip spots: DiceIcons' 1-6, plus 7 and 8.
-	var extra := {7: [Vector2.ZERO], 8: [Vector2(0, -1), Vector2(0, 1)]}
-	return DiceIcons.PIPS[6] + extra[v] if v > 6 else DiceIcons.PIPS.get(v, [])
+static func pips(v: int) -> Array:  # Pip spots: DiceIcons' 1-6, plus 7 and 8. 9+ have no pip pattern.
+	if v <= 6:
+		return DiceIcons.PIPS.get(v, [])
+	if v == 7:
+		return DiceIcons.PIPS[6] + [Vector2.ZERO]
+	if v == 8:
+		return DiceIcons.PIPS[6] + [Vector2(0, -1), Vector2(0, 1)]
+	return []
 
 func _draw_face(f: Control, v: int) -> void:
 	var s := f.size.x
@@ -273,6 +276,8 @@ func _action_row(o: ShopOffer) -> void:
 	blocker_id = blocker(o, shop.screen)
 	var short := o.price_lo - shop.screen.run.progress.embers
 	var text := ShopCardStrings.get_text("shop_card_buy") if blocker_id == &"" else ShopCardStrings.fill(blocker_id, short)
+	if blocker_id == &"" and o.kind == ShopOffer.Kind.DIE and not shop.screen.run.progress.can_add_die():
+		text = ShopCardStrings.get_text("shop_card_swap")
 	action = RunTheme.button(text, _px(23))
 	action.custom_minimum_size.y = 40 * shop.k * TEXT_SCALE[shop.layout]
 	action.disabled = blocker_id != &""
@@ -292,13 +297,34 @@ func buy() -> void:
 	close()
 	o.buy(shop.screen)
 
+## Width that leaves 8 px side margins in the viewport, capped at the layout width.
+func _fitted_width() -> float:
+	var vis := get_viewport().get_visible_rect().size
+	return minf(WIDTH[shop.layout] * shop.k, maxf(1.0, vis.x - 16.0 * shop.k))
+
+
+func _content_width() -> float:
+	return maxf(1.0, _fitted_width() - 32.0 * shop.k)
+
+
 ## Centre the card above `anchor` (below if no room), clamped 8 px inside the screen.
+## If the card is wider than the viewport, shrink it first so the right edge never clips.
 func _place(anchor: Rect2) -> void:
 	var vis := get_viewport().get_visible_rect().size
+	var margin := 8.0 * shop.k
+	var max_w := maxf(1.0, vis.x - 2.0 * margin)
+	if size.x > max_w + 0.5:
+		custom_minimum_size.x = max_w
+		size.x = max_w
 	var gap := 10 * shop.k
 	var pos := Vector2(anchor.get_center().x - size.x / 2.0, anchor.position.y - size.y - gap)
-	if pos.y < 8 * shop.k:
+	if pos.y < margin:
 		pos.y = anchor.end.y + gap
-	pos.x = clampf(pos.x, 8 * shop.k, vis.x - size.x - 8 * shop.k)
-	pos.y = clampf(pos.y, 8 * shop.k, maxf(8 * shop.k, vis.y - size.y - 8 * shop.k))
+	# Keep the card above the bag label when it fits, so YOUR DICE / hints stay visible.
+	if shop.bag_label != null:
+		var bag_top: float = shop.bag_label.get_global_rect().position.y
+		if pos.y + size.y > bag_top - gap and size.y + 2.0 * margin <= bag_top:
+			pos.y = bag_top - gap - size.y
+	pos.x = clampf(pos.x, margin, maxf(margin, vis.x - size.x - margin))
+	pos.y = clampf(pos.y, margin, maxf(margin, vis.y - size.y - margin))
 	global_position = pos

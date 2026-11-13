@@ -1,18 +1,24 @@
 ## The shop's one floating card (PR C), adding two cards to PR B's item card:
-## - the sell card for a bag die (HANDOFF_SPEC §3, shop_cards_v1 §4), and
+## - the sell / inspect card for a bag die (HANDOFF_SPEC §3, shop_cards_v1 §4), and
 ## - the reroll card for the Reroll button.
-## It reuses ShopCard's look (plate, face strip, brass button, placement).
+## die_buy_flow_v1: swap preview, confirm only when it matters, RunDie strips.
 class_name ShopSideCard
 extends ShopCard
 
-## bag5_sacrifice_v1 §6 swap strings (design/strings_v1.md, "Bag of 5" rows).
+## die_buy_flow_v1 strings (design/strings_v1.md, "Bag of 5 swap" rows).
 const SWAP_TEXT: Dictionary[String, String] = {
-	"shop_swap_pick": "Give up which die?",
+	"shop_swap_pick": "{Click|Tap} the die to give up.",
+	"shop_swap_slot_hint": "{Click|Tap} to swap it for {new}.",
 	"shop_swap_confirm": "Swap {old} for {new}?",
-	"shop_swap_btn": "SWAP",
-	"shop_swap_cancel": "CANCEL",
+	"shop_swap_btn": "SWAP · {n} Embers",
+	"shop_swap_cancel": "KEEP IT",
 	"shop_swap_mods_warn": "Its carved faces go with it.",
+	"shop_swap_rare_warn": "Rare die: its forge-carved faces go too.",
 	"shop_swap_no_refund": "No refund: it's gone for the run.",
+	"shop_swap_done": "{old} out, {new} in.",
+	"shop_swap_exit": "{Click|Tap} the counter to keep your dice.",
+	"shop_bag_carved_tag": "Carved",
+	"event_swap_pick": "{Click|Tap} a die to give up for {new}.",
 	"reward_keep_dice": "Keep my dice",
 	"hud_dice_count": "YOUR DICE · {n}",
 }
@@ -32,6 +38,14 @@ func close() -> void:
 	reroll_open = false
 	pinned = false
 	super()
+	# The open card can cover the bag chrome; show it again once the card is gone.
+	if shop != null and is_instance_valid(shop):
+		if shop.bag_label != null:
+			shop.bag_label.visible = true
+		if shop.sell_hint != null:
+			shop.sell_hint.visible = shop.selling or shop.swap_offer >= 0
+		if shop.exit_hint != null:
+			shop.exit_hint.visible = shop.swap_offer >= 0 and not shop.touch_mode
 
 
 ## An item card replaces any open sell or reroll card.
@@ -47,8 +61,39 @@ func leave() -> void:
 		close()
 
 
-## The sell card for bag slot `s`: name, face strip, effect, then the sell
-## value and button. Bone dice sell for 0, so they get neither.
+## {Click|Tap} -> Click on PC, Tap on a phone.
+static func plat(text: String, touch: bool) -> String:
+	return text.replace("{Click|Tap}", "Tap" if touch else "Click")
+
+
+## SWAP · {n} Embers; a free event swap is just SWAP.
+static func swap_btn(price: int) -> String:
+	return SWAP_TEXT.shop_swap_btn.replace("{n}", str(price)) if price > 0 else "SWAP"
+
+
+## Confirm if the given-up die is player-carved, rare, or this is a phone.
+static func needs_confirm(p: RunProgress, die_i: int, touch: bool) -> bool:
+	return touch or p.die_has_mods(die_i) or p.die_is_rare(die_i)
+
+
+## "Swap {old} for {new}?", carved and/or rare warnings, then the no-refund line.
+static func swap_lines(p: RunProgress, die_i: int, new_name: String) -> Array[String]:
+	var out: Array[String] = [SWAP_TEXT.shop_swap_confirm.format({"old": p.die_name(die_i), "new": new_name})]
+	if p.die_has_mods(die_i):
+		out.append(SWAP_TEXT.shop_swap_mods_warn)
+	if p.die_is_rare(die_i):
+		out.append(SWAP_TEXT.shop_swap_rare_warn)
+	out.append(SWAP_TEXT.shop_swap_no_refund)
+	return out
+
+
+## "Swap {old} for {new}?", or the shorter "Swap Bone for Mirror?" form when `new` ends in " Die".
+static func confirm_title(old: String, new_name: String, short := false) -> String:
+	var shown := new_name.trim_suffix(" Die") if short else new_name
+	return SWAP_TEXT.shop_swap_confirm.format({"old": old, "new": shown})
+
+
+## The inspect / sell card for bag slot `s`, or the swap card in swap mode.
 func show_sell(s: BagSlot, pin: bool) -> void:
 	if shop.swap_offer >= 0:
 		show_swap(s, pin)
@@ -58,63 +103,63 @@ func show_sell(s: BagSlot, pin: bool) -> void:
 	pinned = pin
 	s.lift(true)
 	var p := shop.screen.run.progress
-	var def := p.die_def(s.die_i)
 	_frame()
-	_title(p.die_name(s.die_i) if def != null else "Bone Die", "")
-	var shown := def if def != null else SpecialDieData.new()  # Bone: plain 1-6.
-	lines.add_child(_face_strip(shown))
+	_title(p.die_name(s.die_i), "")
+	_die_tags(p, s.die_i)
+	_add_strip(SwapPreview.from_run(p, s.die_i))
+	var def := p.die_def(s.die_i)
 	var bone := p.shape_data(DiceIds.DIE_BONE)
 	var effect := def.description if def != null else (bone.description if bone != null else "")
 	if effect != "":
 		_line(effect, CREAM)
-	var value := p.sell_value(s.die_i)
-	if value > 0:
-		_line(ShopCardStrings.fill("shop_card_sell_value", value), DIM)
-		var floor_n := p.data.starting_dice
-		var can := p.dice.size() > floor_n
-		var text := ShopCardStrings.fill("shop_card_sell", value) if can else ShopCardStrings.fill("shop_card_cant_sell", floor_n)
-		_button(text, can, GREY, sell)
+	# Sell lines only when the bag is above the starting floor.
+	if p.dice.size() > p.data.starting_dice:
+		var value := p.sell_value(s.die_i)
+		if value > 0:
+			_line(ShopCardStrings.fill("shop_card_sell_value", value), DIM)
+			_button(ShopCardStrings.fill("shop_card_sell", value), true, GREY, sell)
 	_open_at(s.get_global_rect())
 
 
-## Swap mode (bag5_sacrifice_v1 §1): confirm giving up slot `s`'s die for
-## the picked offer, with the no-refund and carved-faces warnings.
+## Swap-mode card: PC plain dice get a preview (click commits); carved, rare,
+## or phone dice get a pinned confirm with old -> new strips.
 func show_swap(s: BagSlot, pin: bool) -> void:
 	close()
 	slot = s
 	pinned = pin
 	s.lift(true)
 	var run := shop.screen.run
-	var lines_out := swap_lines(run.progress, s.die_i, run.shop_dice[shop.swap_offer].display_name)
+	var p := run.progress
+	var offer: SpecialDieData = run.shop_dice[shop.swap_offer]
+	var new_name := offer.display_name
+	var old_info := SwapPreview.from_run(p, s.die_i)
+	var new_info := SwapPreview.from_def(p, offer)
+	var confirm := pin and needs_confirm(p, s.die_i, shop.touch_mode)
 	_frame()
-	_title(lines_out[0], "")
-	for t in lines_out.slice(1):
-		_line(t, RED if t == SWAP_TEXT.shop_swap_mods_warn else DIM)
-	_button(SWAP_TEXT.shop_swap_btn, true, GREY, swap)
-	var cancel := RunTheme.button(SWAP_TEXT.shop_swap_cancel, _px(23))
-	cancel.pressed.connect(func() -> void: shop.swap_offer = -1; close(); shop.screen.refresh())
-	lines.add_child(cancel)
+	if confirm:
+		_title(_fit_confirm_title(p.die_name(s.die_i), new_name), "")
+		_die_tags(p, s.die_i)
+		lines.add_child(SwapPreview.make(old_info, new_info, _face_px(), shop.k, _content_width(), shop.touch_mode))
+		for t in swap_lines(p, s.die_i, new_name).slice(1):
+			_line(t, RED if t in [SWAP_TEXT.shop_swap_mods_warn, SWAP_TEXT.shop_swap_rare_warn] else DIM)
+		_button(swap_btn(run.die_price(shop.swap_offer)), true, GREY, swap)
+		var cancel := RunTheme.button(SWAP_TEXT.shop_swap_cancel, _px(23))
+		cancel.pressed.connect(func() -> void: shop.exit_swap())
+		lines.add_child(cancel)
+	else:
+		_title(p.die_name(s.die_i), "")
+		_die_tags(p, s.die_i)
+		_add_strip(old_info)
+		_line(plat(SWAP_TEXT.shop_swap_slot_hint, shop.touch_mode).format({"new": new_name}), DIM)
+		_line(ShopCardStrings.fill("shop_card_price", run.die_price(shop.swap_offer)), DIM)
 	_open_at(s.get_global_rect())
-
-
-## "Swap {old} for {new}?" then the warnings for giving up die `die_i`.
-static func swap_lines(p: RunProgress, die_i: int, new_name: String) -> Array[String]:
-	var out: Array[String] = [SWAP_TEXT.shop_swap_confirm.format({"old": p.die_name(die_i), "new": new_name}), SWAP_TEXT.shop_swap_no_refund]
-	if p.die_has_mods(die_i):
-		out.append(SWAP_TEXT.shop_swap_mods_warn)
-	return out
 
 
 ## The SWAP button: pay, give up the open slot's die, take the offer.
 func swap() -> void:
 	if slot == null:
 		return
-	var i := slot.die_i
-	var offer := shop.swap_offer
-	shop.swap_offer = -1
-	close()
-	shop.screen.run.buy_die(offer, i)
-	shop.screen.refresh()
+	shop.commit_swap(slot.die_i)
 
 
 ## The sell button: sell the open slot's die and redraw the shop.
@@ -172,7 +217,7 @@ func _frame() -> void:
 	sb.border_color = CREAM
 	sb.set_border_width_all(maxi(1, int(2 * shop.k)))
 	add_theme_stylebox_override("panel", sb)
-	custom_minimum_size.x = WIDTH[shop.layout] * shop.k
+	custom_minimum_size.x = _fitted_width()
 	lines = VBoxContainer.new()
 	lines.add_theme_constant_override("separation", int(6 * shop.k))
 	add_child(lines)
@@ -184,8 +229,11 @@ func _title(text: String, price: String) -> void:
 	var row := HBoxContainer.new()
 	lines.add_child(row)
 	var title := RunTheme.label(text, _px(32), CREAM, true)
-	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title.name = "CardTitle"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.clip_text = false
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.custom_minimum_size.x = _content_width() - (80.0 * shop.k if price != "" else 0.0)
 	row.add_child(title)
 	if price != "":
 		var tag := PriceTag.new()
@@ -193,11 +241,50 @@ func _title(text: String, price: String) -> void:
 		row.add_child(tag)
 
 
+## RARE chip and/or "Carved" on the card only, at 11 px or larger.
+func _die_tags(p: RunProgress, die_i: int) -> void:
+	var rare := p.die_is_rare(die_i)
+	var carved := p.die_has_mods(die_i)
+	if not rare and not carved:
+		return
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(8 * shop.k))
+	var pt := maxi(11, _px(16))
+	if rare:
+		row.add_child(RareMarks.chip(pt, shop.k * TEXT_SCALE[shop.layout]))
+	if carved:
+		var lab := RunTheme.label(SWAP_TEXT.shop_bag_carved_tag, pt, BRASS, true)
+		lab.autowrap_mode = TextServer.AUTOWRAP_OFF
+		row.add_child(lab)
+	lines.add_child(row)
+
+
+## Full confirm title, wrapped on the card. Shorten only when a single word
+## of the full form is wider than the content (wrapping cannot save it).
+func _fit_confirm_title(old: String, new_name: String) -> String:
+	var font := RunTheme.title_font
+	var px := _px(32)
+	var max_w := _content_width()
+	var full := confirm_title(old, new_name)
+	for word in full.split(" "):
+		if font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x > max_w + 0.5:
+			return confirm_title(old, new_name, true)
+	return full
+
+
+func _face_px() -> float:
+	return maxf(24.0, float(_px(42)))
+
+
+func _add_strip(info: DieCardInfo) -> void:
+	lines.add_child(SwapPreview.face_strip(info, _face_px(), shop.k, _content_width(), shop.touch_mode))
+
+
 ## One wrapped body line in colour `c`.
 func _line(text: String, c: Color) -> void:
 	var lab := RunTheme.label(text, _px(23), c)
 	lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lab.custom_minimum_size.x = (WIDTH[shop.layout] - 32.0) * shop.k
+	lab.custom_minimum_size.x = _content_width()
 	lines.add_child(lab)
 
 

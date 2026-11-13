@@ -84,7 +84,7 @@ func _texts(card: ShopCard) -> Array[String]:
 
 
 func _test_strings() -> void:
-	_check(ShopCardStrings.TEXT.size() == 22, "22 Shop card ids (shop_card_* + shop_hint_pick_sell)")
+	_check(ShopCardStrings.TEXT.size() == 23, "23 Shop card ids (shop_card_* + shop_hint_pick_sell)")
 	_check(ShopCardStrings.fill("shop_card_cant_afford", 4) == "Need 4 more Embers.", "cant_afford fills {n}")
 	_check(ShopCardStrings.fill("shop_card_shape", 8) == "8 faces: rolls 1 to 8.", "shape fills both {n}")
 	_check(ShopCardStrings.get_text("shop_card_soul_name") == "Soul Draught", "soul name (strings_v1 line 466)")
@@ -200,6 +200,7 @@ func _test_die_render_and_pips() -> void:
 			digits += 1 if c is Label else 0
 	_check(digits == 0 and ss.card.find_children("Badge", "", true, false).is_empty(), "faces draw pips: no numeral labels, no letter badges")
 	_check(ShopCard.pips(1).size() == 1 and ShopCard.pips(6).size() == 6 and ShopCard.pips(8).size() == 8, "pip count matches the face value")
+	_check(ShopCard.pips(9).is_empty() and ShopCard.pips(10).is_empty() and ShopCard.pips(20).is_empty(), "pips is safe for 9 faces and up")
 	var carved := (d as DieShape).preset_mods.size() if d is DieShape else 0
 	_check(carved > 0 and ss.card.find_children("ModIcon", "", true, false).size() == carved, "each carved face gets its mod icon")
 	_check(ss.card.find_children("Lock", "", true, false).size() == carved, "each pre-carved face gets a lock")

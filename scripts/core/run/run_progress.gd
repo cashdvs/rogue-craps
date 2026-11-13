@@ -174,9 +174,34 @@ func gain_die(offer_id: StringName, give_up_i: int = -1) -> bool:
 	return add_die(offer_id) if can_add_die() else swap_die(give_up_i, offer_id)
 
 
-## Does die i carry carved faces or mods that a swap would lose?
+## Does die i carry faces the player carved? Blanks, a rare die's
+## forge-carved faces, and a shape's built-in presets (e.g. Tithe's Gilded)
+## don't count (die_buy_flow_v1 §2c / Game Designer).
 func die_has_mods(die_i: int) -> bool:
-	return die_i >= 0 and die_i < dice.size() and not dice[die_i].modded_faces().is_empty()
+	if die_i < 0 or die_i >= dice.size():
+		return false
+	for f in dice[die_i].faces.size():
+		if face_player_carved(die_i, f):
+			return true
+	return false
+
+
+## True when face `face_i` of die i is a player carve, not a blank or preset.
+func face_player_carved(die_i: int, face_i: int) -> bool:
+	if die_i < 0 or die_i >= dice.size() or face_i < 0 or face_i >= dice[die_i].faces.size():
+		return false
+	var d := dice[die_i]
+	var mod := d.faces[face_i]
+	if mod == &"" or mod == RunDie.BLANK or face_locked(die_i, face_i):
+		return false
+	var sh := shape_data(d.shape) if d.shape != DiceIds.DIE_BONE else null
+	return sh == null or not sh.is_preset(face_i, mod)
+
+
+## True when die i is a rare die (its definition's is_rare).
+func die_is_rare(die_i: int) -> bool:
+	var d := die_def(die_i)
+	return d != null and d.is_rare()
 
 
 ## A new die for offer id: a special die, or a shape with its preset faces.

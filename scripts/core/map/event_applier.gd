@@ -116,13 +116,16 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 	var used: Dictionary = {}
 	for e in choice.effects:
 		if e.needs_pick():
+			var optional := e.kind == K.GIVE_DIE and p.can_add_die()
 			if k >= picks.size() or not pick_ok(e, p, picks[k]):
-				return ["refused: pick a valid face"]
-			var key := [e.kind, picks[k] if e.kind not in [K.SELL_DIE, K.GIVE_DIE] else Vector2i(picks[k].x, 0)]
-			if used.has(key):
-				return ["refused: pick a different face for each"]
-			used[key] = true
-			k += 1
+				if not optional:
+					return ["refused: pick a valid face"]
+			else:
+				var key := [e.kind, picks[k] if e.kind not in [K.SELL_DIE, K.GIVE_DIE] else Vector2i(picks[k].x, 0)]
+				if used.has(key):
+					return ["refused: pick a different face for each"]
+				used[key] = true
+				k += 1
 	var lines: Array[String] = []
 	var next_pick: int = 0
 	var last: Vector2i = Vector2i(-1, -1)
@@ -135,9 +138,13 @@ static func apply(choice: EventChoiceData, p: RunProgress, rng: RandomNumberGene
 			K.MAX_SOUL:
 				lines.append("Max Soul %+d (%d)" % [p.change_max_soul(e.amount), p.max_soul])
 			K.GIVE_DIE:  # A full bag swaps out the picked die (bag5_sacrifice_v1 §2).
-				var give_up: int = picks[next_pick].x
-				next_pick += 1
-				var gone := p.die_name(give_up) if not p.can_add_die() else ""
+				var give_up: int = -1
+				if not p.can_add_die():
+					give_up = picks[next_pick].x
+					next_pick += 1
+				elif next_pick < picks.size():
+					next_pick += 1  # ignore a leftover pick when the bag has room
+				var gone := p.die_name(give_up) if give_up >= 0 and not p.can_add_die() else ""
 				if p.gain_die(e.die if e.die != &"" else DiceIds.DIE_BONE, give_up):
 					var at := give_up if gone != "" else p.dice.size() - 1
 					lines.append("gained %s" % p.die_name(at) + (" for %s" % gone if gone != "" else ""))
