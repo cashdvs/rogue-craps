@@ -84,6 +84,7 @@ func _run() -> void:
 	var mask_stave := _stave(cam, dice[2])
 	_save_x8(plain_stave, "stave_plain")
 	_save_x8(mask_stave, "stave_mask")
+	_save_compare(plain_stave, mask_stave)
 	_diff_staves(plain_stave, mask_stave)
 	print("capture_keg_twin: wrote ", _out)
 	quit(0)
@@ -194,6 +195,20 @@ func _diff_staves(plain: Image, mask: Image) -> void:
 			sum += dist
 			peak = maxf(peak, dist)
 	print("numeral cell diff: max %.2f mean %.2f over %d px" % [peak, sum / float(maxi(n, 1)), n])
+
+
+## Plain stave | keg-mask stave, nearest ×8, same cell the diff measures.
+func _save_compare(plain: Image, mask: Image) -> void:
+	var a := plain.duplicate() as Image
+	var b := mask.duplicate() as Image
+	a.resize(maxi(plain.get_width() * 8, 8), maxi(plain.get_height() * 8, 8), Image.INTERPOLATE_NEAREST)
+	b.resize(maxi(mask.get_width() * 8, 8), maxi(mask.get_height() * 8, 8), Image.INTERPOLATE_NEAREST)
+	var gap := 8
+	var cmp := Image.create(a.get_width() + gap + b.get_width(), maxi(a.get_height(), b.get_height()), false, Image.FORMAT_RGBA8)
+	cmp.fill(Color(0.05, 0.12, 0.09, 1))
+	cmp.blit_rect(a, Rect2i(0, 0, a.get_width(), a.get_height()), Vector2i(0, 0))
+	cmp.blit_rect(b, Rect2i(0, 0, b.get_width(), b.get_height()), Vector2i(a.get_width() + gap, 0))
+	cmp.save_png(_out + "stave_compare_x8.png")
 
 
 func _strip(crops: Array[Image], name: String) -> void:

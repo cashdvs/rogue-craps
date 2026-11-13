@@ -19,3 +19,6 @@ shader_parameter/use_overlay = true
 shader_parameter/overlay_tex = ExtResource("3")
 shader_parameter/overlay_tint = Color(1, 1, 1, 1)
 shader_parameter/twin_mask = ExtResource("4")
+shader_parameter/twin_strength = 0.0
+shader_parameter/twin_halo_strength = 0.0
+shader_parameter/twin_unlit = Color(0.227451, 0.180392, 0.141176, 1)

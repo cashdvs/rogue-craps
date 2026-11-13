@@ -17,13 +17,16 @@ extends RefCounted
 
 const DIR := "res://art/models/dice/materials/"
 const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
-## Twin Face body shader. Glow / unlit stay at this shader's defaults
-## (the same Ember values TwinFaceGlow writes). Do not raise them here.
+## Twin Face body shader and the Powder Keg mask. Shared Twin glow stays
+## the shader default; the keg overrides strength to 0 and unlit to #3A2E24
+## after bind_material. Do not raise glow here.
 const TWIN_SHADER := "res://shaders/3d/toon_noir_twin.gdshader"
 const TWIN_MASK := "res://art/fx/twin_face/powder_keg_twin_mask.png"
-## Cream inlay on the mask glyph only (AD pair-of-dice, #E8DCC0). The dark
-## shader default (#403440) reads as a brown blot on the mustard stave.
-const TWIN_MARK := Color("#E8DCC0")
+## Powder Keg only (AD option a). The R glyph paints this dark brass.
+## Other Twin dice keep TwinFaceGlow's #403440 and strength 1.6.
+const TWIN_MARK := Color("#3A2E24")
+const TWIN_STRENGTH := 0.0
+const TWIN_HALO := 0.0
 ## Dice whose edge outline is drawn 1.5x wide, in this colour.
 ## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
 const EDGE_INK := {
@@ -165,8 +168,9 @@ static func _has_twin_face(td: TableDie) -> bool:
 
 ## Swaps the die's toon body for toon_noir_twin, keeping every shared colour
 ## (albedo, atlas, spec) so the stave matches a plain keg. The mask then
-## paints only its glyph cream. Glow strength stays the existing default.
-## emission_energy is not raised here (scoring glow stays <= 0.3).
+## paints only its glyph dark brass, with Twin glow strength 0. Shared
+## TwinFaceGlow defaults are not changed. emission_energy is not raised
+## here (scoring glow stays <= 0.3).
 ## Adds no signal: TwinFaceGlow listens to the die's settled / impact.
 static func _use_twin_shader(d: DieVisual) -> void:
 	var src := d.body_material
@@ -190,13 +194,16 @@ static func _use_twin_shader(d: DieVisual) -> void:
 	if body != null:
 		body.material_override = m
 	_bind_twin_glow(d)
-	# bind_material writes the dark default. The keg mark is cream, and only
-	# where the mask's R is set (the shader mixes by twin_m.r, not the body).
+	# bind_material writes the shared Ember defaults. This keg overrides
+	# them: no Twin glow, and the glyph is dark brass #3A2E24. Only where
+	# the mask's R is set (the shader mixes by twin_m.r, not the body).
+	m.set_shader_parameter("twin_strength", TWIN_STRENGTH)
+	m.set_shader_parameter("twin_halo_strength", TWIN_HALO)
 	m.set_shader_parameter("twin_unlit", TWIN_MARK)
 
 
-## Drives the Twin Face mask. Glow colour and strength stay the existing
-## TwinFaceGlow defaults. The caller sets the cream inlay after this.
+## Drives the Twin Face mask. Glow colour and strength start at the shared
+## TwinFaceGlow defaults. The keg overrides strength and unlit just after.
 static func _bind_twin_glow(d: DieVisual) -> void:
 	var glow := TwinFaceGlow.new()
 	glow.name = "TwinFaceGlow"

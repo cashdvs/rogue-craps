@@ -44,6 +44,8 @@ func _run() -> void:
 	_test_same_body(plain, carved)
 	_test_glyph_only()
 	_test_stave_dim(carved)
+	_test_keg_mark(carved)
+	_test_other_twin()
 	plain.queue_free()
 	carved.queue_free()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -61,9 +63,11 @@ func _test_material() -> void:
 	_check(overlay != null and overlay.resource_path == FACES, "keg body keeps the face atlas")
 	_check(art.next_pass != null, "keg body keeps the ink outline")
 	# Glow uniforms are not overridden: the shader / TwinFaceGlow defaults stay.
-	_check(art.get_shader_parameter("twin_strength") == null, "body does not override twin_strength")
-	_check(art.get_shader_parameter("twin_glow") == null, "body does not override twin_glow")
-	_check(art.get_shader_parameter("twin_unlit") == null, "body does not override twin_unlit")
+	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_strength")), 0.0), "keg body twin_strength is 0")
+	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_halo_strength")), 0.0), "keg body twin_halo_strength is 0")
+	_check(art.get_shader_parameter("twin_glow") == null, "keg body does not override twin_glow")
+	var tres_unlit: Variant = art.get_shader_parameter("twin_unlit")
+	_check(tres_unlit is Color and (tres_unlit as Color).is_equal_approx(DieArtMaterial.TWIN_MARK), "keg body twin_unlit is #3A2E24")
 	var energy: Variant = art.get_shader_parameter("emission_energy")
 	_check(energy == null or float(energy) <= 0.3, "body emission_energy <= 0.3")
 
@@ -163,16 +167,16 @@ func _test_carved(d: DieVisual) -> void:
 	# Missing uniforms (hookup reverted) fail the check; they must not throw.
 	var glow_col: Variant = m.get_shader_parameter("twin_glow")
 	var unlit_col: Variant = m.get_shader_parameter("twin_unlit")
-	_check(glow_col is Color and (glow_col as Color).is_equal_approx(Palette.EMBER), "Twin glow stays Ember")
-	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), TwinFaceGlow.DEFAULT_STRENGTH), "Twin strength stays the existing default")
-	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), TwinFaceGlow.DEFAULT_HALO_STRENGTH), "Twin halo strength stays the existing default")
-	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(DieArtMaterial.TWIN_MARK), "Twin glyph inlay is cream #E8DCC0")
+	_check(glow_col is Color and (glow_col as Color).is_equal_approx(Palette.EMBER), "Twin glow colour stays Ember")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), 0.0), "keg twin_strength is 0")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), 0.0), "keg twin_halo_strength is 0")
+	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(Color("#3A2E24")), "keg twin_unlit is #3A2E24")
 	_check(_energy(m) <= 0.3, "Twin keg emission_energy <= 0.3 (%.3f)" % _energy(m))
 	_check(d.shape == &"keg", "Twin keg still wears the barrel")
 
 
 ## The carved keg keeps the plain keg's body colours and the face atlas.
-## Only the twin mask / cream inlay are extra.
+## Only the twin mask and its dark-brass glyph are extra.
 func _test_same_body(plain: DieVisual, carved: DieVisual) -> void:
 	var a := plain.body_material
 	var b := carved.body_material
@@ -205,6 +209,33 @@ func _test_stave_dim(d: DieVisual) -> void:
 	_check(is_equal_approx(_flt(body.get_instance_shader_parameter(&"lit_stave")), 3.0), "Twin keg lit_stave is the landed 3")
 	_check(is_equal_approx(_flt(body.get_instance_shader_parameter(&"stave_dim")), 1.0), "Twin keg stave_dim fades the other numerals")
 	_check(_energy(d.body_material) <= 0.3, "stave dim adds no emission above 0.3")
+
+
+## Powder Keg only: no Twin glow, glyph is dark brass. Reverting either fails.
+func _test_keg_mark(d: DieVisual) -> void:
+	var m := d.body_material
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), DieArtMaterial.TWIN_STRENGTH), "keg path twin_strength is 0")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), DieArtMaterial.TWIN_HALO), "keg path twin_halo_strength is 0")
+	var unlit: Variant = m.get_shader_parameter("twin_unlit")
+	_check(unlit is Color and (unlit as Color).is_equal_approx(DieArtMaterial.TWIN_MARK), "keg path twin_unlit is #3A2E24")
+	_check(_energy(m) <= 0.3, "keg Twin adds no emission above 0.3")
+
+
+## A Twin material that is not the keg keeps the shared TwinFaceGlow defaults.
+func _test_other_twin() -> void:
+	_check(is_equal_approx(TwinFaceGlow.DEFAULT_STRENGTH, 1.6), "shared core strength stays 1.6")
+	_check(is_equal_approx(TwinFaceGlow.DEFAULT_HALO_STRENGTH, 1.6), "shared halo strength stays 1.6")
+	_check(TwinFaceGlow.DEFAULT_UNLIT.is_equal_approx(Color("#403440")), "shared unlit stays #403440")
+	var mat := ShaderMaterial.new()
+	mat.shader = load(TWIN) as Shader
+	var glow := TwinFaceGlow.new()
+	root.add_child(glow)
+	glow.bind_material(mat)
+	_check(is_equal_approx(_flt(mat.get_shader_parameter("twin_strength")), 1.6), "non-keg Twin strength stays 1.6")
+	_check(is_equal_approx(_flt(mat.get_shader_parameter("twin_halo_strength")), 1.6), "non-keg Twin halo stays 1.6")
+	var unlit: Variant = mat.get_shader_parameter("twin_unlit")
+	_check(unlit is Color and (unlit as Color).is_equal_approx(Color("#403440")), "non-keg Twin unlit stays #403440")
+	glow.queue_free()
 
 
 ## The dark unlit colour is mixed by the mask's R, not painted on the whole stave.
