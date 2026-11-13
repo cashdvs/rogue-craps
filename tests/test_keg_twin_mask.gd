@@ -1,6 +1,6 @@
 ## Headless test: Powder Keg Twin Face mask hookup.
 ## - The keg body material uses toon_noir_twin and the shipped keg mask.
-## - The mask is 1024x1024, non-colour import, marks only in cell 2 (the 3s).
+## - The mask is 1024x1024, non-colour import, and cell 2 is clear.
 ## - A keg whose faces are carved Twin wears that look (same glow defaults).
 ## - A keg with no Twin carve stays on toon_noir, same body colours, no mask.
 ## Reverting the body shader (or skipping the carve) fails this test.
@@ -62,15 +62,14 @@ func _test_material() -> void:
 	var overlay := art.get_shader_parameter("overlay_tex") as Texture2D
 	_check(overlay != null and overlay.resource_path == FACES, "keg body keeps the face atlas")
 	_check(art.next_pass != null, "keg body keeps the ink outline")
-	# Emission glow stays off. The halo keyline is a separate albedo tint.
+	# Emission glow stays off. The lids are an albedo tint. The halo keyline is off.
 	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_strength")), 0.0), "keg body twin_strength is 0")
 	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_halo_strength")), 0.0), "keg body twin_halo_strength is 0")
 	_check(art.get_shader_parameter("twin_glow") == null, "keg body does not override twin_glow")
-	var tres_unlit: Variant = art.get_shader_parameter("twin_unlit")
-	_check(tres_unlit is Color and (tres_unlit as Color).is_equal_approx(Color("#E8DCC0")), "keg body twin_unlit is cream #E8DCC0")
-	var tres_halo: Variant = art.get_shader_parameter("twin_halo_color")
-	_check(tres_halo is Color and (tres_halo as Color).is_equal_approx(Color("#1E1712")), "keg body twin_halo_color is ink #1E1712")
-	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_halo_tint_strength")), 1.0), "keg body halo tint strength is 1")
+	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_halo_tint_strength")), 0.0), "keg body halo tint strength is 0")
+	var tres_lid: Variant = art.get_shader_parameter("twin_lid_color")
+	_check(tres_lid is Color and (tres_lid as Color).is_equal_approx(Color("#E8622A")), "keg body twin_lid_color is Ember #E8622A")
+	_check(is_equal_approx(_flt(art.get_shader_parameter("twin_lid_strength")), 1.0), "keg body lid strength is 1")
 	var energy: Variant = art.get_shader_parameter("emission_energy")
 	_check(energy == null or float(energy) <= 0.3, "body emission_energy <= 0.3")
 
@@ -116,56 +115,10 @@ func _test_pixels() -> void:
 				b_on += 1
 			if c.a < 0.999:
 				a_off += 1
-	_check(marks_in > 0 and marks_out == 0, "mask marks only in cell 2 (in %d, out %d)" % [marks_in, marks_out])
+	_check(marks_in == 0 and marks_out == 0, "mask cell 2 is clean and no other cell is marked (in %d, out %d)" % [marks_in, marks_out])
 	_check(g_in_r == 0, "mask G is 0 inside R (%d)" % g_in_r)
 	_check(b_on == 0, "mask B is 0")
 	_check(a_off == 0, "mask A is 255")
-	_test_two_marks(img)
-
-
-## Two ticks, one on each side of the 3 (atlas +X is above it in rest pose).
-## Each is clear of the printed ink, with a gap, and the long side is at
-## least ~5 px on a 48 px die (10.55 atlas px was 2.65 px).
-func _test_two_marks(img: Image) -> void:
-	var faces := Image.load_from_file(ProjectSettings.globalize_path(FACES))
-	var left := 0
-	var right := 0
-	var left_x0 := 1024
-	var left_y0 := 1024
-	var left_x1 := 0
-	var left_y1 := 0
-	var right_x0 := 1024
-	var right_y0 := 1024
-	var right_x1 := 0
-	var right_y1 := 0
-	var on_ink := 0
-	for y in img.get_height():
-		for x in img.get_width():
-			var c := img.get_pixel(x, y)
-			if c.r <= 0.5 and c.g <= 0.02:
-				continue
-			if faces != null and faces.get_pixel(x, y).a > 0.5:
-				on_ink += 1
-			if c.r <= 0.5:
-				continue
-			if x < 512:
-				left += 1
-				left_x0 = mini(left_x0, x)
-				left_y0 = mini(left_y0, y)
-				left_x1 = maxi(left_x1, x)
-				left_y1 = maxi(left_y1, y)
-			else:
-				right += 1
-				right_x0 = mini(right_x0, x)
-				right_y0 = mini(right_y0, y)
-				right_x1 = maxi(right_x1, x)
-				right_y1 = maxi(right_y1, y)
-	_check(left > 0 and right > 0, "mask has a mark on each side of the 3")
-	_check(on_ink == 0, "mask stays off the printed ink (%d)" % on_ink)
-	_check(left_x1 < 493 and right_x0 > 530, "marks sit clear of the 3 with a gap")
-	# 5 screen px * (10.55 atlas / 2.65 screen) = 19.9 atlas px on the long side.
-	_check(left_x1 - left_x0 + 1 >= 20 or left_y1 - left_y0 + 1 >= 20, "below mark is at least ~5 px at 48 px")
-	_check(right_x1 - right_x0 + 1 >= 20 or right_y1 - right_y0 + 1 >= 20, "above mark is at least ~5 px at 48 px")
 
 
 func _keg(carved: bool) -> DieVisual:
@@ -193,6 +146,7 @@ func _test_plain(d: DieVisual) -> void:
 	_check(is_equal_approx(float(m.get_shader_parameter("light_gain")), float(art.get_shader_parameter("light_gain"))), "non-Twin keg light_gain unchanged")
 	_check(is_equal_approx(float(m.get_shader_parameter("roughness")), float(art.get_shader_parameter("roughness"))), "non-Twin keg roughness unchanged")
 	_check(m.get_shader_parameter("twin_mask") == null, "non-Twin keg has no twin_mask")
+	_check(m.get_shader_parameter("twin_lid_strength") == null, "plain keg has no lid tint")
 	_check(d.get_node_or_null("TwinFaceGlow") == null, "non-Twin keg has no TwinFaceGlow")
 	var overlay := m.get_shader_parameter("overlay_tex") as Texture2D
 	_check(overlay != null and overlay.resource_path == FACES, "non-Twin keg still prints the face atlas")
@@ -219,16 +173,16 @@ func _test_carved(d: DieVisual) -> void:
 	_check(glow_col is Color and (glow_col as Color).is_equal_approx(Palette.EMBER), "Twin glow colour stays Ember")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), 0.0), "keg twin_strength is 0")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), 0.0), "keg twin_halo_strength is 0")
-	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(Color("#E8DCC0")), "keg twin_unlit is cream #E8DCC0")
-	var halo_col: Variant = m.get_shader_parameter("twin_halo_color")
-	_check(halo_col is Color and (halo_col as Color).is_equal_approx(Color("#1E1712")), "keg twin_halo_color is ink #1E1712")
-	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_tint_strength")), 1.0), "keg halo tint strength is 1")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_tint_strength")), 0.0), "keg halo tint strength is 0")
+	var lid_col: Variant = m.get_shader_parameter("twin_lid_color")
+	_check(lid_col is Color and (lid_col as Color).is_equal_approx(Color("#E8622A")), "keg twin_lid_color is Ember #E8622A")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_lid_strength")), 1.0), "keg lid strength is 1")
 	_check(_energy(m) <= 0.3, "Twin keg emission_energy <= 0.3 (%.3f)" % _energy(m))
 	_check(d.shape == &"keg", "Twin keg still wears the barrel")
 
 
 ## The carved keg keeps the plain keg's body colours and the face atlas.
-## Only the twin mask and its dark-brass glyph are extra.
+## Only the twin shader is extra. The stave colours still match.
 func _test_same_body(plain: DieVisual, carved: DieVisual) -> void:
 	var a := plain.body_material
 	var b := carved.body_material
@@ -263,17 +217,16 @@ func _test_stave_dim(d: DieVisual) -> void:
 	_check(_energy(d.body_material) <= 0.3, "stave dim adds no emission above 0.3")
 
 
-## Powder Keg only: cream glyph, dark ink keyline, no Twin glow.
-## Reverting the glyph colour, the keyline colour, or the keyline strength fails.
+## Powder Keg only: Ember lids, no Twin glow, halo keyline off.
+## Dropping the lid strength fails.
 func _test_keg_mark(d: DieVisual) -> void:
 	var m := d.body_material
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), DieArtMaterial.TWIN_STRENGTH), "keg path twin_strength is 0")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), DieArtMaterial.TWIN_HALO), "keg path twin_halo_strength is 0")
-	var unlit: Variant = m.get_shader_parameter("twin_unlit")
-	_check(unlit is Color and (unlit as Color).is_equal_approx(Color("#E8DCC0")), "keg path twin_unlit is cream #E8DCC0")
-	var halo: Variant = m.get_shader_parameter("twin_halo_color")
-	_check(halo is Color and (halo as Color).is_equal_approx(Color("#1E1712")), "keg path twin_halo_color is ink #1E1712")
-	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_tint_strength")), DieArtMaterial.TWIN_HALO_TINT), "keg path halo tint strength is 1")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_tint_strength")), DieArtMaterial.TWIN_HALO_TINT), "keg path halo tint strength is 0")
+	var lid: Variant = m.get_shader_parameter("twin_lid_color")
+	_check(lid is Color and (lid as Color).is_equal_approx(Color("#E8622A")), "keg path twin_lid_color is Ember #E8622A")
+	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_lid_strength")), DieArtMaterial.TWIN_LID_STRENGTH), "keg path lid strength is 1")
 	_check(_energy(m) <= 0.3, "keg Twin adds no emission above 0.3")
 
 
@@ -293,6 +246,8 @@ func _test_other_twin() -> void:
 	_check(unlit is Color and (unlit as Color).is_equal_approx(Color("#403440")), "non-keg Twin unlit stays #403440")
 	var tint: Variant = mat.get_shader_parameter("twin_halo_tint_strength")
 	_check(tint == null or is_zero_approx(float(tint)), "non-keg Twin halo tint stays at default 0")
+	var lid: Variant = mat.get_shader_parameter("twin_lid_strength")
+	_check(lid == null or is_zero_approx(float(lid)), "non-keg Twin lid tint stays at default 0")
 	glow.queue_free()
 
 
@@ -302,6 +257,8 @@ func _test_glyph_only() -> void:
 	_check("mix(col, twin_unlit.rgb, twin_m.r)" in code, "unlit tint follows the mask glyph, not the whole body")
 	_check("mix(col, twin_halo_color.rgb, clamp(halo_ink, 0.0, 1.0))" in code, "halo keyline is an albedo mix, not emission")
 	_check("uniform float twin_halo_tint_strength = 0.0" in code, "halo tint strength defaults to 0")
+	_check("uniform float twin_lid_strength = 0.0" in code, "lid tint strength defaults to 0")
+	_check("twin_lid_color.rgb, clamp(twin_lid_strength, 0.0, 1.0)" in code, "lid tint is an albedo mix")
 	_check("mix(col, vec3(0.02), twin_inlay_w)" in code, "settled darkening follows the gated glyph")
 
 

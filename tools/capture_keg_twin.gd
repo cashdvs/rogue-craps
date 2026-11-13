@@ -102,6 +102,9 @@ func _run() -> void:
 	_save_x8(mask_stave, "stave_mask")
 	_save_compare(plain_stave, mask_stave)
 	_diff_staves(plain_stave, mask_stave)
+	# One lid end (atlas cell 23) on the Twin keg, nearest ×8.
+	var lid := _lid(cam, dice[2])
+	_save_x8(lid, "lid")
 	print("capture_keg_twin: wrote ", _out)
 	quit(0)
 
@@ -200,6 +203,39 @@ func _stave(cam: Camera3D, d: DieVisual) -> Image:
 			continue
 		var n := (xf.basis * (arr[Mesh.ARRAY_NORMAL][idx[t * 3]] as Vector3)).normalized()
 		if n.y < 0.5:
+			continue
+		for c in 3:
+			var p := cam.unproject_position(xf * verts[idx[t * 3 + c]]) * k
+			min_p = min_p.min(p)
+			max_p = max_p.max(p)
+	var pad := 2
+	var rect := Rect2i(int(min_p.x) - pad, int(min_p.y) - pad, int(ceil(max_p.x - min_p.x)) + pad * 2, int(ceil(max_p.y - min_p.y)) + pad * 2)
+	rect = rect.intersection(Rect2i(0, 0, img.get_width(), img.get_height()))
+	var crop := img.get_region(rect)
+	crop.convert(Image.FORMAT_RGBA8)
+	return crop
+
+
+## The left lid end (atlas cell 23, world X below the barrel centre).
+func _lid(cam: Camera3D, d: DieVisual) -> Image:
+	var img := _shot
+	var k := float(img.get_width()) / _view.x
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	var arr := body.mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+	var xf := body.global_transform
+	var min_p := Vector2(INF, INF)
+	var max_p := Vector2(-INF, -INF)
+	var mid_x := d.global_position.x
+	for t in idx.size() / 3:
+		var uv: Vector2 = uvs[idx[t * 3]]
+		var cell := int(floor(clampf(uv.x, 0.0, 0.999) * 5.0)) + int(floor(clampf(uv.y, 0.0, 0.999) * 5.0)) * 5
+		if cell != 23:
+			continue
+		var at := xf * verts[idx[t * 3]]
+		if at.x > mid_x:
 			continue
 		for c in 3:
 			var p := cam.unproject_position(xf * verts[idx[t * 3 + c]]) * k
