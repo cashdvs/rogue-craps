@@ -211,7 +211,9 @@ func forfeit() -> bool:
 	_kill_hand_tweens()
 	phase = Phase.OVER
 	juice.crowd_stop()
-	_burn_soul(maxi(_soul_shown - run.soul, 0))
+	# Target miss: goal_missed's sting covers this Soul. A bounty forfeit still plays it.
+	var quiet := TableEvents.is_goal_miss(run, int(run.state))
+	_burn_soul(maxi(_soul_shown - run.soul, 0), quiet)
 	for d in all_dice:
 		_set_lit(d, false)
 	bhud.countup.clear()  # no count-up row left over the end panel
