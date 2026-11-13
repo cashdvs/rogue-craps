@@ -1,6 +1,8 @@
 ## Headless test: the table-goal stings (TableGoalSynth). Both files are
 ## baked, load as 22,050 Hz mono 16-bit one-shots, match a fresh bake, and
 ## TableAudio plays them on goal_reached / goal_missed (one cue per clear).
+## SfxManager registers both events so the live table plays the stings, not
+## the table_cleared / soul_burn fallbacks.
 ##
 ## Run:
 ##   godot --headless --path . --script res://tests/test_table_goal_stings.gd
@@ -23,6 +25,10 @@ class StubSfx:
 
 
 func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
 	print("=== Dice of the Damned: table goal stings ===")
 	for event: StringName in TableGoalSynth.EVENTS:
 		var path := "res://audio/sfx/%s.wav" % event
@@ -41,6 +47,7 @@ func _initialize() -> void:
 		_check(TableGoalSynth.make(event).data == TableGoalSynth.make(event).data, "%s bakes deterministically" % event)
 	_check(TableGoalSynth.bake_all().size() == 2, "bake_all() owns both files")
 	_test_hooks()
+	_test_registered()
 	print("passed %d, failed %d" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -72,6 +79,44 @@ func _test_hooks() -> void:
 	ev.emit_signal("goal_reached")
 	ev.emit_signal("goal_missed", 5)
 	_check(sfx.log == ["table_cleared", "soul_burn"], "missing stings fall back: %s" % [sfx.log])
+	a.free()
+	sfx.free()
+	ev.free()
+
+
+## A real SfxManager whose play() only logs, so we can check registration
+## and TableAudio's cue choice without starting voices (those leak at exit).
+class LoggingSfx:
+	extends SfxManager
+	var log: Array[String] = []
+
+	func play(event: StringName, _p: float = 1.0, _v: float = 0.0, _j: float = 0.06) -> void:
+		log.append(String(event))
+
+
+## Live SfxManager: both events must be registered, and TableAudio must
+## play the real sting (not the fallback) when the TableEvents fire.
+func _test_registered() -> void:
+	var sfx := LoggingSfx.new()
+	root.add_child(sfx)
+	for event: StringName in TableGoalSynth.EVENTS:
+		_check(sfx.has_event(event), "SfxManager has %s registered" % event)
+	var ev := Object.new()
+	ev.add_user_signal("goal_reached")
+	ev.add_user_signal("goal_missed", [{"name": "soul_loss", "type": TYPE_INT}])
+	ev.add_user_signal("table_started")
+	var a := TableAudio.new()
+	a.bind(ev, sfx)
+	ev.emit_signal("goal_reached")
+	_check(sfx.log == ["table_goal_reached"], "goal_reached plays the real sting, not the table_cleared fallback: %s" % [sfx.log])
+	_check(a.calls == ["table_goal_reached"], "TableAudio records the reached sting, not a fallback: %s" % [a.calls])
+	ev.emit_signal("table_started")
+	a.calls.clear()
+	sfx.log.clear()
+	ev.emit_signal("goal_missed", 5)
+	_check(sfx.log == ["table_goal_missed"], "goal_missed plays the real sting, not the soul_burn fallback: %s" % [sfx.log])
+	_check(a.calls == ["table_goal_missed"], "TableAudio records the missed sting, not a fallback: %s" % [a.calls])
+	a.unbind()
 	a.free()
 	sfx.free()
 	ev.free()
