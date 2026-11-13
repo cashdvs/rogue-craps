@@ -73,6 +73,7 @@ func _ready() -> void:
 		add_child(player)
 		_players.append(player)
 	_add_throw_events()
+	_add_goal_events()
 
 
 func _process(delta: float) -> void:
@@ -336,6 +337,14 @@ func _add_throw_events() -> void:
 	for event in ThrowSynth.EVENTS:
 		var path := SFX_DIR + String(event) + ".wav"
 		_streams[event] = load(path) as AudioStream if ResourceLoader.exists(path) else ThrowSynth.make(event)
+
+
+## Table-goal stings (#222). Without this, TableAudio's cue() falls back
+## to table_cleared / soul_burn even though the WAVs are on disk.
+func _add_goal_events() -> void:
+	for event in TableGoalSynth.EVENTS:
+		var path := SFX_DIR + String(event) + ".wav"
+		_streams[event] = load(path) as AudioStream if ResourceLoader.exists(path) else TableGoalSynth.make(event)
 
 
 ## Creates the SFX bus (routed to Master) if the project doesn't have one.
