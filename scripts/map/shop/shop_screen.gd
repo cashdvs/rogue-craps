@@ -272,11 +272,13 @@ func _add_buttons(vis: Vector2, y: float) -> void:
 		var gap := 8 * k
 		var n := row.size()
 		var w := (vis.x - 32 * k - (n - 1) * gap) / float(n)
+		var h := 44.0 * k
 		for i in n:
-			row[i].custom_minimum_size = Vector2(0, 44 * k)
-			row[i].clip_text = true
-			row[i].position = Vector2(16 * k + i * (w + gap), y)
-			row[i].size = Vector2(w, row[i].get_combined_minimum_size().y)
+			var b := row[i]
+			b.custom_minimum_size = Vector2(w, h)
+			b.position = Vector2(16 * k + i * (w + gap), y)
+			b.size = Vector2(w, h)
+			_fit_button_label(b, w)
 		return
 	var x := vis.x - (40 if pc else 16) * k
 	for i in range(row.size() - 1, -1, -1):
@@ -295,6 +297,23 @@ func _button(text: String, px: int, on: Callable) -> Button:
 	b.pressed.connect(on)
 	add_child(b)
 	return b
+
+
+## Portrait buttons share one row. Step the body font down (ShopCard.fit_title_px)
+## until the whole label fits, and never clip "Sell / Swap" down to "Sell / Sw".
+func _fit_button_label(b: Button, width: float) -> void:
+	b.clip_text = false
+	b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	var font: Font = b.get_theme_font(&"font")
+	var sb: StyleBox = b.get_theme_stylebox(&"normal")
+	var inner := width
+	if sb != null:
+		inner -= sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)
+	inner = maxf(8.0, inner)
+	var start := b.get_theme_font_size(&"font_size")
+	var min_px := maxi(8, int(round(11.0 * k)))
+	var size := ShopCard.fit_title_px(b.text, inner, start, min_px, font)
+	b.add_theme_font_size_override(&"font_size", size)
 
 
 ## PC: Reroll rerolls (its card opened on hover). Phone: the first tap opens

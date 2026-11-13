@@ -120,12 +120,14 @@ static func title_text(o: ShopOffer) -> String:
 
 ## One-line title size. Steps down from `start` until `text` fits in `width`,
 ## but not below `min_px` (16 spec px still reads on a phone). Overrun stays off,
-## so a name is never clipped down to "Double Dow".
-static func fit_title_px(text: String, width: float, start: int, min_px: int) -> int:
-	var font := RunTheme.title_font
+## so a name is never clipped down to "Double Dow". `font` defaults to the
+## title font; the portrait shop buttons pass the body font so they share this
+## step instead of copying it.
+static func fit_title_px(text: String, width: float, start: int, min_px: int, font: Font = null) -> int:
+	var used: Font = RunTheme.title_font if font == null else font
 	var size := maxi(min_px, start)
 	var guard := 0
-	while size > min_px and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and guard < 64:
+	while size > min_px and used.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and guard < 64:
 		size -= 1
 		guard += 1
 	return size

@@ -18,18 +18,15 @@ extends RefCounted
 const DIR := "res://art/models/dice/materials/"
 const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
 ## Twin Face body shader and the Powder Keg mask. Shared Twin glow stays
-## the shader default. After bind_material the keg sets strength to 0 and
-## the lid ends to Ember. The stave ticks stay off. Do not raise glow here.
+## the shader default. After bind_material the keg sets core strength to 0
+## and the lid ends to Ember. The stave gutter stays clear. Do not raise glow.
 const TWIN_SHADER := "res://shaders/3d/toon_noir_twin.gdshader"
 const TWIN_MASK := "res://art/fx/twin_face/powder_keg_twin_mask.png"
 ## Powder Keg only. Both lid ends (atlas cell 23) mix toward this Ember.
-## The hoops are cell 24 and are not tinted. Emission stays 0. The halo
-## keyline uniform stays in the shader at strength 0. Other Twin dice keep
+## The hoops are cell 24 and are not tinted. Emission stays 0 (twin_strength
+## is 0, and the mask's cell 2 gutter is clear). Other Twin dice keep
 ## TwinFaceGlow's #403440 and strength 1.6, and lid strength 0.
-const TWIN_MARK := Color("#E8DCC0")
 const TWIN_STRENGTH := 0.0
-const TWIN_HALO := 0.0
-const TWIN_HALO_TINT := 0.0
 const TWIN_LID := Color("#E8622A")
 const TWIN_LID_STRENGTH := 1.0
 ## Dice whose edge outline is drawn 1.5x wide, in this colour.
@@ -200,13 +197,11 @@ static func _use_twin_shader(d: DieVisual) -> void:
 	if body != null:
 		body.material_override = m
 	_bind_twin_glow(d)
-	# bind_material writes the shared Ember glow. This keg turns that glow
-	# off and paints the lids instead. twin_lid_strength is albedo. The
-	# halo keyline stays at 0. Emission is not raised.
+	# bind_material writes the shared Ember glow. This keg turns the core
+	# glow off and paints the lids instead. twin_lid_strength is albedo.
+	# Halo strength and unlit stay the shared defaults: the mask has no ink.
+	# Emission is not raised.
 	m.set_shader_parameter("twin_strength", TWIN_STRENGTH)
-	m.set_shader_parameter("twin_halo_strength", TWIN_HALO)
-	m.set_shader_parameter("twin_unlit", TWIN_MARK)
-	m.set_shader_parameter("twin_halo_tint_strength", TWIN_HALO_TINT)
 	m.set_shader_parameter("twin_lid_color", TWIN_LID)
 	m.set_shader_parameter("twin_lid_strength", TWIN_LID_STRENGTH)
 
