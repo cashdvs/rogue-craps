@@ -33,12 +33,8 @@ func _export_file(path: String, _type: String, _features: PackedStringArray) -> 
 	add_file(path, stamped.to_utf8_buffer(), false)
 
 
+## GITHUB_SHA, or the checkout's .git. A worktree (`.git` is a `gitdir:`
+## file) and a branch that exists only in packed-refs are included.
 func _sha() -> String:
 	var root := ProjectSettings.globalize_path("res://")
-	var head := FileAccess.get_file_as_string(root.path_join(".git/HEAD"))
-	var ref_body := ""
-	var h := head.strip_edges()
-	if h.begins_with("ref:"):
-		var rel := h.substr(4).strip_edges()
-		ref_body = FileAccess.get_file_as_string(root.path_join(".git").path_join(rel))
-	return VersionStamp.short_sha(OS.get_environment("GITHUB_SHA"), head, ref_body)
+	return VersionStamp.sha_for_root(OS.get_environment("GITHUB_SHA"), root)
