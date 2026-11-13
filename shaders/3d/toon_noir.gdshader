@@ -7,6 +7,9 @@
 shader_type spatial;
 render_mode specular_disabled, ambient_light_disabled;
 
+// Powder Keg only: off unless that die sets lit_stave / stave_dim. Other props stay as they are.
+#include "res://shaders/3d/keg_stave_dim.gdshaderinc"
+
 uniform vec4 albedo : source_color = vec4(0.91, 0.86, 0.75, 1.0);
 uniform vec4 shadow_color : source_color = vec4(0.165, 0.039, 0.063, 1.0); // #2A0A10
 uniform float mid_tint = 0.62;
@@ -125,8 +128,10 @@ void fragment() {
 		vec4 ink = texture(overlay_tex, ouv);
 		ink.a *= step(0.0, ouv.x) * step(ouv.x, 1.0) * step(0.0, ouv.y) * step(ouv.y, 1.0);
 		if (ink_from_tint) { ink.rgb = overlay_tint.rgb; }
-		col = mix(col, ink.rgb, ink.a * overlay_tint.a);
-		overlay_emit = ink.rgb * ink.a * overlay_tint.a * overlay_emission;
+		// 1 on every prop except a settled keg's non-scoring staves.
+		float keg_keep = keg_ink_keep(ouv);
+		col = mix(col, ink.rgb, ink.a * overlay_tint.a * keg_keep);
+		overlay_emit = ink.rgb * ink.a * overlay_tint.a * overlay_emission * keg_keep;
 	}
 	if (chip_mode) {
 		float r = length(obj_pos.xz) / chip_radius;
@@ -172,6 +177,11 @@ void fragment() {
 }
 
 void light() {
+	// 1 on every prop. A keg's numeral ink drops specular and rim (no extra sample otherwise).
+	float keg_s = 1.0;
+	if (keg_body > 0.5 && use_overlay) {
+		keg_s = keg_spec_keep(keg_cell_index(UV), texture(overlay_tex, UV).a);
+	}
 	float ndl = dot(NORMAL, LIGHT);
 	float w = (ndl + wrap) / (1.0 + wrap);
 	float att = clamp(ATTENUATION / att_ref, 0.0, 1.0);
@@ -190,13 +200,14 @@ void light() {
 	DIFFUSE_LIGHT += band / a * lc * light_gain * reach;
 	if (spec_size > 0.0) {
 		vec3 h = normalize(VIEW + LIGHT);
-		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
+		float s = keg_spec_lobe(dot(NORMAL, h), spec_size) * step(0.3, l);
 		// A cold die has no gloss at all (specular 0).
 		float gloss = 1.0 - max(die_cold * (1.0 - die_lit), die_frost);
-		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * gloss;
+		// Keg stave cells skip this lobe (keg_s is 1 on every other prop).
+		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * gloss * keg_s;
 	}
 	if (rim_strength > 0.0) {
 		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
-		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc;
+		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc * keg_s;
 	}
 }

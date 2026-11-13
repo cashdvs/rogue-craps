@@ -7,6 +7,8 @@ shader_type spatial;
 render_mode specular_disabled, ambient_light_disabled;
 
 #include "res://shaders/3d/twin_face_mask.gdshaderinc"
+// Same stave-dim uniforms as toon_noir, so a Twin Face material swap keeps the fade.
+#include "res://shaders/3d/keg_stave_dim.gdshaderinc"
 
 uniform vec4 albedo : source_color = vec4(0.91, 0.86, 0.75, 1.0);
 uniform vec4 shadow_color : source_color = vec4(0.165, 0.039, 0.063, 1.0); // #2A0A10
@@ -80,7 +82,7 @@ void fragment() {
 	}
 	if (use_overlay) {
 		vec4 ink = texture(overlay_tex, UV);
-		col = mix(col, ink.rgb, ink.a * overlay_tint.a);
+		col = mix(col, ink.rgb, ink.a * overlay_tint.a * keg_ink_keep(UV));
 	}
 	// Twin Face: unlit inlay (twin_unlit / atlas) when R; when gated lit,
 	// lerp core albedo to near-black so the lamp does not wash the Ember emission.
@@ -117,6 +119,10 @@ void fragment() {
 }
 
 void light() {
+	float keg_s = 1.0;
+	if (keg_body > 0.5 && use_overlay) {
+		keg_s = keg_spec_keep(keg_cell_index(UV), texture(overlay_tex, UV).a);
+	}
 	float ndl = dot(NORMAL, LIGHT);
 	float w = (ndl + wrap) / (1.0 + wrap);
 	float att = clamp(ATTENUATION / att_ref, 0.0, 1.0);
@@ -133,11 +139,11 @@ void light() {
 	DIFFUSE_LIGHT += band / a * lc * light_gain * reach;
 	if (spec_size > 0.0) {
 		vec3 h = normalize(VIEW + LIGHT);
-		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
-		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att;
+		float s = keg_spec_lobe(dot(NORMAL, h), spec_size) * step(0.3, l);
+		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * keg_s;
 	}
 	if (rim_strength > 0.0) {
 		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
-		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc;
+		SPECULAR_LIGHT += rim_color.rgb * rim_strength * step(0.5, rim) * step(0.05, l) * lc * keg_s;
 	}
 }
