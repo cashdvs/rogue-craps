@@ -1753,12 +1753,17 @@ func _rake() -> void:
 	sfx.play(&"chip_collect", 0.7, -2.0)
 
 
-func _burn_soul(amount: int) -> void:
+## Drops the shown Soul by `amount` and plays the drain. quiet skips only
+## the soul_burn sting: the meter still burns. A target-table miss passes
+## quiet, because goal_missed already plays that Soul (the miss sting, or
+## soul_burn when the sting itself is missing).
+func _burn_soul(amount: int, quiet: bool = false) -> void:
 	if amount <= 0:
 		return
 	_soul_shown = maxi(_soul_shown - amount, 0)
 	soul_meter.burn(amount, _soul_shown)
-	sfx.play(&"soul_burn")
+	if not quiet:
+		sfx.play(&"soul_burn")
 
 
 func _end_table() -> void:

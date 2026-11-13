@@ -328,8 +328,10 @@ func _after_hand() -> void:
 		# penalty, like a bust or forfeit (QA M4). A cleared table costs no
 		# Soul here, so nothing burns. Only the part not shown yet burns: a
 		# final-hand bust already burned its Soul in _bust(), and maxi()
-		# keeps this from going negative.
-		_burn_soul(maxi(_soul_shown - run.soul, 0))
+		# keeps this from going negative. A target-table miss stays quiet:
+		# goal_missed already played this drain. A bounty miss still sounds.
+		var quiet := TableEvents.is_goal_miss(run, int(run.state))
+		_burn_soul(maxi(_soul_shown - run.soul, 0), quiet)
 		pause_menu.set_forfeit_enabled(false)
 		phase = Phase.OVER
 		juice.crowd_stop()  # the table ended

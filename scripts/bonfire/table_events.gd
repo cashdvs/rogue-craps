@@ -58,6 +58,8 @@ signal goal_reached()
 ## Table goals (#222): a target table ended short of its target (out of
 ## hands, or given up). soul_loss: the Soul the miss really cost, after the
 ## rules (e.g. the Bloodletter's x2), the same number the Soul meter loses.
+## The miss sting already carries that drain, so the meter's soul_burn is
+## skipped for this same case (is_goal_miss).
 signal goal_missed(soul_loss: int)
 ## A boss cheat changed dice after they settled (e.g. Madame Shuffle's
 ## reroll): its rule id and the dice it touched.
@@ -117,6 +119,20 @@ func _init() -> void:
 var _goal_run: BonfireRun = null
 
 
+## True when a table end is the target-table miss goal_missed announces.
+## The table's Soul burn asks the same question (quiet on _burn_soul) so the
+## miss sting and soul_burn can't both play. A bounty table (no target) is
+## never a miss. `state` is the table_end state: the signal's data, or
+## run.state after the run has stored it (they are the same number).
+## FAILED counts, and so does a miss that spent the last Soul (RUN_OVER,
+## timeout_soul > 0). A bust that ends the run with no timeout Soul does not.
+static func is_goal_miss(run: BonfireRun, state: int) -> bool:
+	if run == null or run.goal == null or run.goal.target <= 0:
+		return false
+	var lost := int(run.table_summary.get("timeout_soul", 0))
+	return state == BonfireRun.State.FAILED or lost > 0
+
+
 ## Sends goal_missed when this run's target table ends without reaching its
 ## goal. Bonfire3D calls it once for each new run; it lets go of the previous
 ## run first, so an old run can never send a stale miss (and no listener
@@ -130,9 +146,9 @@ func watch_goal(run: BonfireRun) -> void:
 
 ## The watched run's table_event: a target table that ended without its goal.
 func _on_goal_event(kind: StringName, data: Dictionary) -> void:
-	if kind != &"table_end" or _goal_run.goal.target <= 0:
+	if kind != &"table_end":
 		return
-	# FAILED, or RUN_OVER because the miss took the last Soul.
-	var lost := int(_goal_run.table_summary.get("timeout_soul", 0))
-	if data.get("state") == BonfireRun.State.FAILED or lost > 0:
-		goal_missed.emit(lost)
+	# Same check the table's Soul burn uses, so the two can't drift.
+	if not is_goal_miss(_goal_run, int(data.get("state", -1))):
+		return
+	goal_missed.emit(int(_goal_run.table_summary.get("timeout_soul", 0)))
