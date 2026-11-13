@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dich1cr6xxic"
-path="res://.godot/imported/after_48px_x4.png-6c59424fee3e244782202f8f10dab7f7.ctex"
+uid="uid://cpgoj6e71o337"
+path="res://.godot/imported/strip_48px_x4.png-0671caa4b314ad1474644ffeec2a663b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://docs/shots/keg_twin/after_48px_x4.png"
-dest_files=["res://.godot/imported/after_48px_x4.png-6c59424fee3e244782202f8f10dab7f7.ctex"]
+source_file="res://docs/shots/keg_twin/strip_48px_x4.png"
+dest_files=["res://.godot/imported/strip_48px_x4.png-0671caa4b314ad1474644ffeec2a663b.ctex"]
 
 [params]
 

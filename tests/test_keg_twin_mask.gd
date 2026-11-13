@@ -41,6 +41,8 @@ func _run() -> void:
 	var carved := _keg(true)
 	_test_plain(plain)
 	_test_carved(carved)
+	_test_same_body(plain, carved)
+	_test_glyph_only()
 	plain.queue_free()
 	carved.queue_free()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -163,9 +165,33 @@ func _test_carved(d: DieVisual) -> void:
 	_check(glow_col is Color and (glow_col as Color).is_equal_approx(Palette.EMBER), "Twin glow stays Ember")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_strength")), TwinFaceGlow.DEFAULT_STRENGTH), "Twin strength stays the existing default")
 	_check(is_equal_approx(_flt(m.get_shader_parameter("twin_halo_strength")), TwinFaceGlow.DEFAULT_HALO_STRENGTH), "Twin halo strength stays the existing default")
-	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(TwinFaceGlow.DEFAULT_UNLIT), "Twin unlit stays #403440")
+	_check(unlit_col is Color and (unlit_col as Color).is_equal_approx(DieArtMaterial.TWIN_MARK), "Twin glyph inlay is cream #E8DCC0")
 	_check(_energy(m) <= 0.3, "Twin keg emission_energy <= 0.3 (%.3f)" % _energy(m))
 	_check(d.shape == &"keg", "Twin keg still wears the barrel")
+
+
+## The carved keg keeps the plain keg's body colours and the face atlas.
+## Only the twin mask / cream inlay are extra.
+func _test_same_body(plain: DieVisual, carved: DieVisual) -> void:
+	var a := plain.body_material
+	var b := carved.body_material
+	for key in ["albedo", "shadow_color", "spec_color", "overlay_tint", "emission_color"]:
+		var va: Variant = a.get_shader_parameter(key)
+		var vb: Variant = b.get_shader_parameter(key)
+		_check(va is Color and vb is Color and (va as Color).is_equal_approx(vb as Color), "Twin body matches non-Twin %s" % key)
+	for key in ["light_gain", "mid_tint", "wrap", "roughness", "spec_size", "spec_strength"]:
+		_check(is_equal_approx(_flt(a.get_shader_parameter(key)), _flt(b.get_shader_parameter(key))), "Twin body matches non-Twin %s" % key)
+	_check(a.get_shader_parameter("use_overlay") == b.get_shader_parameter("use_overlay"), "Twin body matches non-Twin use_overlay")
+	var oa := a.get_shader_parameter("overlay_tex") as Texture2D
+	var ob := b.get_shader_parameter("overlay_tex") as Texture2D
+	_check(oa != null and ob != null and oa.resource_path == ob.resource_path, "Twin body matches non-Twin face atlas")
+
+
+## The dark unlit colour is mixed by the mask's R, not painted on the whole stave.
+func _test_glyph_only() -> void:
+	var code := FileAccess.get_file_as_string("res://shaders/3d/toon_noir_twin.gdshader")
+	_check("mix(col, twin_unlit.rgb, twin_m.r)" in code, "unlit tint follows the mask glyph, not the whole body")
+	_check("mix(col, vec3(0.02), twin_inlay_w)" in code, "settled darkening follows the gated glyph")
 
 
 func _energy(m: ShaderMaterial) -> float:

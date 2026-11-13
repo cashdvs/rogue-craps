@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bargr0me6s7j1"
-path="res://.godot/imported/before_48px.png-bb531af57bcd1f729b1b947625af4ecb.ctex"
+uid="uid://c2k2s5bhyxv30"
+path="res://.godot/imported/strip_48px.png-e932a6180f7063825bcf8d641fb3dbf7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://docs/shots/keg_twin/before_48px.png"
-dest_files=["res://.godot/imported/before_48px.png-bb531af57bcd1f729b1b947625af4ecb.ctex"]
+source_file="res://docs/shots/keg_twin/strip_48px.png"
+dest_files=["res://.godot/imported/strip_48px.png-e932a6180f7063825bcf8d641fb3dbf7.ctex"]
 
 [params]
 
