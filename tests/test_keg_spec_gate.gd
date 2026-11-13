@@ -1,13 +1,8 @@
-## Keg specular is keg-only (QA on #270). keg_spec_keep and keg_spec_lobe live
-## in shaders/3d/keg_stave_dim.gdshaderinc, which toon_noir and toon_noir_twin
-## both include. A non-keg die (keg_body 0) must keep specular on every atlas
-## cell and must use the hard step(spec_size, N·H) lobe. Dropping the
-## keg_body test inside either function fails this.
-##
-## Headless Forward+ does not finish a frame here (a pixel read hangs, and
-## tests/test_d4_readable.gd already skips renders when the display is
-## headless). ./run_tests.sh always passes --headless, so this evaluates the
-## include instead of sampling a viewport.
+## Keg specular is keg-only (QA on #270). Evaluates keg_spec_keep and
+## keg_spec_lobe in keg_stave_dim.gdshaderinc (used by toon_noir and
+## toon_noir_twin). A non-keg (keg_body 0) keeps specular on every cell and
+## uses step(spec_size, N·H). Headless Forward+ never finishes a frame here,
+## and ./run_tests.sh is always --headless, so this reads the shader.
 ##   godot --headless --path . --script res://tests/test_keg_spec_gate.gd
 extends SceneTree
 
@@ -185,7 +180,6 @@ class _Eval:
 		if not result.hit:
 			return {"ok": false, "value": 0.0, "text": "no return"}
 		return {"ok": true, "value": result.value, "text": str(result.value)}
-
 	func _block(stop_at_brace: bool) -> Dictionary:
 		while i < src.length() and err == "":
 			_skip()
@@ -217,7 +211,6 @@ class _Eval:
 				err = "bad stmt '%s'" % src.substr(i, mini(12, src.length() - i))
 				break
 		return {"hit": false, "value": 0.0}
-
 	func _decl() -> void:
 		_skip()
 		var name := _ident()
@@ -229,7 +222,6 @@ class _Eval:
 		var v := _expr()
 		_semi()
 		env[name] = v
-
 	func _paren_expr() -> float:
 		_skip()
 		if i >= src.length() or src[i] != "(":
@@ -241,21 +233,18 @@ class _Eval:
 		if i < src.length() and src[i] == ")":
 			i += 1
 		return v
-
 	func _expr() -> float:
 		var left := _and()
 		while err == "" and _op("||"):
 			var right := _and()
 			left = 1.0 if left > 0.5 or right > 0.5 else 0.0
 		return left
-
 	func _and() -> float:
 		var left := _cmp()
 		while err == "" and _op("&&"):
 			var right := _cmp()
 			left = 1.0 if left > 0.5 and right > 0.5 else 0.0
 		return left
-
 	func _cmp() -> float:
 		var left := _add()
 		_skip()
@@ -264,12 +253,11 @@ class _Eval:
 				var right := _add()
 				return 1.0 if _cmp_ok(left, op, right) else 0.0
 		return left
-
 	func _add() -> float:
 		var left := _mul()
 		while err == "":
 			_skip()
-			if i < src.length() and (src[i] == "+" or src[i] == "-") and not _op_prefix():
+			if i < src.length() and (src[i] == "+" or src[i] == "-"):
 				var op := src[i]
 				i += 1
 				var right := _mul()
@@ -277,7 +265,6 @@ class _Eval:
 			else:
 				break
 		return left
-
 	func _mul() -> float:
 		var left := _unary()
 		while err == "":
@@ -290,7 +277,6 @@ class _Eval:
 			else:
 				break
 		return left
-
 	func _unary() -> float:
 		_skip()
 		if i < src.length() and src[i] == "!":
@@ -300,7 +286,6 @@ class _Eval:
 			i += 1
 			return -_unary()
 		return _primary()
-
 	func _primary() -> float:
 		_skip()
 		if i >= src.length():
@@ -333,7 +318,6 @@ class _Eval:
 			err = "unknown %s" % name
 			return 0.0
 		return float(env[name])
-
 	func _call_fn(name: String, args: Array[float]) -> float:
 		if name == "step" and args.size() == 2:
 			return 0.0 if args[1] < args[0] else 1.0
@@ -344,7 +328,6 @@ class _Eval:
 			return x * x * (3.0 - 2.0 * x)
 		err = "bad call %s" % name
 		return 0.0
-
 	func _cmp_ok(a: float, op: String, b: float) -> bool:
 		match op:
 			"<": return a < b
@@ -354,7 +337,6 @@ class _Eval:
 			"==": return is_equal_approx(a, b)
 			"!=": return not is_equal_approx(a, b)
 		return false
-
 	func _kw(word: String) -> bool:
 		_skip()
 		if src.substr(i, word.length()) != word:
@@ -364,39 +346,30 @@ class _Eval:
 			return false
 		i = n
 		return true
-
 	func _op(word: String) -> bool:
 		_skip()
 		if src.substr(i, word.length()) != word:
 			return false
 		i += word.length()
 		return true
-
-	func _op_prefix() -> bool:
-		return false
-
 	func _ident() -> String:
 		_skip()
 		var start := i
 		while i < src.length() and _is_id(src[i]):
 			i += 1
 		return src.substr(start, i - start)
-
 	func _number() -> float:
 		var start := i
 		while i < src.length() and (src[i].is_valid_int() or src[i] == "."):
 			i += 1
 		return float(src.substr(start, i - start))
-
 	func _semi() -> void:
 		_skip()
 		if i < src.length() and src[i] == ";":
 			i += 1
-
 	func _skip() -> void:
 		while i < src.length() and (src[i] == " " or src[i] == "\t" or src[i] == "\n" or src[i] == "\r"):
 			i += 1
-
 	func _skip_block() -> void:
 		var depth := 1
 		while i < src.length() and depth > 0:
@@ -405,9 +378,7 @@ class _Eval:
 			elif src[i] == "}":
 				depth -= 1
 			i += 1
-
 	func _is_num(c: String) -> bool:
 		return c.is_valid_int() or c == "."
-
 	func _is_id(c: String) -> bool:
 		return c.is_valid_int() or (c >= "A" and c <= "Z") or (c >= "a" and c <= "z") or c == "_"
