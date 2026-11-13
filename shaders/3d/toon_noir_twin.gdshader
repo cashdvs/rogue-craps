@@ -53,10 +53,6 @@ uniform vec4 notch_color : source_color = vec4(0.91, 0.86, 0.75, 1.0);
 uniform vec4 ring_color : source_color = vec4(0.43, 0.10, 0.14, 1.0);
 uniform float chip_radius = 0.0275;
 
-// Optional dark ring on a Twin glyph. Strength 0 (the default) leaves every
-// die unchanged. The Powder Keg does not use this. Albedo only, no glow.
-uniform vec4 twin_halo_color : source_color = vec4(0.1176, 0.0902, 0.0706, 1.0);
-uniform float twin_halo_tint_strength = 0.0;
 // Ember on the barrel lids (atlas cell 23, both ends). Strength 0 by default
 // so other Twin dice stay as they are. The hoops are cell 24 and are not tinted.
 // Albedo only. The 0.05 lid specular from KegStaveDim is untouched.
@@ -101,10 +97,6 @@ void fragment() {
 	float twin_inlay_w = twin_m.r * twin_gate;
 	float twin_halo_w = twin_m.g * twin_gate;
 	col = mix(col, twin_unlit.rgb, twin_m.r);
-	// Keyline: where the halo (G) is set and the glyph (R) is not, darken the
-	// wood toward twin_halo_color. G * strength, and only outside the glyph.
-	float halo_ink = twin_m.g * (1.0 - twin_m.r) * twin_halo_tint_strength;
-	col = mix(col, twin_halo_color.rgb, clamp(halo_ink, 0.0, 1.0));
 	col = mix(col, vec3(0.02), twin_inlay_w);
 	// Both lid ends share cell 23. Cell 24 is the iron hoops and stays put.
 	float lid_cell = keg_cell_index(UV);

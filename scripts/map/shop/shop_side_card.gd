@@ -225,20 +225,39 @@ func _frame() -> void:
 
 
 ## Line 1: the name, and a price tag when `price` isn't "" (sell cards have none).
+## Same fit as an item card (ShopCard.fit_title_px): step down from 32 spec px,
+## floor 16, and never clip the name.
 func _title(text: String, price: String) -> void:
 	var row := HBoxContainer.new()
+	row.name = "TitleRow"
+	var sep := int(8 * shop.k)
+	row.add_theme_constant_override("separation", sep)
 	lines.add_child(row)
-	var title := RunTheme.label(text, _px(32), CREAM, true)
-	title.name = "CardTitle"
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.clip_text = false
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.custom_minimum_size.x = _content_width() - (80.0 * shop.k if price != "" else 0.0)
-	row.add_child(title)
+	var tag: PriceTag = null
 	if price != "":
-		var tag := PriceTag.new()
+		tag = PriceTag.new()
+		tag.name = "TitlePrice"
 		tag.setup(price, true, _px(32), shop.k * TEXT_SCALE[shop.layout])
 		row.add_child(tag)
+	var inner := _content_width()
+	var used := 0.0
+	if tag != null:
+		used = tag.get_combined_minimum_size().x
+		if used < 1.0:
+			used = tag.custom_minimum_size.x
+	var gaps := float(sep) if tag != null else 0.0
+	var slot := maxf(8.0, inner - used - gaps)
+	var px := fit_title_px(text, slot, _px(32), maxi(8, int(round(16.0 * shop.k))))
+	var title := RunTheme.label(text, px, CREAM, true)
+	title.name = "CardTitle"
+	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title.clip_text = false
+	title.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(title)
+	if tag != null:
+		row.move_child(title, 0)
+	row.custom_minimum_size.x = inner
 
 
 ## RARE chip and/or "Carved" on the card only, at 11 px or larger.

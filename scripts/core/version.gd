@@ -60,9 +60,19 @@ static func sha() -> String:
 	return s if not s.is_empty() else DEV_SHA
 
 
+## CI run number stamped into version.cfg at export. 0 on a dev checkout.
+static func build_number() -> int:
+	return int(_val("build", 0))
+
+
 ## Shown in the title/pause corner: "v0.1.2 (abc1234)", or "v0.1.2 (dev)".
+## A stamped export with a build number reads "v0.1.8.42 (abc1234)".
 static func display() -> String:
-	return "v%s (%s)" % [number(), sha()]
+	var n := number()
+	var b := build_number()
+	if b > 0:
+		n = "%s.%d" % [n, b]
+	return "v%s (%s)" % [n, sha()]
 
 
 ## Release tag for git and the store beta track: "beta-0.1.2".
