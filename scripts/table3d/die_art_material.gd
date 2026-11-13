@@ -3,6 +3,9 @@
 ## on a table die. Before this, every special die was painted plain Bone.
 ##   - A toon_noir body (most dice): its values are copied onto the die's
 ##     own toon material, so the lit / cold glow still works on it.
+##   - Powder Keg body is toon_noir_twin (the Twin Face mask). That shader
+##     is used only when a face is carved Twin. A keg with no Twin carve
+##     keeps toon_noir and the same body colours (the mask is not applied).
 ##   - Any other shader (the Mirror's toon_mirror): that material is used
 ##     as is (a copy), with the die's ink outline under it.
 ##   - Dice in EDGE_INK get a wider outline (EDGE_MUL, else 1.5x) in their own colour.
@@ -14,6 +17,21 @@ extends RefCounted
 
 const DIR := "res://art/models/dice/materials/"
 const TOON_NOIR := "res://shaders/3d/toon_noir.gdshader"
+## Twin Face body shader and the Powder Keg mask. Shared Twin glow stays
+## the shader default. After bind_material the keg sets strength to 0 and
+## the lid ends to Ember. The stave ticks stay off. Do not raise glow here.
+const TWIN_SHADER := "res://shaders/3d/toon_noir_twin.gdshader"
+const TWIN_MASK := "res://art/fx/twin_face/powder_keg_twin_mask.png"
+## Powder Keg only. Both lid ends (atlas cell 23) mix toward this Ember.
+## The hoops are cell 24 and are not tinted. Emission stays 0. The halo
+## keyline uniform stays in the shader at strength 0. Other Twin dice keep
+## TwinFaceGlow's #403440 and strength 1.6, and lid strength 0.
+const TWIN_MARK := Color("#E8DCC0")
+const TWIN_STRENGTH := 0.0
+const TWIN_HALO := 0.0
+const TWIN_HALO_TINT := 0.0
+const TWIN_LID := Color("#E8622A")
+const TWIN_LID_STRENGTH := 1.0
 ## Dice whose edge outline is drawn 1.5x wide, in this colour.
 ## AD proof pass: Extra a brass rim, Beacon and Bellows a cream keyline.
 const EDGE_INK := {
@@ -54,6 +72,10 @@ static func body_path(die_id: StringName) -> String:
 
 ## Puts back the die's own toon material and its first values (undoes apply).
 static func reset(d: DieVisual) -> void:
+	# Drop a Twin Face driver from a previous die before the material changes.
+	var glow := d.get_node_or_null("TwinFaceGlow")
+	if glow != null:
+		glow.free()
 	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
 	if not d.has_meta(&"base_material"):
 		# First time: remember the plain material and every value on it.
@@ -100,13 +122,25 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 	var col: Variant = art.get_shader_parameter("albedo")
 	# set_look sets the body colour and rebuilds the pips in the pip colour.
 	d.set_look(col if col != null else Palette.BONE, pip, td.faces)
-	if art.shader != null and art.shader.resource_path == TOON_NOIR:
+	var twin_body := art.shader != null and art.shader.resource_path == TWIN_SHADER
+	var twin_carve := twin_body and _has_twin_face(td)
+	# Copy the authored colours onto the die's own toon material first, so a
+	# Twin keg starts from the same body as a plain keg (spec, albedo, shadow).
+	# The mask is applied afterwards and only tints the glyph.
+	if art.shader != null and (art.shader.resource_path == TOON_NOIR or twin_body):
+		var known := {}
+		for u in d.body_material.shader.get_shader_uniform_list():
+			known[String(u.name)] = true
 		for u in art.shader.get_shader_uniform_list():
-			var v: Variant = art.get_shader_parameter(u.name)
+			var n := String(u.name)
 			# The printed-number overlay is left to PolyBody.dress, which only
 			# adds it on the matching shaped body (on a cube it would be wrong).
-			if v != null and not String(u.name).begins_with("overlay") and u.name != "use_overlay":
-				d.body_material.set_shader_parameter(u.name, v)
+			# Twin-only uniforms are not on toon_noir, so a plain keg skips them.
+			if not known.has(n) or n.begins_with("overlay") or n == "use_overlay":
+				continue
+			var v: Variant = art.get_shader_parameter(n)
+			if v != null:
+				d.body_material.set_shader_parameter(n, v)
 	else:
 		var m := art.duplicate() as ShaderMaterial
 		m.next_pass = d.body_material.next_pass
@@ -114,6 +148,8 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 		var body := d.faces.get_node_or_null("Body") as MeshInstance3D
 		if body != null:
 			body.material_override = m
+	if twin_carve:
+		_use_twin_shader(d)
 	if EDGE_INK.has(c) and d.body_material.next_pass is ShaderMaterial:
 		var o := (d.body_material.next_pass as ShaderMaterial).duplicate() as ShaderMaterial
 		o.set_shader_parameter("width", float(o.get_shader_parameter("width")) * float(EDGE_MUL.get(c, EDGE_WIDTH_MUL)))
@@ -125,6 +161,64 @@ static func apply(d: DieVisual, td: TableDie) -> bool:
 	RareDieLook.set_trim(d, c in TRIM_DICE)  ## the same trim the plain rares wear
 	d.set_meta(&"art_material", c)
 	return true
+
+
+## True when one face of [param td] is carved Twin (the Powder Keg's 3s).
+static func _has_twin_face(td: TableDie) -> bool:
+	for m in td.mods:
+		if m is FaceModData and (m as FaceModData).effect == FaceModData.Effect.TWIN:
+			return true
+	return false
+
+
+## Swaps the die's toon body for toon_noir_twin, keeping every shared colour
+## (albedo, atlas, spec) so the stave matches a plain keg. The mask then
+## paints the lid ends Ember, with Twin glow strength 0. The stave mask
+## is clear. Shared TwinFaceGlow defaults are not changed.
+## emission_energy is not raised
+## here (scoring glow stays <= 0.3).
+## Adds no signal: TwinFaceGlow listens to the die's settled / impact.
+static func _use_twin_shader(d: DieVisual) -> void:
+	var src := d.body_material
+	var sh := load(TWIN_SHADER) as Shader
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	var shared := {}
+	for u in src.shader.get_shader_uniform_list():
+		shared[String(u.name)] = true
+	for u in sh.get_shader_uniform_list():
+		var n := String(u.name)
+		if not shared.has(n):
+			continue
+		var v: Variant = src.get_shader_parameter(n)
+		if v != null:
+			m.set_shader_parameter(n, v)
+	m.set_shader_parameter("twin_mask", load(TWIN_MASK))
+	m.next_pass = src.next_pass
+	d.body_material = m
+	var body := d.faces.get_node_or_null("Body") as MeshInstance3D
+	if body != null:
+		body.material_override = m
+	_bind_twin_glow(d)
+	# bind_material writes the shared Ember glow. This keg turns that glow
+	# off and paints the lids instead. twin_lid_strength is albedo. The
+	# halo keyline stays at 0. Emission is not raised.
+	m.set_shader_parameter("twin_strength", TWIN_STRENGTH)
+	m.set_shader_parameter("twin_halo_strength", TWIN_HALO)
+	m.set_shader_parameter("twin_unlit", TWIN_MARK)
+	m.set_shader_parameter("twin_halo_tint_strength", TWIN_HALO_TINT)
+	m.set_shader_parameter("twin_lid_color", TWIN_LID)
+	m.set_shader_parameter("twin_lid_strength", TWIN_LID_STRENGTH)
+
+
+## Drives the Twin Face mask. Glow colour and strength start at the shared
+## TwinFaceGlow defaults. The keg overrides strength and unlit just after.
+static func _bind_twin_glow(d: DieVisual) -> void:
+	var glow := TwinFaceGlow.new()
+	glow.name = "TwinFaceGlow"
+	d.add_child(glow)
+	glow.bind_material(d.body_material)
+	glow.bind_die(d)
 
 
 ## Adds (or removes) two thin brass bands round the die's four side faces,

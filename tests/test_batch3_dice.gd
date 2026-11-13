@@ -14,6 +14,8 @@ const DIR: String = "res://art/models/dice/"
 const PC_MAX_TRIS: int = 650
 const MOBILE_MAX_TRIS: int = 320
 const TOON_SHADER: String = "res://shaders/3d/toon_noir.gdshader"
+## Powder Keg body only: Twin Face mask shader. Hoops stay on toon_noir.
+const TWIN_SHADER: String = "res://shaders/3d/toon_noir_twin.gdshader"
 const OUTLINE_SHADER: String = "res://shaders/3d/outline.gdshader"
 ## Reserved for UI / roles, never on a body: Soul cyan, Danger, Satanic violet glow, felt green, Ember.
 const RESERVED: Array[Color] = [Color("#4FE6E0"), Color("#FF2E3E"), Color("#9B3DFF"), Color("#123A36"), Color("#0B2724"), Color("#FF6A1A")]
@@ -123,7 +125,10 @@ func _check_mesh(die: String, file: String, spec: Dictionary, pc: bool) -> int:
 		names.append(mesh.surface_get_name(s))
 		tris += (mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
 		var m := mesh.surface_get_material(s) as ShaderMaterial
-		toon = toon and m != null and m.shader.resource_path == TOON_SHADER
+		var sh := m.shader.resource_path if m != null and m.shader != null else ""
+		# The keg body is the Twin Face shader. Every other slot stays toon_noir.
+		var keg_twin: bool = die == "powder_keg_d6" and mesh.surface_get_name(s) == "powder_keg_body" and sh == TWIN_SHADER
+		toon = toon and m != null and (sh == TOON_SHADER or keg_twin)
 		var e: Variant = m.get_shader_parameter("emission_energy") if m != null else null
 		lit = lit or (e != null and float(e) > 0.0)
 	_check(names == Array(spec["slots"] as Array, TYPE_STRING, "", null), "%s: material slots %s" % [tag, names])
