@@ -45,7 +45,7 @@ func close() -> void:
 		if shop.sell_hint != null:
 			shop.sell_hint.visible = shop.selling or shop.swap_offer >= 0
 		if shop.exit_hint != null:
-			shop.exit_hint.visible = shop.swap_offer >= 0
+			shop.exit_hint.visible = shop.swap_offer >= 0 and not shop.touch_mode
 
 
 ## An item card replaces any open sell or reroll card.

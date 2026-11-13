@@ -87,21 +87,22 @@ func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, size)
 	draw_rect(r, BOX)
 	draw_rect(r, CREAM if lifted else EDGE, false, maxf(1.0, 2.0 * _k))
-	# Markers are shape-only and hide when the slot renders under 40 px.
+	# Markers are shape-only in logical px and hide when the slot is under 40 px.
+	# Sizes scale with the slot (k); keylines are a filled under-shape so they stay visible.
 	if size.x < 40.0 - 0.01:
 		return
-	var pad := maxf(2.0, 2.0 * _k)
+	var pad := 3.0 * _k
 	if _carved:
-		var d := maxf(8.0, 8.0 * _k)
-		var c := Vector2(size.x - pad - d * 0.5, pad + d * 0.5)
+		var d := 8.0 * _k
+		var kw := 1.5 * _k
+		var outer := d * 0.5 + kw
+		var c := Vector2(size.x - pad - outer, pad + outer)
+		draw_circle(c, outer, KEY)
 		draw_circle(c, d * 0.5, BRASS)
-		draw_arc(c, d * 0.5, 0.0, TAU, 20, KEY, maxf(1.5, 1.5 * _k))
 	if _rare:
-		var s := maxf(10.0, 10.0 * _k)
-		var o := Vector2(pad + s * 0.5, size.y - pad - s * 0.5)
-		var h := s * 0.5
-		var pts := PackedVector2Array([o + Vector2(0, -h), o + Vector2(h, 0), o + Vector2(0, h), o + Vector2(-h, 0)])
-		draw_colored_polygon(pts, TAB)
-		var ring := pts.duplicate()
-		ring.append(pts[0])
-		draw_polyline(ring, KEY, maxf(1.0, 1.0 * _k), true)
+		var h := 10.0 * _k * 0.5
+		var kw := 1.0 * _k
+		var o := Vector2(pad + h + kw, size.y - pad - h - kw)
+		var kh := h + kw
+		draw_colored_polygon(PackedVector2Array([o + Vector2(0, -kh), o + Vector2(kh, 0), o + Vector2(0, kh), o + Vector2(-kh, 0)]), KEY)
+		draw_colored_polygon(PackedVector2Array([o + Vector2(0, -h), o + Vector2(h, 0), o + Vector2(0, h), o + Vector2(-h, 0)]), TAB)

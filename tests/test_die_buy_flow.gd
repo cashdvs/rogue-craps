@@ -293,12 +293,12 @@ func _test_phone_card_fit() -> void:
 	ss.enter_swap(0)
 	var vis := ss.get_viewport().get_visible_rect()
 	var m := 8.0 * ss.k
-	for h in [ss.sell_hint, ss.exit_hint]:
-		var hr: Rect2 = h.get_global_rect()
-		_check(h.visible and not h.clip_text, "phone: %s is visible and unclipped" % h.text)
-		_check(hr.position.x >= m - 0.5 and hr.end.x <= vis.size.x - m + 0.5, "phone: hint x stays 8 px inside the viewport (%s %s vis %s)" % [h.text, hr, vis.size])
-		_check(hr.position.y >= m - 0.5 and hr.end.y <= vis.size.y - m + 0.5, "phone: hint y stays 8 px inside the viewport (%s %s vis %s)" % [h.text, hr, vis.size])
-	_check(ss.exit_hint.text == "Tap the counter to keep your dice.", "phone: the exit hint keeps its full wording")
+	_check(ss.sell_hint.visible and ss.sell_hint.text == "Tap the die to give up." and not ss.sell_hint.clip_text, "phone: only the give-up hint shows, at full wording")
+	_check(ss.sell_hint.get_theme_font_size(&"font_size") == int(14 * ss.k), "phone: the give-up hint stays at the normal size")
+	var hr: Rect2 = ss.sell_hint.get_global_rect()
+	_check(hr.position.x >= m - 0.5 and hr.end.x <= vis.size.x - m + 0.5, "phone: hint x stays 8 px inside the viewport (%s vis %s)" % [hr, vis.size])
+	_check(hr.position.y >= m - 0.5 and hr.end.y <= vis.size.y - m + 0.5, "phone: hint y stays 8 px inside the viewport (%s vis %s)" % [hr, vis.size])
+	_check(not ss.exit_hint.visible, "phone: the counter hint is hidden")
 	_tap(ss.bag[1])
 	var r := ss.card.get_global_rect()
 	_check(r.position.x >= m - 0.5 and r.end.x <= vis.size.x - m + 0.5, "phone confirm: card x stays 8 px inside the viewport (%s vis %s)" % [r, vis.size])
@@ -316,6 +316,9 @@ func _test_phone_card_fit() -> void:
 	_check(not ss.card.visible and ss.swap_offer == 0, "phone confirm: close leaves swap mode on")
 	_check(ss.bag_label.visible and "YOUR DICE" in ss.bag_label.text, "phone confirm: YOUR DICE shows after the card closes")
 	_check(ss.sell_hint.visible and ss.sell_hint.text.find("die to give up") >= 0, "phone confirm: the swap hint shows after the card closes")
+	_check(not ss.exit_hint.visible, "phone confirm: the counter hint stays hidden after the card closes")
+	ss._gui_input(_left(true))
+	_check(ss.swap_offer < 0, "phone: tapping the counter still exits swap")
 	DisplayServer.window_set_size(Vector2i(1920, 1080))
 
 
