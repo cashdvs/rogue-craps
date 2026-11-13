@@ -14,6 +14,10 @@ const CROP := 48
 
 var _out := "user://keg_twin/"
 var _frame := false
+var _phone := CapturePhone.new()
+## The image the crops are cut from, and the viewport it was drawn in.
+var _shot: Image
+var _view := Vector2(1920, 1080)
 
 
 func _initialize() -> void:
@@ -29,6 +33,7 @@ func _run() -> void:
 		elif a == "--frame":
 			_frame = true
 	DirAccess.make_dir_recursive_absolute(_out)
+	_phone.parse_args()
 	var st := TableSetup.new()
 	st.dice.append(_keg(false))
 	st.dice.append(_keg(true))
@@ -38,19 +43,24 @@ func _run() -> void:
 	var s := (load("res://scenes/bonfire.tscn") as PackedScene).instantiate() as Bonfire3D
 	s.setup = st
 	s.tutorial_override = 0
-	root.add_child(s)
+	_phone.add_table(root, s)
 	for i in 180:
 		if s.camera != null and s.phase == Table3D.Phase.BET:
 			break
 		await process_frame
 	s.camera.snap_home()
 	s.set_reduced_motion(true)
+	_phone.frame(s)
 	var dice: Array[DieVisual] = [s.all_dice[0], s.all_dice[1], s.all_dice[2]]
 	dice[1].body_material.set_shader_parameter("twin_mask", load(STANDIN))
 	var cam := s.camera.cam
 	# Lamp pool, just this side of centre: the #267 numeral row. World +Z is
 	# the near rail. Spacing keeps the barrels from touching.
+	# Desktop: the #267 numeral row under the lamp. Phone portrait swings
+	# that row into shadow, so the three kegs sit together on the lit side.
 	var spots: Array[Vector3] = [Vector3(-0.34, 0, 0.22), Vector3(0, 0, 0.22), Vector3(0.34, 0, 0.22)]
+	if _phone.screen != Vector2.ZERO:
+		spots = [Vector3(0.22, 0, 0.08), Vector3(0.22, 0, 0.26), Vector3(0.22, 0, 0.44)]
 	# 180: atlas +X (top of the 3) points at the far rail, so the numeral
 	# reads upright on the rest camera. 0 points it at the lens (backwards E).
 	var yaws: Array[float] = [180.0, 180.0, 180.0]
@@ -74,13 +84,16 @@ func _run() -> void:
 	s.camera.cam.current = true
 	for i in 4:
 		await process_frame
+	_grab(s)
 	if _frame:
-		root.get_texture().get_image().save_png(_out + "frame.png")
+		_shot.save_png(_out + "frame.png")
 	var crops: Array[Image] = []
 	for i in dice.size():
 		crops.append(_crop(cam, dice[i]))
 		print("die %d shown %d shader %s" % [i, dice[i].shown_value(), dice[i].body_material.shader.resource_path.get_file()])
 	_strip(crops, "strip_48px")
+	# Plain keg | keg mask, the pair QA compares at 48 px.
+	_pair(crops[0], crops[2], "compare_48")
 	# Tight crop of the up stave (atlas cell 2) on the plain keg and the
 	# keg-mask keg, nearest ×8, plus the per-pixel difference in that cell.
 	var plain_stave := _stave(cam, dice[0])
@@ -133,9 +146,20 @@ func _pose(d: DieVisual, at: Vector3, yaw_deg: float) -> void:
 	d.global_position = Vector3(at.x, PolyDie.rest_height(&"keg", basis), at.z)
 
 
+## Window, or the phone viewport when -- phone=WxH is set.
+func _grab(s: Bonfire3D) -> void:
+	if _phone.viewport != null:
+		_shot = _phone.viewport.get_texture().get_image()
+		_view = Vector2(_phone.viewport.size)
+	else:
+		_shot = root.get_texture().get_image()
+		_view = root.get_visible_rect().size
+	s.camera.cam.current = true
+
+
 func _crop(cam: Camera3D, d: DieVisual) -> Image:
-	var img := root.get_texture().get_image()
-	var k := float(img.get_width()) / root.get_visible_rect().size.x
+	var img := _shot
+	var k := float(img.get_width()) / _view.x
 	var body := d.faces.get_node("Body") as MeshInstance3D
 	var box: AABB = body.global_transform * body.mesh.get_aabb()
 	var min_p := Vector2(INF, INF)
@@ -160,8 +184,8 @@ func _crop(cam: Camera3D, d: DieVisual) -> Image:
 
 ## Screen rect of the up stave's numeral cell (UV cell 2) on [param d].
 func _stave(cam: Camera3D, d: DieVisual) -> Image:
-	var img := root.get_texture().get_image()
-	var k := float(img.get_width()) / root.get_visible_rect().size.x
+	var img := _shot
+	var k := float(img.get_width()) / _view.x
 	var body := d.faces.get_node("Body") as MeshInstance3D
 	var arr := body.mesh.surface_get_arrays(0)
 	var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
@@ -226,6 +250,18 @@ func _save_compare(plain: Image, mask: Image) -> void:
 	cmp.blit_rect(a, Rect2i(0, 0, a.get_width(), a.get_height()), Vector2i(0, 0))
 	cmp.blit_rect(b, Rect2i(0, 0, b.get_width(), b.get_height()), Vector2i(a.get_width() + gap, 0))
 	cmp.save_png(_out + "stave_compare_x8.png")
+
+
+## Two 48 px dice, nearest ×4: plain then Twin.
+func _pair(plain: Image, twin: Image, name: String) -> void:
+	var gap := 4
+	var row := Image.create(CROP * 2 + gap, CROP, false, Image.FORMAT_RGBA8)
+	row.fill(Color(0.05, 0.12, 0.09, 1))
+	row.blit_rect(plain, Rect2i(0, 0, CROP, CROP), Vector2i(0, 0))
+	row.blit_rect(twin, Rect2i(0, 0, CROP, CROP), Vector2i(CROP + gap, 0))
+	var big := row.duplicate() as Image
+	big.resize(row.get_width() * 4, row.get_height() * 4, Image.INTERPOLATE_NEAREST)
+	big.save_png(_out + name + "_x4.png")
 
 
 func _strip(crops: Array[Image], name: String) -> void:

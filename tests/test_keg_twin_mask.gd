@@ -120,6 +120,52 @@ func _test_pixels() -> void:
 	_check(g_in_r == 0, "mask G is 0 inside R (%d)" % g_in_r)
 	_check(b_on == 0, "mask B is 0")
 	_check(a_off == 0, "mask A is 255")
+	_test_two_marks(img)
+
+
+## Two ticks, one on each side of the 3 (atlas +X is above it in rest pose).
+## Each is clear of the printed ink, with a gap, and the long side is at
+## least ~5 px on a 48 px die (10.55 atlas px was 2.65 px).
+func _test_two_marks(img: Image) -> void:
+	var faces := Image.load_from_file(ProjectSettings.globalize_path(FACES))
+	var left := 0
+	var right := 0
+	var left_x0 := 1024
+	var left_y0 := 1024
+	var left_x1 := 0
+	var left_y1 := 0
+	var right_x0 := 1024
+	var right_y0 := 1024
+	var right_x1 := 0
+	var right_y1 := 0
+	var on_ink := 0
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.r <= 0.5 and c.g <= 0.02:
+				continue
+			if faces != null and faces.get_pixel(x, y).a > 0.5:
+				on_ink += 1
+			if c.r <= 0.5:
+				continue
+			if x < 512:
+				left += 1
+				left_x0 = mini(left_x0, x)
+				left_y0 = mini(left_y0, y)
+				left_x1 = maxi(left_x1, x)
+				left_y1 = maxi(left_y1, y)
+			else:
+				right += 1
+				right_x0 = mini(right_x0, x)
+				right_y0 = mini(right_y0, y)
+				right_x1 = maxi(right_x1, x)
+				right_y1 = maxi(right_y1, y)
+	_check(left > 0 and right > 0, "mask has a mark on each side of the 3")
+	_check(on_ink == 0, "mask stays off the printed ink (%d)" % on_ink)
+	_check(left_x1 < 493 and right_x0 > 530, "marks sit clear of the 3 with a gap")
+	# 5 screen px * (10.55 atlas / 2.65 screen) = 19.9 atlas px on the long side.
+	_check(left_x1 - left_x0 + 1 >= 20 or left_y1 - left_y0 + 1 >= 20, "below mark is at least ~5 px at 48 px")
+	_check(right_x1 - right_x0 + 1 >= 20 or right_y1 - right_y0 + 1 >= 20, "above mark is at least ~5 px at 48 px")
 
 
 func _keg(carved: bool) -> DieVisual:
