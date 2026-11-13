@@ -53,11 +53,12 @@ Official Twin Face mark is a **pair-of-dice** (hollow rounded square
 overlapping a pip die; `glyph_twin_face.svg` / the stand-in). The
 stand-in’s ~34×34 pair will not fit around the new 3.
 
-The numeral 3 (plus cream keyline) occupies the hoop-free mid-stave in
-cell 2, atlas box **(492, 87)–(532, 118)**. Leftover room left/right
-inside the hoop-free Y band is only ~3.5 px. Usable gutters are the
-~18 px runs of atlas X between the stave-edge seams and the 3
-(rest-pose **above and below** the upright 3).
+The shipped cue is an Ember `#E8622A` albedo tint on the lid-end atlas
+cell 23 (both barrel ends share that cell). Cell 24, the hoops, is not
+tinted. Emission is 0. The numeral gutter in cell 2 is clean: no stave
+ticks. That gutter is 17 texels and cannot carry a readable mark. The
+numeral 3 still sits in the hoop-free mid-stave of cell 2, atlas box
+**(492, 87)–(532, 118)**.
 
 This mask **splits** the pair: a hollow rounded square above the 3
 (rest-pose top) and a solid rounded square with a 1-pip hole below it.
@@ -65,7 +66,7 @@ Each hard glyph is **10.55 atlas px** (~2.65 px at 48 px die size),
 centred at atlas **(540.86, 102.40)** and **(483.14, 102.40)**. Halo
 radius is 1.58 px (1.3×), then punched so R and G stay off:
 
-- the 3 + keyline, dilated ~3 px
+- the cell 2 numeral gutter, kept clean (no stave ticks; the 17-texel gutter cannot carry a readable mark). The cue is an Ember `#E8622A` albedo tint on atlas cell 23 (both barrel ends). Cell 24 hoops stay untinted. Emission is 0
 - every overlay-ink texel (stave seams and grooves), dilated 1 px
 - the four hoop bands from `batch3_layout.json` (±1 px)
 
@@ -126,10 +127,11 @@ Do not bake Ember, violet, cyan, or red into the mask.
 
 ## Risks
 
-- **48 px tightness.** Each die is ~2.65 px at 48 px die size. They
-  read as cream squares / a pip flanking the 3, not as a detailed
-  pair-of-dice. The 3 and its keyline stay clear and legible (see
-  `twin_48_x4.png`). A 34 px overlapping pair will not fit.
+- **48 px tightness.** The 17-texel gutter in cell 2 cannot carry a
+  readable mark, so it stays clean (no stave ticks). The cue is an
+  Ember `#E8622A` albedo tint on the lid-end atlas cell 23 (both barrel
+  ends). Cell 24 hoops are untinted and emission is 0. A 34 px
+  overlapping pair will not fit.
 - **Halo is clipped** on the stave-seam sides, so G is a 1.3× fringe
   along the barrel and almost none toward the grooves. Expected.
 - **Shared cell.** Both 3 staves sample this mask; lighting is gated

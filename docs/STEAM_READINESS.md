@@ -52,7 +52,7 @@ _Last checked against `main` at `6557c35` (Godot 4.7.2), 2026-10-19._
 - `application/file_version` and `product_version` are empty, so Godot uses
   `application/config/version` (checked: the exe reports `0.1.0.0`, or `0.1.0.<run>` from CI).
 - `application/modify_resources=true` writes the icon and version resources natively (no rcedit needed in 4.7).
-- `exclude_filter="tests/*, tools/*, art/*/src/*, assets/*/src/*"`: tests, dev tools and the art generator scripts (e.g. `make_hearth.gd`, `make_smiles.gd`) don't ship. Everything else is exported
+- `exclude_filter="tests/*, tools/*, art/*/src/*, assets/*/src/*, addons/*"`: tests, dev tools, the art generator scripts (e.g. `make_hearth.gd`, `make_smiles.gd`) and editor addons don't ship. `addons/version_stamp` still runs in the editor during export and stamps the packed `version.cfg`; the game build does not need those scripts. Everything else is exported
   (the game loads from `art/`, `assets/`, `audio/` and `resources/` at runtime).
 - `debug/export_console_wrapper=1`: a console wrapper only for debug exports.
 - **No secrets**: `codesign/enable=false`. Godot 4 keeps the signing identity and password in
