@@ -14,6 +14,10 @@ const FILL_COLOR := Color("#E6E0D6")
 const FILL_ENERGY := 0.45
 const AMBIENT_COLOR := Color("#A89A88")
 const AMBIENT_ENERGY := 0.6
+## Shop camera, looking at the origin. Shelf chips aim their face here.
+const CAM_OFFSET := Vector3(1.4, 1.6, 1.8)
+## Orthographic height. A fitted model is 1 unit on its longest side.
+const CAM_SIZE := 1.75
 
 ## The 3D world the die lives in. Tests read it.
 var view: SubViewport
@@ -22,11 +26,16 @@ var view: SubViewport
 ## Where the model meets the counter, in viewport pixels.
 ## x is the centre of the projected bounds; y is the lowest corner.
 ## (-1, -1) when the rig has no mesh. The counter pad anchors here.
+## A shelf chip uses the round face, not the box around it: that box hangs
+## below the disc once the face turns toward the camera, and the pad would
+## land on the price tag.
 func contact_local() -> Vector2:
 	var model := _subject()
 	var cam := _camera()
 	if model == null or cam == null:
 		return Vector2(-1, -1)
+	if model.name == "ShopChipPivot":
+		return _chip_foot(model, cam)
 	var box := _world_bounds(model)
 	if box.size == Vector3.ZERO:
 		return Vector2(-1, -1)
@@ -46,6 +55,27 @@ func contact_local() -> Vector2:
 		p + s,
 	]:
 		var sp := cam.unproject_position(corner)
+		min_x = minf(min_x, sp.x)
+		max_x = maxf(max_x, sp.x)
+		low_y = maxf(low_y, sp.y)
+	return Vector2((min_x + max_x) * 0.5, low_y)
+
+
+## Lowest point of the round face. Samples the rim so the pad sits under the disc.
+func _chip_foot(model: Node3D, cam: Camera3D) -> Vector2:
+	var chip: Node3D = null
+	for c: Node in model.get_children():
+		if c is Node3D and str(c.name).begins_with("Chip_"):
+			chip = c
+			break
+	if chip == null:
+		return Vector2(-1, -1)
+	var min_x := INF
+	var max_x := -INF
+	var low_y := -INF
+	for i in 16:
+		var a := float(i) / 16.0 * TAU
+		var sp := cam.unproject_position(chip.global_transform * Vector3(cos(a), 0.0, sin(a)))
 		min_x = minf(min_x, sp.x)
 		max_x = maxf(max_x, sp.x)
 		low_y = maxf(low_y, sp.y)
@@ -94,11 +124,24 @@ static func model_path(key: StringName) -> String:
 
 ## The render for `o` at `px` square, or null when there is no model yet.
 ## Dice use a .glb; chips and tokens use ShopChipBuild (AD chips_3d_nov5).
-static func make(o: ShopOffer, px: float) -> ShopDieRender:
+## `shop_chip` is the shelf only: rarity rim, larger scale, face at the camera.
+## The HUD row leaves it off and keeps the clay / brass / bone chip.
+static func make(o: ShopOffer, px: float, shop_chip: bool = false) -> ShopDieRender:
 	if o.kind != ShopOffer.Kind.DIE:
 		# Chips use id; mods/Seals/Draught use art_key for the bone token.
 		var key: StringName = o.id if o.kind == ShopOffer.Kind.CHIP else o.art_key
-		return make_model(ShopChipBuild.make(key), px)
+		var built := ShopChipBuild.make(key)
+		var model: Node3D = built
+		if shop_chip and o.kind == ShopOffer.Kind.CHIP:
+			# Pivot keeps the icon fit. The chip child holds the shelf scale.
+			var pivot := Node3D.new()
+			pivot.name = "ShopChipPivot"
+			pivot.add_child(built)
+			model = pivot
+		var rig := make_model(model, px)
+		if shop_chip and o.kind == ShopOffer.Kind.CHIP:
+			ShopChipBuild.present_for_shop(built, key)
+		return rig
 	var path := model_path(o.art_key)
 	if path == "":
 		return null
@@ -124,9 +167,9 @@ static func make_model(model: Node3D, px: float) -> ShopDieRender:
 	model.position = -box.get_center() * s
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 1.75
+	cam.size = CAM_SIZE
 	r.view.add_child(cam)
-	cam.look_at_from_position(Vector3(1.4, 1.6, 1.8), Vector3.ZERO)
+	cam.look_at_from_position(CAM_OFFSET, Vector3.ZERO)
 	r._add_lights()
 	return r
 

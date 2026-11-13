@@ -26,11 +26,12 @@ var rig: ShopDieRender
 
 ## Size the icon and build its contents for `o`.
 ## Dice, chips and tokens all use the shared ShopDieRender SubViewport.
-func setup(o: ShopOffer, px: float) -> void:
+## `shop_chip` is true on the shelf: the chip faces the camera and takes its tier tint.
+func setup(o: ShopOffer, px: float, shop_chip: bool = false) -> void:
 	offer = o
 	custom_minimum_size = Vector2(px, px)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_build_3d(px)
+	_build_3d(px, shop_chip)
 	queue_redraw()
 
 
@@ -40,8 +41,8 @@ static func model_path(key: StringName) -> String:
 
 
 ## Shared 3D rig: die .glb, chip mesh, or bone token (HANDOFF_SPEC §5 lift).
-func _build_3d(px: float) -> void:
-	var r := ShopDieRender.make(offer, px)
+func _build_3d(px: float, shop_chip: bool) -> void:
+	var r := ShopDieRender.make(offer, px, shop_chip)
 	if r == null:
 		return  # No model yet: _draw shows a plain fallback.
 	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -34,7 +34,8 @@ func setup(o: ShopOffer, embers: int, art_px: float, num_px: int, k: float) -> v
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	tooltip_text = o.display_name
 	icon = ShopIcon.new()
-	(icon as ShopIcon).setup(o, art_px)
+	# Shelf chips only: rarity rim, larger, face-on. Tokens and the HUD row stay as they are.
+	(icon as ShopIcon).setup(o, art_px, o.kind == ShopOffer.Kind.CHIP)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	if o.rare:  # Chip sits above the icon; alignment END keeps icons level.
 		add_child(RareMarks.chip(maxi(8, int(16 * k)), k))

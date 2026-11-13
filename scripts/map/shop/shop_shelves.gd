@@ -55,7 +55,7 @@ static func fill_shelf(shop: ShopScreen, row: Array, area: Rect2, spec: Dictiona
 	var k := shop.k
 	var cell := area.size.x / row.size()
 	var embers := shop.screen.run.progress.embers
-	var chip_x := -1.0  # Leftmost chip item centre; shelf title sits above it.
+	var chip_item: ShopItem = null  # Leftmost chip; its row gets the CHIPS label.
 	var row_items: Array[ShopItem] = []
 	for i in row.size():
 		var it := ShopItem.new()
@@ -70,17 +70,10 @@ static func fill_shelf(shop: ShopScreen, row: Array, area: Rect2, spec: Dictiona
 		it.focus_item.connect(shop._on_focus)
 		it.unfocus_item.connect(func(x: ShopItem) -> void: if not shop.touch_mode: shop.card.unhover(x))
 		shop.items.append(it)
-		if row[i].kind == ShopOffer.Kind.CHIP and chip_x < 0.0:
-			chip_x = it.position.x + it.size.x * 0.5
-	if chip_x >= 0.0:
-		var title := RunTheme.label(ChipStrings.get_text("chip_shelf_label"), int(14 * k), shop.BRASS, true)
-		title.autowrap_mode = TextServer.AUTOWRAP_OFF
-		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		shop.add_child(title)
-		var tw: float = title.get_theme_font(&"font").get_string_size(
-			title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size(&"font_size")).x
-		title.position = Vector2(chip_x - tw * 0.5, area.position.y - 4.0 * k)
-		title.name = "ChipShelfTitle"
+		if row[i].kind == ShopOffer.Kind.CHIP and chip_item == null:
+			chip_item = it
+	if chip_item != null:
+		ShopShelfLabel.place(shop, chip_item, area)
 	place_pads(shop, row_items, cell)
 
 

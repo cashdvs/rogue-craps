@@ -1,6 +1,8 @@
 ## Builds one shared beveled chip (AD chips_3d_nov5 SPEC §1): rim by tier,
 ## face PNG on the top cap, optional RISKY overlay. Also builds the bone
 ## token used to lift flat mod / Seal / Draught icons (HANDOFF_SPEC §5).
+## The shop shelf calls present_for_shop: a larger chip, face toward the
+## camera, rarity tint on the rim only. The HUD row does not.
 class_name ShopChipBuild
 extends RefCounted
 
@@ -22,11 +24,96 @@ const SPOTS := {
 	&"S": {"n": 6, "shape": &"square", "col": Color("#2A221C")},
 	&"R": {"n": 8, "shape": &"diamond", "col": Color("#2A221C")},
 }
+## Shop-shelf rim tints. Keys are the existing ChipLooks tiers (C common,
+## S special, R rare). Presentation only: no new tier, and prices and odds
+## stay where they are. The face PNG is a separate unshaded disc, so the
+## design stays readable while the rim takes the colour.
+const RARITY_TINT := {
+	## Common: muted bone / grey, quiet on the wood counter.
+	&"C": Color("#B7AA96"),
+	## Special: green. This is the middle tier (there is no "uncommon" id).
+	&"S": Color("#2F8F4E"),
+	## Rare: blue, distinct from Special green and Common bone.
+	&"R": Color("#3A6FBF"),
+}
+## Shelf chips are this many times the shared icon fit (1 = the old size).
+## Kept inside 1.25–1.4 so the face still sits in the icon, clear of the tag.
+const SHOP_CHIP_SCALE := 1.32
 
 
 ## A chip or bone-token Node3D for `id` (chip id or token art key).
 static func make(id: StringName) -> Node3D:
 	return _chip(id) if ChipLooks.has(id) else _token(id)
+
+
+## Shelf only, after the rig has fitted the pivot: tint the rim, grow the chip,
+## and point the face (+Y) at the shop camera. The face PNG stays on its own
+## disc, so the design is not recoloured. Hover (`ShopItem.lift`) and any idle
+## slide must move the node, not rotate it: the face normal is this basis Y.
+static func present_for_shop(chip: Node3D, id: StringName) -> void:
+	_apply_rarity_tint(chip, id)
+	_drop_side_stripes(chip)  # Edge boxes were for the old 3/4 view; face-on they stick out.
+	_aim(chip, chip.get_parent() as Node3D, _camera_up())
+
+
+## Copy the rim material and set its albedo to this chip's tier tint.
+## Emission stays 0: the rarity read is the colour, not a glow.
+static func _apply_rarity_tint(chip: Node3D, id: StringName) -> void:
+	var tier: StringName = ChipLooks.look(id).tier
+	var tint: Color = RARITY_TINT[tier]
+	var rim := _rim_mesh(chip)
+	var mat := (rim.material_override as ShaderMaterial).duplicate() as ShaderMaterial
+	mat.set_shader_parameter("albedo", tint)
+	# Dark band stays in the same hue, so the toon steps don't turn the rim brown.
+	mat.set_shader_parameter("shadow_color", tint.darkened(0.55))
+	mat.set_shader_parameter("emission_energy", 0.0)
+	rim.material_override = mat
+
+
+## The beveled body (the first toon material). Spots and the face use other materials.
+static func _rim_mesh(chip: Node3D) -> MeshInstance3D:
+	for c: Node in chip.get_children():
+		if c is MeshInstance3D and (c as MeshInstance3D).material_override is ShaderMaterial:
+			return c
+	return null
+
+
+## Up axis of the shop camera, matching `look_at_from_position` in the rig.
+static func _camera_up() -> Vector3:
+	var look := Basis.looking_at(-ShopDieRender.CAM_OFFSET.normalized(), Vector3.UP)
+	return look.y
+
+
+## Point face +Y at the camera. PlaneMesh puts the texture's top toward local -Z,
+## so local +Z is aimed down the screen and the art stays upright. Scale is
+## restored because setting `basis` clears it.
+static func _aim(chip: Node3D, pivot: Node3D, cam_up: Vector3) -> void:
+	var fit := pivot.scale.x
+	var origin := pivot.position + pivot.basis * (chip.position * fit)
+	var to_cam := (ShopDieRender.CAM_OFFSET - origin).normalized()
+	chip.basis = _basis_face(to_cam, -cam_up)
+	chip.scale = Vector3.ONE * SHOP_CHIP_SCALE
+
+
+## Side stripes are the tall boxes. Top spots are flat (height ~0.01).
+static func _drop_side_stripes(chip: Node3D) -> void:
+	var drop: Array[Node] = []
+	for c: Node in chip.get_children():
+		if c is MeshInstance3D and (c as MeshInstance3D).mesh is BoxMesh:
+			if ((c as MeshInstance3D).mesh as BoxMesh).size.y > 0.05:
+				drop.append(c)
+	for n: Node in drop:
+		chip.remove_child(n)
+		n.free()
+
+
+## Basis with Y pointing at the camera and Z following `up_hint` in the face plane.
+static func _basis_face(toward: Vector3, up_hint: Vector3) -> Basis:
+	var y := toward.normalized()
+	var z := (up_hint - y * up_hint.dot(y)).normalized()
+	var x := y.cross(z).normalized()
+	z = x.cross(y).normalized()
+	return Basis(x, y, z)
 
 
 static func face_path(id: StringName) -> String:
@@ -99,7 +186,8 @@ static func _add_spots(root: Node3D, tier: StringName) -> void:
 		top.material_override = mat
 		top.position = Vector3(x, H * 0.5 + 0.003, z)
 		root.add_child(top)
-		# Side stripe (front-ish half still reads in the 3/4 shop camera).
+		# Side stripe on the rim. The shelf turns the whole chip to face the
+		# camera, so the top spots read on the tinted rim.
 		var side := MeshInstance3D.new()
 		var box := BoxMesh.new()
 		box.size = Vector3(0.10, H * 0.7, 0.04)
