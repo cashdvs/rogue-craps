@@ -59,8 +59,13 @@ func _check_shader() -> void:
 	check("keg_spec_keep" in inc and "keg_body" in inc, "numeral ink can drop the lamp specular")
 	check(is_equal_approx(KegStaveDim.spec_keep(true, 0, 1.0), 0.0), "keg numeral cell keeps no specular")
 	check(is_equal_approx(KegStaveDim.spec_keep(true, 2, 0.0), 0.0), "wood in a numeral cell skips specular too")
+	check(is_equal_approx(KegStaveDim.spec_keep(true, 3, 1.0), 0.0), "gutter cell beside the numerals skips specular")
+	check(is_equal_approx(KegStaveDim.spec_keep(true, 22, 1.0), 0.0), "a seam cell on the stave body skips specular")
+	check(is_equal_approx(KegStaveDim.spec_keep(true, 23, 1.0), 1.0), "lid cell keeps specular")
 	check(is_equal_approx(KegStaveDim.spec_keep(true, 24, 1.0), 1.0), "hoop cell keeps specular")
 	check(is_equal_approx(KegStaveDim.spec_keep(false, 0, 1.0), 1.0), "a non-keg keeps specular on every cell")
+	check(KegStaveDim.SPEC_STRENGTH <= 0.15, "keg spec strength stays at most 0.15")
+	check("smoothstep(0.40, 0.82" in inc, "keg spec lobe is softer and broader than the bone step")
 	for path in [TOON, TWIN]:
 		var src := FileAccess.get_file_as_string(path)
 		check("keg_stave_dim.gdshaderinc" in src, "%s includes the dim" % path.get_file())
@@ -107,7 +112,9 @@ func _check_pair(a: DieVisual, b: DieVisual) -> void:
 	var before := _energy(a)
 	da.set_read(1, true)
 	db.set_read(3, true)
-	check(is_equal_approx(_uniform(a, KegStaveDim.PARAM_BODY), 1.0), "keg A is marked so numeral ink skips specular")
+	check(is_equal_approx(_uniform(a, KegStaveDim.PARAM_BODY), 1.0), "keg A is marked so the stave skips specular")
+	check(is_equal_approx(float(a.body_material.get_shader_parameter(&"spec_strength")), KegStaveDim.SPEC_STRENGTH),
+		"keg spec strength is %.2f" % KegStaveDim.SPEC_STRENGTH)
 	check(is_equal_approx(_uniform(a, KegStaveDim.PARAM_LIT), 1.0), "keg A lit_stave is 1")
 	check(is_equal_approx(_uniform(b, KegStaveDim.PARAM_LIT), 3.0), "keg B lit_stave is 3")
 	check(is_equal_approx(_uniform(a, KegStaveDim.PARAM_DIM), 1.0), "keg A is faded")
@@ -160,6 +167,7 @@ func _check_other(bone: DieVisual) -> void:
 	check(raw == null, "a d6 lit_stave uniform is left unset")
 	raw = body.get_instance_shader_parameter(KegStaveDim.PARAM_BODY)
 	check(raw == null, "a d6 is not marked as a keg body")
+	check(bone.body_material.get_shader_parameter(&"spec_strength") == null, "a d6 keeps its own specular strength")
 	raw = body.get_instance_shader_parameter(KegStaveDim.PARAM_DIM)
 	check(raw == null, "a d6 stave_dim uniform is left unset")
 

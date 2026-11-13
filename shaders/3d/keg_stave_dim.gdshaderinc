@@ -14,10 +14,12 @@
 // This only scales existing ink. It adds no emission.
 //
 // keg_body is 1 on a Powder Keg mesh and 0 everywhere else. The keg body
-// keeps the bone die's specular (spec_size 0.97, cream white). When the up
-// stave reflects the lamp toward the camera, that lobe paints the whole
-// stave white and the scored digit disappears. keg_spec_keep drops specular
-// and rim on numeral ink only. The wood around the digit can still glint.
+// inherits the bone die's hard specular (spec_size 0.97, cream white). That
+// lobe paints the up stave white, and the same highlight on the iron hoops
+// reads as tally marks beside the digit. Specular and rim stay off the whole
+// mustard stave: numeral cells and every gutter cell between them. Only the
+// lids (cell 23) and hoops (cell 24) keep a shine, and that shine is the
+// keg's own soft lobe (keg_spec_lobe) at spec_strength 0.05.
 
 #ifndef KEG_STAVE_DIM_INC
 #define KEG_STAVE_DIM_INC
@@ -50,15 +52,22 @@ float keg_ink_keep(vec2 uv) {
 	return keep;
 }
 
-// 1 = keep specular / rim. On a keg the whole numeral cell (0-2) returns 0.
-// Dropping only the dark texels is not enough: the lobe covers the stave and
-// the blurred ink alpha still lets it through, so the digit stays white.
-// Lids and hoops (cell > 2) keep the highlight. Every other prop stays at 1.
+// 1 = keep specular / rim. On a keg, only the lids (23) and hoops (24) do.
+// Cells 0-22 are the mustard stave, including the gutters between numerals.
 float keg_spec_keep(float cell, float _ink_a) {
-	if (keg_body < 0.5 || cell > 2.5) {
+	if (keg_body < 0.5 || cell > 22.5) {
 		return 1.0;
 	}
 	return 0.0;
+}
+
+// Bone dice use a hard step at spec_size (0.97). A keg uses a wider, soft
+// ramp so the hoops and lids glint without a razor stripe.
+float keg_spec_lobe(float ndh, float hard_size) {
+	if (keg_body > 0.5) {
+		return smoothstep(0.40, 0.82, ndh);
+	}
+	return step(hard_size, ndh);
 }
 
 #endif

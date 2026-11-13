@@ -200,10 +200,10 @@ void light() {
 	DIFFUSE_LIGHT += band / a * lc * light_gain * reach;
 	if (spec_size > 0.0) {
 		vec3 h = normalize(VIEW + LIGHT);
-		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
+		float s = keg_spec_lobe(dot(NORMAL, h), spec_size) * step(0.3, l);
 		// A cold die has no gloss at all (specular 0).
 		float gloss = 1.0 - max(die_cold * (1.0 - die_lit), die_frost);
-		// Keg numeral ink skips this lobe (keg_spec_keep is 1 on every other prop).
+		// Keg stave cells skip this lobe (keg_s is 1 on every other prop).
 		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * gloss * keg_s;
 	}
 	if (rim_strength > 0.0) {

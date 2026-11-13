@@ -139,7 +139,7 @@ void light() {
 	DIFFUSE_LIGHT += band / a * lc * light_gain * reach;
 	if (spec_size > 0.0) {
 		vec3 h = normalize(VIEW + LIGHT);
-		float s = step(spec_size, dot(NORMAL, h)) * step(0.3, l);
+		float s = keg_spec_lobe(dot(NORMAL, h), spec_size) * step(0.3, l);
 		SPECULAR_LIGHT += spec_color.rgb * spec_strength * s * lc * att * keg_s;
 	}
 	if (rim_strength > 0.0) {

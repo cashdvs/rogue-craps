@@ -20,8 +20,12 @@ extends Node
 const PARAM_LIT := &"lit_stave"
 ## Shader instance uniform: 0 = full ink, 1 = other staves faded.
 const PARAM_DIM := &"stave_dim"
-## Shader instance uniform: 1 on this mesh so numeral ink skips the lamp specular.
+## Shader instance uniform: 1 on this mesh so the stave skips the lamp specular.
 const PARAM_BODY := &"keg_body"
+## The keg's own specular strength. The bone lobe is 0.6 and hard. 0.15 still
+## left bright hoop stripes at 48 px; 0.05 is a glint on the hoops and lids
+## only (the stave cells multiply it by 0) and those stripes go away.
+const SPEC_STRENGTH := 0.05
 ## How long the other numerals take to fade after settle (seconds).
 const FADE_SEC := 0.15
 ## Ink mix a dimmed numeral keeps. Matches KEG_DIM_KEEP in the shader include.
@@ -68,13 +72,12 @@ static func cell_of_uv(uv: Vector2) -> int:
 	return y * 5 + x
 
 
-## 1 = the lamp specular stays. 0 = a Powder Keg numeral cell (0, 1 or 2),
-## wood included, so the inherited bone highlight cannot paint that stave
-## white. Lids and hoops (cell > 2) stay at 1. Not a keg: always 1.
-## [param ink_alpha] is unused; the cell is what the shader tests. Matches
+## 1 = the lamp specular and rim stay. 0 = mustard stave on a keg: numeral
+## cells and the gutter cells between them. Lids (23) and hoops (24) stay
+## at 1. Not a keg: always 1. [param ink_alpha] is unused. Matches
 ## keg_spec_keep in the shader include.
 static func spec_keep(is_keg: bool, cell: int, _ink_alpha: float) -> float:
-	if not is_keg or cell > 2:
+	if not is_keg or cell >= 23:
 		return 1.0
 	return 0.0
 
@@ -95,6 +98,8 @@ func _ready() -> void:
 	if die == null:
 		die = get_parent() as DieVisual
 	_push(PARAM_BODY, 1.0)
+	if die != null and die.body_material != null:
+		die.body_material.set_shader_parameter(&"spec_strength", SPEC_STRENGTH)
 	if die != null and not die.settled.is_connected(_on_settled):
 		die.settled.connect(_on_settled)
 	var table := _table()
