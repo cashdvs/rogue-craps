@@ -43,6 +43,7 @@ func _run() -> void:
 	_test_carved(carved)
 	_test_same_body(plain, carved)
 	_test_glyph_only()
+	_test_stave_dim(carved)
 	plain.queue_free()
 	carved.queue_free()
 	print("=== %d passed, %d failed ===" % [_passed, _failed])
@@ -185,6 +186,25 @@ func _test_same_body(plain: DieVisual, carved: DieVisual) -> void:
 	var oa := a.get_shader_parameter("overlay_tex") as Texture2D
 	var ob := b.get_shader_parameter("overlay_tex") as Texture2D
 	_check(oa != null and ob != null and oa.resource_path == ob.resource_path, "Twin body matches non-Twin face atlas")
+
+
+## #270's stave dim and spec skip still apply after the Twin shader swap.
+## Removing the keg_stave_dim include from toon_noir_twin fails this.
+func _test_stave_dim(d: DieVisual) -> void:
+	var src := FileAccess.get_file_as_string("res://shaders/3d/toon_noir_twin.gdshader")
+	_check("keg_stave_dim.gdshaderinc" in src, "twin shader includes keg_stave_dim")
+	_check("keg_ink_keep" in src, "twin shader fades the other numerals")
+	_check("keg_spec_keep" in src and "keg_spec_lobe" in src, "twin shader skips the hard stave specular")
+	var dim := d.get_node_or_null("KegStaveDim") as KegStaveDim
+	_check(dim != null, "Twin keg wears KegStaveDim")
+	_check(is_equal_approx(_flt(d.body_material.get_shader_parameter("spec_strength")), KegStaveDim.SPEC_STRENGTH), "Twin keg spec_strength is 0.05")
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	_check(is_equal_approx(_flt(body.get_instance_shader_parameter(&"keg_body")), 1.0), "Twin keg mesh keg_body is 1")
+	if dim != null:
+		dim.set_read(3, true)
+	_check(is_equal_approx(_flt(body.get_instance_shader_parameter(&"lit_stave")), 3.0), "Twin keg lit_stave is the landed 3")
+	_check(is_equal_approx(_flt(body.get_instance_shader_parameter(&"stave_dim")), 1.0), "Twin keg stave_dim fades the other numerals")
+	_check(_energy(d.body_material) <= 0.3, "stave dim adds no emission above 0.3")
 
 
 ## The dark unlit colour is mixed by the mask's R, not painted on the whole stave.

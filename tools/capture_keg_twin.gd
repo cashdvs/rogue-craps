@@ -51,11 +51,14 @@ func _run() -> void:
 	# Lamp pool, just this side of centre: the #267 numeral row. World +Z is
 	# the near rail. Spacing keeps the barrels from touching.
 	var spots: Array[Vector3] = [Vector3(-0.34, 0, 0.22), Vector3(0, 0, 0.22), Vector3(0.34, 0, 0.22)]
+	# 180: atlas +X (top of the 3) points at the far rail, so the numeral
+	# reads upright on the rest camera. 0 points it at the lens (backwards E).
+	var yaws: Array[float] = [180.0, 180.0, 180.0]
 	for i in dice.size():
 		var tag := dice[i].get_node_or_null("KegValueTag")
 		if tag != null:
 			tag.free()
-		_pose(dice[i], spots[i])
+		_pose(dice[i], spots[i], yaws[i])
 		var screen := cam.unproject_position(dice[i].global_position)
 		print("die %d at %s screen %s" % [i, dice[i].global_position, screen])
 		var glow := dice[i].get_node_or_null("TwinFaceGlow") as TwinFaceGlow
@@ -64,7 +67,7 @@ func _run() -> void:
 	for tw in get_processed_tweens():
 		tw.kill()
 	for i in dice.size():
-		_pose(dice[i], spots[i])
+		_pose(dice[i], spots[i], yaws[i])
 	s.camera.cam.current = true
 	for i in 4:
 		await process_frame
@@ -75,6 +78,13 @@ func _run() -> void:
 		crops.append(_crop(cam, dice[i]))
 		print("die %d shown %d shader %s" % [i, dice[i].shown_value(), dice[i].body_material.shader.resource_path.get_file()])
 	_strip(crops, "strip_48px")
+	# Tight crop of the up stave (atlas cell 2) on the plain keg and the
+	# keg-mask keg, nearest ×8, plus the per-pixel difference in that cell.
+	var plain_stave := _stave(cam, dice[0])
+	var mask_stave := _stave(cam, dice[2])
+	_save_x8(plain_stave, "stave_plain")
+	_save_x8(mask_stave, "stave_mask")
+	_diff_staves(plain_stave, mask_stave)
 	print("capture_keg_twin: wrote ", _out)
 	quit(0)
 
@@ -90,13 +100,16 @@ func _keg(carved: bool) -> TableDie:
 	return td
 
 
-## Barrel along world X, a 3 stave up, tipped a little toward the camera
-## so that stave stays the read face and still fills the view.
-func _pose(d: DieVisual, at: Vector3) -> void:
+## Flat rest, the same way the numeral shots lie: barrel along world X, the
+## 3 stave exactly up (no tip). [param yaw_deg] turns that stave about its
+## normal. 180 puts the atlas +X (the top of the 3) toward the far rail,
+## which is up on the rest camera. 0 points it at the camera, so the 3
+## reads as a backwards E.
+func _pose(d: DieVisual, at: Vector3, yaw_deg: float) -> void:
 	var dirs: Array = DieHullData.SHAPES[&"keg"]["dirs"]
 	var up_local: Vector3 = (dirs[5] as Vector3).normalized()
 	var stand := Basis(Quaternion(up_local, Vector3.UP))
-	var basis := Basis(Vector3.RIGHT, deg_to_rad(20.0)) * stand
+	var basis := Basis(Vector3.UP, deg_to_rad(yaw_deg)) * stand
 	d.faces.quaternion = Quaternion.IDENTITY
 	d.global_basis = basis
 	d.global_position = Vector3(at.x, PolyDie.rest_height(&"keg", basis), at.z)
@@ -125,6 +138,62 @@ func _crop(cam: Camera3D, d: DieVisual) -> Image:
 	square.blit_rect(crop, Rect2i(0, 0, crop.get_width(), crop.get_height()), Vector2i((side - crop.get_width()) / 2, (side - crop.get_height()) / 2))
 	square.resize(CROP, CROP, Image.INTERPOLATE_NEAREST)
 	return square
+
+
+## Screen rect of the up stave's numeral cell (UV cell 2) on [param d].
+func _stave(cam: Camera3D, d: DieVisual) -> Image:
+	var img := root.get_texture().get_image()
+	var k := float(img.get_width()) / root.get_visible_rect().size.x
+	var body := d.faces.get_node("Body") as MeshInstance3D
+	var arr := body.mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+	var xf := body.global_transform
+	var min_p := Vector2(INF, INF)
+	var max_p := Vector2(-INF, -INF)
+	for t in idx.size() / 3:
+		var uv: Vector2 = uvs[idx[t * 3]]
+		if uv.x < 0.4 or uv.x >= 0.6 or uv.y < 0.0 or uv.y >= 0.2:
+			continue
+		var n := (xf.basis * (arr[Mesh.ARRAY_NORMAL][idx[t * 3]] as Vector3)).normalized()
+		if n.y < 0.5:
+			continue
+		for c in 3:
+			var p := cam.unproject_position(xf * verts[idx[t * 3 + c]]) * k
+			min_p = min_p.min(p)
+			max_p = max_p.max(p)
+	var pad := 2
+	var rect := Rect2i(int(min_p.x) - pad, int(min_p.y) - pad, int(ceil(max_p.x - min_p.x)) + pad * 2, int(ceil(max_p.y - min_p.y)) + pad * 2)
+	rect = rect.intersection(Rect2i(0, 0, img.get_width(), img.get_height()))
+	var crop := img.get_region(rect)
+	crop.convert(Image.FORMAT_RGBA8)
+	return crop
+
+
+func _save_x8(crop: Image, name: String) -> void:
+	var big := crop.duplicate() as Image
+	big.resize(maxi(crop.get_width() * 8, 8), maxi(crop.get_height() * 8, 8), Image.INTERPOLATE_NEAREST)
+	big.save_png(_out + name + "_x8.png")
+	print("saved ", name, "_x8 ", crop.get_width(), "x", crop.get_height())
+
+
+## Max and mean per-pixel RGB distance (0..255) inside the numeral cell.
+func _diff_staves(plain: Image, mask: Image) -> void:
+	var b := mask.duplicate() as Image
+	if b.get_size() != plain.get_size():
+		b.resize(plain.get_width(), plain.get_height(), Image.INTERPOLATE_NEAREST)
+	var n := plain.get_width() * plain.get_height()
+	var sum := 0.0
+	var peak := 0.0
+	for y in plain.get_height():
+		for x in plain.get_width():
+			var pa := plain.get_pixel(x, y)
+			var pb := b.get_pixel(x, y)
+			var dist := (absf(pa.r - pb.r) + absf(pa.g - pb.g) + absf(pa.b - pb.b)) / 3.0 * 255.0
+			sum += dist
+			peak = maxf(peak, dist)
+	print("numeral cell diff: max %.2f mean %.2f over %d px" % [peak, sum / float(maxi(n, 1)), n])
 
 
 func _strip(crops: Array[Image], name: String) -> void:
